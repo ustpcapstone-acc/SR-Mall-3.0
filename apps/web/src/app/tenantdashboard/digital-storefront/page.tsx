@@ -59,6 +59,7 @@ export default function DigitalStorefrontPage() {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [activeTab, setActiveTab] = useState<
     "identity" | "gallery" | "catalog" | "postsales"
   >("identity");
@@ -98,6 +99,10 @@ export default function DigitalStorefrontPage() {
 
   const handleSave = async () => {
     if (!user?.id) return;
+    if (uploading) {
+      showToast("Please wait for the image to finish uploading.", "error");
+      return;
+    }
     setSaving(true);
     const res = await updateStorefrontAction(user.id, profile);
     if (res.success && res.data) {
@@ -112,26 +117,41 @@ export default function DigitalStorefrontPage() {
     setSaving(false);
   };
 
+  const uploadFileToServer = async (file: File): Promise<string | null> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("folder", "storefront");
+    try {
+      const res = await fetch("/api/upload", { method: "POST", body: formData });
+      const data = await res.json();
+      if (!res.ok || !data.url) throw new Error(data.error || "Upload failed");
+      return data.url;
+    } catch (err: any) {
+      showToast("Image upload failed: " + err.message, "error");
+      return null;
+    }
+  };
+
   const handleImageUpload = async (
     e: React.ChangeEvent<HTMLInputElement>,
     field: "logo_url" | "gallery_urls",
   ) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
-    const toBase64 = (f: File): Promise<string> =>
-      new Promise((res, rej) => {
-        const r = new FileReader();
-        r.readAsDataURL(f);
-        r.onload = () => res(r.result as string);
-        r.onerror = rej;
-      });
-    const results = await Promise.all(Array.from(files).map(toBase64));
+    setUploading(true);
+    const urls: string[] = [];
+    for (const file of Array.from(files)) {
+      const url = await uploadFileToServer(file);
+      if (url) urls.push(url);
+    }
+    setUploading(false);
+    if (urls.length === 0) return;
     if (field === "logo_url") {
-      updateField("logo_url", results[0]);
+      updateField("logo_url", urls[0]);
     } else {
       setProfile((prev) => ({
         ...prev,
-        gallery_urls: [...(prev.gallery_urls || []), ...results],
+        gallery_urls: [...(prev.gallery_urls || []), ...urls],
       }));
     }
   };
@@ -185,19 +205,10 @@ export default function DigitalStorefrontPage() {
   ) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const toBase64 = (f: File): Promise<string> =>
-      new Promise((res, rej) => {
-        const r = new FileReader();
-        r.readAsDataURL(f);
-        r.onload = () => res(r.result as string);
-        r.onerror = rej;
-      });
-    try {
-      const base64 = await toBase64(file);
-      updateProduct(index, "image_url", base64);
-    } catch (err) {
-      console.error(err);
-    }
+    setUploading(true);
+    const url = await uploadFileToServer(file);
+    setUploading(false);
+    if (url) updateProduct(index, "image_url", url);
   };
 
   const addPostSale = () => {
@@ -225,14 +236,10 @@ export default function DigitalStorefrontPage() {
   const handlePostSaleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const toBase64 = (f: File): Promise<string> => new Promise((res, rej) => {
-      const r = new FileReader(); r.readAsDataURL(f);
-      r.onload = () => res(r.result as string); r.onerror = rej;
-    });
-    try {
-      const base64 = await toBase64(file);
-      updatePostSale(index, "image_url", base64);
-    } catch (err) { console.error(err); }
+    setUploading(true);
+    const url = await uploadFileToServer(file);
+    setUploading(false);
+    if (url) updatePostSale(index, "image_url", url);
   };
 
   const galleryUrls = getGalleryUrls(profile.gallery_urls);
@@ -371,18 +378,16 @@ export default function DigitalStorefrontPage() {
             {/* Save */}
             <button
               onClick={handleSave}
-              disabled={saving}
+              disabled={saving || uploading}
               className="flex items-center gap-2 px-4 sm:px-6 py-2.5 bg-primary text-white rounded-xl font-black text-xs uppercase tracking-widest shadow-lg shadow-primary/20 hover:bg-primary/90 active:scale-95 transition-all disabled:opacity-60"
             >
-              {saving ? (
-                <Loader2 size={14} className="animate-spin" />
+              {uploading ? (
+                <><Loader2 size={14} className="animate-spin" /><span className="hidden sm:inline">Uploading...</span><span className="sm:hidden">...</span></>
+              ) : saving ? (
+                <><Loader2 size={14} className="animate-spin" /><span className="hidden sm:inline">Saving...</span><span className="sm:hidden">Saving</span></>
               ) : (
-                <Save size={14} />
+                <><Save size={14} /><span className="hidden sm:inline">Save & Sync</span><span className="sm:hidden">Save</span></>
               )}
-              <span className="hidden sm:inline">
-                {saving ? "Saving..." : "Save & Sync"}
-              </span>
-              <span className="sm:hidden">Save</span>
             </button>
           </div>
         </div>
