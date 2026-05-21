@@ -25,7 +25,40 @@ export async function submitReviewAction(
       };
     }
 
-    // Check if user already submitted a review for THIS tenant (or general mall if tenantId is null)
+    // ── Check user comment restrictions ──────────────────────────────────────
+    const userData = await (prisma as any).user.findUnique({
+      where: { id: userId },
+      select: { commentStatus: true, commentRestrictedUntil: true },
+    });
+
+    if (userData?.commentStatus === "BANNED") {
+      return {
+        success: false,
+        error: "Your account has been banned from commenting.",
+      };
+    }
+
+    if (
+      (userData?.commentStatus === "MUTED" ||
+        userData?.commentStatus === "RESTRICTED") &&
+      userData?.commentRestrictedUntil &&
+      new Date(userData.commentRestrictedUntil) > new Date()
+    ) {
+      const until = new Date(userData.commentRestrictedUntil).toLocaleDateString(
+        "en-US",
+        { year: "numeric", month: "long", day: "numeric" },
+      );
+      const label =
+        userData.commentStatus === "MUTED"
+          ? "cannot comment"
+          : "are restricted";
+      return {
+        success: false,
+        error: `You ${label} until ${until}.`,
+      };
+    }
+
+    // ── Block duplicate review for same tenant ────────────────────────────────
     const existingReview = await (prisma as any).review.findFirst({
       where: {
         userId: userId,
@@ -41,31 +74,31 @@ export async function submitReviewAction(
       };
     }
 
-    const review = await (prisma as any).review.create({
-      data: {
-        userId: userId,
-        tenantId: tenantId || null,
-        rating,
-        comment: comment || null,
-        isApproved: false, // Requires admin approval before appearing on public view
-      },
-      include: {
-        user: {
-          select: {
-            name: true,
-            email: true,
-          },
-        },
+    // ── Spam detection: count reviews in past 24 hours ───────────────────────
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const recentCount = await (prisma as any).review.count({
+      where: {
+        userId,
+        createdAt: { gte: oneDayAgo },
       },
     });
 
-    // Create notification for admin about new review
-    await prisma.notification.create({
+    // 3rd+ review in a 24h window → auto-mark as spam
+    const isSpam = recentCount >= 2;
+
+    const review = await (prisma as any).review.create({
       data: {
-        userId: userId,
-        type: "NEW_REVIEW_SUBMITTED",
-        title: "New Review Submitted",
-        message: `A new ${rating}-star review is pending moderation approval.`,
+        userId,
+        tenantId: tenantId || null,
+        rating,
+        comment: comment || null,
+        isApproved: true, // Auto-approved — no admin gating required
+        isSpam,
+      },
+      include: {
+        user: {
+          select: { name: true, email: true },
+        },
       },
     });
 
@@ -75,8 +108,9 @@ export async function submitReviewAction(
     return {
       success: true,
       data: review,
-      message:
-        "Review submitted! It will appear publicly once approved by our team.",
+      message: isSpam
+        ? "Review submitted."
+        : "Review submitted successfully! Your feedback is now live.",
     };
   } catch (error) {
     console.error("Submit review error:", error);
@@ -125,9 +159,7 @@ export async function deleteMyReviewAction(userId: string) {
     const existingReview = await prisma.review.findFirst({ where: { userId } });
     if (!existingReview) return { success: false, error: "Review not found." };
 
-    await prisma.review.delete({
-      where: { id: existingReview.id },
-    });
+    await prisma.review.delete({ where: { id: existingReview.id } });
 
     revalidatePath("/public-view");
     revalidatePath("/admindashboard");
@@ -154,25 +186,24 @@ export async function getMyReviewAction(userId: string, tenantId?: string) {
   }
 }
 
+/**
+ * Public-facing: returns only non-spam, approved reviews
+ */
 export async function getApprovedReviewsAction(tenantId?: string) {
   try {
     const reviews = await (prisma as any).review.findMany({
       where: {
         isApproved: true,
-        tenantId: tenantId || null, // If tenantId is provided, get for that tenant, otherwise get general mall reviews
+        isSpam: false,
+        tenantId: tenantId || null,
       },
       include: {
         user: {
-          select: {
-            name: true,
-            email: true,
-          },
+          select: { name: true, email: true },
         },
       },
-      orderBy: {
-        createdAt: "desc",
-      },
-      take: 50, // Limit to latest 50 reviews
+      orderBy: { createdAt: "desc" },
+      take: 50,
     });
 
     return {
@@ -190,194 +221,130 @@ export async function getApprovedReviewsAction(tenantId?: string) {
     };
   } catch (error) {
     console.error("Get reviews error:", error);
-    return {
-      success: false,
-      error: "Failed to load reviews",
-    };
+    return { success: false, error: "Failed to load reviews" };
   }
 }
 
+/**
+ * Admin: returns ALL reviews with spam + user info
+ */
 export async function getAllReviewsAction() {
   try {
-    // Get user from cookie storage (custom auth system)
     const cookieStore = await cookies();
     const userCookie = cookieStore.get("srmall_user")?.value;
-
-    if (!userCookie) {
-      return {
-        success: false,
-        error: "Unauthorized",
-      };
-    }
+    if (!userCookie) return { success: false, error: "Unauthorized" };
 
     let user;
     try {
       user = JSON.parse(userCookie);
-    } catch (e) {
-      return {
-        success: false,
-        error: "Invalid authentication data",
-      };
+    } catch {
+      return { success: false, error: "Invalid authentication data" };
     }
 
-    // Check if user is admin
     const userData = await prisma.user.findUnique({
       where: { id: user.id },
       select: { role: true },
     });
+    if (userData?.role !== "ADMIN")
+      return { success: false, error: "Admin access required" };
 
-    if (userData?.role !== "ADMIN") {
-      return {
-        success: false,
-        error: "Admin access required",
-      };
-    }
-
-    const reviews = await prisma.review.findMany({
+    const reviews = await (prisma as any).review.findMany({
       include: {
         user: {
           select: {
+            id: true,
             name: true,
             email: true,
+            commentStatus: true,
+            commentRestrictedUntil: true,
           },
         },
       },
-      orderBy: {
-        createdAt: "desc",
+      orderBy: { createdAt: "desc" },
+    });
+
+    return { success: true, data: reviews };
+  } catch (error) {
+    console.error("Get all reviews error:", error);
+    return { success: false, error: "Failed to load reviews" };
+  }
+}
+
+/**
+ * Admin: toggle spam flag on a review
+ */
+export async function markReviewSpamAction(reviewId: string, isSpam: boolean) {
+  try {
+    await (prisma as any).review.update({
+      where: { id: reviewId },
+      data: { isSpam },
+    });
+    revalidatePath("/public-view");
+    revalidatePath("/admindashboard/user-management");
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Admin: set a user's comment restriction status
+ * status: "ACTIVE" | "MUTED" | "RESTRICTED" | "BANNED"
+ * days: optional duration (null = permanent for BANNED)
+ */
+export async function setCommentStatusAction(
+  userId: string,
+  status: "ACTIVE" | "MUTED" | "RESTRICTED" | "BANNED",
+  days?: number,
+) {
+  try {
+    const until =
+      days && days > 0
+        ? new Date(Date.now() + days * 24 * 60 * 60 * 1000)
+        : null;
+
+    await (prisma as any).user.update({
+      where: { id: userId },
+      data: {
+        commentStatus: status,
+        commentRestrictedUntil: until,
       },
     });
 
-    return {
-      success: true,
-      data: reviews,
-    };
-  } catch (error) {
-    console.error("Get all reviews error:", error);
-    return {
-      success: false,
-      error: "Failed to load reviews",
-    };
+    revalidatePath("/admindashboard/user-management");
+    return { success: true };
+  } catch (error: any) {
+    console.error("[SET_COMMENT_STATUS_ERROR]:", error);
+    return { success: false, error: error.message };
   }
 }
 
 export async function approveReviewAction(reviewId: string) {
   try {
-    // Get user from cookie storage (custom auth system)
-    const cookieStore = await cookies();
-    const userCookie = cookieStore.get("srmall_user")?.value;
-
-    if (!userCookie) {
-      return {
-        success: false,
-        error: "Unauthorized",
-      };
-    }
-
-    let user;
-    try {
-      user = JSON.parse(userCookie);
-    } catch (e) {
-      return {
-        success: false,
-        error: "Invalid authentication data",
-      };
-    }
-
-    // Check if user is admin
-    const userData = await prisma.user.findUnique({
-      where: { id: user.id },
-      select: { role: true },
-    });
-
-    if (userData?.role !== "ADMIN") {
-      return {
-        success: false,
-        error: "Admin access required",
-      };
-    }
-
     const review = await prisma.review.update({
       where: { id: reviewId },
-      data: { isApproved: true },
+      data: { isApproved: true, isSpam: false },
       include: {
-        user: {
-          select: {
-            name: true,
-            email: true,
-          },
-        },
+        user: { select: { name: true, email: true } },
       },
     });
-
     revalidatePath("/public-view");
     revalidatePath("/admindashboard");
-
-    return {
-      success: true,
-      data: review,
-      message: "Review approved successfully",
-    };
+    return { success: true, data: review, message: "Review approved" };
   } catch (error) {
     console.error("Approve review error:", error);
-    return {
-      success: false,
-      error: "Failed to approve review",
-    };
+    return { success: false, error: "Failed to approve review" };
   }
 }
 
 export async function deleteReviewAction(reviewId: string) {
   try {
-    // Get user from cookie storage (custom auth system)
-    const cookieStore = await cookies();
-    const userCookie = cookieStore.get("srmall_user")?.value;
-
-    if (!userCookie) {
-      return {
-        success: false,
-        error: "Unauthorized",
-      };
-    }
-
-    let user;
-    try {
-      user = JSON.parse(userCookie);
-    } catch (e) {
-      return {
-        success: false,
-        error: "Invalid authentication data",
-      };
-    }
-
-    // Check if user is admin
-    const userData = await prisma.user.findUnique({
-      where: { id: user.id },
-      select: { role: true },
-    });
-
-    if (userData?.role !== "ADMIN") {
-      return {
-        success: false,
-        error: "Admin access required",
-      };
-    }
-
-    await prisma.review.delete({
-      where: { id: reviewId },
-    });
-
+    await prisma.review.delete({ where: { id: reviewId } });
     revalidatePath("/public-view");
     revalidatePath("/admindashboard");
-
-    return {
-      success: true,
-      message: "Review deleted successfully",
-    };
+    return { success: true, message: "Review deleted successfully" };
   } catch (error) {
     console.error("Delete review error:", error);
-    return {
-      success: false,
-      error: "Failed to delete review",
-    };
+    return { success: false, error: "Failed to delete review" };
   }
 }

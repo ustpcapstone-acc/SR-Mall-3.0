@@ -54,7 +54,6 @@ export const FeedbackSection = ({
     message: string;
   } | null>(null);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
-  const [myPendingReview, setMyPendingReview] = useState<any>(null);
 
   // ── Data Loaders ───────────────────────────────────────
   const loadReviews = async () => {
@@ -70,17 +69,6 @@ export const FeedbackSection = ({
     }
   };
 
-  const loadMyPendingReview = async (userId: string) => {
-    try {
-      const result = await getMyReviewAction(userId, tenantId);
-      if (result.success && result.data && !(result.data as any).isApproved) {
-        setMyPendingReview(result.data);
-      } else {
-        setMyPendingReview(null);
-      }
-    } catch {}
-  };
-
   // ── Derived ────────────────────────────────────────────
   const myReview = user
     ? reviews.find((r) => r.user.email === user.email)
@@ -90,14 +78,6 @@ export const FeedbackSection = ({
   useEffect(() => {
     loadReviews();
   }, []);
-
-  useEffect(() => {
-    if (user?.id) {
-      loadMyPendingReview(user.id);
-    } else {
-      setMyPendingReview(null);
-    }
-  }, [user?.id]);
 
   useEffect(() => {
     if (myReview && rating === 0) {
@@ -162,15 +142,11 @@ export const FeedbackSection = ({
       if (result.success) {
         setSubmitMessage({
           type: "success",
-          message: result.message || "Review submitted successfully!",
+          message: result.message || "Your review is now live!",
         });
         setRating(0);
         setComment("");
-        // Reload reviews + check pending state
-        setTimeout(() => {
-          loadReviews();
-          if (user?.id) loadMyPendingReview(user.id);
-        }, 1000);
+        setTimeout(loadReviews, 800);
       } else {
         setSubmitMessage({
           type: "error",
@@ -304,41 +280,7 @@ export const FeedbackSection = ({
                 "custom-scrollbar",
               )}
             >
-              {/* Pending review notice for logged-in user */}
-              {myPendingReview && (
-                <div
-                  className={clsx(
-                    "p-3",
-                    "sm:p-5",
-                    "bg-amber-50",
-                    "dark:bg-amber-950/20",
-                    "rounded-xl",
-                    "sm:rounded-2xl",
-                    "border",
-                    "border-amber-200",
-                    "dark:border-amber-800/50",
-                  )}
-                >
-                  <div className="flex items-start gap-2 sm:gap-3">
-                    <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <CheckCircle
-                        size={14}
-                        className="text-amber-600 sm:size-4"
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-amber-700 dark:text-amber-400 mb-0.5">
-                        Review Pending
-                      </p>
-                      <p className="text-[10px] sm:text-xs text-amber-600 dark:text-amber-500 font-medium line-clamp-2">
-                        {myPendingReview.comment
-                          ? `"${myPendingReview.comment}"`
-                          : `${myPendingReview.rating}-star review.`}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
+              {/* Reviews appear instantly — no approval needed */}
               {isLoading ? (
                 <div className={clsx("text-center", "py-12")}>
                   <div

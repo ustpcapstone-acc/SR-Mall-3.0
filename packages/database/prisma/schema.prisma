@@ -27,7 +27,9 @@ model User {
   publicViewConfigs      PublicViewConfig[]
   reviews                Review[]
   tenant                 Tenant?
-  isBlacklisted         Boolean                 @default(false)
+  isBlacklisted          Boolean                 @default(false)
+  commentStatus          String                  @default("ACTIVE")
+  commentRestrictedUntil DateTime?
   eventInquiries         EventInquiry[]
 }
 
@@ -194,6 +196,7 @@ model Review {
   rating     Int
   comment    String?
   isApproved Boolean  @default(false)
+  isSpam     Boolean  @default(false)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
