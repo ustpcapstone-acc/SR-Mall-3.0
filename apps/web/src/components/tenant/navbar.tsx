@@ -54,29 +54,10 @@ export const TenantNavbar = ({ onMenuClick }: TenantNavbarProps) => {
                 </span>
               </div>
             </div>
-          </Link>
-
-          {/* Desktop Search */}
-          <div className="relative w-full max-w-xs hidden lg:block group ml-4">
-            <div className="absolute -inset-0.5 bg-gradient-to-r from-primary to-blue-600 rounded-xl blur opacity-0 group-hover:opacity-20 transition duration-500"></div>
-            <div className="relative flex items-center bg-slate-50 dark:bg-zinc-900 rounded-xl border border-slate-200 dark:border-white/10 p-2 shadow-sm">
-              <Search size={16} className="ml-2 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Search..."
-                className="w-full px-2 py-1 bg-transparent text-charcoal dark:text-white focus:outline-none text-sm font-medium placeholder:text-slate-400"
-              />
-            </div>
-          </div>
-        </div>
+          </Link>        </div>
 
         {/* Right: Actions & Profile */}
         <div className="flex items-center gap-1 sm:gap-3">
-          {/* Mobile Search Icon */}
-          <button className="lg:hidden p-2 text-slate-400 hover:text-primary transition-colors">
-            <Search size={20} />
-          </button>
-
           <DashboardThemeToggle />
 
           {/* Notification Bell */}
