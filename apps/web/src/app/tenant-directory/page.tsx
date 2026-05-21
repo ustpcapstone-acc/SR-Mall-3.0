@@ -20,12 +20,13 @@ import {
 import Link from "next/link";
 import { getAllStorefrontsAction } from "@/app/actions/tenant";
 import { useAuth } from "@/app/providers";
+import { spaCache } from "@/utils/cache";
 import clsx from "clsx";
 
 export default function TenantDirectoryPage() {
   const { isAuthenticated } = useAuth();
-  const [shops, setShops] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [shops, setShops] = useState<any[]>(() => spaCache.get("public_shops") || []);
+  const [loading, setLoading] = useState(() => !spaCache.has("public_shops"));
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All Categories");
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -44,14 +45,16 @@ export default function TenantDirectoryPage() {
   ];
 
   useEffect(() => {
-    fetchShops();
+    const hasCache = spaCache.has("public_shops");
+    fetchShops(hasCache);
   }, []);
 
-  const fetchShops = async () => {
-    setLoading(true);
+  const fetchShops = async (isBackground = false) => {
+    if (!isBackground) setLoading(true);
     const res = await getAllStorefrontsAction();
     if (res.success && res.data) {
       setShops(res.data);
+      spaCache.set("public_shops", res.data);
     }
     setLoading(false);
   };

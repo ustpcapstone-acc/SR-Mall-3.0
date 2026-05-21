@@ -29,6 +29,7 @@ import {
 import Link from "next/link";
 import { LoginModal } from "@/components/login-modal";
 import { useAuth } from "@/app/providers";
+import { spaCache } from "@/utils/cache";
 import { DigitalStorefront } from "@/types/storefront";
 import { getAllStorefrontsAction } from "@/app/actions/tenant";
 import { getAreaSlots } from "@/app/actions/space-slot";
@@ -53,12 +54,12 @@ export default function PublicDigitalConcierge() {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [visibleSlotsCount, setVisibleSlotsCount] = useState(4);
   const [isLoadingMoreSlots, setIsLoadingMoreSlots] = useState(false);
-  const [config, setConfig] = useState<any>(null);
+  const [config, setConfig] = useState<any>(() => spaCache.get("public_config") || null);
   const [selectedCategory, setSelectedCategory] = useState("All Categories");
-  const [shops, setShops] = useState<DigitalStorefront[]>([]);
-  const [loadingShops, setLoadingShops] = useState(true);
-  const [slots, setSlots] = useState<AreaSlot[]>([]);
-  const [loadingSlots, setLoadingSlots] = useState(true);
+  const [shops, setShops] = useState<DigitalStorefront[]>(() => spaCache.get("public_shops") || []);
+  const [loadingShops, setLoadingShops] = useState(() => !spaCache.has("public_shops"));
+  const [slots, setSlots] = useState<AreaSlot[]>(() => spaCache.get("public_slots") || []);
+  const [loadingSlots, setLoadingSlots] = useState(() => !spaCache.has("public_slots"));
   const [selectedSlot, setSelectedSlot] = useState<AreaSlot | null>(null);
 
   // Dynamic Chat Intros
@@ -73,11 +74,11 @@ export default function PublicDigitalConcierge() {
   );
 
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
-  const [ads, setAds] = useState<any[]>([]);
-  const [tenantPromos, setTenantPromos] = useState<any[]>([]);
-  const [carouselItems, setCarouselItems] = useState<any[]>([]);
+  const [ads, setAds] = useState<any[]>(() => spaCache.get("public_ads") || []);
+  const [tenantPromos, setTenantPromos] = useState<any[]>(() => spaCache.get("public_promos") || []);
+  const [carouselItems, setCarouselItems] = useState<any[]>(() => spaCache.get("public_carousel") || []);
   const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
-  const [allFeaturedProducts, setAllFeaturedProducts] = useState<any[]>([]);
+  const [allFeaturedProducts, setAllFeaturedProducts] = useState<any[]>(() => spaCache.get("public_featured_products") || []);
   const productsCarouselRef = useRef<HTMLDivElement>(null);
   const [activeProductIdx, setActiveProductIdx] = useState(0);
 
@@ -106,10 +107,11 @@ export default function PublicDigitalConcierge() {
   };
 
   useEffect(() => {
+    const hasCache = spaCache.has("public_shops");
     fetchConfig();
-    fetchShops();
-    fetchSlots();
-    fetchAds();
+    fetchShops(hasCache);
+    fetchSlots(hasCache);
+    fetchAds(hasCache);
     fetchCarousel();
 
     // Refetch when page becomes visible again
@@ -129,12 +131,13 @@ export default function PublicDigitalConcierge() {
     try {
       const data = await getPublicViewConfigAction();
       setConfig(data);
+      spaCache.set("public_config", data);
     } catch (e) {
       console.error(e);
     }
   };
 
-  const fetchAds = async () => {
+  const fetchAds = async (isBackground = false) => {
     try {
       console.log("🔍 Public view: Fetching active ads...");
       const adsData = await getActiveMallAds();
@@ -151,6 +154,8 @@ export default function PublicDigitalConcierge() {
 
       setAds(adsData);
       setTenantPromos(tenantPromosData);
+      spaCache.set("public_ads", adsData);
+      spaCache.set("public_promos", tenantPromosData);
 
       console.log("📊 Public view: Setting ads state:", adsData);
       console.log(
@@ -166,6 +171,7 @@ export default function PublicDigitalConcierge() {
     try {
       const data = await getPublicViewCarouselAction();
       setCarouselItems(data);
+      spaCache.set("public_carousel", data);
     } catch (error) {
       console.error("❌ Public view: Error fetching carousel:", error);
     }
@@ -177,11 +183,12 @@ export default function PublicDigitalConcierge() {
     fetchAds();
   };
 
-  const fetchShops = async () => {
-    setLoadingShops(true);
+  const fetchShops = async (isBackground = false) => {
+    if (!isBackground) setLoadingShops(true);
     const res = await getAllStorefrontsAction();
     if (res.success && res.data) {
       setShops(res.data);
+      spaCache.set("public_shops", res.data);
 
       // Aggregate some featured products for the landing page
       const featured = res.data.flatMap((shop: any) =>
@@ -191,18 +198,19 @@ export default function PublicDigitalConcierge() {
           shopId: shop.id,
         })),
       );
-      setAllFeaturedProducts(
-        featured.sort(() => 0.5 - Math.random()).slice(0, 8),
-      );
+      const randomFeatured = featured.sort(() => 0.5 - Math.random()).slice(0, 8);
+      setAllFeaturedProducts(randomFeatured);
+      spaCache.set("public_featured_products", randomFeatured);
     }
     setLoadingShops(false);
   };
 
-  const fetchSlots = async () => {
-    setLoadingSlots(true);
+  const fetchSlots = async (isBackground = false) => {
+    if (!isBackground) setLoadingSlots(true);
     const res = await getAreaSlots();
     if (res.success && res.data) {
       setSlots(res.data);
+      spaCache.set("public_slots", res.data);
     }
     setLoadingSlots(false);
   };

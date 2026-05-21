@@ -20,6 +20,7 @@ import {
 import { DigitalStorefront } from "@/types/storefront";
 import { getStorefrontByIdAction } from "@/app/actions/tenant";
 import { useAuth } from "@/app/providers";
+import { spaCache } from "@/utils/cache";
 import { ChatBox } from "@/components/chat-box";
 import { FeedbackSection } from "@/components/feedback-section";
 import { LoginModal } from "@/components/login-modal";
@@ -50,8 +51,12 @@ export default function ShopProfilePage() {
   const params = useParams();
   const router = useRouter();
   const { isAuthenticated } = useAuth();
-  const [shop, setShop] = useState<DigitalStorefront | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [shop, setShop] = useState<DigitalStorefront | null>(() => {
+    return params?.id ? spaCache.get("shop_profile_" + params.id) : null;
+  });
+  const [loading, setLoading] = useState(() => {
+    return params?.id ? !spaCache.has("shop_profile_" + params.id) : true;
+  });
   const [error, setError] = useState<string | null>(null);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -62,11 +67,17 @@ export default function ShopProfilePage() {
   useEffect(() => {
     async function loadShop() {
       if (params?.id) {
+        const hasCache = spaCache.has("shop_profile_" + params.id);
+        if (!hasCache) setLoading(true);
         const res = await getStorefrontByIdAction(params.id as string);
         if (res.success && res.data) {
           setShop(res.data);
+          spaCache.set("shop_profile_" + params.id, res.data);
         } else {
-          setError(res.error || "Shop not found");
+          // If we have cached data but API failed, let's keep showing cached data but log error
+          if (!hasCache) {
+            setError(res.error || "Shop not found");
+          }
         }
         setLoading(false);
       }

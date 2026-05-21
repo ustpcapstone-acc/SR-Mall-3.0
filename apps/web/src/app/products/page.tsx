@@ -20,12 +20,13 @@ import {
 import Link from "next/link";
 import { getAllStorefrontsAction } from "@/app/actions/tenant";
 import { useAuth } from "@/app/providers";
+import { spaCache } from "@/utils/cache";
 import clsx from "clsx";
 
 export default function AllProductsPage() {
   const { isAuthenticated } = useAuth();
-  const [products, setProducts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [products, setProducts] = useState<any[]>(() => spaCache.get("products") || []);
+  const [loading, setLoading] = useState(() => !spaCache.has("products"));
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All Categories");
   const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
@@ -46,11 +47,12 @@ export default function AllProductsPage() {
   ];
 
   useEffect(() => {
-    fetchProducts();
+    const hasCache = spaCache.has("products");
+    fetchProducts(hasCache);
   }, []);
 
-  const fetchProducts = async () => {
-    setLoading(true);
+  const fetchProducts = async (isBackground = false) => {
+    if (!isBackground) setLoading(true);
     const res = await getAllStorefrontsAction();
     if (res.success && res.data) {
       const allProducts = res.data.flatMap((shop: any) =>
@@ -61,6 +63,7 @@ export default function AllProductsPage() {
         })),
       );
       setProducts(allProducts);
+      spaCache.set("products", allProducts);
     }
     setLoading(false);
   };
