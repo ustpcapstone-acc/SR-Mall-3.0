@@ -43,7 +43,6 @@ export const FeedbackSection = ({
 }: FeedbackSectionProps) => {
   const { user } = useAuth();
 
-  // ── State ──────────────────────────────────────────────
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -54,13 +53,32 @@ export const FeedbackSection = ({
     message: string;
   } | null>(null);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [myPendingReview, setMyPendingReview] = useState<any>(null);
 
   // ── Data Loaders ───────────────────────────────────────
+  const loadMyPendingReview = async (userId: string) => {
+    try {
+      const result = await getMyReviewAction(userId, tenantId);
+      if (result.success && result.data && !(result.data as any).isApproved) {
+        setMyPendingReview(result.data);
+      } else {
+        setMyPendingReview(null);
+      }
+    } catch {
+      setMyPendingReview(null);
+    }
+  };
+
   const loadReviews = async () => {
     try {
       const result = await getApprovedReviewsAction(tenantId);
       if (result.success && result.data) {
         setReviews(result.data as Review[]);
+      }
+      if (user?.id) {
+        await loadMyPendingReview(user.id);
+      } else {
+        setMyPendingReview(null);
       }
     } catch (error) {
       console.error("Failed to load reviews:", error);
@@ -77,7 +95,7 @@ export const FeedbackSection = ({
   // ── Effects ────────────────────────────────────────────
   useEffect(() => {
     loadReviews();
-  }, []);
+  }, [user?.id]);
 
   useEffect(() => {
     if (myReview && rating === 0) {
@@ -99,6 +117,7 @@ export const FeedbackSection = ({
         });
         setRating(0);
         setComment("");
+        setMyPendingReview(null);
         setTimeout(loadReviews, 1000);
       } else {
         setSubmitMessage({
@@ -265,7 +284,6 @@ export const FeedbackSection = ({
               "pb-4",
             )}
           >
-            {/* Left Column: Reviews List */}
             <div
               className={clsx(
                 "w-[85%] sm:w-[500px] lg:w-auto",
@@ -279,6 +297,32 @@ export const FeedbackSection = ({
                 "custom-scrollbar",
               )}
             >
+              {myPendingReview && (
+                <div
+                  className={clsx(
+                    "p-3",
+                    "sm:p-6",
+                    "bg-amber-500/5",
+                    "border",
+                    "border-amber-500/20",
+                    "rounded-xl",
+                    "sm:rounded-2xl",
+                    "mb-4 animate-pulse",
+                  )}
+                >
+                  <div className="flex justify-between items-start mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-amber-500/10 text-amber-500 border border-amber-500/20 rounded-lg text-[9px] font-black uppercase tracking-wider">
+                        <AlertCircle size={10} /> Review Pending
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-xs sm:text-sm font-bold text-slate-500 dark:text-slate-400 italic">
+                    "{myPendingReview.comment}"
+                  </p>
+                </div>
+              )}
+
               {/* Reviews appear instantly — no approval needed */}
               {isLoading ? (
                 <div className={clsx("text-center", "py-12")}>

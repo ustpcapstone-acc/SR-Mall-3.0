@@ -75,7 +75,7 @@ export async function submitReviewAction(
         tenantId: tenantId || null,
         rating,
         comment: comment || null,
-        isApproved: false, // Requires admin approval before going public
+        isApproved: false, // Pending admin approval
         isSpam,
       },
       include: {
@@ -93,7 +93,7 @@ export async function submitReviewAction(
       data: review,
       message: isSpam
         ? "Review submitted."
-        : "Thank you! Your review has been submitted and is pending admin approval.",
+        : "Review submitted! It will appear publicly once approved by our team.",
     };
   } catch (error) {
     console.error("Submit review error:", error);
