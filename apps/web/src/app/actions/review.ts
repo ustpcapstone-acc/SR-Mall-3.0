@@ -75,7 +75,7 @@ export async function submitReviewAction(
         tenantId: tenantId || null,
         rating,
         comment: comment || null,
-        isApproved: true, // Auto-approved — no admin gating required
+        isApproved: false, // Requires admin approval before going public
         isSpam,
       },
       include: {
@@ -93,7 +93,7 @@ export async function submitReviewAction(
       data: review,
       message: isSpam
         ? "Review submitted."
-        : "Review submitted successfully! Your feedback is now live.",
+        : "Thank you! Your review has been submitted and is pending admin approval.",
     };
   } catch (error) {
     console.error("Submit review error:", error);
@@ -176,6 +176,7 @@ export async function getApprovedReviewsAction(tenantId?: string) {
   try {
     const reviews = await (prisma as any).review.findMany({
       where: {
+        isApproved: true,
         isSpam: false,
         tenantId: tenantId || null,
       },

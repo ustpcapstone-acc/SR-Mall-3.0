@@ -24,6 +24,7 @@ import {
   MoreHorizontal,
   X,
   AlertTriangle,
+  Star,
 } from "lucide-react";
 import { toast } from "sonner";
 import clsx from "clsx";
@@ -760,6 +761,115 @@ export default function UserManagement() {
                     </div>
                   </div>
                 ))
+              )}
+            </div>
+          </div>
+
+          {/* ── Pending Approval Section ── */}
+          <div className="xl:col-span-8 space-y-8 mt-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-black text-charcoal dark:text-white uppercase italic tracking-tighter">
+                Pending <span className="text-amber-500">Approval.</span>
+              </h2>
+              <div className="flex items-center gap-3">
+                <span className="px-4 py-1.5 bg-amber-500/10 text-amber-500 border border-amber-500/20 rounded-xl text-[10px] font-black uppercase tracking-widest animate-pulse">
+                  {reviews.filter((r: any) => !r.isApproved && !r.isSpam).length} Awaiting Review
+                </span>
+              </div>
+            </div>
+
+            <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest -mt-4">
+              Customer Experiences submitted from the public view — approve to make them visible.
+            </p>
+
+            <div className="space-y-5">
+              {reviewsLoading ? (
+                <div className="p-20 text-center">
+                  <Loader2 className="animate-spin mx-auto text-amber-500" size={40} />
+                </div>
+              ) : reviews.filter((r: any) => !r.isApproved && !r.isSpam).length === 0 ? (
+                <div className="p-20 text-center border-2 border-dashed border-amber-200/30 dark:border-amber-500/10 rounded-[3rem] bg-amber-50/30 dark:bg-amber-500/5">
+                  <CheckCircle2 size={40} className="mx-auto text-amber-500/30 mb-3" />
+                  <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">
+                    No Pending Reviews — All Clear
+                  </p>
+                </div>
+              ) : (
+                reviews
+                  .filter((r: any) => !r.isApproved && !r.isSpam)
+                  .map((item: any) => (
+                    <div
+                      key={item.id}
+                      className="p-8 rounded-[2.5rem] border bg-amber-50/40 dark:bg-amber-500/5 border-amber-200/60 dark:border-amber-500/20 transition-all group/pending"
+                    >
+                      <div className="flex flex-col md:flex-row items-start justify-between gap-6">
+                        <div className="flex-1 space-y-4">
+                          {/* User info */}
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-amber-100 dark:bg-amber-900/30 rounded-2xl flex items-center justify-center font-black text-amber-600 text-sm">
+                              {item.user?.name?.charAt(0) || "U"}
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <h4 className="text-sm font-black text-charcoal dark:text-white uppercase tracking-tight">
+                                  {item.user?.name || "Anonymous"}
+                                </h4>
+                                <span className="px-2 py-0.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-md text-[8px] font-black uppercase tracking-wider border border-amber-500/20">
+                                  Pending
+                                </span>
+                              </div>
+                              <p className="text-[10px] text-slate-400 font-bold tracking-widest mt-0.5">
+                                {item.user?.email} · {new Date(item.createdAt).toLocaleDateString()}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Stars */}
+                          <div className="flex items-center gap-1">
+                            {[...Array(5)].map((_, i) => (
+                              <Star
+                                key={i}
+                                size={14}
+                                className={i < item.rating ? "fill-amber-500 text-amber-500" : "text-slate-200"}
+                              />
+                            ))}
+                            <span className="ml-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                              {item.rating}/5 Stars
+                            </span>
+                          </div>
+
+                          {/* Comment */}
+                          {item.comment && (
+                            <div className="p-5 bg-white dark:bg-zinc-900 rounded-2xl border border-amber-100 dark:border-white/5">
+                              <p className="text-sm font-medium text-slate-600 dark:text-slate-300 italic leading-relaxed">
+                                "{item.comment}"
+                              </p>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Action buttons */}
+                        <div className="flex flex-col gap-3 shrink-0 min-w-[160px]">
+                          <button
+                            onClick={() => handleApproveReview(item.id)}
+                            disabled={isProcessing === item.id}
+                            className="flex items-center justify-center gap-2 px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-emerald-500/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
+                          >
+                            <CheckCircle2 size={14} />
+                            Approve
+                          </button>
+                          <button
+                            onClick={() => handleDeleteReview(item.id)}
+                            disabled={isProcessing === item.id}
+                            className="flex items-center justify-center gap-2 px-6 py-3 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all disabled:opacity-50"
+                          >
+                            <Trash2 size={14} />
+                            Reject
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))
               )}
             </div>
           </div>
