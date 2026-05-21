@@ -36,18 +36,6 @@ export const AdminNavbar = () => {
               </span>
             </div>
           </div>
-
-          <div className="relative w-full max-w-sm hidden lg:block group">
-            <div className="absolute -inset-0.5 bg-gradient-to-r from-primary to-blue-600 rounded-xl blur opacity-0 group-hover:opacity-20 transition duration-500"></div>
-            <div className="relative flex items-center bg-slate-50 dark:bg-zinc-900 rounded-xl border border-slate-200 dark:border-white/10 p-2 shadow-sm">
-              <Search size={18} className="ml-2 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Search dashboard..."
-                className="w-full px-3 py-1 bg-transparent text-charcoal dark:text-white focus:outline-none text-sm font-medium placeholder:text-slate-400"
-              />
-            </div>
-          </div>
         </div>
 
         <div className="flex items-center gap-4">
