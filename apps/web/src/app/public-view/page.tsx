@@ -118,12 +118,16 @@ export default function PublicDigitalConcierge() {
     const shouldScroll = sessionStorage.getItem("scroll_to_featured");
     if (shouldScroll === "true") {
       sessionStorage.removeItem("scroll_to_featured");
-      setTimeout(() => {
-        const el = document.getElementById("featured-products");
-        if (el) {
-          el.scrollIntoView({ behavior: "smooth", block: "center" });
-        }
-      }, 350);
+      // Execute scroll at multiple intervals to handle dynamic layout adjustments on mobile/slow networks
+      const scrollDelays = [150, 450, 850, 1400, 2000];
+      scrollDelays.forEach((delay) => {
+        setTimeout(() => {
+          const el = document.getElementById("featured-products");
+          if (el) {
+            el.scrollIntoView({ behavior: "smooth", block: "center" });
+          }
+        }, delay);
+      });
     }
 
     // Refetch when page becomes visible again
