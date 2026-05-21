@@ -114,6 +114,18 @@ export default function PublicDigitalConcierge() {
     fetchAds(hasCache);
     fetchCarousel();
 
+    // Scroll restoration for Featured Products
+    const shouldScroll = sessionStorage.getItem("scroll_to_featured");
+    if (shouldScroll === "true") {
+      sessionStorage.removeItem("scroll_to_featured");
+      setTimeout(() => {
+        const el = document.getElementById("featured-products");
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      }, 350);
+    }
+
     // Refetch when page becomes visible again
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
@@ -322,6 +334,7 @@ export default function PublicDigitalConcierge() {
       {/* Featured Products Showcase */}
       {allFeaturedProducts.length > 0 && (
         <section
+          id="featured-products"
           className={clsx(
             "py-12 sm:py-24 lg:py-32",
             "bg-white",
@@ -363,6 +376,7 @@ export default function PublicDigitalConcierge() {
                 </p>
                 <Link
                   href="/products"
+                  onClick={() => sessionStorage.setItem("scroll_to_featured", "true")}
                   className="group inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-primary hover:text-primary-hover transition-all"
                 >
                   View All Products
@@ -395,6 +409,7 @@ export default function PublicDigitalConcierge() {
                 {/* View All Products Card - Matched to ProductCard Design */}
                 <Link
                   href="/products"
+                  onClick={() => sessionStorage.setItem("scroll_to_featured", "true")}
                   className={clsx(
                     "w-[62%] sm:w-full shrink-0 snap-center",
                     "group relative aspect-[3/4] bg-white dark:bg-zinc-900 rounded-[2rem] overflow-hidden",
