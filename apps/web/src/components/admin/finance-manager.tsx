@@ -165,7 +165,7 @@ export default function FinanceManager() {
                       ₱{inv.amount.toLocaleString()}
                     </p>
                     <p className="text-[10px] font-bold text-primary uppercase tracking-widest mt-1">
-                      {inv.invoiceNumber} • {inv.month}
+                      {inv.invoiceNumber}{inv.status === "PAID" && ` (OR-${inv.invoiceNumber.replace("#INV-", "").replace("#", "")})`} • {inv.month}
                     </p>
                   </td>
                   <td className="px-6 py-5">

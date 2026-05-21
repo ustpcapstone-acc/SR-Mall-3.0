@@ -329,7 +329,7 @@ export default function LeasePayments() {
                         {row.month}
                       </p>
                       <p className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
-                        {row.invoiceNumber}
+                        {row.invoiceNumber}{row.status === "PAID" && ` • OR-${row.invoiceNumber.replace("#INV-", "").replace("#", "")}`}
                       </p>
                       <p className="text-[9px] sm:text-[10px] font-bold text-primary uppercase tracking-widest flex items-center gap-1 mt-1.5 pt-1.5 border-t border-slate-100 dark:border-white/5">
                         <Calendar size={10} />

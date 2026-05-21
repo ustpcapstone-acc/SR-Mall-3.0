@@ -53,37 +53,39 @@ export const generateTenantReceiptPDF = async (
 
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
-  doc.text(`Reference No: ${receiptData.referenceNo || "SYS-PAY"}`, 14, 48);
-  doc.text(`Date Issued: ${timestamp}`, 14, 53);
+  const orNumber = `OR-${receiptData.invoiceNumber ? receiptData.invoiceNumber.replace("#INV-", "").replace("#", "") : Math.floor(100000 + Math.random() * 900000)}`;
+  doc.text(`Receipt No: ${orNumber}`, 14, 48);
+  doc.text(`Reference No: ${receiptData.referenceNo || "SYS-PAY"}`, 14, 53);
+  doc.text(`Date Issued: ${timestamp}`, 14, 58);
 
   doc.setLineWidth(0.5);
   doc.setDrawColor(220, 220, 220);
-  doc.line(14, 58, 196, 58);
+  doc.line(14, 63, 196, 63);
 
   doc.setFontSize(12);
   doc.setFont("helvetica", "bold");
-  doc.text("Tenant Information", 14, 68);
+  doc.text("Tenant Information", 14, 73);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
   doc.text(
     `Shop Name:  ${tenantData.shopName || tenantData.shop_name || "N/A"}`,
     14,
-    76,
+    81,
   );
   doc.text(
     `Unit Number:  ${tenantData.unitId || tenantData.unit_id || "N/A"}`,
     14,
-    82,
+    87,
   );
-  doc.text(`Billed Month:  ${receiptData.month || "N/A"}`, 14, 88);
+  doc.text(`Billed Month:  ${receiptData.month || "N/A"}`, 14, 93);
   doc.text(
     `Due Date:  ${receiptData.dueDate ? new Date(receiptData.dueDate).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }) : "N/A"}`,
     14,
-    94,
+    99,
   );
 
   autoTable(doc, {
-    startY: 100,
+    startY: 105,
     head: [["Description", "Amount"]],
     body: [
       [
@@ -116,7 +118,7 @@ export const generateTenantReceiptPDF = async (
   );
 
   // Save PDF
-  doc.save(`SR-Receipt-${receiptData.referenceNo || receiptData.month}.pdf`);
+  doc.save(`SR-Receipt-${orNumber}.pdf`);
 };
 
 export const generateTenantPDF = async (data: any[]) => {
