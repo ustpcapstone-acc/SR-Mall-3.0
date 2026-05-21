@@ -22,6 +22,7 @@ export default function CustomerMessenger() {
   const [messages, setMessages] = useState<any[]>([]);
   const [inputText, setInputText] = useState("");
   const [filter, setFilter] = useState("All");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -123,6 +124,18 @@ export default function CustomerMessenger() {
     }
   };
 
+  const filteredConversations = conversations.filter((chat) => {
+    const isToAdmin = chat.type === "ADMIN";
+    const otherPerson = isToAdmin ? chat.target : chat.user;
+    if (!otherPerson) return false;
+    const name = (otherPerson.name || "").toLowerCase();
+    const email = (otherPerson.email || "").toLowerCase();
+    const lastMsg = (chat.messages?.[0]?.content || "Started a conversation").toLowerCase();
+    const query = searchQuery.toLowerCase();
+
+    return name.includes(query) || email.includes(query) || lastMsg.includes(query);
+  });
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-black pb-20 lg:pb-0">
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10 py-4 sm:py-6 lg:py-10 h-[calc(100vh-5rem)] flex flex-col">
@@ -151,18 +164,20 @@ export default function CustomerMessenger() {
                 <input
                   type="text"
                   placeholder="Search chats..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full pl-9 lg:pl-10 pr-4 py-2 lg:py-2.5 bg-white dark:bg-zinc-800 rounded-xl border border-slate-200 dark:border-white/10 text-sm font-medium focus:border-primary outline-none"
                 />
               </div>
             </div>
 
             <div className="flex-1 overflow-y-auto">
-              {conversations.length === 0 && (
+              {filteredConversations.length === 0 && (
                 <div className="p-6 lg:p-8 text-center text-slate-500 text-xs font-bold uppercase tracking-widest">
-                  No active conversations
+                  {searchQuery ? "No matching conversations" : "No active conversations"}
                 </div>
               )}
-              {conversations.map((chat) => {
+              {filteredConversations.map((chat) => {
                 const isSelected = activeChat?.id === chat.id;
                 const isToAdmin = chat.type === "ADMIN";
                 const otherPerson = isToAdmin ? chat.target : chat.user;
