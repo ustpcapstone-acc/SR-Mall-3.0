@@ -176,7 +176,6 @@ export async function getApprovedReviewsAction(tenantId?: string) {
   try {
     const reviews = await (prisma as any).review.findMany({
       where: {
-        isApproved: true,
         isSpam: false,
         tenantId: tenantId || null,
       },
