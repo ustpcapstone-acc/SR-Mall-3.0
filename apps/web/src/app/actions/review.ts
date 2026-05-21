@@ -57,23 +57,6 @@ export async function submitReviewAction(
         error: `You ${label} until ${until}.`,
       };
     }
-
-    // ── Block duplicate review for same tenant ────────────────────────────────
-    const existingReview = await (prisma as any).review.findFirst({
-      where: {
-        userId: userId,
-        tenantId: tenantId || null,
-      },
-    });
-
-    if (existingReview) {
-      return {
-        success: false,
-        error:
-          "You have already submitted a review. You can edit your existing review instead.",
-      };
-    }
-
     // ── Spam detection: count reviews in past 24 hours ───────────────────────
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const recentCount = await (prisma as any).review.count({
