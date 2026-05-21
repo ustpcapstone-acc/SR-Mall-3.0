@@ -131,13 +131,8 @@ export const TenantSidebar = ({
                 user?.name ? user.name.charAt(0).toUpperCase() : "T"
               )}
             </div>
-            <div className="flex flex-col">
-              <span className="text-sm font-black text-charcoal dark:text-white leading-tight truncate max-w-[140px]">
-                {/* @ts-ignore */}
-                {user?.name || user?.email?.split('@')[0]}
-              </span>
-            </div>
           </div>
+
           <button
             onClick={onMobileClose}
             className={clsx(
