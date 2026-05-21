@@ -17,6 +17,8 @@ import {
   Eye,
   EyeOff,
   Loader2,
+  CheckCircle2,
+  Send,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/app/providers";
@@ -49,6 +51,7 @@ export const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [emailSent, setEmailSent] = useState<string | null>(null);
   const emailRef = React.useRef<HTMLInputElement | null>(null);
 
   const {
@@ -209,6 +212,34 @@ export const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
 
 
             <div className="p-10">
+              {/* ── Recovery Code Sent Success Screen ── */}
+              {emailSent && (
+                <div className="flex flex-col items-center justify-center text-center py-6 animate-fade-in">
+                  <div className="w-20 h-20 bg-green-500/10 text-green-500 rounded-full flex items-center justify-center shadow-lg shadow-green-500/20 mb-5">
+                    <CheckCircle2 size={40} />
+                  </div>
+                  <h3 className="text-xl font-black text-charcoal dark:text-white mb-2">Code Sent!</h3>
+                  <p className="text-sm text-slate-500 font-medium mb-1">A 6-digit recovery code was sent to</p>
+                  <span className="text-sm font-bold text-primary mb-6">{emailSent}</span>
+                  <p className="text-xs text-slate-400 mb-6">Check your inbox (and spam folder) then enter the code on the next page.</p>
+                  <button
+                    onClick={() => {
+                      router.push(`/auth/reset-password?email=${encodeURIComponent(emailSent)}`);
+                      onClose();
+                    }}
+                    className="w-full py-4 bg-primary text-white font-bold rounded-2xl hover:opacity-90 transition-all flex items-center justify-center gap-2 shadow-xl shadow-primary/20"
+                  >
+                    <Send size={16} /> Enter Recovery Code
+                  </button>
+                  <button
+                    onClick={() => { setEmailSent(null); setIsForgotPassword(false); }}
+                    className="mt-4 text-xs text-slate-400 hover:text-slate-600 font-bold transition-colors"
+                  >
+                    Back to Sign In
+                  </button>
+                </div>
+              )}
+              {!emailSent && (
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                 {error && (
                   <div className="flex items-center gap-3 p-4 bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-500 text-xs font-bold rounded-2xl border border-red-100 dark:border-red-900/30 animate-shake">
@@ -252,9 +283,7 @@ export const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
                             const res = await requestPasswordResetAction(email);
                             if (res.success) {
                               setError(null);
-                              alert(res.message);
-                              router.push(`/auth/reset-password?email=${encodeURIComponent(email)}`);
-                              onClose();
+                              setEmailSent(email);
                             } else {
                               setError(res.error || "Failed to send reset email.");
                             }
@@ -430,6 +459,7 @@ export const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
                   {isSignUp ? "Sign In" : "Sign Up"}
                 </button>
               </p>
+            )}
             </div>
           </motion.div>
         </div>

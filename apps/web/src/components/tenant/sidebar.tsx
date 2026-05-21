@@ -136,9 +136,6 @@ export const TenantSidebar = ({
                 {/* @ts-ignore */}
                 {user?.name || user?.email?.split('@')[0]}
               </span>
-              <span className="text-[8px] font-bold text-primary uppercase tracking-[0.2em] mt-0.5">
-                Business Owner
-              </span>
             </div>
           </div>
           <button
