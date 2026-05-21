@@ -393,32 +393,42 @@ export async function updateSecurityAction(
 }
 
 export async function requestPasswordResetAction(email: string) {
+  // Step 1: Check if user exists in DB
+  let user: any;
   try {
-    const user = await prisma.user.findUnique({
+    user = await prisma.user.findUnique({
       where: { email: email.toLowerCase() },
     });
+  } catch (dbError: any) {
+    console.error("[PWD_RESET_DB_FIND_ERROR]:", dbError);
+    return { success: false, error: `Database error: ${dbError?.message || String(dbError)}` };
+  }
 
-    if (!user) {
-      // For security, don't reveal if user exists. Just say email sent.
-      return { success: true, message: "If an account exists, a reset link has been sent." };
-    }
+  if (!user) {
+    // For security, don't reveal if user exists
+    return { success: true, message: "If an account exists, a reset link has been sent." };
+  }
 
-    // Generate a 6-digit token or a UUID
-    const token = Math.floor(100000 + Math.random() * 900000).toString();
-    const expires = new Date(Date.now() + 3600000); // 1 hour expiry
-
-    // Save token to DB
+  // Step 2: Generate token and save to DB
+  const token = Math.floor(100000 + Math.random() * 900000).toString();
+  const expires = new Date(Date.now() + 3600000); // 1 hour expiry
+  try {
     await prisma.passwordResetToken.upsert({
       where: { token },
-      update: { token, expires }, // Rare collision case
+      update: { token, expires },
       create: {
         email: email.toLowerCase(),
         token,
         expires,
       },
     });
+  } catch (tokenError: any) {
+    console.error("[PWD_RESET_TOKEN_SAVE_ERROR]:", tokenError);
+    return { success: false, error: `Token save error: ${tokenError?.message || String(tokenError)}` };
+  }
 
-    // Send email
+  // Step 3: Send recovery email
+  try {
     const { sendGmail } = await import("@/lib/gmail");
     await sendGmail({
       to: email,
@@ -439,12 +449,12 @@ export async function requestPasswordResetAction(email: string) {
         </div>
       `,
     });
-
-    return { success: true, message: "A recovery code has been sent to your email." };
-  } catch (error) {
-    console.error("[PWD_RESET_REQ_ERROR]:", error);
-    return { success: false, error: "Failed to send reset email." };
+  } catch (emailError: any) {
+    console.error("[PWD_RESET_EMAIL_ERROR]:", emailError);
+    return { success: false, error: `Email error: ${emailError?.message || String(emailError)}` };
   }
+
+  return { success: true, message: "A recovery code has been sent to your email." };
 }
 
 export async function resetPasswordAction(data: {
