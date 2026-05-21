@@ -99,7 +99,6 @@ export const FeedbackSection = ({
         });
         setRating(0);
         setComment("");
-        setMyPendingReview(null);
         setTimeout(loadReviews, 1000);
       } else {
         setSubmitMessage({
