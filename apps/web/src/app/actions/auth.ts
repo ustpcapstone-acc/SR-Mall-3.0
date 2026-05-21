@@ -494,3 +494,27 @@ export async function resetPasswordAction(data: {
     return { success: false, error: "Failed to reset password." };
   }
 }
+
+export async function verifyPasswordResetTokenAction(email: string, token: string) {
+  try {
+    const resetToken = await prisma.passwordResetToken.findFirst({
+      where: {
+        token,
+        email: email.toLowerCase(),
+      },
+    });
+
+    if (!resetToken) {
+      return { success: false, error: "Invalid verification code. Please check your email and try again." };
+    }
+
+    if (resetToken.expires < new Date()) {
+      return { success: false, error: "This verification code has expired. Please request a new password reset." };
+    }
+
+    return { success: true };
+  } catch (error: any) {
+    console.error("[VERIFY_TOKEN_ERROR]:", error);
+    return { success: false, error: `Verification failed: ${error?.message || String(error)}` };
+  }
+}
