@@ -106,48 +106,7 @@ export const TenantSidebar = ({
           isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
         )}
       >
-        <div
-          className={clsx(
-            "flex",
-            "items-center",
-            "justify-between",
-            "p-4",
-            "lg:p-6",
-            "border-b",
-            "border-slate-200",
-            "dark:border-white/10",
-            "bg-slate-50/50",
-            "dark:bg-white/5",
-          )}
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-xl bg-primary text-white flex items-center justify-center font-bold text-lg overflow-hidden border-2 border-white dark:border-zinc-800 shadow-md">
-              {/* @ts-ignore */}
-              {user?.avatarUrl ? (
-                /* @ts-ignore */
-                <img src={user.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
-              ) : (
-                /* @ts-ignore */
-                user?.name ? user.name.charAt(0).toUpperCase() : "T"
-              )}
-            </div>
-          </div>
 
-          <button
-            onClick={onMobileClose}
-            className={clsx(
-              "lg:hidden",
-              "p-2",
-              "text-slate-500",
-              "hover:text-charcoal",
-              "dark:hover:text-white",
-              "transition-colors",
-            )}
-            aria-label="Close menu"
-          >
-            <X size={24} />
-          </button>
-        </div>
         <div
           className={clsx(
             "flex-1",
