@@ -466,7 +466,7 @@ export default function MasterBookingsPage() {
                                       className="fixed inset-0 z-40"
                                       onClick={() => setOpenSelectId(null)}
                                     />
-                                    <div className="absolute left-0 mt-2 w-full bg-white dark:bg-zinc-800 border border-slate-200 dark:border-white/5 rounded-2xl shadow-xl z-50 py-2 max-h-60 overflow-y-auto custom-scrollbar animate-fade-in">
+                                    <div className="absolute left-0 mt-2 w-full bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 rounded-2xl shadow-xl z-50 py-2 max-h-60 overflow-y-auto custom-scrollbar animate-fade-in">
                                       <button
                                         type="button"
                                         onClick={() => {
@@ -477,10 +477,10 @@ export default function MasterBookingsPage() {
                                           setOpenSelectId(null);
                                         }}
                                         className={clsx(
-                                          "w-full text-left px-5 py-3 text-xs font-black transition-all hover:bg-slate-50 dark:hover:bg-white/5",
+                                          "w-full text-left px-5 py-3 text-xs font-black transition-all hover:bg-slate-100 dark:hover:bg-zinc-800",
                                           !selectedUnits[req.id]
                                             ? "text-primary"
-                                            : "text-slate-500 dark:text-slate-400"
+                                            : "text-slate-500 dark:text-zinc-300"
                                         )}
                                       >
                                         PENDING ASSIGNMENT
@@ -497,10 +497,10 @@ export default function MasterBookingsPage() {
                                             setOpenSelectId(null);
                                           }}
                                           className={clsx(
-                                            "w-full text-left px-5 py-3 text-xs font-black transition-all hover:bg-slate-50 dark:hover:bg-white/5",
+                                            "w-full text-left px-5 py-3 text-xs font-black transition-all hover:bg-slate-100 dark:hover:bg-zinc-800",
                                             selectedUnits[req.id] === slot.unit_id
                                               ? "text-primary"
-                                              : "text-charcoal dark:text-white"
+                                              : "text-slate-800 dark:text-zinc-100"
                                           )}
                                         >
                                           {slot.unit_id} — {slot.sqm_size}m²
