@@ -87,6 +87,7 @@ export default function MasterBookingsPage() {
   const [selectedUnits, setSelectedUnits] = useState<Record<string, string>>(
     {},
   );
+  const [openSelectId, setOpenSelectId] = useState<string | null>(null);
 
   // Event Inquiries State
   const [eventInquiries, setEventInquiries] = useState<any[]>([]);
@@ -445,31 +446,70 @@ export default function MasterBookingsPage() {
                             </div>
                           </td>
                           <td className="px-8 py-8">
-                            <div className="flex items-center gap-3">
-                              <MapPin
-                                size={18}
-                                className="text-primary opacity-40"
-                              />
-                              <select
-                                className="bg-slate-100 dark:bg-zinc-800 border-none rounded-2xl px-5 py-3 text-xs font-black text-charcoal dark:text-white focus:ring-2 focus:ring-primary/20 transition-all outline-none"
-                                value={selectedUnits[req.id] || ""}
-                                onChange={(e) =>
-                                  setSelectedUnits({
-                                    ...selectedUnits,
-                                    [req.id]: e.target.value,
-                                  })
-                                }
-                              >
-                                <option value="" className="bg-white dark:bg-zinc-900 text-slate-500 dark:text-slate-400">
-                                  PENDING ASSIGNMENT
-                                </option>
-                                {availableSlots.map((slot) => (
-                                  <option key={slot.id} value={slot.unit_id} className="bg-white dark:bg-zinc-900 text-charcoal dark:text-white">
-                                    {slot.unit_id} — {slot.sqm_size}m²
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
+                              <div className="relative">
+                                <button
+                                  type="button"
+                                  onClick={() => setOpenSelectId(openSelectId === req.id ? null : req.id)}
+                                  className="bg-slate-100 dark:bg-zinc-800 border-none rounded-2xl px-5 py-3 text-xs font-black text-charcoal dark:text-white flex items-center justify-between gap-2 min-w-[220px] transition-all hover:bg-slate-200 dark:hover:bg-zinc-700 outline-none"
+                                >
+                                  <span>
+                                    {selectedUnits[req.id]
+                                      ? `UNIT ${selectedUnits[req.id]}`
+                                      : "PENDING ASSIGNMENT"}
+                                  </span>
+                                  <ChevronDown size={14} className="text-slate-400 dark:text-slate-500" />
+                                </button>
+
+                                {openSelectId === req.id && (
+                                  <>
+                                    <div
+                                      className="fixed inset-0 z-40"
+                                      onClick={() => setOpenSelectId(null)}
+                                    />
+                                    <div className="absolute left-0 mt-2 w-full bg-white dark:bg-zinc-800 border border-slate-200 dark:border-white/5 rounded-2xl shadow-xl z-50 py-2 max-h-60 overflow-y-auto custom-scrollbar animate-fade-in">
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setSelectedUnits({
+                                            ...selectedUnits,
+                                            [req.id]: "",
+                                          });
+                                          setOpenSelectId(null);
+                                        }}
+                                        className={clsx(
+                                          "w-full text-left px-5 py-3 text-xs font-black transition-all hover:bg-slate-50 dark:hover:bg-white/5",
+                                          !selectedUnits[req.id]
+                                            ? "text-primary"
+                                            : "text-slate-500 dark:text-slate-400"
+                                        )}
+                                      >
+                                        PENDING ASSIGNMENT
+                                      </button>
+                                      {availableSlots.map((slot: any) => (
+                                        <button
+                                          key={slot.id}
+                                          type="button"
+                                          onClick={() => {
+                                            setSelectedUnits({
+                                              ...selectedUnits,
+                                              [req.id]: slot.unit_id,
+                                            });
+                                            setOpenSelectId(null);
+                                          }}
+                                          className={clsx(
+                                            "w-full text-left px-5 py-3 text-xs font-black transition-all hover:bg-slate-50 dark:hover:bg-white/5",
+                                            selectedUnits[req.id] === slot.unit_id
+                                              ? "text-primary"
+                                              : "text-charcoal dark:text-white"
+                                          )}
+                                        >
+                                          {slot.unit_id} — {slot.sqm_size}m²
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </>
+                                )}
+                              </div>
                           </td>
                           <td className="px-8 py-8 text-right">
                             <div className="flex justify-end gap-3 opacity-0 group-hover/row:opacity-100 transition-all duration-300">
