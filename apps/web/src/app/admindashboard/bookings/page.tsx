@@ -451,7 +451,7 @@ export default function MasterBookingsPage() {
                                 className="text-primary opacity-40"
                               />
                               <select
-                                className="bg-slate-100 dark:bg-white/5 border-none rounded-2xl px-5 py-3 text-xs font-black text-charcoal dark:text-white focus:ring-2 focus:ring-primary/20 transition-all outline-none"
+                                className="bg-slate-100 dark:bg-zinc-800 border-none rounded-2xl px-5 py-3 text-xs font-black text-charcoal dark:text-white focus:ring-2 focus:ring-primary/20 transition-all outline-none"
                                 value={selectedUnits[req.id] || ""}
                                 onChange={(e) =>
                                   setSelectedUnits({
@@ -460,9 +460,11 @@ export default function MasterBookingsPage() {
                                   })
                                 }
                               >
-                                <option value="">PENDING ASSIGNMENT</option>
+                                <option value="" className="bg-white dark:bg-zinc-900 text-slate-500 dark:text-slate-400">
+                                  PENDING ASSIGNMENT
+                                </option>
                                 {availableSlots.map((slot) => (
-                                  <option key={slot.id} value={slot.unit_id}>
+                                  <option key={slot.id} value={slot.unit_id} className="bg-white dark:bg-zinc-900 text-charcoal dark:text-white">
                                     {slot.unit_id} — {slot.sqm_size}m²
                                   </option>
                                 ))}
