@@ -23,6 +23,7 @@ import {
   RefreshCcw,
   MoreHorizontal,
   X,
+  Star,
   AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
