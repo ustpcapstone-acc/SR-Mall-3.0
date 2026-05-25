@@ -11,7 +11,9 @@ import {
   Mail,
   ExternalLink,
   MapPin,
+  ChevronDown,
 } from "lucide-react";
+import clsx from "clsx";
 import {
   getPendingTenantsAction,
   approveTenantAction,
@@ -28,6 +30,7 @@ export default function MerchantRequestsPage() {
   const [selectedUnits, setSelectedUnits] = useState<Record<string, string>>(
     {},
   );
+  const [openSelectId, setOpenSelectId] = useState<string | null>(null);
 
   const loadData = async () => {
     setIsLoading(true);
@@ -183,28 +186,75 @@ export default function MerchantRequestsPage() {
                       </div>
                     </td>
                     <td className="px-8 py-6">
-                      <div className="relative flex items-center gap-2 group/select">
+                      <div className="relative flex items-center gap-2 group/select min-w-[200px]">
                         <MapPin
                           size={16}
                           className="text-slate-400 group-focus-within/select:text-primary transition-colors"
                         />
-                        <select
-                          className="bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2 text-xs font-bold text-charcoal dark:text-white focus:outline-none focus:border-primary transition-all pr-8 appearance-none cursor-pointer"
-                          value={selectedUnits[req.id] || ""}
-                          onChange={(e) =>
-                            setSelectedUnits({
-                              ...selectedUnits,
-                              [req.id]: e.target.value,
-                            })
-                          }
-                        >
-                          <option value="">Select Available Unit</option>
-                          {availableSlots.map((slot) => (
-                            <option key={slot.id} value={slot.unit_id}>
-                              {slot.unit_id} ({slot.sqm_size}m²)
-                            </option>
-                          ))}
-                        </select>
+                        <div className="relative w-full">
+                          <button
+                            type="button"
+                            onClick={() => setOpenSelectId(openSelectId === req.id ? null : req.id)}
+                            className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2 text-xs font-bold text-charcoal dark:text-white flex items-center justify-between transition-all outline-none focus:border-primary hover:bg-slate-100 dark:hover:bg-white/10"
+                          >
+                            <span>
+                              {selectedUnits[req.id]
+                                ? `Unit ${selectedUnits[req.id]}`
+                                : "Select Available Unit"}
+                            </span>
+                            <ChevronDown size={14} className="text-slate-400" />
+                          </button>
+
+                          {openSelectId === req.id && (
+                            <>
+                              <div
+                                className="fixed inset-0 z-40"
+                                onClick={() => setOpenSelectId(null)}
+                              />
+                              <div className="absolute left-0 mt-2 w-full bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 rounded-2xl shadow-xl z-50 py-2 max-h-60 overflow-y-auto custom-scrollbar animate-fade-in">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedUnits({
+                                      ...selectedUnits,
+                                      [req.id]: "",
+                                    });
+                                    setOpenSelectId(null);
+                                  }}
+                                  className={clsx(
+                                    "w-full text-left px-5 py-3 text-xs font-black transition-all hover:bg-slate-100 dark:hover:bg-zinc-800",
+                                    !selectedUnits[req.id]
+                                      ? "text-primary"
+                                      : "text-slate-500 dark:text-zinc-300"
+                                  )}
+                                >
+                                  PENDING ASSIGNMENT
+                                </button>
+                                {availableSlots.map((slot: any) => (
+                                  <button
+                                    key={slot.id}
+                                    type="button"
+                                    onClick={() => {
+                                      setSelectedUnits({
+                                        ...selectedUnits,
+                                        [req.id]: slot.unit_id,
+                                      });
+                                      setOpenSelectId(null);
+                                    }}
+                                    className={clsx(
+                                      "w-full text-left px-5 py-3 text-xs font-black transition-all hover:bg-slate-100 dark:hover:bg-zinc-800",
+                                      selectedUnits[req.id] === slot.unit_id
+                                        ? "text-primary"
+                                        : "text-slate-800 dark:text-zinc-100"
+                                    )}
+                                  >
+                                    {slot.unit_id} ({slot.sqm_size}m²)
+                                  </button>
+                                ))}
+                              </div>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </td>
                     <td className="px-8 py-6 text-right">
