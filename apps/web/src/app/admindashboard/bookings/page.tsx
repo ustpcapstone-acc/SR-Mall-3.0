@@ -382,8 +382,8 @@ export default function MasterBookingsPage() {
       <main className="animate-fade-in group">
         {activeTab === "merchant" && (
           <div className="space-y-8">
-            <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-[2.5rem] shadow-sm overflow-hidden">
-              <div className="overflow-x-auto custom-scrollbar">
+            <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-[2.5rem] shadow-sm">
+              <div className="custom-scrollbar w-full">
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-slate-50/50 dark:bg-white/5">
@@ -466,7 +466,7 @@ export default function MasterBookingsPage() {
                                       className="fixed inset-0 z-40"
                                       onClick={() => setOpenSelectId(null)}
                                     />
-                                    <div className="absolute left-0 mt-2 w-full bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 rounded-2xl shadow-xl z-50 py-2 max-h-60 overflow-y-auto custom-scrollbar animate-fade-in">
+                                    <div className="absolute left-0 bottom-full mb-2 w-full bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 rounded-2xl shadow-xl z-50 py-2 max-h-60 overflow-y-auto custom-scrollbar animate-fade-in">
                                       <button
                                         type="button"
                                         onClick={() => {
