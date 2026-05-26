@@ -277,9 +277,9 @@ export default function UserManagement() {
           <span className="text-[11px] font-black uppercase tracking-widest">
             Sentiment Ledger
           </span>
-          {reviews.filter((r) => !r.isApproved).length > 0 && (
+          {reviews.filter((r) => !r.isApproved || r.isSpam).length > 0 && (
             <span className="ml-2 px-2 py-0.5 bg-amber-500/10 text-amber-600 rounded-full text-[9px] font-bold">
-              {reviews.filter((r) => !r.isApproved).length}
+              {reviews.filter((r) => !r.isApproved || r.isSpam).length}
             </span>
           )}
         </button>
@@ -766,19 +766,19 @@ export default function UserManagement() {
               </div>
             </div>
 
-            {/* DOWN of Sentiment Moderation: Pending Sentiment Approvals */}
+            {/* DOWN of Sentiment Moderation: Spam Quarantine */}
             <div className="space-y-8 pt-12 border-t border-slate-200 dark:border-white/5">
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
                   <h2 className="text-2xl font-black text-charcoal dark:text-white uppercase item-center italic tracking-tighter">
-                    Pending <span className="text-amber-500">Approvals Gate.</span>
+                    Spam <span className="text-amber-500">Quarantine.</span>
                   </h2>
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                    Authorize customer experiences to be visible in public view
+                    Auto-flagged sentiments waiting for admin review
                   </p>
                 </div>
                 <span className="bg-amber-500/10 text-amber-500 border border-amber-500/20 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider">
-                  {reviews.filter((r) => !r.isApproved).length} Awaiting Action
+                  {reviews.filter((r) => !r.isApproved || r.isSpam).length} Suspicious
                 </span>
               </div>
 
@@ -790,14 +790,14 @@ export default function UserManagement() {
                       size={40}
                     />
                   </div>
-                ) : reviews.filter((r) => !r.isApproved).length === 0 ? (
+                ) : reviews.filter((r) => !r.isApproved || r.isSpam).length === 0 ? (
                   <div className="p-20 text-center border-2 border-dashed border-slate-200 dark:border-white/5 rounded-[3rem] bg-white/50 dark:bg-zinc-900/50">
                     <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest">
-                      Ledger is Clear: No sentiments pending approval
+                      Ledger is Clear: No suspicious activity detected
                     </p>
                   </div>
                 ) : (
-                  reviews.filter((r) => !r.isApproved).map((item: any) => (
+                  reviews.filter((r) => !r.isApproved || r.isSpam).map((item: any) => (
                     <div
                       key={item.id}
                       className="p-10 rounded-[3rem] border transition-all group/review relative overflow-hidden bg-amber-500/5 border-amber-500/20"

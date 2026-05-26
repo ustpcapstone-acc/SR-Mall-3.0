@@ -75,7 +75,7 @@ export async function submitReviewAction(
         tenantId: tenantId || null,
         rating,
         comment: comment || null,
-        isApproved: false, // Pending admin approval
+        isApproved: !isSpam, // Auto-approve legitimate reviews!
         isSpam,
       },
       include: {
@@ -87,13 +87,14 @@ export async function submitReviewAction(
 
     revalidatePath("/public-view");
     revalidatePath("/admindashboard");
+    revalidatePath("/admindashboard/user-management");
 
     return {
       success: true,
       data: review,
       message: isSpam
-        ? "Review submitted."
-        : "Review submitted! It will appear publicly once approved by our team.",
+        ? "Review submitted but flagged for moderation due to high activity."
+        : "Review submitted successfully and is now live!",
     };
   } catch (error) {
     console.error("Submit review error:", error);
