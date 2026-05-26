@@ -14,19 +14,33 @@ function AuthCallbackPageContent() {
 
   useEffect(() => {
     const handleCallback = async () => {
-      const code = searchParams.get("code");
-      if (!code) {
-        setError("No code provided in callback");
-        setTimeout(() => router.push("/public-view"), 3000);
-        return;
-      }
-
       try {
-        // Exchange code for session client-side so localStorage/cookies are set correctly
-        const { data, error: authError } = await supabase.auth.exchangeCodeForSession(code);
-        if (authError) throw authError;
+        const code = searchParams.get("code");
+        let session = null;
 
-        const email = data?.session?.user?.email;
+        if (code) {
+          // Explicit PKCE flow
+          const { data, error: authError } = await supabase.auth.exchangeCodeForSession(code);
+          if (authError) throw authError;
+          session = data?.session;
+        } else if (typeof window !== "undefined" && window.location.hash.includes("access_token")) {
+          // Implicit flow (hash fragment)
+          // Give Supabase a moment to parse the hash into the local session
+          for (let i = 0; i < 15; i++) {
+            const { data } = await supabase.auth.getSession();
+            if (data?.session) {
+              session = data.session;
+              break;
+            }
+            await new Promise((r) => setTimeout(r, 200));
+          }
+        } else {
+          // No auth data in URL, redirect silently
+          router.push("/public-view");
+          return;
+        }
+
+        const email = session?.user?.email;
         if (!email) {
           throw new Error("No email returned from auth provider");
         }
