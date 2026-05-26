@@ -105,26 +105,27 @@ export const Navbar = () => {
             </div>
           </Link>
 
-          {/* Center: Nav links - hidden on mobile */}
+          {/* Center: Nav links - hidden on tablet/mobile */}
           <div
             className={clsx(
               "hidden",
-              "md:flex",
+              "lg:flex",
               "items-center",
-              "gap-4",
-              "lg:gap-8",
+              "gap-3",
+              "xl:gap-8",
             )}
           >
             <Link
               href="/products"
               className={clsx(
-                "text-[11px]",
+                "text-[10px] xl:text-[11px]",
                 "font-black",
                 "text-primary",
                 "hover:text-primary-hover",
                 "transition-colors",
                 "uppercase",
-                "tracking-[0.2em]",
+                "tracking-[0.1em] xl:tracking-[0.2em]",
+                "whitespace-nowrap"
               )}
             >
               Products
@@ -132,12 +133,13 @@ export const Navbar = () => {
             <Link
               href="#directory"
               className={clsx(
-                "text-sm",
+                "text-xs xl:text-sm",
                 "font-medium",
                 "text-slate-500",
                 "dark:text-slate-300",
                 "hover:text-primary",
                 "transition-colors",
+                "whitespace-nowrap"
               )}
             >
               Mall Directory
@@ -145,12 +147,13 @@ export const Navbar = () => {
             <Link
               href="#availability"
               className={clsx(
-                "text-sm",
+                "text-xs xl:text-sm",
                 "font-medium",
                 "text-slate-500",
                 "dark:text-slate-300",
                 "hover:text-primary",
                 "transition-colors",
+                "whitespace-nowrap"
               )}
             >
               Available Spaces
@@ -158,12 +161,13 @@ export const Navbar = () => {
             <Link
               href="#events"
               className={clsx(
-                "text-sm",
+                "text-xs xl:text-sm",
                 "font-medium",
                 "text-slate-500",
                 "dark:text-slate-300",
                 "hover:text-primary",
                 "transition-colors",
+                "whitespace-nowrap"
               )}
             >
               What's On
@@ -171,12 +175,13 @@ export const Navbar = () => {
             <Link
               href="#location"
               className={clsx(
-                "text-sm",
+                "text-xs xl:text-sm",
                 "font-medium",
                 "text-slate-500",
                 "dark:text-slate-300",
                 "hover:text-primary",
                 "transition-colors",
+                "whitespace-nowrap"
               )}
             >
               Location

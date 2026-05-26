@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -72,7 +73,10 @@ export const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
     }
   }, [isOpen, isSignUp]);
 
-  if (!isOpen) return null;
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  // Removed `if (!isOpen) return null;` so AnimatePresence can animate exit
 
   const toggleMode = () => {
     setIsSignUp(!isSignUp);
@@ -166,10 +170,12 @@ export const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
     }
   };
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 overflow-hidden">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -434,6 +440,7 @@ export const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
           </motion.div>
         </div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 };
