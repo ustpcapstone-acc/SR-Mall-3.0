@@ -72,3 +72,17 @@
     @apply glass-premium rounded-[2.5rem] p-6 md:p-8 shadow-xl shadow-slate-200/50 dark:shadow-none hover:shadow-2xl hover:shadow-primary/5 transition-all duration-300;
   }
 }
+
+/*
+ * ── MOBILE AUTO-ZOOM FIX ─────────────────────────────────────────────────────
+ * iOS Safari automatically zooms in whenever a focused input/textarea has a
+ * font-size smaller than 16px. This rule forces all inputs to render at 16px
+ * on mobile screens only, which stops the zoom without removing user pinch-zoom.
+ */
+@media screen and (max-width: 768px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}

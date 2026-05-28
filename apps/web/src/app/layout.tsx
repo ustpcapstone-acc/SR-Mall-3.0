@@ -20,6 +20,15 @@ export const metadata: Metadata = {
     "Experience the Future of Shopping with SR Mall Management System",
 };
 
+// Prevent iOS Safari auto-zoom on input focus while still allowing user pinch-to-zoom
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5, // Allow user-initiated pinch zoom up to 5x
+  userScalable: true, // Never disable user zoom
+  interactiveWidget: "resizes-content",
+};
+
 import { Toaster } from "sonner";
 
 export default function RootLayout({
