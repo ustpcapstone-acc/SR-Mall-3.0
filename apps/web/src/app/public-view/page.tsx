@@ -58,6 +58,19 @@ export default function PublicDigitalConcierge() {
   const [selectedCategory, setSelectedCategory] = useState("All Categories");
   const [shops, setShops] = useState<DigitalStorefront[]>(() => spaCache.get("public_shops") || []);
   const [loadingShops, setLoadingShops] = useState(() => !spaCache.has("public_shops"));
+  const [unreadMessages, setUnreadMessages] = useState(0);
+
+  useEffect(() => {
+    if (!user) return;
+    const fetchCount = async () => {
+      const { getUnreadMessageCountAction } = await import("@/app/actions/notification");
+      const res = await getUnreadMessageCountAction(user.id);
+      if (res.success) setUnreadMessages(res.data || 0);
+    };
+    fetchCount();
+    const interval = setInterval(fetchCount, 30000);
+    return () => clearInterval(interval);
+  }, [user]);
   const [slots, setSlots] = useState<AreaSlot[]>(() => spaCache.get("public_slots") || []);
   const [loadingSlots, setLoadingSlots] = useState(() => !spaCache.has("public_slots"));
   const [selectedSlot, setSelectedSlot] = useState<AreaSlot | null>(null);
@@ -1745,19 +1758,19 @@ export default function PublicDigitalConcierge() {
               "absolute",
               "-top-2",
               "-right-2",
-              "bg-blue-500",
+              unreadMessages > 0 ? "bg-red-500" : "bg-blue-500",
               "text-white",
               "text-[10px]",
               "font-bold",
-              "px-2",
-              "py-1",
+              unreadMessages > 0 ? "w-6 h-6 flex items-center justify-center text-xs" : "px-2 py-1",
               "rounded-full",
               "border-2",
               "border-white",
               "dark:border-black",
+              unreadMessages > 0 && "animate-pulse"
             )}
           >
-            LIVE
+            {unreadMessages > 0 ? (unreadMessages > 9 ? "9+" : unreadMessages) : "LIVE"}
           </span>
         )}
       </button>

@@ -112,6 +112,16 @@ export async function sendMessage(data: {
       },
     });
 
+    // Create a Message Notification for the recipient
+    await prisma.notification.create({
+      data: {
+        userId: targetUser.id,
+        type: "MESSAGE",
+        title: "New Message",
+        message: `New message from ${sender.name || "a user"}`,
+      }
+    });
+
     // ── GMAIL NOTIFICATION ──
     if (targetUser.email) {
       try {

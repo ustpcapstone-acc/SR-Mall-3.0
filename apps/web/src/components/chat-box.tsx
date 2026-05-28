@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/app/providers";
 import { LoginModal } from "./login-modal";
+import { markMessageNotificationsAsReadAction } from "@/app/actions/notification";
 
 import { getAllStorefrontsAction } from "@/app/actions/tenant";
 
@@ -120,8 +121,11 @@ export const ChatBox = ({
   useEffect(() => {
     if (isOpen) {
       scrollToBottom();
+      if (user?.id) {
+        markMessageNotificationsAsReadAction(user.id);
+      }
     }
-  }, [dbMessages, isOpen]);
+  }, [dbMessages, isOpen, user]);
 
   if (!isOpen) return null;
 

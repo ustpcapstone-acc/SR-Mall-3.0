@@ -67,6 +67,8 @@ export const TenantSidebar = ({
   const pathname = usePathname();
   const [isMobile, setIsMobile] = useState(false);
 
+  const [unreadMessages, setUnreadMessages] = useState(0);
+
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 1024);
@@ -75,6 +77,18 @@ export const TenantSidebar = ({
     window.addEventListener("resize", checkMobile);
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    const fetchCount = async () => {
+      const { getUnreadMessageCountAction } = await import("@/app/actions/notification");
+      const res = await getUnreadMessageCountAction(user.id);
+      if (res.success) setUnreadMessages(res.data || 0);
+    };
+    fetchCount();
+    const interval = setInterval(fetchCount, 30000);
+    return () => clearInterval(interval);
+  }, [user]);
 
   const handleLinkClick = () => {
     if (isMobile && onMobileClose) {
@@ -154,10 +168,16 @@ export const TenantSidebar = ({
                     "uppercase",
                     "text-[11px]",
                     "lg:text-xs",
+                    "flex-1"
                   )}
                 >
                   {isMobile ? item.mobileLabel : item.label}
                 </span>
+                {item.icon === MessageSquare && unreadMessages > 0 && (
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[9px] font-black text-white mr-4 lg:mr-5 shadow-md">
+                    {unreadMessages > 9 ? "9+" : unreadMessages}
+                  </span>
+                )}
                 {isActive && (
                   <div
                     className={clsx(

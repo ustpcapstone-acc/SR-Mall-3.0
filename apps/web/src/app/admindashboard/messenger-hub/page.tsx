@@ -16,6 +16,7 @@ import {
   getMessagesByConversation,
   replyToConversation,
 } from "@/app/actions/chat-queries";
+import { markMessageNotificationsAsReadAction } from "@/app/actions/notification";
 import { useAuth } from "@/app/providers";
 
 export default function MessengerHub() {
@@ -38,8 +39,14 @@ export default function MessengerHub() {
   useEffect(() => {
     fetchConversations();
     const interval = setInterval(fetchConversations, 10000);
+    
+    // Clear message notifications badge when viewing the messenger
+    if (user) {
+      markMessageNotificationsAsReadAction(user.id);
+    }
+    
     return () => clearInterval(interval);
-  }, []);
+  }, [user]);
 
   const fetchConversations = async () => {
     setIsRefreshing(true);

@@ -12,6 +12,8 @@ import {
   Receipt,
 } from "lucide-react";
 import clsx from "clsx";
+import { useState, useEffect } from "react";
+import { useAuth } from "@/app/providers";
 
 const navItems = [
   { href: "/admindashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -50,6 +52,20 @@ const navItems = [
 
 export const AdminSidebar = () => {
   const pathname = usePathname();
+  const { user } = useAuth();
+  const [unreadMessages, setUnreadMessages] = useState(0);
+
+  useEffect(() => {
+    if (!user) return;
+    const fetchCount = async () => {
+      const { getUnreadMessageCountAction } = await import("@/app/actions/notification");
+      const res = await getUnreadMessageCountAction(user.id);
+      if (res.success && res.data !== undefined) setUnreadMessages(res.data);
+    };
+    fetchCount();
+    const interval = setInterval(fetchCount, 10000); // Poll every 10 seconds
+    return () => clearInterval(interval);
+  }, [user]);
 
   return (
     <aside
@@ -118,9 +134,14 @@ export const AdminSidebar = () => {
               >
                 <Icon size={18} />
               </div>
-              <span className="tracking-tight uppercase text-[10px] sm:text-xs">
+              <span className="tracking-tight uppercase text-[10px] sm:text-xs flex-1">
                 {item.label}
               </span>
+              {item.icon === MessageSquare && unreadMessages > 0 && (
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[9px] font-black text-white mr-2 shadow-md">
+                  {unreadMessages > 9 ? "9+" : unreadMessages}
+                </span>
+              )}
               {isActive && (
                 <div className="absolute right-4 w-1.5 h-1.5 bg-primary rounded-full animate-pulse" />
               )}

@@ -150,6 +150,17 @@ export async function replyToConversation(
       data: { updatedAt: new Date() },
     });
 
+    // Create a Message Notification for the recipient
+    const sender = isFromTarget ? "SR Mall Admin" : "a guest user";
+    await prisma.notification.create({
+      data: {
+        userId: recipientId,
+        type: "MESSAGE",
+        title: "New Message",
+        message: `New message from ${sender}`,
+      }
+    });
+
     // ── GMAIL NOTIFICATION ──
     try {
       const recipient = await prisma.user.findUnique({

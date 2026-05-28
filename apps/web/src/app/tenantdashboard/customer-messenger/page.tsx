@@ -13,6 +13,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { useAuth } from "@/app/providers";
+import { markMessageNotificationsAsReadAction } from "@/app/actions/notification";
 import clsx from "clsx";
 
 export default function CustomerMessenger() {
@@ -59,6 +60,9 @@ export default function CustomerMessenger() {
       }
 
       setConversations(data);
+      
+      // Clear message notification badge
+      markMessageNotificationsAsReadAction(user.id);
     };
 
     fetchConversations();
