@@ -114,20 +114,25 @@ export default function SpaceManagerPage() {
     setLoading(true);
     const result = await getAreaSlots();
     if (result.success && result.data) {
+      // Sort slots naturally by unit_id (FS1, FS2, FS3... FS10)
+      const sortedData = [...result.data].sort((a, b) => 
+        a.unit_id.localeCompare(b.unit_id, undefined, { numeric: true, sensitivity: 'base' })
+      );
+
       const floorCounts: Record<string, number> = {};
       
-      const slotsWithPositions = result.data.map(
+      const slotsWithPositions = sortedData.map(
         (slot: any) => {
           const floor = slot.floor || "ground";
           if (floorCounts[floor] === undefined) floorCounts[floor] = 0;
           const floorIndex = floorCounts[floor]++;
           
-          const hasPosition = slot.x !== 0 || slot.y !== 0;
-          
+          // Ignore database x/y coordinates to force a strict auto-flowing grid.
+          // This ensures that when a space is deleted, the remaining spaces will "shift up" to fill the gap.
           return {
             ...slot,
-            x: hasPosition ? slot.x : (floorIndex % 6) * 150 + 50,
-            y: hasPosition ? slot.y : Math.floor(floorIndex / 6) * 120 + 50,
+            x: (floorIndex % 6) * 150 + 50,
+            y: Math.floor(floorIndex / 6) * 120 + 50,
             width: slot.width || 120,
             height: slot.height || 80,
             floor: floor,

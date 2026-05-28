@@ -184,6 +184,7 @@ export async function getAllUsersAction() {
         name: true,
         email: true,
         role: true,
+        avatarUrl: true,
         isBlacklisted: true,
         createdAt: true,
       },

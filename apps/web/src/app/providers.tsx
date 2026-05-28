@@ -44,6 +44,16 @@ export const AppProviders = ({ children }: { children: React.ReactNode }) => {
         const parsed = JSON.parse(storedUser);
         setIsAuthenticated(true);
         setUser(parsed);
+
+        // Re-fetch fresh user data from DB to sync avatarUrl and name in case they were updated
+        // on another device or from another account. This fixes the stale avatar bug.
+        loginAction({ email: parsed.email, password: "OAUTH_LOGIN_BYPASS" }).then((res) => {
+          if (res.success && res.data) {
+            const freshData = { id: res.data.id, name: res.data.name, email: res.data.email, role: res.data.role, avatarUrl: res.data.avatarUrl };
+            setUser(freshData);
+            localStorage.setItem("srmall_user", JSON.stringify(freshData));
+          }
+        }).catch(() => { /* silent fail - we already have cached data */ });
       } catch (err) {
         console.error("Failed to parse stored user:", err);
       }
