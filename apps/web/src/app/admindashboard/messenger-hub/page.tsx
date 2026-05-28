@@ -73,16 +73,21 @@ export default function MessengerHub() {
 
   useEffect(() => {
     if (activeChatId) {
-      fetchMessages();
-      const interval = setInterval(fetchMessages, 4000);
+      const currentId = activeChatId;
+      fetchMessages(currentId);
+      const interval = setInterval(() => fetchMessages(currentId), 4000);
       return () => clearInterval(interval);
     }
   }, [activeChatId]);
 
-  const fetchMessages = async () => {
-    if (!activeChatId) return;
-    const msgs = await getMessagesByConversation(activeChatId);
-    setMessages(msgs);
+  const fetchMessages = async (idToFetch: string) => {
+    const msgs = await getMessagesByConversation(idToFetch);
+    setActiveChatId((currentId) => {
+      if (currentId === idToFetch) {
+        setMessages(msgs);
+      }
+      return currentId;
+    });
   };
 
   const handleSelectChat = (chat: any) => {
@@ -103,7 +108,7 @@ export default function MessengerHub() {
     const res = await replyToConversation(activeChatId, true, replyText);
     if (res.success) {
       setReplyText("");
-      fetchMessages();
+      fetchMessages(activeChatId);
       fetchConversations();
     }
     setIsSending(false);
@@ -210,7 +215,7 @@ export default function MessengerHub() {
                     </div>
                     <div className="flex items-center gap-2 mb-2">
                       <span className="text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 dark:bg-zinc-800">
-                        {chat.type}
+                        {chat.user?.role || "USER"}
                       </span>
                     </div>
                     <p className="text-xs text-slate-500 font-medium truncate">
