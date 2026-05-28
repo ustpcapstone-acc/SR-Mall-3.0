@@ -38,7 +38,7 @@ export default function MessengerHub() {
 
   useEffect(() => {
     fetchConversations();
-    const interval = setInterval(fetchConversations, 10000);
+    const interval = setInterval(fetchConversations, 30000);
     
     // Clear message notifications badge when viewing the messenger
     if (user) {
@@ -75,7 +75,7 @@ export default function MessengerHub() {
     if (activeChatId) {
       const currentId = activeChatId;
       fetchMessages(currentId);
-      const interval = setInterval(() => fetchMessages(currentId), 4000);
+      const interval = setInterval(() => fetchMessages(currentId), 15000);
       return () => clearInterval(interval);
     }
   }, [activeChatId]);

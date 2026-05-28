@@ -66,7 +66,7 @@ export default function CustomerMessenger() {
     };
 
     fetchConversations();
-    const interval = setInterval(fetchConversations, 5000);
+    const interval = setInterval(fetchConversations, 15000);
     return () => clearInterval(interval);
   }, [user?.id, activeChat]);
 
@@ -82,7 +82,7 @@ export default function CustomerMessenger() {
     };
 
     fetchMessages();
-    const interval = setInterval(fetchMessages, 3000);
+    const interval = setInterval(fetchMessages, 10000);
     return () => clearInterval(interval);
   }, [activeChat]);
 
