@@ -35,6 +35,12 @@ const CATEGORIES = [
   "Electronics",
   "Food & Dining",
   "Health & Beauty",
+  "School Supplies",
+  "Play Area",
+  "Services",
+  "Home & Lifestyle",
+  "Entertainment",
+  "Mall Events",
   "Others",
 ];
 
