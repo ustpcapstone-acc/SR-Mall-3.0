@@ -26,7 +26,7 @@ export async function updateStorefrontAction(
       };
     }
 
-    const tenant = await prisma.tenant.upsert({
+    const tenant = await (prisma.tenant.upsert as any)({
       where: { userId },
       update: {
         shopName: profile.shop_name,
@@ -37,6 +37,7 @@ export async function updateStorefrontAction(
         galleryUrls: profile.gallery_urls,
         products: profile.products as any,
         postSales: profile.post_sales as any,
+        category: profile.category,
       },
       create: {
         userId,
@@ -48,6 +49,7 @@ export async function updateStorefrontAction(
         galleryUrls: profile.gallery_urls || [],
         products: (profile.products || []) as any,
         postSales: (profile.post_sales || []) as any,
+        category: profile.category || "Fashion",
       },
     });
 
@@ -67,6 +69,7 @@ export async function updateStorefrontAction(
         gallery_urls: tenant.galleryUrls,
         products: tenant.products as any,
         post_sales: tenant.postSales as any,
+        category: (tenant as any).category,
       } as DigitalStorefront,
     };
   } catch (error: any) {
@@ -154,6 +157,7 @@ export async function getStorefrontAction(userId: string) {
         gallery_urls: tenant.galleryUrls,
         products: tenant.products as any,
         post_sales: tenant.postSales as any,
+        category: (tenant as any).category,
       } as DigitalStorefront,
     };
   } catch (error: any) {
@@ -232,6 +236,7 @@ export async function getAllStorefrontsAction() {
             gallery_urls: t.galleryUrls,
             products: t.products as any,
             post_sales: t.postSales as any,
+            category: t.category,
           }) as DigitalStorefront,
       ),
     };
@@ -323,6 +328,7 @@ export async function getStorefrontByIdAction(id: string) {
         gallery_urls: tenant.galleryUrls,
         products: tenant.products as any,
         post_sales: tenant.postSales as any,
+        category: (tenant as any).category,
       } as DigitalStorefront,
     };
   } catch (error: any) {

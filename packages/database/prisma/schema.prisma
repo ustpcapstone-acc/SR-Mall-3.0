@@ -41,6 +41,7 @@ model Tenant {
   description String?
   logoUrl     String?
   galleryUrls String[]      @default([])
+  category    String        @default("Fashion")
   userId      String        @unique
   status      String        @default("ACTIVE")
   products    Json          @default("[]")

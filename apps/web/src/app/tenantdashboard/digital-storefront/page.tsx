@@ -33,6 +33,20 @@ const PLACEHOLDERS = [
   "/images/logo/logoshop.jpg",
 ];
 
+const STORE_CATEGORIES = [
+  "Fashion",
+  "Electronics",
+  "Food & Dining",
+  "Health & Beauty",
+  "School Supplies",
+  "Play Area",
+  "Services",
+  "Home & Lifestyle",
+  "Entertainment",
+  "Mall Events",
+  "Others",
+];
+
 const getSafeUrl = (url: string | null | undefined, index: number) => {
   if (!url || url.startsWith("blob:") || url.includes("placeholder")) {
     if (index === 0) return "/images/logo/logoshop.jpg";
@@ -396,20 +410,21 @@ export default function DigitalStorefrontPage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Left: Editor */}
           <div className="lg:col-span-8 space-y-4">
-            {/* Tab Bar */}
-            <div className="flex items-center gap-1 p-1.5 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-2xl shadow-sm">
+            {/* Tab Bar — icon-only on mobile, labeled on sm+ */}
+            <div className="flex items-center gap-1 p-1.5 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-2xl shadow-sm overflow-x-auto no-scrollbar">
               {TABS.map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex-1 flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-widest transition-all ${
+                  title={tab.label}
+                  className={`flex-1 min-w-[44px] flex items-center justify-center gap-1.5 px-2 sm:px-4 py-2.5 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-widest transition-all ${
                     activeTab === tab.id
                       ? "bg-primary text-white shadow-md shadow-primary/20"
                       : "text-slate-500 hover:text-charcoal dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5"
                   }`}
                 >
-                  <tab.icon size={14} className="shrink-0" />
-                  {tab.label}
+                  <tab.icon size={15} className="shrink-0" />
+                  <span className="hidden sm:inline whitespace-nowrap">{tab.label}</span>
                 </button>
               ))}
             </div>
@@ -417,45 +432,38 @@ export default function DigitalStorefrontPage() {
             {/* ── Tab: Brand Identity ── */}
             {activeTab === "identity" && (
               <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl sm:rounded-3xl shadow-sm overflow-hidden animate-fade-in">
-                {/* Logo + Name section */}
-                <div className="p-5 sm:p-6 lg:p-8 flex flex-col sm:flex-row gap-6 border-b border-slate-100 dark:border-white/5">
-                  {/* Logo Upload */}
-                  <div
-                    onClick={() => logoInputRef.current?.click()}
-                    className="relative group shrink-0 cursor-pointer mx-auto sm:mx-0"
-                  >
+                {/* Logo + Name section — stacks vertically on mobile */}
+                <div className="p-4 sm:p-6 lg:p-8 flex flex-col gap-5 border-b border-slate-100 dark:border-white/5">
+                  {/* Logo Upload — centered on mobile */}
+                  <div className="flex items-center gap-4">
                     <div
-                      className={`w-24 h-24 sm:w-28 sm:h-28 rounded-2xl sm:rounded-3xl bg-slate-50 dark:bg-zinc-800 border-2 border-dashed border-slate-200 dark:border-zinc-700 flex flex-col items-center justify-center overflow-hidden transition-all group-hover:border-primary ${profile.logo_url ? "border-solid border-slate-200 dark:border-zinc-700" : ""}`}
+                      onClick={() => logoInputRef.current?.click()}
+                      className="relative group shrink-0 cursor-pointer"
                     >
-                      {profile.logo_url ? (
-                        <img
-                          src={getSafeUrl(profile.logo_url, 0)}
-                          className="w-full h-full object-cover group-hover:opacity-70 transition-opacity"
-                          alt="Logo"
-                        />
-                      ) : (
-                        <div className="text-center p-3">
-                          <Camera
-                            size={22}
-                            className="mx-auto mb-1.5 text-slate-400 group-hover:text-primary transition-colors"
+                      <div
+                        className={`w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-slate-50 dark:bg-zinc-800 border-2 border-dashed border-slate-200 dark:border-zinc-700 flex flex-col items-center justify-center overflow-hidden transition-all group-hover:border-primary ${profile.logo_url ? "border-solid" : ""}`}
+                      >
+                        {profile.logo_url ? (
+                          <img
+                            src={getSafeUrl(profile.logo_url, 0)}
+                            className="w-full h-full object-cover group-hover:opacity-70 transition-opacity"
+                            alt="Logo"
                           />
-                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-snug">
-                            Add Logo
-                          </p>
-                        </div>
-                      )}
+                        ) : (
+                          <div className="text-center p-2">
+                            <Camera size={20} className="mx-auto mb-1 text-slate-400 group-hover:text-primary transition-colors" />
+                            <p className="text-[9px] font-black text-slate-400 uppercase leading-snug">Logo</p>
+                          </div>
+                        )}
+                      </div>
+                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-primary/20 rounded-2xl pointer-events-none">
+                        <UploadCloud size={18} className="text-primary" />
+                      </div>
+                      <span className="absolute -bottom-2 -right-2 bg-primary text-white text-[9px] font-black px-2 py-0.5 rounded-full shadow">
+                        {profile.logo_url ? "Change" : "Upload"}
+                      </span>
                     </div>
-                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-primary/20 rounded-2xl sm:rounded-3xl pointer-events-none">
-                      <UploadCloud size={22} className="text-primary" />
-                    </div>
-                    <span className="absolute -bottom-2 -right-2 bg-primary text-white text-[9px] font-black px-2 py-0.5 rounded-full shadow">
-                      {profile.logo_url ? "Change" : "Upload"}
-                    </span>
-                  </div>
-
-                  {/* Name + Description */}
-                  <div className="flex-1 space-y-4">
-                    <div>
+                    <div className="flex-1 min-w-0">
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1.5">
                         Business Name
                       </label>
@@ -463,57 +471,76 @@ export default function DigitalStorefrontPage() {
                         type="text"
                         placeholder="e.g. Rizal Fashion Hub"
                         value={profile.shop_name || ""}
-                        onChange={(e) =>
-                          updateField("shop_name", e.target.value)
-                        }
-                        className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-bold text-charcoal dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-primary transition-all"
+                        onChange={(e) => updateField("shop_name", e.target.value)}
+                        className="w-full px-3 py-2.5 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-bold text-charcoal dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-primary transition-all"
                       />
                     </div>
-                    <div>
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1.5">
-                        Brand Bio / Description
-                      </label>
-                      <textarea
-                        rows={3}
-                        placeholder="Describe your store to customers..."
-                        value={profile.description || ""}
-                        onChange={(e) =>
-                          updateField("description", e.target.value)
-                        }
-                        className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-medium text-charcoal dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-primary transition-all resize-none"
-                      />
-                    </div>
+                  </div>
+
+                  {/* Description — full width below */}
+                  <div>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1.5">
+                      Brand Bio / Description
+                    </label>
+                    <textarea
+                      rows={3}
+                      placeholder="Describe your store to customers..."
+                      value={profile.description || ""}
+                      onChange={(e) => updateField("description", e.target.value)}
+                      className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-medium text-charcoal dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-primary transition-all resize-none"
+                    />
                   </div>
                 </div>
 
-                {/* Unit + Contact */}
-                <div className="p-5 sm:p-6 lg:p-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-1.5">
-                      <MapPin size={11} /> Unit / Location
-                    </label>
-                    <div className="relative">
+                {/* Unit + Contact + Category */}
+                <div className="p-4 sm:p-6 lg:p-8 space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-1.5">
+                        <MapPin size={11} /> Unit / Location
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          placeholder="e.g. L1-105"
+                          value={profile.unit_id || ""}
+                          onChange={(e) => updateField("unit_id", e.target.value)}
+                          className="w-full px-4 py-3 pr-16 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-black text-charcoal dark:text-white uppercase tracking-widest placeholder:text-slate-400 focus:outline-none focus:border-primary transition-all"
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-black text-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded-md">
+                          SYNCED
+                        </span>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-1.5">
+                        <Phone size={11} /> Contact Number
+                      </label>
                       <input
                         type="text"
-                        placeholder="e.g. L1-105"
-                        value={profile.unit_id || ""}
-                        onChange={(e) => updateField("unit_id", e.target.value)}
-                        className="w-full px-4 py-3 pr-16 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-black text-charcoal dark:text-white uppercase tracking-widest placeholder:text-slate-400 focus:outline-none focus:border-primary transition-all"
+                        placeholder="+63 9XX XXX XXXX"
+                        className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-bold text-charcoal dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-primary transition-all"
                       />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-black text-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded-md">
-                        SYNCED
-                      </span>
                     </div>
                   </div>
+
+                  {/* Store Category */}
                   <div>
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-1.5">
-                      <Phone size={11} /> Contact Number
+                      <Tag size={11} /> Store Category
                     </label>
-                    <input
-                      type="text"
-                      placeholder="+63 9XX XXX XXXX"
-                      className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-bold text-charcoal dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-primary transition-all"
-                    />
+                    <select
+                      value={profile.category || "Fashion"}
+                      onChange={(e) => updateField("category", e.target.value)}
+                      className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-bold text-charcoal dark:text-white focus:outline-none focus:border-primary transition-all appearance-none cursor-pointer"
+                    >
+                      {STORE_CATEGORIES.map((cat) => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
+                    </select>
+                    <p className="text-[10px] text-slate-400 font-medium mt-1.5">
+                      This helps customers find your store in the mall directory.
+                    </p>
                   </div>
                 </div>
               </div>
