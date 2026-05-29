@@ -38,7 +38,7 @@ export async function updateStorefrontAction(
         products: profile.products as any,
         postSales: profile.post_sales as any,
         category: profile.category,
-      },
+      } as any,
       create: {
         userId,
         shopName: profile.shop_name || "Untitled Shop",
@@ -50,7 +50,7 @@ export async function updateStorefrontAction(
         products: (profile.products || []) as any,
         postSales: (profile.post_sales || []) as any,
         category: profile.category || "Fashion",
-      },
+      } as any,
     });
 
     revalidatePath("/tenantdashboard/digital-storefront");
