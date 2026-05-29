@@ -263,6 +263,7 @@ export default function DigitalStorefrontPage() {
     unit_id: profile.unit_id || "L1-XXX",
     is_open: profile.is_open ?? true,
     description: profile.description || "Your brand bio goes here.",
+    category: profile.category || "Fashion",
     logo_url: getSafeUrl(profile.logo_url, 0),
     gallery_urls: galleryUrls.length
       ? galleryUrls.map((u, i) => getSafeUrl(u, i + 1))

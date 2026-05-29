@@ -26,7 +26,7 @@ export async function updateStorefrontAction(
       };
     }
 
-    const tenant = await (prisma.tenant.upsert as any)({
+    const tenant = await prisma.tenant.upsert({
       where: { userId },
       update: {
         shopName: profile.shop_name,

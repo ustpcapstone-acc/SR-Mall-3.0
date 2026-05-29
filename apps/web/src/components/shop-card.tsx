@@ -148,7 +148,7 @@ export const ShopCard = ({ shop, onClick, onMessage }: ShopCardProps) => {
                 <div className="px-3 py-1 bg-primary/5 border border-primary/20 rounded-md flex items-center gap-2">
                   <Tag size={12} className="text-primary" />
                   <span className="text-[10px] font-black text-primary uppercase tracking-widest">
-                    Fashion
+                    {shop.category || "Fashion"}
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5 text-[9px] font-bold text-slate-400 uppercase tracking-widest">
