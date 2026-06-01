@@ -282,7 +282,7 @@ export default function TenantMonitoring() {
               rentCost: activeRentCost,
               paymentStatus,
               nextDueDate,
-              violations: index % 7 === 0 ? 1 : 0,
+              violations: 0,
               metrics: {
                 clicks: 500 + index * 200,
                 offersClaimed: 50 + index * 20,
