@@ -186,7 +186,7 @@ export const generateTenantPDF = async (data: any[]) => {
 
   // 3. The Main Table
   const tableRows = data.map((t) => [
-    t.shopName,
+    t.lastReceiptNo ? `${t.shopName}\n(Rec: ${t.lastReceiptNo.replace("#INV-", "")})` : t.shopName,
     t.tenantOwner || "N/A",
     t.category || "Retail",
     t.unitId,

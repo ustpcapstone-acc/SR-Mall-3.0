@@ -38,7 +38,7 @@ export async function updateStorefrontAction(
         products: profile.products as any,
         postSales: profile.post_sales as any,
         category: profile.category,
-      } as any,
+      },
       create: {
         userId,
         shopName: profile.shop_name || "Untitled Shop",
@@ -50,8 +50,8 @@ export async function updateStorefrontAction(
         products: (profile.products || []) as any,
         postSales: (profile.post_sales || []) as any,
         category: profile.category || "Fashion",
-      } as any,
-    });
+      },
+    } as any);
 
     revalidatePath("/tenantdashboard/digital-storefront");
     revalidatePath("/tenantdashboard/profile-settings");
@@ -765,6 +765,7 @@ export async function getTenantReportDataAction() {
       const lastPaymentDate = lastPaidInvoice
         ? lastPaidInvoice.createdAt
         : null;
+      const lastReceiptNo = t.invoices[0] ? t.invoices[0].invoiceNumber : null;
 
       // Find the earliest due date among unpaid invoices
       const overdueInvoice = unpaidInvoices.sort(
@@ -799,6 +800,7 @@ export async function getTenantReportDataAction() {
         monthlyRent: slot?.base_rent || 0,
         balance,
         lastPaymentDate,
+        lastReceiptNo,
         nextDueDate,
         leaseExpiryDate: expiryDate,
         category: category,
@@ -958,7 +960,7 @@ export async function updateAdminPostSaleAction(tenantId: string, saleId: string
     if (!tenant) return { success: false, error: "Tenant not found" };
 
     const sales = Array.isArray(tenant.postSales) ? tenant.postSales : [];
-    const updatedSales = sales.map((s: any) => 
+    const updatedSales = sales.map((s: any) =>
       s.id === saleId ? { ...s, image_url: newImageUrl, title: newTitle } : s
     );
 
