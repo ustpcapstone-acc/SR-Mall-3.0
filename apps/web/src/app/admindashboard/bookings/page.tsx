@@ -418,15 +418,15 @@ export default function MasterBookingsPage() {
                           className="hover:bg-slate-50/80 dark:hover:bg-white/[0.02] transition-colors group/row"
                         >
                           <td className="px-8 py-8">
-                            <div className="flex items-center gap-4">
-                              <div className="w-14 h-14 bg-primary/10 rounded-[1.25rem] flex items-center justify-center text-primary group-hover/row:scale-110 transition-transform">
+                            <div className="flex items-center gap-4 min-w-0">
+                              <div className="shrink-0 w-14 h-14 bg-primary/10 rounded-[1.25rem] flex items-center justify-center text-primary group-hover/row:scale-110 transition-transform">
                                 <User size={24} />
                               </div>
-                              <div>
-                                <p className="font-black text-charcoal dark:text-white uppercase tracking-tight italic">
+                              <div className="min-w-0 flex-1">
+                                <p className="font-black text-charcoal dark:text-white uppercase tracking-tight italic truncate">
                                   {req.user?.name}
                                 </p>
-                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
+                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5 truncate">
                                   {req.user?.email}
                                 </p>
                               </div>
@@ -440,7 +440,7 @@ export default function MasterBookingsPage() {
                               <h4 className="text-sm font-black text-charcoal dark:text-white uppercase tracking-tight">
                                 {req.shopName}
                               </h4>
-                              <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed italic">
+                              <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed italic break-all">
                                 "{req.description}"
                               </p>
                             </div>

@@ -25,6 +25,7 @@ import {
   Zap,
   Shirt,
   Coffee,
+  PhilippinePeso,
 } from "lucide-react";
 import Link from "next/link";
 import { LoginModal } from "@/components/login-modal";

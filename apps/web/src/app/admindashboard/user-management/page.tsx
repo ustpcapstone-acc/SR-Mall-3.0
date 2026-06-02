@@ -467,9 +467,9 @@ export default function UserManagement() {
                                 disabled={isProcessing === item.id}
                                 className="bg-transparent text-[11px] font-black uppercase tracking-widest text-charcoal dark:text-white hover:text-primary transition-colors cursor-pointer outline-none border-none p-0 focus:ring-0"
                               >
-                                <option value="CUSTOMER">Customer Segment</option>
-                                <option value="TENANT">Merchant Partner</option>
-                                <option value="ADMIN">System Admin</option>
+                                <option value="CUSTOMER" className="bg-white dark:bg-zinc-900 text-charcoal dark:text-white">Customer Segment</option>
+                                <option value="TENANT" className="bg-white dark:bg-zinc-900 text-charcoal dark:text-white">Merchant Partner</option>
+                                <option value="ADMIN" className="bg-white dark:bg-zinc-900 text-charcoal dark:text-white">System Admin</option>
                               </select>
                               {isProcessing === item.id && (
                                 <Loader2

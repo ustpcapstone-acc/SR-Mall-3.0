@@ -12,7 +12,7 @@ import {
   MessageSquare,
   MapPin,
   RefreshCw,
-  DollarSign,
+  PhilippinePeso,
   Users,
   Store,
   CreditCard,
@@ -410,7 +410,7 @@ export default function AdminDashboard() {
           title="Total Revenue"
           value={`\u20b1${stats.totalRevenue.toLocaleString()}`}
           trend="+12.4%"
-          icon={<DollarSign size={20} />}
+          icon={<PhilippinePeso size={20} />}
           color="primary"
           chart={true}
         />

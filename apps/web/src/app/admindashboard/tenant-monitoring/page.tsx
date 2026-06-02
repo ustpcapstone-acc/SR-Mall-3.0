@@ -34,7 +34,7 @@ import {
   ChevronDown,
   LayoutGrid,
   List,
-  DollarSign,
+  PhilippinePeso,
   Activity,
   PieChart as PieChartIcon,
   ArrowUpRight,
@@ -1088,7 +1088,7 @@ export default function TenantMonitoring() {
             <div className="relative p-6 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-[1.8rem] shadow-sm overflow-hidden h-full">
               <div className="flex items-start justify-between mb-8">
                 <div className="w-12 h-12 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-500 group-hover:scale-110 transition-transform">
-                  <DollarSign size={22} />
+                  <PhilippinePeso size={22} />
                 </div>
                 <div className="flex flex-col items-end">
                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
@@ -2616,7 +2616,7 @@ export default function TenantMonitoring() {
                       "gap-2",
                     )}
                   >
-                    <DollarSign size={14} /> Financial Logistics
+                    <PhilippinePeso size={14} /> Financial Logistics
                   </h4>
 
                   <div className="space-y-4">
@@ -2807,7 +2807,7 @@ export default function TenantMonitoring() {
                                       }}
                                       className="px-4 py-2 bg-[#BE1E2D] hover:bg-[#a01825] text-white rounded-lg text-[9px] font-black uppercase tracking-widest shadow-md shadow-red-500/20 transition-all hover:scale-105 active:scale-95 inline-flex items-center gap-1.5"
                                     >
-                                      <DollarSign size={12} /> Record Cash
+                                      <PhilippinePeso size={12} /> Record Cash
                                       Payment
                                     </button>
                                   </div>
