@@ -30,7 +30,10 @@ import { toast } from "sonner";
 import clsx from "clsx";
 
 export default function UserManagement() {
-  const [activeTab, setActiveTab] = useState<"users" | "feedback">("users");
+  const [activeTab, setActiveTab] = useState<"users" | "feedback" | "history">("users");
+  const [pastTenants, setPastTenants] = useState<any[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [selectedPastTenant, setSelectedPastTenant] = useState<any | null>(null);
   const [selectedUser, setSelectedUser] = useState<any | null>(null);
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -78,8 +81,25 @@ export default function UserManagement() {
   useEffect(() => {
     if (activeTab === "feedback") {
       loadReviews();
+    } else if (activeTab === "history") {
+      loadHistory();
     }
   }, [activeTab]);
+
+  const loadHistory = async () => {
+    setLoadingHistory(true);
+    try {
+      const { getPastTenantsAction } = await import("@/app/actions/tenant");
+      const res = await getPastTenantsAction();
+      if (res.success && res.data) {
+        setPastTenants(res.data);
+      }
+    } catch (err) {
+      toast.error("Failed to load tenant history.");
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
 
   const handleToggleBlacklist = async (id: string, currentStatus: boolean) => {
     if (
@@ -106,24 +126,6 @@ export default function UserManagement() {
     setIsProcessing(null);
   };
 
-  const handleDelete = async (id: string) => {
-    if (
-      !confirm(
-        "Critical Purge: This will permanently delete this identity and all associated manifests. Proceed?",
-      )
-    )
-      return;
-    setIsProcessing(id);
-    const { deleteUserAction } = await import("@/app/actions/auth");
-    const res = await deleteUserAction(id);
-    if (res.success) {
-      toast.warning("Identity Purged from Database");
-      setUsers(users.filter((u) => u.id !== id));
-    } else {
-      toast.error("Purge Protocol Failure");
-    }
-    setIsProcessing(null);
-  };
 
   const handleRoleChange = async (id: string, newRole: string) => {
     setIsProcessing(id);
@@ -282,6 +284,20 @@ export default function UserManagement() {
               {reviews.filter((r) => !r.isApproved || r.isSpam).length}
             </span>
           )}
+        </button>
+        <button
+          onClick={() => setActiveTab("history")}
+          className={clsx(
+            "flex items-center gap-3 px-8 py-4 rounded-2xl transition-all relative whitespace-nowrap active:scale-95",
+            activeTab === "history"
+              ? "bg-white dark:bg-zinc-800 text-charcoal dark:text-white shadow-xl"
+              : "text-slate-400 hover:bg-white/50 dark:hover:bg-white/5",
+          )}
+        >
+          <Store size={18} />
+          <span className="text-[11px] font-black uppercase tracking-widest">
+            Tenant History
+          </span>
         </button>
       </div>
 
@@ -511,13 +527,6 @@ export default function UserManagement() {
                                 {item.isBlacklisted
                                   ? "Restore Access"
                                   : "Revoke Authorization"}
-                              </button>
-                              <button
-                                onClick={() => handleDelete(item.id)}
-                                disabled={isProcessing === item.id}
-                                className="p-3.5 bg-slate-100 dark:bg-zinc-800 text-slate-400 hover:text-red-500 rounded-xl transition-all"
-                              >
-                                <Trash2 size={18} />
                               </button>
                             </div>
                           </td>
@@ -970,6 +979,107 @@ export default function UserManagement() {
         </div>
       )}
 
+      {activeTab === "history" && (
+        <div className="space-y-8 animate-fade-in">
+          <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-[3rem] shadow-sm overflow-hidden">
+            <div className="p-8 border-b border-slate-100 dark:border-white/5 bg-slate-50/30 dark:bg-white/[0.02] flex items-center gap-4">
+              <div className="w-14 h-14 bg-primary/10 rounded-[1.25rem] flex items-center justify-center text-primary shadow-inner">
+                <Store size={28} />
+              </div>
+              <div>
+                <h3 className="text-xl font-black text-charcoal dark:text-white uppercase tracking-tighter italic">
+                  Tenant History
+                </h3>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">
+                  Historical Log of Former Merchant Partners
+                </p>
+              </div>
+            </div>
+            <div className="overflow-x-auto custom-scrollbar">
+              {loadingHistory ? (
+                <div className="py-40 flex flex-col items-center justify-center gap-4">
+                  <Loader2 className="w-10 h-10 text-primary animate-spin" />
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">
+                    Loading History...
+                  </p>
+                </div>
+              ) : (
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50/50 dark:bg-white/[0.02]">
+                      <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                        Merchant Identity
+                      </th>
+                      <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                        Category
+                      </th>
+                      <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                        Last Modified
+                      </th>
+                      <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">
+                        Action
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-white/5">
+                    {pastTenants.length === 0 ? (
+                      <tr>
+                        <td colSpan={4} className="px-8 py-20 text-center">
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">
+                            No history records found.
+                          </p>
+                        </td>
+                      </tr>
+                    ) : (
+                      pastTenants.map((item) => (
+                        <tr
+                          key={item.id}
+                          className="hover:bg-slate-50/80 dark:hover:bg-white/[0.02] transition-colors group/row"
+                        >
+                          <td className="px-8 py-8">
+                            <div className="flex items-center gap-5">
+                              <div className="w-14 h-14 rounded-[1.5rem] bg-slate-100 dark:bg-zinc-800 text-slate-500 flex items-center justify-center font-black text-lg">
+                                {item.shopName ? item.shopName.charAt(0).toUpperCase() : "S"}
+                              </div>
+                              <div>
+                                <p className="text-base font-black text-charcoal dark:text-white uppercase tracking-tight italic">
+                                  {item.shopName}
+                                </p>
+                                <p className="text-[10px] font-bold text-slate-400 mt-0.5 tracking-wider">
+                                  Owner: {item.user?.name || "Unknown"}
+                                </p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-8 py-8">
+                            <span className="inline-flex items-center px-3 py-1 bg-slate-100 dark:bg-zinc-800 text-slate-500 text-[9px] font-black uppercase tracking-widest rounded-full">
+                              {item.category || "General"}
+                            </span>
+                          </td>
+                          <td className="px-8 py-8">
+                            <p className="text-sm font-bold text-slate-400">
+                              {new Date(item.updatedAt).toLocaleDateString()}
+                            </p>
+                          </td>
+                          <td className="px-8 py-8 text-right">
+                            <button
+                              onClick={() => setSelectedPastTenant(item)}
+                              className="px-6 py-3 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-white/10 text-charcoal dark:text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-white/5 transition-all shadow-sm active:scale-95"
+                            >
+                              View Details
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {selectedUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in" onClick={() => setSelectedUser(null)}>
           <div
@@ -1039,6 +1149,103 @@ export default function UserManagement() {
             <div className="p-6 bg-slate-50 dark:bg-white/[0.02] border-t border-slate-100 dark:border-white/5 flex justify-end">
               <button onClick={() => setSelectedUser(null)} className="px-8 py-4 bg-charcoal dark:bg-white text-white dark:text-black rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl hover:scale-105 active:scale-95 transition-all">
                 Acknowledge
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {selectedPastTenant && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in" onClick={() => setSelectedPastTenant(null)}>
+          <div
+            className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-[3rem] w-full max-w-2xl shadow-2xl overflow-hidden animate-fade-in-up flex flex-col max-h-[90vh]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-8 border-b border-slate-100 dark:border-white/5 flex items-center justify-between shrink-0">
+              <h3 className="text-xl font-black text-charcoal dark:text-white uppercase tracking-tighter italic flex items-center gap-3">
+                <Store className="text-primary" /> Past Tenant <span className="text-primary">Details.</span>
+              </h3>
+              <button
+                onClick={() => setSelectedPastTenant(null)}
+                className="w-10 h-10 rounded-full bg-slate-100 dark:bg-zinc-800 text-slate-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all shadow-sm"
+              >
+                <X size={16} strokeWidth={3} />
+              </button>
+            </div>
+
+            <div className="p-8 overflow-y-auto custom-scrollbar space-y-8">
+              <div className="flex flex-col md:flex-row gap-8">
+                <div className="flex-1 space-y-2">
+                  <h4 className="text-3xl font-black text-charcoal dark:text-white uppercase tracking-tight italic">
+                    {selectedPastTenant.shopName}
+                  </h4>
+                  <p className="text-[10px] font-black text-primary uppercase tracking-widest">
+                    Category: {selectedPastTenant.category || "General"}
+                  </p>
+                  <p className="text-sm text-slate-500 leading-relaxed mt-4">
+                    {selectedPastTenant.description || "No description available."}
+                  </p>
+                </div>
+                <div className="shrink-0 space-y-4">
+                  <div className="p-6 bg-emerald-50 dark:bg-emerald-900/10 rounded-3xl border border-emerald-100 dark:border-emerald-900/20 text-center">
+                    <p className="text-[9px] font-black text-emerald-600 dark:text-emerald-500 uppercase tracking-widest mb-2">Total Paid</p>
+                    <p className="text-3xl font-black text-emerald-700 dark:text-emerald-400">
+                      ₱{(selectedPastTenant.invoices?.filter((inv: any) => inv.status === "PAID" || inv.status === "PAST").reduce((sum: number, inv: any) => sum + inv.amount, 0) || 0).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 border-b border-slate-100 dark:border-white/5 pb-2">
+                  Past Products
+                </h5>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                  {selectedPastTenant.products && selectedPastTenant.products.length > 0 ? (
+                    selectedPastTenant.products.map((prod: any, idx: number) => (
+                      <div key={idx} className="bg-slate-50 dark:bg-white/[0.02] p-4 rounded-2xl border border-slate-100 dark:border-white/5 text-center flex flex-col items-center gap-2">
+                        {prod.image_url ? (
+                          <img src={prod.image_url} alt={prod.name} className="w-16 h-16 object-cover rounded-xl shadow-sm" />
+                        ) : (
+                          <div className="w-16 h-16 bg-slate-200 dark:bg-zinc-800 rounded-xl flex items-center justify-center">
+                            <Store size={20} className="text-slate-400" />
+                          </div>
+                        )}
+                        <div>
+                          <p className="text-xs font-black text-charcoal dark:text-white uppercase truncate w-24 mx-auto">{prod.name}</p>
+                          <p className="text-[10px] font-bold text-slate-500 mt-1">₱{Number(prod.price).toLocaleString()}</p>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-xs text-slate-500 col-span-full">No products found.</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="p-5 bg-slate-50 dark:bg-white/[0.02] rounded-3xl border border-slate-100 dark:border-white/5 flex flex-wrap gap-6">
+                <div>
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Owner Name</p>
+                  <p className="text-sm font-bold text-charcoal dark:text-white">{selectedPastTenant.user?.name || "N/A"}</p>
+                </div>
+                <div>
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Owner Email</p>
+                  <p className="text-sm font-bold text-charcoal dark:text-white">{selectedPastTenant.user?.email || "N/A"}</p>
+                </div>
+                <div>
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Onboarded Date</p>
+                  <p className="text-sm font-bold text-charcoal dark:text-white">{new Date(selectedPastTenant.createdAt).toLocaleDateString()}</p>
+                </div>
+                <div>
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Past Status Date</p>
+                  <p className="text-sm font-bold text-charcoal dark:text-white">{new Date(selectedPastTenant.updatedAt).toLocaleDateString()}</p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="p-6 border-t border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.02] shrink-0 text-right">
+              <button onClick={() => setSelectedPastTenant(null)} className="px-8 py-4 bg-charcoal dark:bg-white text-white dark:text-black rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl hover:scale-105 active:scale-95 transition-all">
+                Close Details
               </button>
             </div>
           </div>

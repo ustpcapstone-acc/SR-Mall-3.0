@@ -260,16 +260,21 @@ export async function updateUserRoleAction(userId: string, newRole: string) {
     await prisma.$transaction(async (tx: any) => {
       // If demoting from TENANT to CUSTOMER/ADMIN, we should clean up their tenant profile
       if (user.role === "TENANT" && newRole !== "TENANT" && user.tenant) {
-        const slot = await tx.areaSlot.findFirst({
-          where: { tenant_id: user.tenant.id },
-        });
-        if (slot) {
-          await tx.areaSlot.update({
-            where: { id: slot.id },
-            data: { status: "AVAILABLE", tenant_id: null },
+        if (user.tenant.unitId && user.tenant.unitId !== "UNASSIGNED" && user.tenant.unitId !== "PENDING_ASSIGNMENT") {
+          const slot = await tx.areaSlot.findFirst({
+            where: { unit_id: user.tenant.unitId },
           });
+          if (slot) {
+            await tx.areaSlot.update({
+              where: { id: slot.id },
+              data: { status: "AVAILABLE", tenant_id: null },
+            });
+          }
         }
-        await tx.tenant.delete({ where: { id: user.tenant.id } });
+        await tx.tenant.update({
+          where: { id: user.tenant.id },
+          data: { status: "PAST", unitId: "UNASSIGNED" }
+        });
       }
 
       await tx.user.update({

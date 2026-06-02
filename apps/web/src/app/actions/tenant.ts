@@ -452,23 +452,39 @@ export async function requestTenantAction(
             "Your previous application was rejected. You cannot reapply at this time.",
         };
       }
-      return {
-        success: false,
-        error: "You already have a pending or active storefront application.",
-      };
+      if (existing.status !== "PAST") {
+        return {
+          success: false,
+          error: "You already have a pending or active storefront application.",
+        };
+      }
     }
 
-    await prisma.tenant.create({
-      data: {
-        userId,
-        shopName: data.shopName,
-        unitId: "PENDING_ASSIGNMENT",
-        status: "PENDING",
-        description: data.description,
-        products: [],
-        galleryUrls: [],
-      },
-    });
+    if (existing && existing.status === "PAST") {
+      await prisma.tenant.update({
+        where: { id: existing.id },
+        data: {
+          shopName: data.shopName,
+          unitId: "PENDING_ASSIGNMENT",
+          status: "PENDING",
+          description: data.description,
+          products: [],
+          galleryUrls: [],
+        },
+      });
+    } else {
+      await prisma.tenant.create({
+        data: {
+          userId,
+          shopName: data.shopName,
+          unitId: "PENDING_ASSIGNMENT",
+          status: "PENDING",
+          description: data.description,
+          products: [],
+          galleryUrls: [],
+        },
+      });
+    }
 
     const admins = await prisma.user.findMany({
       where: { role: "ADMIN" },
@@ -979,3 +995,18 @@ export async function updateAdminPostSaleAction(tenantId: string, saleId: string
   }
 }
 
+export async function getPastTenantsAction() {
+  try {
+    const pastTenants = await prisma.tenant.findMany({
+      where: { status: "PAST" },
+      include: {
+        user: { select: { name: true, email: true, avatarUrl: true } },
+        invoices: true,
+      },
+      orderBy: { updatedAt: "desc" },
+    });
+    return { success: true, data: pastTenants };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}

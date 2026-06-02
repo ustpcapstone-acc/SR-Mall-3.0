@@ -69,7 +69,7 @@ interface Tenant {
   description?: string;
   logoUrl?: string;
   isOpen: boolean;
-  status: "ACTIVE" | "INACTIVE" | "SUSPENDED" | "PENDING" | "REJECTED";
+  status: "ACTIVE" | "INACTIVE" | "SUSPENDED" | "PENDING" | "REJECTED" | "PAST";
   metrics?: {
     clicks: number;
     offersClaimed: number;
@@ -121,6 +121,12 @@ const STATUS_CONFIG = {
     bg: "bg-red-600/10",
     border: "border-red-600/20",
     text: "text-red-700",
+  },
+  PAST: {
+    color: "bg-zinc-400",
+    bg: "bg-zinc-400/10",
+    border: "border-zinc-400/20",
+    text: "text-zinc-500",
   },
 };
 
@@ -530,7 +536,11 @@ export default function TenantMonitoring() {
         t.shopName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         t.unitId?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         t.user?.email?.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesStatus = statusFilter === "all" || t.status === statusFilter;
+      // "all" excludes PAST tenants — they need to be explicitly filtered via "PAST" option
+      const matchesStatus =
+        statusFilter === "all"
+          ? t.status !== "PAST"
+          : t.status === statusFilter;
       const matchesPayment =
         paymentFilter === "all" || t.paymentStatus === paymentFilter;
       return matchesSearch && matchesStatus && matchesPayment;
@@ -750,6 +760,7 @@ export default function TenantMonitoring() {
                     <option value="PENDING">PENDING</option>
                     <option value="INACTIVE">INACTIVE</option>
                     <option value="SUSPENDED">SUSPENDED</option>
+                    <option value="PAST">PAST</option>
                   </select>
                 </div>
               </div>
@@ -1252,11 +1263,13 @@ export default function TenantMonitoring() {
               "transition-all",
             )}
           >
-            <option value="all">All Status</option>
+            <option value="all">All Active</option>
             <option value="ACTIVE">Active</option>
             <option value="PENDING">Pending</option>
             <option value="INACTIVE">Inactive</option>
             <option value="SUSPENDED">Suspended</option>
+            <option value="REJECTED">Rejected</option>
+            <option value="PAST">Past Tenants</option>
           </select>
 
           <select

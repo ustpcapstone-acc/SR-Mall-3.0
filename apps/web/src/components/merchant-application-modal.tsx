@@ -233,7 +233,7 @@ export const MerchantApplicationModal = ({
                 Verifying Application Status...
               </p>
             </div>
-          ) : existingStatus && !isSuccess ? (
+          ) : existingStatus && existingStatus !== "PAST" && !isSuccess ? (
             <div className="text-center py-10 space-y-6">
               <div
                 className={`w-20 h-20 rounded-[2rem] flex items-center justify-center mx-auto border ${
