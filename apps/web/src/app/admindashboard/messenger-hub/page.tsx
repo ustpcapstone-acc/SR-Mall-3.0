@@ -247,9 +247,9 @@ export default function MessengerHub() {
 
               <div className="flex-1 overflow-y-auto p-8 space-y-6 bg-slate-50/30 dark:bg-black/20">
                 {messages.map((msg) => {
-                  const isFromAdmin = msg.senderId === activeChat.targetId;
-                  const senderAvatar = isFromAdmin ? user?.avatarUrl : activeChat.user.avatarUrl;
-                  const senderName = isFromAdmin ? user?.name : activeChat.user.name || activeChat.user.email;
+                  const isFromAdmin = msg.senderId !== activeChat.userId;
+                  const senderAvatar = isFromAdmin ? msg.sender?.avatarUrl || user?.avatarUrl : activeChat.user.avatarUrl;
+                  const senderName = isFromAdmin ? msg.sender?.name || "System Admin" : activeChat.user.name || activeChat.user.email;
 
                   return (
                     <div
