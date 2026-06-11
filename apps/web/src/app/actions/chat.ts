@@ -85,10 +85,9 @@ export async function sendMessage(data: {
 
     // Check if conversation already exists
     let conversation = await prisma.conversation.findFirst({
-      where: {
-        userId: sender.id,
-        targetId: targetUser.id,
-      },
+      where: recipientType === "admin" 
+        ? { type: "ADMIN", userId: sender.id }
+        : { userId: sender.id, targetId: targetUser.id },
     });
 
     // Create a new conversation channel if it doesn't exist

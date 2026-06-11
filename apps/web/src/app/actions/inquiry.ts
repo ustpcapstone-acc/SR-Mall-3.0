@@ -167,8 +167,8 @@ export async function updateInquiryStatusAction(
     if (admin && inquiry.user) {
       let conversation = await prisma.conversation.findFirst({
         where: {
+          type: "ADMIN",
           userId: inquiry.user.id,
-          targetId: admin.id,
         },
       });
 
