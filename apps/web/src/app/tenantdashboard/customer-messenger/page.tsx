@@ -121,10 +121,11 @@ export default function CustomerMessenger() {
       const data = await getTenantConversations(user!.id);
       setConversations(data);
       // Find the real conversation and select it
-      const newRealChat = data.find(c => c.type === "ADMIN");
+      const newRealChat = data.find((c: any) => c.type === "ADMIN");
       if (newRealChat) setActiveChat(newRealChat);
     } else {
-      await replyToConversation(activeChat.id, true, textToSend);
+      const isTarget = activeChat.targetId === user?.id;
+      await replyToConversation(activeChat.id, isTarget, textToSend);
     }
   };
 
@@ -141,23 +142,19 @@ export default function CustomerMessenger() {
   });
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-black pb-20 lg:pb-0">
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10 py-4 sm:py-6 lg:py-10 h-[calc(100vh-5rem)] flex flex-col">
-        <div className="mb-4 sm:mb-6 flex items-end justify-between shrink-0">
-          <div>
-            <p className="text-[10px] sm:text-xs font-bold text-primary uppercase tracking-widest mb-1">
-              Communication
-            </p>
-            <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-charcoal dark:text-white tracking-tight">
-              Customer Messenger
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
-              Direct communication with customers and Mall Admin.
-            </p>
-          </div>
+    <div className="h-screen flex flex-col pt-10 px-8 pb-8 animate-fade-in-up bg-slate-50 dark:bg-black">
+      <div className="mb-6 flex items-end justify-between shrink-0">
+        <div>
+          <h1 className="text-3xl font-black text-charcoal dark:text-white tracking-tight">
+            Customer Messenger
+          </h1>
+          <p className="text-sm text-slate-500 font-medium mt-1">
+            Direct communication with customers and Mall Admin.
+          </p>
         </div>
+      </div>
 
-        <div className="flex-1 bg-white dark:bg-zinc-900 rounded-2xl sm:rounded-[2rem] shadow-sm border border-slate-100 dark:border-white/5 flex overflow-hidden relative">
+      <div className="flex-1 bg-white dark:bg-zinc-900 rounded-[2rem] shadow-sm border border-slate-100 dark:border-white/5 flex overflow-hidden relative">
           {/* Left Column (Inbox) */}
           <div
             className={`${activeChat ? "hidden lg:flex" : "flex"} w-full lg:w-80 border-r border-slate-100 dark:border-white/5 flex-col bg-slate-50/50 dark:bg-zinc-900`}
@@ -287,7 +284,7 @@ export default function CustomerMessenger() {
                         {/* Messages Area */}
                         <div className="flex-1 overflow-y-auto p-4 lg:p-8 space-y-4 lg:space-y-6 bg-slate-50/30 dark:bg-black/20">
                           {messages.map((msg: any) => {
-                            const isMyMsg = msg.senderId === myId;
+                            const isMyMsg = msg.senderId === user?.id;
                             const senderAvatar = isMyMsg ? user?.avatarUrl : otherPerson?.avatarUrl;
                             const senderName = isMyMsg ? user?.name : (otherPerson?.name || otherPerson?.email);
 
@@ -373,7 +370,6 @@ export default function CustomerMessenger() {
                 })()}
               </div>
             )}
-          </div>
         </div>
       </div>
     </div>
