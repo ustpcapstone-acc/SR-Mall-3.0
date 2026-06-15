@@ -11,6 +11,8 @@ import {
   Ban,
   MessageSquare,
   Loader2,
+  Paperclip,
+  X,
 } from "lucide-react";
 import { useAuth } from "@/app/providers";
 import { markMessageNotificationsAsReadAction } from "@/app/actions/notification";
@@ -86,12 +88,45 @@ export default function CustomerMessenger() {
     return () => clearInterval(interval);
   }, [activeChat]);
 
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) return;
+    setImageFile(file);
+    const reader = new FileReader();
+    reader.onload = () => setImagePreview(reader.result as string);
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
+  const uploadImageToCloudinary = async (file: File): Promise<string | null> => {
+    try {
+      const { uploadImageServerAction } = await import("@/app/actions/upload");
+      const formData = new FormData();
+      formData.append("file", file);
+      return await uploadImageServerAction(formData);
+    } catch (err) {
+      console.error("Cloudinary upload error:", err);
+      return null;
+    }
+  };
+
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputText.trim() || !activeChat) return;
+    if ((!inputText.trim() && !imageFile) || !activeChat) return;
 
     const textToSend = inputText;
+    const fileToSend = imageFile;
     setInputText("");
+    setImageFile(null);
+    setImagePreview(null);
+    setIsUploading(true);
+
+    let uploadedImageUrl: string | null = null;
+    if (fileToSend) {
+      uploadedImageUrl = await uploadImageToCloudinary(fileToSend);
+    }
+    setIsUploading(false);
 
     const isToAdmin = activeChat.type === "ADMIN";
     const myId = isToAdmin ? activeChat.userId : activeChat.targetId;
@@ -102,6 +137,7 @@ export default function CustomerMessenger() {
       {
         id: Date.now().toString(),
         content: textToSend,
+        imageUrl: uploadedImageUrl,
         senderId: myId,
         createdAt: new Date(),
       },
@@ -114,17 +150,18 @@ export default function CustomerMessenger() {
       await sendMessage({
         userId: user!.email!,
         recipientType: "admin",
-        content: textToSend,
+        content: textToSend || "📎 Image",
+        imageUrl: uploadedImageUrl || undefined,
       });
       // Force refresh conversations immediately
       const { getTenantConversations } = await import("@/app/actions/chat-queries");
       const data = await getTenantConversations(user!.id);
       setConversations(data);
       // Find the real conversation and select it
-      const newRealChat = data.find(c => c.type === "ADMIN");
+      const newRealChat = data.find((c: any) => c.type === "ADMIN");
       if (newRealChat) setActiveChat(newRealChat);
     } else {
-      await replyToConversation(activeChat.id, true, textToSend);
+      await replyToConversation(activeChat.id, true, textToSend || "📎 Image", uploadedImageUrl || undefined);
     }
   };
 
@@ -300,7 +337,12 @@ export default function CustomerMessenger() {
                                 )}
                                 <div className={clsx("flex flex-col", isMyMsg ? "items-end" : "items-start")}>
                                   <div className={clsx("max-w-[280px] sm:max-w-[400px] lg:max-w-[500px] border rounded-2xl px-4 py-2.5 lg:px-5 lg:py-3 shadow-sm", isMyMsg ? "bg-primary text-white border-primary rounded-tr-sm" : "bg-white dark:bg-zinc-800 border-slate-200 dark:border-white/10 rounded-tl-sm text-slate-600 dark:text-slate-300")}>
-                                    <p className="text-sm font-medium">{msg.content}</p>
+                                    {msg.imageUrl && (
+                                      <a href={msg.imageUrl} target="_blank" rel="noopener noreferrer" className="block mb-2">
+                                        <img src={msg.imageUrl} alt="Attachment" className="rounded-xl max-w-full max-h-64 object-cover border border-white/10" />
+                                      </a>
+                                    )}
+                                    {msg.content && <p className="text-sm font-medium">{msg.content}</p>}
                                   </div>
                                   <span className="text-[9px] font-bold text-slate-400 uppercase mt-1 lg:mt-2">
                                     {new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
@@ -319,16 +361,53 @@ export default function CustomerMessenger() {
 
                         {/* Message Input */}
                         <div className="p-3 lg:p-5 border-t border-slate-100 dark:border-white/5 bg-white dark:bg-zinc-900 shrink-0">
+                          {/* Image Preview */}
+                          {imagePreview && (
+                            <div className="mb-3 relative inline-block">
+                              <img src={imagePreview} alt="Preview" className="h-20 rounded-xl border border-slate-200 dark:border-white/10 object-cover" />
+                              <button
+                                type="button"
+                                onClick={() => { setImagePreview(null); setImageFile(null); }}
+                                className="absolute -top-2 -right-2 w-5 h-5 bg-primary text-white rounded-full flex items-center justify-center shadow"
+                              >
+                                <X size={10} />
+                              </button>
+                            </div>
+                          )}
                           <form onSubmit={handleSend} className="relative flex items-center bg-slate-50 dark:bg-zinc-800 rounded-xl border border-slate-200 dark:border-white/10 p-1.5 pr-2 focus-within:border-primary transition-colors hover:border-slate-300">
+                            {/* Hidden file input */}
+                            <input
+                              ref={fileInputRef}
+                              type="file"
+                              accept="image/*"
+                              className="absolute w-0 h-0 opacity-0 pointer-events-none -z-10"
+                              onChange={handleImageSelect}
+                            />
+                            {/* Attachment button */}
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                fileInputRef.current?.click();
+                              }}
+                              className="p-2 text-slate-400 hover:text-primary transition-colors shrink-0 relative z-10 cursor-pointer"
+                              title="Attach image"
+                            >
+                              <Paperclip size={16} />
+                            </button>
                             <input
                               type="text"
                               value={inputText}
                               onChange={(e) => setInputText(e.target.value)}
-                              placeholder="Reply..."
+                              placeholder={imageFile ? "Add a caption... (optional)" : "Reply..."}
                               className="flex-1 px-2 lg:px-3 py-1.5 lg:py-2 bg-transparent outline-none text-sm font-medium dark:text-white"
                             />
-                            <button type="submit" disabled={!inputText.trim()} className="p-2 lg:p-2.5 bg-primary text-white rounded-lg hover:bg-primary-hover transition-colors shadow-sm disabled:opacity-50">
-                              <Send size={14} className="lg:w-4 lg:h-4" />
+                            <button
+                              type="submit"
+                              disabled={(!inputText.trim() && !imageFile) || isUploading}
+                              className="p-2 lg:p-2.5 bg-primary text-white rounded-lg hover:bg-primary-hover transition-colors shadow-sm disabled:opacity-50 flex items-center gap-1"
+                            >
+                              {isUploading ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} className="lg:w-4 lg:h-4" />}
                             </button>
                           </form>
                         </div>
