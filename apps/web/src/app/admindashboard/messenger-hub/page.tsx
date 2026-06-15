@@ -370,13 +370,16 @@ export default function MessengerHub() {
                     ref={fileInputRef}
                     type="file"
                     accept="image/*"
-                    className="hidden"
+                    className="absolute w-0 h-0 opacity-0 pointer-events-none -z-10"
                     onChange={handleImageSelect}
                   />
                   <button
                     type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="p-2 text-slate-400 hover:text-primary transition-colors shrink-0"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      fileInputRef.current?.click();
+                    }}
+                    className="p-2 text-slate-400 hover:text-primary transition-colors shrink-0 relative z-10 cursor-pointer"
                     title="Attach image"
                   >
                     <Paperclip size={16} />

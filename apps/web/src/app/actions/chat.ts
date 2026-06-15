@@ -7,10 +7,11 @@ export async function sendMessage(data: {
   userId: string;
   recipientType: "admin" | "shop";
   content: string;
+  imageUrl?: string;
   shopName?: string;
   slotId?: string;
 }) {
-  const { userId: email, recipientType, content, shopName, slotId } = data;
+  const { userId: email, recipientType, content, imageUrl, shopName, slotId } = data;
 
   try {
     let sender = await prisma.user.findUnique({
@@ -105,7 +106,8 @@ export async function sendMessage(data: {
     // Insert the actual message
     const message = await prisma.message.create({
       data: {
-        content: content,
+        content: content || "",
+        imageUrl: imageUrl || null,
         conversationId: conversation.id,
         senderId: sender.id,
       },

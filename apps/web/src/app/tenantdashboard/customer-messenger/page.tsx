@@ -11,9 +11,6 @@ import {
   Ban,
   MessageSquare,
   Loader2,
-  Paperclip,
-  X,
-  ImageIcon,
 } from "lucide-react";
 import { useAuth } from "@/app/providers";
 import { markMessageNotificationsAsReadAction } from "@/app/actions/notification";
@@ -27,10 +24,6 @@ export default function CustomerMessenger() {
   const [inputText, setInputText] = useState("");
   const [filter, setFilter] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -67,7 +60,7 @@ export default function CustomerMessenger() {
       }
 
       setConversations(data);
-      
+
       // Clear message notification badge
       markMessageNotificationsAsReadAction(user.id);
     };
@@ -93,55 +86,12 @@ export default function CustomerMessenger() {
     return () => clearInterval(interval);
   }, [activeChat]);
 
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith("image/")) return;
-    setImageFile(file);
-    const reader = new FileReader();
-    reader.onload = () => setImagePreview(reader.result as string);
-    reader.readAsDataURL(file);
-    // Reset input so same file can be re-selected
-    e.target.value = "";
-  };
-
-  const uploadImageToCloudinary = async (file: File): Promise<string | null> => {
-    try {
-      const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-      const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("upload_preset", uploadPreset || "ml_default");
-      formData.append("folder", "sr-mall/chat-images");
-      const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
-        method: "POST",
-        body: formData,
-      });
-      const data = await res.json();
-      return data.secure_url || null;
-    } catch (err) {
-      console.error("Cloudinary upload error:", err);
-      return null;
-    }
-  };
-
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputText.trim() && !imageFile) return;
-    if (!activeChat) return;
+    if (!inputText.trim() || !activeChat) return;
 
     const textToSend = inputText;
-    const fileToSend = imageFile;
     setInputText("");
-    setImageFile(null);
-    setImagePreview(null);
-    setIsUploading(true);
-
-    let uploadedImageUrl: string | null = null;
-    if (fileToSend) {
-      uploadedImageUrl = await uploadImageToCloudinary(fileToSend);
-    }
-    setIsUploading(false);
 
     const isToAdmin = activeChat.type === "ADMIN";
     const myId = isToAdmin ? activeChat.userId : activeChat.targetId;
@@ -152,7 +102,6 @@ export default function CustomerMessenger() {
       {
         id: Date.now().toString(),
         content: textToSend,
-        imageUrl: uploadedImageUrl,
         senderId: myId,
         createdAt: new Date(),
       },
@@ -165,16 +114,17 @@ export default function CustomerMessenger() {
       await sendMessage({
         userId: user!.email!,
         recipientType: "admin",
-        content: textToSend || "📎 Image",
+        content: textToSend,
       });
+      // Force refresh conversations immediately
       const { getTenantConversations } = await import("@/app/actions/chat-queries");
       const data = await getTenantConversations(user!.id);
       setConversations(data);
-      const newRealChat = data.find((c: any) => c.type === "ADMIN");
+      // Find the real conversation and select it
+      const newRealChat = data.find(c => c.type === "ADMIN");
       if (newRealChat) setActiveChat(newRealChat);
     } else {
-      const isTarget = activeChat.targetId === user?.id;
-      await replyToConversation(activeChat.id, isTarget, textToSend, uploadedImageUrl || undefined);
+      await replyToConversation(activeChat.id, true, textToSend);
     }
   };
 
@@ -191,19 +141,23 @@ export default function CustomerMessenger() {
   });
 
   return (
-    <div className="h-screen flex flex-col pt-10 px-8 pb-8 animate-fade-in-up bg-slate-50 dark:bg-black">
-      <div className="mb-6 flex items-end justify-between shrink-0">
-        <div>
-          <h1 className="text-3xl font-black text-charcoal dark:text-white tracking-tight">
-            Customer Messenger
-          </h1>
-          <p className="text-sm text-slate-500 font-medium mt-1">
-            Direct communication with customers and Mall Admin.
-          </p>
+    <div className="min-h-screen bg-slate-50 dark:bg-black pb-20 lg:pb-0">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10 py-4 sm:py-6 lg:py-10 h-[calc(100vh-5rem)] flex flex-col">
+        <div className="mb-4 sm:mb-6 flex items-end justify-between shrink-0">
+          <div>
+            <p className="text-[10px] sm:text-xs font-bold text-primary uppercase tracking-widest mb-1">
+              Communication
+            </p>
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-charcoal dark:text-white tracking-tight">
+              Customer Messenger
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
+              Direct communication with customers and Mall Admin.
+            </p>
+          </div>
         </div>
-      </div>
 
-      <div className="flex-1 bg-white dark:bg-zinc-900 rounded-[2rem] shadow-sm border border-slate-100 dark:border-white/5 flex overflow-hidden relative">
+        <div className="flex-1 bg-white dark:bg-zinc-900 rounded-2xl sm:rounded-[2rem] shadow-sm border border-slate-100 dark:border-white/5 flex overflow-hidden relative">
           {/* Left Column (Inbox) */}
           <div
             className={`${activeChat ? "hidden lg:flex" : "flex"} w-full lg:w-80 border-r border-slate-100 dark:border-white/5 flex-col bg-slate-50/50 dark:bg-zinc-900`}
@@ -333,7 +287,7 @@ export default function CustomerMessenger() {
                         {/* Messages Area */}
                         <div className="flex-1 overflow-y-auto p-4 lg:p-8 space-y-4 lg:space-y-6 bg-slate-50/30 dark:bg-black/20">
                           {messages.map((msg: any) => {
-                            const isMyMsg = msg.senderId === user?.id;
+                            const isMyMsg = msg.senderId === myId;
                             const senderAvatar = isMyMsg ? user?.avatarUrl : otherPerson?.avatarUrl;
                             const senderName = isMyMsg ? user?.name : (otherPerson?.name || otherPerson?.email);
 
@@ -346,12 +300,7 @@ export default function CustomerMessenger() {
                                 )}
                                 <div className={clsx("flex flex-col", isMyMsg ? "items-end" : "items-start")}>
                                   <div className={clsx("max-w-[280px] sm:max-w-[400px] lg:max-w-[500px] border rounded-2xl px-4 py-2.5 lg:px-5 lg:py-3 shadow-sm", isMyMsg ? "bg-primary text-white border-primary rounded-tr-sm" : "bg-white dark:bg-zinc-800 border-slate-200 dark:border-white/10 rounded-tl-sm text-slate-600 dark:text-slate-300")}>
-                                    {msg.imageUrl && (
-                                      <a href={msg.imageUrl} target="_blank" rel="noopener noreferrer" className="block mb-2">
-                                        <img src={msg.imageUrl} alt="Attachment" className="rounded-xl max-w-full max-h-64 object-cover border border-white/10" />
-                                      </a>
-                                    )}
-                                    {msg.content && <p className="text-sm font-medium">{msg.content}</p>}
+                                    <p className="text-sm font-medium">{msg.content}</p>
                                   </div>
                                   <span className="text-[9px] font-bold text-slate-400 uppercase mt-1 lg:mt-2">
                                     {new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
@@ -370,50 +319,16 @@ export default function CustomerMessenger() {
 
                         {/* Message Input */}
                         <div className="p-3 lg:p-5 border-t border-slate-100 dark:border-white/5 bg-white dark:bg-zinc-900 shrink-0">
-                          {/* Image Preview */}
-                          {imagePreview && (
-                            <div className="mb-3 relative inline-block">
-                              <img src={imagePreview} alt="Preview" className="h-20 rounded-xl border border-slate-200 dark:border-white/10 object-cover" />
-                              <button
-                                type="button"
-                                onClick={() => { setImagePreview(null); setImageFile(null); }}
-                                className="absolute -top-2 -right-2 w-5 h-5 bg-primary text-white rounded-full flex items-center justify-center shadow"
-                              >
-                                <X size={10} />
-                              </button>
-                            </div>
-                          )}
                           <form onSubmit={handleSend} className="relative flex items-center bg-slate-50 dark:bg-zinc-800 rounded-xl border border-slate-200 dark:border-white/10 p-1.5 pr-2 focus-within:border-primary transition-colors hover:border-slate-300">
-                            {/* Hidden file input */}
-                            <input
-                              ref={fileInputRef}
-                              type="file"
-                              accept="image/*"
-                              className="hidden"
-                              onChange={handleImageSelect}
-                            />
-                            {/* Attachment button */}
-                            <button
-                              type="button"
-                              onClick={() => fileInputRef.current?.click()}
-                              className="p-2 text-slate-400 hover:text-primary transition-colors shrink-0"
-                              title="Attach image"
-                            >
-                              <Paperclip size={16} />
-                            </button>
                             <input
                               type="text"
                               value={inputText}
                               onChange={(e) => setInputText(e.target.value)}
-                              placeholder={imageFile ? "Add a caption... (optional)" : "Reply..."}
+                              placeholder="Reply..."
                               className="flex-1 px-2 lg:px-3 py-1.5 lg:py-2 bg-transparent outline-none text-sm font-medium dark:text-white"
                             />
-                            <button
-                              type="submit"
-                              disabled={(!inputText.trim() && !imageFile) || isUploading}
-                              className="p-2 lg:p-2.5 bg-primary text-white rounded-lg hover:bg-primary-hover transition-colors shadow-sm disabled:opacity-50 flex items-center gap-1"
-                            >
-                              {isUploading ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} className="lg:w-4 lg:h-4" />}
+                            <button type="submit" disabled={!inputText.trim()} className="p-2 lg:p-2.5 bg-primary text-white rounded-lg hover:bg-primary-hover transition-colors shadow-sm disabled:opacity-50">
+                              <Send size={14} className="lg:w-4 lg:h-4" />
                             </button>
                           </form>
                         </div>
@@ -458,6 +373,7 @@ export default function CustomerMessenger() {
                 })()}
               </div>
             )}
+          </div>
         </div>
       </div>
     </div>

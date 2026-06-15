@@ -10,6 +10,7 @@ import {
   MapPin,
   ArrowLeft,
   Search,
+  Loader2,
 } from "lucide-react";
 import { useAuth } from "@/app/providers";
 import { LoginModal } from "./login-modal";
@@ -55,6 +56,10 @@ export const ChatBox = ({
   });
   const [viewMode, setViewMode] = useState<"list" | "chat">("list");
   const [searchQuery, setSearchQuery] = useState("");
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch true shops from DB
   useEffect(() => {
@@ -129,20 +134,60 @@ export const ChatBox = ({
 
   if (!isOpen) return null;
 
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) return;
+    setImageFile(file);
+    const reader = new FileReader();
+    reader.onload = () => setImagePreview(reader.result as string);
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
+  const uploadImageToCloudinary = async (file: File): Promise<string | null> => {
+    try {
+      const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+      const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("upload_preset", uploadPreset || "ml_default");
+      formData.append("folder", "sr-mall/chat-images");
+      const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+      return data.secure_url || null;
+    } catch (err) {
+      console.error("Cloudinary upload error:", err);
+      return null;
+    }
+  };
+
   const handleSend = async (e: React.FormEvent, slotId?: string) => {
     e.preventDefault();
 
-    // When slotId is provided via the quick-share button, append it if we have custom text, or send a pre-formatted message
     let textToSend = inputText;
+    const fileToSend = imageFile;
     if (typeof slotId === "string" && slotId) {
       textToSend = inputText.trim()
         ? `${inputText} (Regarding Unit ${slotId})`
         : `Hello, I would like to inquire about leasing Unit ${slotId}.`;
     }
 
-    if (!textToSend.trim()) return;
+    if (!textToSend.trim() && !fileToSend) return;
 
     setInputText("");
+    setImageFile(null);
+    setImagePreview(null);
+    setIsUploading(true);
+
+    let uploadedImageUrl: string | null = null;
+    if (fileToSend) {
+      uploadedImageUrl = await uploadImageToCloudinary(fileToSend);
+    }
+    setIsUploading(false);
 
     if (user?.email) {
       // Optimistic update
@@ -151,6 +196,7 @@ export const ChatBox = ({
         {
           id: Date.now().toString(),
           content: textToSend,
+          imageUrl: uploadedImageUrl,
           sender: { email: user.email },
           createdAt: new Date(),
         },
@@ -160,7 +206,8 @@ export const ChatBox = ({
       await sendMessage({
         userId: user.email,
         recipientType: recipient,
-        content: textToSend,
+        content: textToSend || "📎 Image",
+        imageUrl: uploadedImageUrl || undefined,
         shopName: selectedShop.name,
         slotId: slotId,
       });
@@ -400,7 +447,12 @@ export const ChatBox = ({
                           : "bg-white dark:bg-zinc-800 text-charcoal dark:text-slate-300 rounded-tl-sm border border-slate-100 dark:border-white/5"
                           }`}
                       >
-                        {msg.content}
+                        {msg.imageUrl && (
+                          <a href={msg.imageUrl} target="_blank" rel="noopener noreferrer" className="block mb-2">
+                            <img src={msg.imageUrl} alt="Attachment" className="rounded-xl max-w-full max-h-48 object-cover border border-white/10" />
+                          </a>
+                        )}
+                        {msg.content && <span>{msg.content}</span>}
                       </div>
                       <div className="mt-1 px-2 text-[9px] font-bold uppercase tracking-widest text-slate-400">
                         {new Date(msg.createdAt).toLocaleTimeString([], {
@@ -425,10 +477,20 @@ export const ChatBox = ({
               })}
               <div ref={messagesEndRef} />
             </div>
-
-            {/* Input Area */}
             {isAuthenticated && (
               <div className="p-3 sm:p-4 border-t border-slate-100 dark:border-white/5 bg-white dark:bg-zinc-900 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.05)] z-10 relative">
+                {imagePreview && (
+                  <div className="mb-3 relative inline-block">
+                    <img src={imagePreview} alt="Preview" className="h-16 rounded-xl border border-slate-200 dark:border-white/10 object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => { setImagePreview(null); setImageFile(null); }}
+                      className="absolute -top-2 -right-2 w-5 h-5 bg-primary text-white rounded-full flex items-center justify-center shadow"
+                    >
+                      <X size={10} />
+                    </button>
+                  </div>
+                )}
                 {recipient === "admin" && inquirySlotId && (
                   <div className="mb-3 px-1">
                     <button
@@ -444,10 +506,21 @@ export const ChatBox = ({
                   onSubmit={handleSend}
                   className="relative flex items-center gap-2 bg-slate-50 dark:bg-zinc-800/50 rounded-2xl border border-slate-200 dark:border-white/10 p-1.5 focus-within:ring-2 ring-primary/20 focus-within:border-primary transition-all"
                 >
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="absolute w-0 h-0 opacity-0 pointer-events-none -z-10"
+                    onChange={handleImageSelect}
+                  />
                   <button
                     suppressHydrationWarning
                     type="button"
-                    className="p-2 sm:p-2.5 text-slate-400 hover:text-primary transition-colors rounded-xl hover:bg-white dark:hover:bg-zinc-700 shrink-0"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      fileInputRef.current?.click();
+                    }}
+                    className="p-2 sm:p-2.5 text-slate-400 hover:text-primary transition-colors rounded-xl hover:bg-white dark:hover:bg-zinc-700 shrink-0 relative z-10 cursor-pointer"
                   >
                     <Paperclip size={18} />
                   </button>
@@ -456,7 +529,7 @@ export const ChatBox = ({
                     type="text"
                     value={inputText}
                     onChange={(e) => setInputText(e.target.value)}
-                    placeholder="Message..."
+                    placeholder={imageFile ? "Add a caption..." : "Message..."}
                     className="flex-1 px-1 sm:px-2 py-2 bg-transparent outline-none text-sm font-medium dark:text-white placeholder:text-slate-400 min-w-0"
                   />
                   <button
@@ -469,10 +542,10 @@ export const ChatBox = ({
                   <button
                     suppressHydrationWarning
                     type="submit"
-                    disabled={!inputText.trim()}
-                    className="p-2.5 sm:p-3 bg-primary text-white rounded-xl hover:bg-primary-hover transition-all active:scale-95 disabled:opacity-50 disabled:scale-100 shadow-md shrink-0"
+                    disabled={(!inputText.trim() && !imageFile) || isUploading}
+                    className="p-2.5 sm:p-3 bg-primary text-white rounded-xl hover:bg-primary-hover transition-all active:scale-95 disabled:opacity-50 disabled:scale-100 shadow-md shrink-0 flex items-center justify-center"
                   >
-                    <Send size={16} />
+                    {isUploading ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
                   </button>
                 </form>
               </div>
