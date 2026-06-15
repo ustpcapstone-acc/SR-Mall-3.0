@@ -28,10 +28,9 @@ export async function getConversationHistory(
     if (!targetUser) return [];
 
     const conversation = await prisma.conversation.findFirst({
-      where: {
-        userId: user.id,
-        targetId: targetUser.id,
-      },
+      where: recipientType === "admin" 
+        ? { type: "ADMIN", userId: user.id }
+        : { userId: user.id, targetId: targetUser.id },
       include: {
         messages: {
           orderBy: { createdAt: "asc" },
