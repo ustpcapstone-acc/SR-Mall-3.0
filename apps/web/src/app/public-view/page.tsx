@@ -9,7 +9,6 @@ import { UpcomingEventsSlider } from "@/components/upcoming-events-slider";
 import { ShopSalesSlider } from "@/components/shop-sales-slider";
 import { FeedbackSection } from "@/components/feedback-section";
 import { ChatBox } from "@/components/chat-box";
-import Interactive25DMap from "@/components/interactive-25d-map";
 import { EventInquiryForm } from "@/components/event-inquiry-form";
 import {
   Search,
@@ -1909,9 +1908,6 @@ export default function PublicDigitalConcierge() {
       )}
 
       {/* Map Modal */}
-      {isMapModalOpen && (
-        <Interactive25DMap onClose={() => setIsMapModalOpen(false)} />
-      )}
 
       <Footer />
     </div>
