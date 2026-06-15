@@ -41,7 +41,7 @@ export async function GET(req: Request) {
       let emailSubject = "";
       let messageContent = "";
 
-      if (diffDays === 10 || diffDays === 5 || diffDays === 1) {
+      if (diffDays === 5 || diffDays === 1) {
         reminderType = `REMINDER_${diffDays}_DAYS`;
         emailSubject = `Reminder: Monthly Bill Due in ${diffDays} Day${diffDays > 1 ? "s" : ""}`;
         messageContent = `Hello ${invoice.tenant.user.name || "Sir/Ma'am"}, please don't forget your balance of ₱${invoice.amount} for the month of ${invoice.month}. It is due on ${dueDate.toLocaleDateString()}.`;
