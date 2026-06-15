@@ -141,7 +141,8 @@ model Conversation {
 
 model Message {
   id             String       @id @default(uuid())
-  content        String
+  content        String       @default("")
+  imageUrl       String?
   conversationId String
   senderId       String
   createdAt      DateTime     @default(now())

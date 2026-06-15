@@ -10,6 +10,8 @@ import {
   MapPin,
   CalendarPlus,
   Loader2,
+  Paperclip,
+  X,
 } from "lucide-react";
 import {
   getAdminConversations,
@@ -31,6 +33,10 @@ export default function MessengerHub() {
   const [filter, setFilter] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Derived active chat object ensures data is always current from the conversations list
@@ -100,14 +106,52 @@ export default function MessengerHub() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) return;
+    setImageFile(file);
+    const reader = new FileReader();
+    reader.onload = () => setImagePreview(reader.result as string);
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
+  const uploadImageToCloudinary = async (file: File): Promise<string | null> => {
+    try {
+      const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+      const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("upload_preset", uploadPreset || "ml_default");
+      formData.append("folder", "sr-mall/chat-images");
+      const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+      return data.secure_url || null;
+    } catch (err) {
+      console.error("Cloudinary upload error:", err);
+      return null;
+    }
+  };
+
   const handleSendReply = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!replyText.trim() || !activeChatId || isSending) return;
+    if ((!replyText.trim() && !imageFile) || !activeChatId || isSending) return;
 
     setIsSending(true);
-    const res = await replyToConversation(activeChatId, true, replyText);
+    let uploadedImageUrl: string | null = null;
+    if (imageFile) {
+      uploadedImageUrl = await uploadImageToCloudinary(imageFile);
+    }
+
+    const res = await replyToConversation(activeChatId, true, replyText, uploadedImageUrl || undefined);
     if (res.success) {
       setReplyText("");
+      setImageFile(null);
+      setImagePreview(null);
       fetchMessages(activeChatId);
       fetchConversations();
     }
@@ -274,7 +318,12 @@ export default function MessengerHub() {
                             : "bg-white dark:bg-zinc-800 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 rounded-tl-sm"
                             }`}
                         >
-                          <p className="text-sm font-medium">{msg.content}</p>
+                          {msg.imageUrl && (
+                            <a href={msg.imageUrl} target="_blank" rel="noopener noreferrer" className="block mb-2">
+                              <img src={msg.imageUrl} alt="Attachment" className="rounded-xl max-w-full max-h-64 object-cover border border-white/10" />
+                            </a>
+                          )}
+                          {msg.content && <p className="text-sm font-medium">{msg.content}</p>}
                         </div>
                         <span className="text-[9px] font-bold text-slate-400 uppercase mt-2 px-1">
                           {new Date(msg.createdAt).toLocaleTimeString([], {
@@ -301,23 +350,50 @@ export default function MessengerHub() {
               </div>
 
               <div className="p-5 border-t border-slate-100 dark:border-white/5 bg-white dark:bg-zinc-900">
+                {imagePreview && (
+                  <div className="mb-3 relative inline-block">
+                    <img src={imagePreview} alt="Preview" className="h-20 rounded-xl border border-slate-200 dark:border-white/10 object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => { setImagePreview(null); setImageFile(null); }}
+                      className="absolute -top-2 -right-2 w-5 h-5 bg-primary text-white rounded-full flex items-center justify-center shadow"
+                    >
+                      <X size={10} />
+                    </button>
+                  </div>
+                )}
                 <form
                   onSubmit={handleSendReply}
                   className="relative flex items-center bg-slate-50 dark:bg-zinc-800 rounded-xl border border-slate-200 dark:border-white/10 p-1.5 pr-2 focus-within:ring-2 ring-primary/20 transition-all"
                 >
                   <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleImageSelect}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="p-2 text-slate-400 hover:text-primary transition-colors shrink-0"
+                    title="Attach image"
+                  >
+                    <Paperclip size={16} />
+                  </button>
+                  <input
                     type="text"
                     value={replyText}
                     onChange={(e) => setReplyText(e.target.value)}
-                    placeholder="Type a reply..."
+                    placeholder={imageFile ? "Add a caption... (optional)" : "Type a reply..."}
                     className="flex-1 px-3 py-2 bg-transparent outline-none text-sm font-medium"
                   />
                   <button
                     type="submit"
-                    disabled={!replyText.trim() || isSending}
-                    className="p-2.5 bg-primary text-white rounded-lg hover:bg-primary-hover transition-colors disabled:opacity-50 shadow-sm"
+                    disabled={(!replyText.trim() && !imageFile) || isSending}
+                    className="p-2.5 bg-primary text-white rounded-lg hover:bg-primary-hover transition-colors disabled:opacity-50 shadow-sm flex items-center justify-center"
                   >
-                    {isSending ? (
+                    {isSending || isUploading ? (
                       <Loader2 size={16} className="animate-spin" />
                     ) : (
                       <Send size={16} />

@@ -125,6 +125,7 @@ export async function replyToConversation(
   conversationId: string,
   isFromTarget: boolean,
   content: string,
+  imageUrl?: string,
 ) {
   try {
     const conversation = await prisma.conversation.findUnique({
@@ -138,7 +139,8 @@ export async function replyToConversation(
 
     const message = await prisma.message.create({
       data: {
-        content,
+        content: content || "",
+        imageUrl: imageUrl || null,
         conversationId,
         senderId,
       },
