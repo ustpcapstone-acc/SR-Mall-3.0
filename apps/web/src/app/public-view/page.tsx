@@ -9,6 +9,7 @@ import { UpcomingEventsSlider } from "@/components/upcoming-events-slider";
 import { ShopSalesSlider } from "@/components/shop-sales-slider";
 import { FeedbackSection } from "@/components/feedback-section";
 import { ChatBox } from "@/components/chat-box";
+import Interactive25DMap from "@/components/interactive-25d-map";
 import { EventInquiryForm } from "@/components/event-inquiry-form";
 import {
   Search,
@@ -88,6 +89,7 @@ export default function PublicDigitalConcierge() {
   );
 
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
+  const [isMapModalOpen, setIsMapModalOpen] = useState(false);
   const [ads, setAds] = useState<any[]>(() => spaCache.get("public_ads") || []);
   const [tenantPromos, setTenantPromos] = useState<any[]>(() => spaCache.get("public_promos") || []);
   const [carouselItems, setCarouselItems] = useState<any[]>(() => spaCache.get("public_carousel") || []);
@@ -1747,6 +1749,70 @@ export default function PublicDigitalConcierge() {
         </div>
       </section>
 
+      {/* Interactive Mall Map Section */}
+      <section
+        id="interactive-map"
+        className={clsx(
+          "py-16 sm:py-24 lg:py-32 bg-white dark:bg-black relative overflow-hidden",
+        )}
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col lg:flex-row items-start lg:items-end justify-between gap-8 mb-12 sm:mb-20">
+            <div className="max-w-2xl space-y-6">
+              <span className="inline-flex items-center gap-2 text-[10px] sm:text-[11px] uppercase tracking-[0.3em] text-primary font-black bg-primary/10 px-5 py-2 rounded-full border border-primary/20">
+                Navigation
+              </span>
+              <h2 className="text-4xl sm:text-5xl lg:text-7xl font-black text-charcoal dark:text-white tracking-tighter leading-[0.95]">
+                Interactive <br />
+                <span className="text-slate-300 dark:text-zinc-800">Mall Map.</span>
+              </h2>
+              <p className="text-sm sm:text-lg text-slate-500 dark:text-slate-400 font-medium max-w-xl leading-relaxed">
+                Explore the mall layout in 3D. Find your favorite stores, check available leasing spaces, and navigate SR Mall with ease.
+              </p>
+            </div>
+            <div className="flex flex-col items-start lg:items-end gap-4 w-full lg:w-auto">
+              <button suppressHydrationWarning
+                onClick={() => setIsMapModalOpen(true)}
+                className="inline-flex items-center gap-3 px-8 py-5 bg-primary text-white rounded-2xl text-xs font-black uppercase tracking-[0.2em] hover:bg-primary-hover hover:scale-105 transition-all active:scale-95 shadow-[0_20px_40px_-10px_rgba(190,30,45,0.4)] justify-center w-full sm:w-auto"
+              >
+                <MapPin size={18} />
+                View Full Map
+              </button>
+            </div>
+          </div>
+
+          {/* Map Preview Graphic (2.5D Isometric style) */}
+          <div onClick={() => setIsMapModalOpen(true)} className="group cursor-pointer relative aspect-video bg-slate-50 dark:bg-zinc-900 rounded-[3rem] overflow-hidden border border-slate-200 dark:border-white/5 shadow-2xl flex items-center justify-center" style={{ perspective: '1200px' }}>
+            {/* Background */}
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-50"></div>
+
+            {/* The "Floor" */}
+            <div
+              className="w-[80%] h-[60%] bg-white dark:bg-black border-2 border-slate-200 dark:border-white/10 rounded-3xl shadow-2xl transition-transform duration-700 ease-in-out relative flex items-center justify-center"
+              style={{ transform: 'rotateX(60deg) rotateZ(-45deg)', transformStyle: 'preserve-3d' }}
+            >
+              {/* Dummy shops to look like a 3D floor plan */}
+              <div className="absolute top-[10%] left-[10%] w-[20%] h-[20%] bg-blue-500/20 border border-blue-500/50 shadow-[0_0_20px_rgba(59,130,246,0.3)] transition-transform duration-500" style={{ transform: 'translateZ(20px)' }}></div>
+              <div className="absolute top-[10%] right-[10%] w-[30%] h-[20%] bg-amber-500/20 border border-amber-500/50 shadow-[0_0_20px_rgba(245,158,11,0.3)] transition-transform duration-500" style={{ transform: 'translateZ(30px)' }}></div>
+              <div className="absolute bottom-[20%] left-[30%] w-[40%] h-[30%] bg-primary/20 border border-primary/50 shadow-[0_0_20px_rgba(190,30,45,0.3)] transition-transform duration-500 flex items-center justify-center" style={{ transform: 'translateZ(40px)', transformStyle: 'preserve-3d' }}>
+                <span
+                  className="text-primary font-black text-[10px] sm:text-xs uppercase tracking-widest bg-white dark:bg-black px-3 py-1.5 rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity delay-300 pointer-events-none"
+                  style={{ transform: 'rotateX(-90deg) translateY(-20px)' }}
+                >
+                  Hover Details Preview
+                </span>
+              </div>
+            </div>
+
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 backdrop-blur-[2px] transition-all duration-500 flex items-center justify-center">
+              <div className="opacity-0 group-hover:opacity-100 transform translate-y-8 group-hover:translate-y-0 transition-all duration-500 bg-white dark:bg-zinc-800 text-charcoal dark:text-white px-8 py-4 rounded-full font-black text-sm uppercase tracking-widest shadow-2xl flex items-center gap-3">
+                <Navigation size={18} className="text-primary animate-bounce" /> Launch Interactive 3D Viewer
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Floating Action Button for Chat - Available for all, but gated inside */}
       <button suppressHydrationWarning
         onClick={() => setIsChatOpen(!isChatOpen)}
@@ -1840,6 +1906,11 @@ export default function PublicDigitalConcierge() {
             />
           </div>
         </div>
+      )}
+
+      {/* Map Modal */}
+      {isMapModalOpen && (
+        <Interactive25DMap onClose={() => setIsMapModalOpen(false)} />
       )}
 
       <Footer />
