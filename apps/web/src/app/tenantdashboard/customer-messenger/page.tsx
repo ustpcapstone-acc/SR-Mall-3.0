@@ -165,7 +165,10 @@ export default function CustomerMessenger() {
       const newRealChat = data.find((c: any) => c.type === "ADMIN");
       if (newRealChat) setActiveChat(newRealChat);
     } else {
-      await replyToConversation(activeChat.id, true, textToSend || "📎 Image", uploadedImageUrl || undefined);
+      // If it's an ADMIN chat, the tenant is the userId (source), so isFromTarget is false
+      // If it's a TENANT chat, the tenant is the targetId (destination), so isFromTarget is true
+      const isFromTarget = !isToAdmin;
+      await replyToConversation(activeChat.id, isFromTarget, textToSend || "📎 Image", uploadedImageUrl || undefined);
     }
   };
 
@@ -182,23 +185,22 @@ export default function CustomerMessenger() {
   });
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-black pb-20 lg:pb-0">
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10 py-4 sm:py-6 lg:py-10 h-[calc(100vh-5rem)] flex flex-col">
-        <div className="mb-4 sm:mb-6 flex items-end justify-between shrink-0">
-          <div>
-            <p className="text-[10px] sm:text-xs font-bold text-primary uppercase tracking-widest mb-1">
-              Communication
-            </p>
-            <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-charcoal dark:text-white tracking-tight">
-              Customer Messenger
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
-              Direct communication with customers and Mall Admin.
-            </p>
-          </div>
+    <div className="h-screen flex flex-col pt-4 sm:pt-6 lg:pt-10 px-4 sm:px-6 lg:px-8 pb-4 sm:pb-6 lg:pb-8 animate-fade-in-up">
+      <div className="mb-4 sm:mb-6 flex items-end justify-between shrink-0">
+        <div>
+          <p className="text-[10px] sm:text-xs font-bold text-primary uppercase tracking-widest mb-1">
+            Communication
+          </p>
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-charcoal dark:text-white tracking-tight">
+            Customer Messenger
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
+            Direct communication with customers and Mall Admin.
+          </p>
         </div>
+      </div>
 
-        <div className="flex-1 bg-white dark:bg-zinc-900 rounded-2xl sm:rounded-[2rem] shadow-sm border border-slate-100 dark:border-white/5 flex overflow-hidden relative">
+      <div className="flex-1 bg-white dark:bg-zinc-900 rounded-2xl sm:rounded-[2rem] shadow-sm border border-slate-100 dark:border-white/5 flex overflow-hidden relative">
           {/* Left Column (Inbox) */}
           <div
             className={`${activeChat ? "hidden lg:flex" : "flex"} w-full lg:w-80 border-r border-slate-100 dark:border-white/5 flex-col bg-slate-50/50 dark:bg-zinc-900`}
@@ -459,6 +461,5 @@ export default function CustomerMessenger() {
           </div>
         </div>
       </div>
-    </div>
   );
 }
