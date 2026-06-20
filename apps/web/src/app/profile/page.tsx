@@ -401,7 +401,7 @@ export default function ProfilePage() {
                               options: {
                                 redirectTo: `${window.location.origin}/auth/callback`,
                                 flowType: 'pkce',
-                              }
+                              } as any,
                             });
                             if (error) {
                               toast.error("Connection Failed", { description: error.message });
