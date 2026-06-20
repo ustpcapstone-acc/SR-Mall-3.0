@@ -9,11 +9,12 @@ import nodemailer from 'nodemailer';
 
 export async function sendGmail(options: {
   to: string;
+  cc?: string;
   subject: string;
   text?: string;
   html?: string;
 }) {
-  const { to, subject, text, html } = options;
+  const { to, cc, subject, text, html } = options;
 
   // ─── Option 1: Gmail API (OAuth2) ───
   // Preferred for security and long-term background usage
@@ -57,6 +58,7 @@ export async function sendGmail(options: {
       await transporter.sendMail({
         from: `"SR Mall" <${user}>`,
         to,
+        cc,
         subject,
         text,
         html,
@@ -85,6 +87,7 @@ export async function sendGmail(options: {
       await transporter.sendMail({
         from: `"SR Mall" <${user}>`,
         to,
+        cc,
         subject,
         text,
         html,

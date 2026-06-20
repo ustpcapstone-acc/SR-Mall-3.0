@@ -41,7 +41,7 @@ export async function GET(req: Request) {
       let emailSubject = "";
       let messageContent = "";
 
-      if (diffDays === 5 || diffDays === 1) {
+      if (diffDays === 10 || diffDays === 5 || diffDays === 3 || diffDays === 1) {
         reminderType = `REMINDER_${diffDays}_DAYS`;
         emailSubject = `Reminder: Monthly Bill Due in ${diffDays} Day${diffDays > 1 ? "s" : ""}`;
         messageContent = `Hello ${invoice.tenant.user.name || "Sir/Ma'am"}, please don't forget your balance of ₱${invoice.amount} for the month of ${invoice.month}. It is due on ${dueDate.toLocaleDateString()}.`;
@@ -108,6 +108,7 @@ export async function GET(req: Request) {
           const { sendGmail } = await import("@/lib/gmail");
           await sendGmail({
             to: tenantEmail,
+            cc: "srmall@admin.com",
             subject: emailSubject,
             html: `
               <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px; max-width: 600px;">
