@@ -6,6 +6,7 @@ import { Footer } from "@/components/footer";
 import { useAuth } from "@/app/providers";
 import { useRouter } from "next/navigation";
 import { updateProfileAction } from "@/app/actions/auth";
+import { supabase } from "@/utils/supabase";
 import {
   User,
   Mail,
@@ -107,6 +108,16 @@ export default function ProfilePage() {
       });
 
       if (res.success && res.data) {
+        if (formData.email !== user.email) {
+          // Sync with Supabase Auth to ensure Google/Email logins match
+          const { error: sbError } = await supabase.auth.updateUser({ email: formData.email });
+          if (sbError) {
+            toast.error("Auth Sync Error", { description: "Profile updated but auth sync failed: " + sbError.message });
+          } else {
+            toast.success("Verification Email Sent", { description: "Please check your new email to verify the change." });
+          }
+        }
+
         updateUser({
           name: res.data.name || "",
           email: res.data.email,
@@ -382,6 +393,24 @@ export default function ProfilePage() {
                             placeholder="alex@example.com"
                           />
                         </div>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            const { error } = await supabase.auth.signInWithOAuth({
+                              provider: 'google',
+                              options: {
+                                redirectTo: `${window.location.origin}/auth/callback`,
+                                flowType: 'pkce',
+                              }
+                            });
+                            if (error) {
+                              toast.error("Connection Failed", { description: error.message });
+                            }
+                          }}
+                          className="mt-2 text-[10px] font-bold text-primary hover:underline flex items-center gap-1"
+                        >
+                          Link Google (Gmail) Account
+                        </button>
                       </div>
 
                       <div className="space-y-3">
