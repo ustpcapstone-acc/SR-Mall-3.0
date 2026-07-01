@@ -108,7 +108,7 @@ export async function GET(req: Request) {
           const { sendGmail } = await import("@/lib/gmail");
           await sendGmail({
             to: tenantEmail,
-            cc: "srmall@admin.com",
+            cc: "ustpcapstone@gmail.com",
             subject: emailSubject,
             html: `
               <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px; max-width: 600px;">
