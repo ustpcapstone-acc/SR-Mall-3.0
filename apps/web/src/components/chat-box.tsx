@@ -25,6 +25,7 @@ interface ChatBoxProps {
   initialRecipient?: "admin" | "shop" | null;
   initialShopName?: string | null;
   inquirySlotId?: string | null;
+  initialMessage?: string | null;
 }
 
 const DEFAULT_SHOPS = [
@@ -42,6 +43,7 @@ export const ChatBox = ({
   initialRecipient,
   initialShopName,
   inquirySlotId,
+  initialMessage,
 }: ChatBoxProps) => {
   const { user } = useAuth();
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
@@ -94,6 +96,13 @@ export const ChatBox = ({
     // Clear messages when switching context to ensure isolation
     setDbMessages([]);
   }, [initialRecipient, initialShopName]);
+
+  useEffect(() => {
+    if (initialMessage && isOpen) {
+      setInputText(initialMessage);
+    }
+  }, [initialMessage, isOpen]);
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Real DB Messages state

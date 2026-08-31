@@ -11,6 +11,7 @@ import {
   deleteCarouselItemAction,
   toggleCarouselItemAction,
 } from "@/app/actions/cms";
+import { getLostAndFoundItems, updateLostAndFoundItemStatus, createLostAndFoundItem } from "@/app/actions/lost-and-found";
 import { getApprovedEventsWithImagesAction, updateInquiryImageAction, deleteInquiryAction, updateEventInfoAction } from "@/app/actions/inquiry";
 import { Info } from "lucide-react";
 import { getAllPostSalesAction, deleteAdminPostSaleAction, updateAdminPostSaleAction } from "@/app/actions/tenant";
@@ -35,6 +36,7 @@ import {
   Sparkles,
   Globe,
   Calendar as CalendarIcon,
+  Search,
 } from "lucide-react";
 import clsx from "clsx";
 
@@ -118,6 +120,17 @@ export default function PublicViewCMSPage() {
 
   const [approvedEvents, setApprovedEvents] = useState<any[]>([]);
   const [allPostSales, setAllPostSales] = useState<any[]>([]);
+  const [lostAndFoundItems, setLostAndFoundItems] = useState<any[]>([]);
+
+  const [isLostFoundModalOpen, setIsLostFoundModalOpen] = useState(false);
+  const [lostFoundForm, setLostFoundForm] = useState({
+    type: "FOUND" as "LOST" | "FOUND",
+    title: "",
+    description: "",
+    location: "",
+    date: new Date().toISOString().split("T")[0],
+    imageUrl: "",
+  });
 
   const [isEventInfoModalOpen, setIsEventInfoModalOpen] = useState(false);
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
@@ -174,10 +187,11 @@ export default function PublicViewCMSPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [configData, carouselData, eventsData] = await Promise.all([
+        const [configData, carouselData, eventsData, lostFoundData] = await Promise.all([
           getPublicViewConfigAction(),
           getAllCarouselItemsAction(),
           getApprovedEventsWithImagesAction(),
+          getLostAndFoundItems(),
         ]);
 
         if (configData) {
@@ -191,6 +205,9 @@ export default function PublicViewCMSPage() {
         setCarouselItems(carouselData || []);
         if (eventsData?.success) {
           setApprovedEvents(eventsData.data || []);
+        }
+        if (lostFoundData?.success) {
+          setLostAndFoundItems(lostFoundData.data || []);
         }
         const postSalesData = await getAllPostSalesAction();
         if (postSalesData?.success) {
@@ -371,6 +388,63 @@ export default function PublicViewCMSPage() {
     }
   };
 
+  const handleUpdateStatus = async (id: string, newStatus: string) => {
+    setIsSaving(true);
+    try {
+      const res = await updateLostAndFoundItemStatus(id, newStatus);
+      if (res.success) {
+        setLostAndFoundItems((prev) =>
+          prev.map((i) => (i.id === id ? { ...i, status: newStatus } : i))
+        );
+        showToast("Status updated", "success");
+      } else {
+        showToast("Failed to update status", "error");
+      }
+    } catch (error) {
+      showToast("Error updating status", "error");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleLostFoundUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsSaving(true);
+    try {
+      const { getCloudStorageProvider } = await import("@/lib/cloud-storage");
+      const storageProvider = getCloudStorageProvider();
+      const result = await storageProvider.uploadFile(file, "lostfound");
+      setLostFoundForm(prev => ({ ...prev, imageUrl: result.url }));
+      showToast("Media uploaded", "success");
+    } catch(err) {
+      showToast("Upload failed", "error");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleCreateLostFound = async () => {
+    setIsSaving(true);
+    try {
+      const res = await createLostAndFoundItem({
+        ...lostFoundForm,
+      });
+      if (res.success && res.data) {
+        setLostAndFoundItems(prev => [res.data, ...prev]);
+        setIsLostFoundModalOpen(false);
+        setLostFoundForm({ type: "FOUND", title: "", description: "", location: "", date: new Date().toISOString().split("T")[0], imageUrl: "" });
+        showToast("Item posted successfully!", "success");
+      } else {
+        showToast(res.error || "Failed to post item", "error");
+      }
+    } catch (e) {
+      showToast("Error creating item", "error");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const openCarouselModal = (item: CarouselItem | null = null) => {
     setEditingCarouselItem(item);
     setCarouselForm({
@@ -501,6 +575,7 @@ export default function PublicViewCMSPage() {
     },
     { id: "carousel", label: "Billboards", icon: Layout, desc: "Ad Sliders" },
     { id: "events", label: "Upcoming Events", icon: CalendarIcon, desc: "Approved Event Images" },
+    { id: "lostfound", label: "Lost & Found", icon: Search, desc: "Manage reported items" },
   ];
 
   return (
@@ -1114,6 +1189,76 @@ export default function PublicViewCMSPage() {
               </div>
             </div>
           )}
+
+          {activeTab === "lostfound" && (
+            <div className="space-y-10">
+              <div className="flex items-center justify-between">
+                <SectionHeader
+                  icon={Search}
+                  title="Lost & Found"
+                  sub="Manage reported lost and found items."
+                />
+                <button
+                  onClick={() => setIsLostFoundModalOpen(true)}
+                  className="flex items-center gap-2 px-6 py-3 bg-primary text-white font-black text-[10px] uppercase tracking-widest rounded-2xl shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
+                >
+                  <Plus size={16} /> New Item
+                </button>
+              </div>
+
+              <div className="bg-white dark:bg-zinc-900/50 border border-slate-100 dark:border-white/5 rounded-[2.5rem] p-6 shadow-sm">
+                {lostAndFoundItems.length === 0 ? (
+                  <div className="py-20 text-center">
+                    <Search size={48} className="mx-auto text-slate-300 mb-4" />
+                    <h3 className="text-xl font-black text-slate-400 uppercase tracking-widest">
+                      No Items Reported
+                    </h3>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {lostAndFoundItems.map((item: any) => (
+                      <div key={item.id} className="group relative bg-slate-50 dark:bg-zinc-800/50 rounded-3xl border border-slate-200 dark:border-white/10 overflow-hidden flex flex-col">
+                        <div className="aspect-video relative overflow-hidden bg-black/5">
+                          {item.imageUrl ? (
+                            <img src={item.imageUrl} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full bg-slate-200 dark:bg-zinc-800 flex items-center justify-center">
+                              <ImageIcon size={32} className="text-slate-400" />
+                            </div>
+                          )}
+                          <div className={clsx(
+                            "absolute top-3 left-3 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest text-white border border-white/10",
+                            item.type === "LOST" ? "bg-orange-500" : "bg-primary"
+                          )}>
+                            {item.type}
+                          </div>
+                        </div>
+                        <div className="p-5 flex-1 flex flex-col justify-between">
+                          <h4 className="font-black text-charcoal dark:text-white uppercase tracking-tight text-sm mb-1">{item.title}</h4>
+                          <p className="text-xs text-slate-500 font-medium line-clamp-2 mb-4">{item.location} • {new Date(item.date).toLocaleDateString()}</p>
+                          <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-200 dark:border-white/10">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                              {item.status}
+                            </span>
+                            <select
+                              value={item.status}
+                              onChange={(e) => handleUpdateStatus(item.id, e.target.value)}
+                              className="bg-slate-100 dark:bg-zinc-700 border border-slate-200 dark:border-white/5 rounded-lg text-xs font-bold px-2 py-1 outline-none focus:ring-1 focus:ring-primary"
+                            >
+                              <option value="PENDING">Pending</option>
+                              <option value="LOOKING">Looking</option>
+                              <option value="RESOLVED">Resolved</option>
+                              <option value="UNCLAIMED">Unclaimed</option>
+                            </select>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </main>
       </div>
 
@@ -1337,6 +1482,118 @@ export default function PublicViewCMSPage() {
                 className="flex-[2] py-3 bg-primary text-white font-black text-[10px] uppercase tracking-[0.2em] rounded-2xl shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all"
               >
                 Save Info
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Lost and Found Modal */}
+      {isLostFoundModalOpen && (
+        <div className="fixed inset-0 bg-charcoal/80 backdrop-blur-md z-[100] flex items-center justify-center p-4 sm:p-6 animate-fade-in">
+          <div className="bg-white dark:bg-zinc-900 w-full max-w-2xl rounded-[2rem] sm:rounded-[3rem] border border-white/10 shadow-2xl overflow-hidden animate-scale-in flex flex-col max-h-[90vh]">
+            <div className="p-6 sm:p-8 md:p-10 border-b border-slate-100 dark:border-white/5 flex items-center justify-between bg-slate-50/50 dark:bg-white/5 shrink-0">
+              <div>
+                <h3 className="text-2xl font-black text-charcoal dark:text-white uppercase italic tracking-tighter">
+                  Post <span className="text-primary">Item.</span>
+                </h3>
+                <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1">
+                  Report a lost or found item.
+                </p>
+              </div>
+              <button
+                onClick={() => setIsLostFoundModalOpen(false)}
+                className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-zinc-800 text-slate-500 flex items-center justify-center hover:scale-110 active:scale-90 transition-all"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-6 sm:p-8 md:p-10 space-y-6 overflow-y-auto custom-scrollbar flex-1">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <InputGroup label="Type" icon={Layers}>
+                  <select 
+                    value={lostFoundForm.type}
+                    onChange={(e) => setLostFoundForm(prev => ({ ...prev, type: e.target.value as "LOST" | "FOUND" }))}
+                    className="cms-input"
+                  >
+                    <option value="FOUND">Found Item</option>
+                    <option value="LOST">Lost Item</option>
+                  </select>
+                </InputGroup>
+                <InputGroup label="Title" icon={Layers}>
+                  <input
+                    value={lostFoundForm.title}
+                    onChange={(e) => setLostFoundForm(prev => ({ ...prev, title: e.target.value }))}
+                    className="cms-input"
+                    placeholder="E.g. Blue Umbrella"
+                  />
+                </InputGroup>
+                <InputGroup label="Location" icon={Monitor}>
+                  <input
+                    value={lostFoundForm.location}
+                    onChange={(e) => setLostFoundForm(prev => ({ ...prev, location: e.target.value }))}
+                    className="cms-input"
+                    placeholder="E.g. Near Entrance 1"
+                  />
+                </InputGroup>
+                <InputGroup label="Date" icon={CalendarIcon}>
+                  <input
+                    type="date"
+                    value={lostFoundForm.date}
+                    onChange={(e) => setLostFoundForm(prev => ({ ...prev, date: e.target.value }))}
+                    className="cms-input"
+                  />
+                </InputGroup>
+                <div className="md:col-span-2">
+                  <InputGroup label="Description" icon={Globe}>
+                    <textarea
+                      value={lostFoundForm.description}
+                      onChange={(e) => setLostFoundForm(prev => ({ ...prev, description: e.target.value }))}
+                      className="cms-input min-h-[80px] resize-none"
+                    />
+                  </InputGroup>
+                </div>
+                <div className="md:col-span-2">
+                  <InputGroup label="Image" icon={ImageIcon}>
+                    <div className="flex gap-4 items-center">
+                      {lostFoundForm.imageUrl && (
+                        <img src={lostFoundForm.imageUrl} className="w-16 h-16 rounded-xl object-cover" />
+                      )}
+                      <label className="shrink-0 p-4 bg-primary/10 text-primary border border-primary/20 rounded-2xl cursor-pointer hover:bg-primary/20 transition-all flex items-center gap-2">
+                        {isSaving ? <Loader2 size={20} className="animate-spin" /> : <ImageIcon size={20} />}
+                        <span className="text-xs font-bold">Upload Image</span>
+                        <input
+                          type="file"
+                          className="hidden"
+                          accept="image/*"
+                          onChange={handleLostFoundUpload}
+                        />
+                      </label>
+                    </div>
+                  </InputGroup>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 sm:p-8 md:p-10 bg-slate-50/50 dark:bg-white/5 border-t border-slate-100 dark:border-white/5 flex gap-4 shrink-0">
+              <button
+                onClick={() => setIsLostFoundModalOpen(false)}
+                className="flex-1 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-charcoal transition-all"
+              >
+                Discard
+              </button>
+              <button
+                onClick={handleCreateLostFound}
+                disabled={isSaving || !lostFoundForm.title || !lostFoundForm.location}
+                className="flex-[2] py-4 bg-primary text-white font-black text-[10px] uppercase tracking-[0.2em] rounded-2xl shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {isSaving ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <Save size={16} />
+                )}
+                Post Item
               </button>
             </div>
           </div>

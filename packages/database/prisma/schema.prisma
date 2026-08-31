@@ -31,6 +31,7 @@ model User {
   commentStatus          String                  @default("ACTIVE")
   commentRestrictedUntil DateTime?
   eventInquiries         EventInquiry[]
+  lostAndFoundItems      LostAndFoundItem[]
 }
 
 model Tenant {
@@ -274,4 +275,21 @@ model PasswordResetToken {
   createdAt DateTime @default(now())
 
   @@unique([email, token])
+}
+
+model LostAndFoundItem {
+  id          String   @id @default(uuid())
+  type        String   // "LOST" or "FOUND"
+  title       String
+  description String?
+  location    String
+  date        DateTime
+  time        String?
+  status      String   @default("PENDING") // PENDING, RESOLVED, UNCLAIMED, LOOKING
+  imageUrl    String?
+  storageKey  String?
+  userId      String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
 }
