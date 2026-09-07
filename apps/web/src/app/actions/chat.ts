@@ -113,6 +113,12 @@ export async function sendMessage(data: {
       },
     });
 
+    // Update conversation's updatedAt
+    await prisma.conversation.update({
+      where: { id: conversation.id },
+      data: { updatedAt: new Date() },
+    });
+
     // Create a Message Notification for the recipient
     await prisma.notification.create({
       data: {

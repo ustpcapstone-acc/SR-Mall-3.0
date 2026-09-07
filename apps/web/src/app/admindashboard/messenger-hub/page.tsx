@@ -161,7 +161,7 @@ export default function MessengerHub() {
     if (filter === "All") return true;
     if (filter === "Unread") return c.messages[0]?.senderId !== c.targetId;
     return true;
-  });
+  }).sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
 
   return (
     <div className="h-screen flex flex-col pt-10 px-8 pb-8 animate-fade-in-up">
