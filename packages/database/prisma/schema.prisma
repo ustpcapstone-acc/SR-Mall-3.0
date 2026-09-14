@@ -79,6 +79,7 @@ model AreaSlot {
   sqm_size      Float
   base_rent     Float
   space_images  String[]       @default([])
+  features      String[]       @default([])
   tenant_id     String?
   floor         String         @default("ground")
   category      String         @default("retail")

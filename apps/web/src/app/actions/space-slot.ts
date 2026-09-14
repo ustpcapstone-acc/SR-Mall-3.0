@@ -34,6 +34,7 @@ export async function upsertAreaSlot(data: {
   sqm_size: number;
   base_rent: number;
   space_images: string[];
+  features?: string[];
   floor?: string;
   category?: string;
   x?: number;
@@ -43,7 +44,7 @@ export async function upsertAreaSlot(data: {
 }) {
   try {
     if (data.id) {
-      await prisma.areaSlot.update({
+      await (prisma.areaSlot.update as any)({
         where: { id: data.id },
         data: {
           unit_id: data.unit_id,
@@ -51,6 +52,7 @@ export async function upsertAreaSlot(data: {
           sqm_size: data.sqm_size,
           base_rent: data.base_rent,
           space_images: data.space_images,
+          ...(data.features !== undefined && { features: data.features }),
           ...(data.floor !== undefined && { floor: data.floor }),
           ...(data.category !== undefined && { category: data.category }),
           ...(data.x !== undefined && { x: data.x }),
@@ -60,13 +62,14 @@ export async function upsertAreaSlot(data: {
         },
       });
     } else {
-      await prisma.areaSlot.create({
+      await (prisma.areaSlot.create as any)({
         data: {
           unit_id: data.unit_id,
           status: data.status,
           sqm_size: data.sqm_size,
           base_rent: data.base_rent,
           space_images: data.space_images,
+          features: data.features || [],
           floor: data.floor || "ground",
           category: data.category || "retail",
           x: data.x || 0,
@@ -78,6 +81,7 @@ export async function upsertAreaSlot(data: {
     }
     revalidatePath("/admindashboard/space-manager");
     revalidatePath("/public-view");
+    revalidatePath("/available-spaces");
     return { success: true };
   } catch (error) {
     console.error("Error upserting area slot:", error);

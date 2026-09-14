@@ -55,6 +55,7 @@ interface AreaSlot {
   sqm_size: number;
   base_rent: number;
   space_images: string[];
+  features?: string[];
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -105,6 +106,27 @@ export default function SpaceManagerPage() {
   const [previewSlot, setPreviewSlot] = useState<FloorPlanSlot | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [newFeatureInput, setNewFeatureInput] = useState("");
+
+  const handleAddFeature = () => {
+    if (!newFeatureInput.trim() || !activeSlot) return;
+    const currentFeatures = activeSlot.features || [];
+    setActiveSlot({
+      ...activeSlot,
+      features: [...currentFeatures, newFeatureInput.trim()],
+    });
+    setNewFeatureInput("");
+  };
+
+  const handleRemoveFeature = (indexToRemove: number) => {
+    if (!activeSlot) return;
+    const currentFeatures = [...(activeSlot.features || [])];
+    currentFeatures.splice(indexToRemove, 1);
+    setActiveSlot({
+      ...activeSlot,
+      features: currentFeatures,
+    });
+  };
 
   useEffect(() => {
     loadSlots();
@@ -115,18 +137,18 @@ export default function SpaceManagerPage() {
     const result = await getAreaSlots();
     if (result.success && result.data) {
       // Sort slots naturally by unit_id (FS1, FS2, FS3... FS10)
-      const sortedData = [...result.data].sort((a, b) => 
+      const sortedData = [...result.data].sort((a, b) =>
         a.unit_id.localeCompare(b.unit_id, undefined, { numeric: true, sensitivity: 'base' })
       );
 
       const floorCounts: Record<string, number> = {};
-      
+
       const slotsWithPositions = sortedData.map(
         (slot: any) => {
           const floor = slot.floor || "ground";
           if (floorCounts[floor] === undefined) floorCounts[floor] = 0;
           const floorIndex = floorCounts[floor]++;
-          
+
           // Ignore database x/y coordinates to force a strict auto-flowing grid.
           // This ensures that when a space is deleted, the remaining spaces will "shift up" to fill the gap.
           return {
@@ -137,6 +159,7 @@ export default function SpaceManagerPage() {
             height: slot.height || 80,
             floor: floor,
             category: slot.category || "retail",
+            features: Array.isArray(slot.features) ? slot.features : [],
           };
         }
       );
@@ -156,6 +179,7 @@ export default function SpaceManagerPage() {
       sqm_size: activeSlot.sqm_size || 0,
       base_rent: activeSlot.base_rent || 0,
       space_images: activeSlot.space_images || [],
+      features: activeSlot.features || [],
       floor: activeSlot.floor || "ground",
       category: activeSlot.category || "retail",
       x: activeSlot.x || 0,
@@ -426,6 +450,7 @@ export default function SpaceManagerPage() {
                     sqm_size: 0,
                     base_rent: 0,
                     space_images: [],
+                    features: [],
                     x: 100,
                     y: 100,
                     width: 120,
@@ -914,8 +939,8 @@ export default function SpaceManagerPage() {
                           "absolute border-2 rounded-lg cursor-move transition-all hover:shadow-lg group",
                           getSlotColor(slot.status, slot.category || "retail"),
                           isDragging &&
-                            draggedSlot?.id === slot.id &&
-                            "opacity-50",
+                          draggedSlot?.id === slot.id &&
+                          "opacity-50",
                         )}
                         style={{
                           left: `${slot.x}px`,
@@ -2234,6 +2259,137 @@ export default function SpaceManagerPage() {
                       </button>
                     </div>
                   ))}
+                </div>
+              </div>
+
+              {/* Integrated Features / Bullet Points */}
+              <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-white/5">
+                <div className="flex justify-between items-center">
+                  <label
+                    className={clsx(
+                      "text-[10px]",
+                      "font-black",
+                      "text-slate-400",
+                      "uppercase",
+                      "tracking-[0.4em]",
+                    )}
+                  >
+                    Integrated Features ({activeSlot?.features?.length || 0})
+                  </label>
+                  <span className="text-[10px] text-slate-400 font-medium tracking-wide">
+                    Shown in public modal
+                  </span>
+                </div>
+
+                {/* Input with Add button */}
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="e.g. Dynamic high-visibility frontage"
+                    value={newFeatureInput}
+                    onChange={(e) => setNewFeatureInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleAddFeature();
+                      }
+                    }}
+                    className={clsx(
+                      "flex-1",
+                      "p-3.5",
+                      "bg-slate-50",
+                      "dark:bg-zinc-900",
+                      "border",
+                      "border-slate-200",
+                      "dark:border-white/10",
+                      "rounded-xl",
+                      "text-xs",
+                      "text-charcoal",
+                      "dark:text-white",
+                      "placeholder:text-slate-400",
+                      "focus:outline-none",
+                      "focus:border-primary",
+                      "transition-all",
+                    )}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddFeature}
+                    disabled={!newFeatureInput.trim()}
+                    className={clsx(
+                      "px-4",
+                      "py-3.5",
+                      "bg-primary",
+                      "hover:bg-primary-hover",
+                      "disabled:opacity-50",
+                      "disabled:cursor-not-allowed",
+                      "text-white",
+                      "text-xs",
+                      "font-black",
+                      "uppercase",
+                      "tracking-widest",
+                      "rounded-xl",
+                      "transition-all",
+                      "flex",
+                      "items-center",
+                      "gap-1.5",
+                      "shadow-md",
+                      "shadow-primary/20",
+                      "active:scale-95",
+                    )}
+                  >
+                    <Plus size={16} strokeWidth={2.5} />
+                    Add
+                  </button>
+                </div>
+
+                {/* Bullets List */}
+                <div className="space-y-2">
+                  {activeSlot?.features && activeSlot.features.length > 0 ? (
+                    activeSlot.features.map((feat: string, idx: number) => (
+                      <div
+                        key={idx}
+                        className={clsx(
+                          "flex",
+                          "items-center",
+                          "justify-between",
+                          "p-3",
+                          "rounded-xl",
+                          "bg-slate-50",
+                          "dark:bg-white/5",
+                          "border",
+                          "border-slate-200",
+                          "dark:border-white/10",
+                          "group",
+                          "transition-all",
+                        )}
+                      >
+                        <div className="flex items-center gap-3 flex-1 min-w-0 pr-2">
+                          <div className="w-2 h-2 rounded-full bg-primary flex-shrink-0 shadow-[0_0_8px_rgba(190,30,45,0.4)]" />
+                          <span className="text-xs font-semibold text-charcoal dark:text-white truncate">
+                            {feat}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveFeature(idx)}
+                          className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
+                          title="Remove feature"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-4 rounded-xl border border-dashed border-slate-200 dark:border-white/10 text-center">
+                      <p className="text-[11px] text-slate-400 font-medium">
+                        No custom features added yet.
+                      </p>
+                      <p className="text-[10px] text-slate-400/70 mt-0.5">
+                        Standard mall default features will be displayed in the public modal until you add custom bullets.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 

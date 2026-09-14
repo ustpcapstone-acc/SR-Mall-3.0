@@ -226,13 +226,13 @@ export default function AllProductsPage() {
                           .toLowerCase()
                           .includes(searchQuery.toLowerCase())
                       ).length === 0 && (
-                        <div className="p-6 sm:p-8 text-center text-slate-400">
-                          <Search size={24} className="mx-auto mb-2 opacity-20" />
-                          <p className="text-[8px] sm:text-[10px] font-bold uppercase tracking-widest">
-                            No matching items found
-                          </p>
-                        </div>
-                      )}
+                          <div className="p-6 sm:p-8 text-center text-slate-400">
+                            <Search size={24} className="mx-auto mb-2 opacity-20" />
+                            <p className="text-[8px] sm:text-[10px] font-bold uppercase tracking-widest">
+                              No matching items found
+                            </p>
+                          </div>
+                        )}
                     </div>
                   </div>
                 )}

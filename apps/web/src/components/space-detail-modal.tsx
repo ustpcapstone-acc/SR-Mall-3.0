@@ -41,6 +41,18 @@ export default function SpaceDetailModal({
     ? slot.space_images
     : [];
 
+  const DEFAULT_FEATURES = [
+    "Dynamic high-visibility frontage",
+    "Enterprise-grade utility infrastructure",
+    "Direct concierge & mall support access",
+    "Climate-optimized spatial layout",
+  ];
+
+  const features: string[] =
+    Array.isArray((slot as any).features) && (slot as any).features.length > 0
+      ? (slot as any).features
+      : DEFAULT_FEATURES;
+
   const handleInquiry = () => {
     if (onInquire) {
       onInquire(slot.unit_id);
@@ -245,12 +257,7 @@ export default function SpaceDetailModal({
                 Integrated Features
               </h4>
               <ul className="space-y-4">
-                {[
-                  "Dynamic high-visibility frontage",
-                  "Enterprise-grade utility infrastructure",
-                  "Direct concierge & mall support access",
-                  "Climate-optimized spatial layout",
-                ].map((feat, index) => (
+                {features.map((feat, index) => (
                   <li
                     key={index}
                     className="flex items-center gap-4 text-sm font-bold text-slate-600 dark:text-white/60 group"
