@@ -153,7 +153,64 @@ const PAYMENT_CONFIG = {
   },
 };
 
+type Timeframe = "daily" | "weekly" | "monthly" | "yearly";
+
+const getTimeframeMultiplier = (tf: Timeframe) => {
+  switch (tf) {
+    case "daily":
+      return 1 / 30;
+    case "weekly":
+      return 7 / 30;
+    case "monthly":
+      return 1;
+    case "yearly":
+      return 12;
+  }
+};
+
+const getTimeframeDetails = (tf: Timeframe) => {
+  switch (tf) {
+    case "daily":
+      return {
+        label: "Daily (Today)",
+        shortLabel: "Daily",
+        periodBadge: "Today",
+        rentColumnTitle: "Daily Rent (Est.)",
+        revHeaderLabel: "Daily Est.",
+        unitSuffix: "/day",
+      };
+    case "weekly":
+      return {
+        label: "Weekly (7 Days)",
+        shortLabel: "Weekly",
+        periodBadge: "This Week",
+        rentColumnTitle: "Weekly Rent (Est.)",
+        revHeaderLabel: "Weekly Est.",
+        unitSuffix: "/wk",
+      };
+    case "monthly":
+      return {
+        label: "Monthly (30 Days)",
+        shortLabel: "Monthly",
+        periodBadge: "This Month",
+        rentColumnTitle: "Monthly Rent",
+        revHeaderLabel: "Monthly Est.",
+        unitSuffix: "/mo",
+      };
+    case "yearly":
+      return {
+        label: "Yearly (Annual)",
+        shortLabel: "Yearly",
+        periodBadge: "This Year",
+        rentColumnTitle: "Annual Rent (Est.)",
+        revHeaderLabel: "Annual Est.",
+        unitSuffix: "/yr",
+      };
+  }
+};
+
 export default function TenantMonitoring() {
+  const [timeframe, setTimeframe] = useState<Timeframe>("monthly");
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
@@ -560,6 +617,9 @@ export default function TenantMonitoring() {
       }
       return sortOrder === "asc" ? comparison : -comparison;
     });
+
+  const multiplier = getTimeframeMultiplier(timeframe);
+  const tfDetails = getTimeframeDetails(timeframe);
 
   const toggleSort = (field: "name" | "status" | "rent") => {
     if (sortBy === field) {
@@ -1046,11 +1106,14 @@ export default function TenantMonitoring() {
                 <TrendingUp size={20} />
               </div>
               <div>
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                  Est. Revenue
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                  Est. Revenue{" "}
+                  <span className="text-[8px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-500 font-bold">
+                    {tfDetails.periodBadge}
+                  </span>
                 </p>
                 <p className="text-lg font-black text-charcoal dark:text-white">
-                  ₱{(stats.totalRevenue || 0).toLocaleString()}
+                  ₱{Math.round((stats.totalRevenue || 0) * multiplier).toLocaleString()}
                 </p>
               </div>
             </div>
@@ -1102,8 +1165,11 @@ export default function TenantMonitoring() {
                   <PhilippinePeso size={22} />
                 </div>
                 <div className="flex flex-col items-end">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                    Collected
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                    Collected{" "}
+                    <span className="text-[8px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 font-bold">
+                      {tfDetails.periodBadge}
+                    </span>
                   </span>
                   <div className="flex items-center gap-1 text-emerald-500">
                     <ArrowUpRight size={10} />
@@ -1112,10 +1178,10 @@ export default function TenantMonitoring() {
                 </div>
               </div>
               <p className="text-4xl font-black text-charcoal dark:text-white tracking-tighter">
-                ₱{(stats.collectedRevenue / 1000).toFixed(0)}K
+                ₱{Math.round((stats.collectedRevenue * multiplier) / 1000).toLocaleString()}K
               </p>
               <p className="text-[10px] font-bold text-slate-500 uppercase mt-1">
-                Pending: ₱{(stats.pendingRevenue / 1000).toFixed(0)}K
+                Pending: ₱{Math.round((stats.pendingRevenue * multiplier) / 1000).toLocaleString()}K
               </p>
             </div>
           </div>
@@ -1300,6 +1366,52 @@ export default function TenantMonitoring() {
             <option value="🔴 Overdue">🔴 Overdue</option>
             <option value="PENDING">Awaiting Invoice</option>
           </select>
+
+          {/* Timeframe Filter Dropdown */}
+          <div className="relative flex items-center">
+            <Calendar
+              className={clsx(
+                "absolute",
+                "left-4",
+                "text-slate-400",
+                "pointer-events-none",
+              )}
+              size={16}
+            />
+            <select
+              value={timeframe}
+              onChange={(e) => setTimeframe(e.target.value as Timeframe)}
+              aria-label="Select monitoring timeframe"
+              className={clsx(
+                "pl-11",
+                "pr-8",
+                "py-3",
+                "bg-slate-50",
+                "dark:bg-zinc-950/50",
+                "border",
+                "border-slate-200",
+                "dark:border-white/5",
+                "rounded-2xl",
+                "text-charcoal",
+                "dark:text-white",
+                "font-bold",
+                "text-xs",
+                "uppercase",
+                "tracking-wider",
+                "focus:outline-none",
+                "focus:border-primary",
+                "focus:ring-4",
+                "focus:ring-primary/10",
+                "transition-all",
+                "cursor-pointer",
+              )}
+            >
+              <option value="daily">📅 Daily (Today)</option>
+              <option value="weekly">📅 Weekly (7 Days)</option>
+              <option value="monthly">📅 Monthly (30 Days)</option>
+              <option value="yearly">📅 Yearly (Annual)</option>
+            </select>
+          </div>
 
           {/* View Toggle */}
           <div
@@ -1566,7 +1678,7 @@ export default function TenantMonitoring() {
                           <div
                             className={clsx("flex", "items-center", "gap-2")}
                           >
-                            Monthly Rent
+                            {tfDetails.rentColumnTitle}
                             <ArrowUpDown
                               size={12}
                               className={
@@ -1745,13 +1857,20 @@ export default function TenantMonitoring() {
                               </div>
                             </td>
                             <td className={clsx("px-6", "py-5")}>
-                              <span
-                                className={clsx(
-                                  "font-black text-charcoal dark:text-white text-sm",
+                              <div className="flex flex-col">
+                                <span
+                                  className={clsx(
+                                    "font-black text-charcoal dark:text-white text-sm",
+                                  )}
+                                >
+                                  ₱{Math.round((tenant.rentCost || 0) * multiplier).toLocaleString()}
+                                </span>
+                                {timeframe !== "monthly" && (
+                                  <span className="text-[9px] text-slate-400 font-medium">
+                                    Base: ₱{(tenant.rentCost || 0).toLocaleString()}/mo
+                                  </span>
                                 )}
-                              >
-                                ₱{(tenant.rentCost || 0).toLocaleString()}
-                              </span>
+                              </div>
                             </td>
                             <td className={clsx("px-6", "py-5")}>
                               <div
@@ -1932,7 +2051,7 @@ export default function TenantMonitoring() {
                               "mb-1",
                             )}
                           >
-                            Rent
+                            Rent ({tfDetails.unitSuffix})
                           </p>
                           <p
                             className={clsx(
@@ -1941,7 +2060,7 @@ export default function TenantMonitoring() {
                               "dark:text-white",
                             )}
                           >
-                            ₱{(tenant.rentCost || 0).toLocaleString()}
+                            ₱{Math.round((tenant.rentCost || 0) * multiplier).toLocaleString()}
                           </p>
                         </div>
                         <div
@@ -2395,18 +2514,25 @@ export default function TenantMonitoring() {
                           "dark:text-slate-300",
                         )}
                       >
-                        Monthly Rent
+                        {tfDetails.rentColumnTitle}
                       </span>
-                      <span
-                        className={clsx(
-                          "text-sm",
-                          "font-black",
-                          "text-charcoal",
-                          "dark:text-white",
+                      <div className="text-right">
+                        <span
+                          className={clsx(
+                            "text-sm",
+                            "font-black",
+                            "text-charcoal",
+                            "dark:text-white",
+                          )}
+                        >
+                          ₱{Math.round((selectedTenant.rentCost || 0) * multiplier).toLocaleString()}
+                        </span>
+                        {timeframe !== "monthly" && (
+                          <span className="text-[10px] text-slate-400 block font-medium">
+                            Base: ₱{(selectedTenant.rentCost || 0).toLocaleString()}/mo
+                          </span>
                         )}
-                      >
-                        ₱{(selectedTenant.rentCost || 0).toLocaleString()}
-                      </span>
+                      </div>
                     </div>
                   </div>
                 </div>
