@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   Search,
   User,
@@ -23,13 +24,35 @@ import { PublicThemeToggle } from "./theme-toggle";
 import clsx from "clsx";
 
 export const Navbar = () => {
+  const pathname = usePathname();
   const { isAuthenticated, user, logout } = useAuth();
+  const [activeNav, setActiveNav] = useState<string>("");
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMerchantModalOpen, setIsMerchantModalOpen] = useState(false);
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
   const [allShops, setAllShops] = useState<DigitalStorefront[]>([]);
+
+  const navItems = [
+    { id: "products", label: "Products", href: "/products" },
+    { id: "directory", label: "Mall Directory", href: "/public-view#directory" },
+    { id: "availability", label: "Available Spaces", href: "/public-view#availability" },
+    { id: "events", label: "What's On", href: "/public-view#events" },
+    { id: "location", label: "Location", href: "/public-view#location" },
+  ];
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const hash = window.location.hash;
+      if (hash === "#directory") setActiveNav("directory");
+      else if (hash === "#availability") setActiveNav("availability");
+      else if (hash === "#events" || hash === "#event-inquiry") setActiveNav("events");
+      else if (hash === "#location") setActiveNav("location");
+      else if (pathname === "/products") setActiveNav("products");
+      else if (!hash) setActiveNav("");
+    }
+  }, [pathname]);
 
   const loadFavorites = () => {
     if (typeof window !== "undefined") {
@@ -74,13 +97,18 @@ export const Navbar = () => {
       >
         <div
           className={clsx(
-            "max-w-7xl",
+            "w-full",
+            "max-w-[1750px]",
             "mx-auto",
             "px-4",
+            "sm:px-6",
+            "lg:px-8",
             "h-20",
             "flex",
             "items-center",
             "justify-between",
+            "gap-3",
+            "xl:gap-6",
           )}
         >
           {/* Left: Logo */}
@@ -111,89 +139,41 @@ export const Navbar = () => {
               "hidden",
               "lg:flex",
               "items-center",
-              "gap-3",
-              "xl:gap-8",
+              "justify-center",
+              "gap-1",
+              "xl:gap-3",
+              "2xl:gap-6",
             )}
           >
-            <Link
-              href="/products"
-              className={clsx(
-                "text-[10px] xl:text-[11px]",
-                "font-black",
-                "text-primary",
-                "hover:text-primary-hover",
-                "transition-colors",
-                "uppercase",
-                "tracking-[0.1em] xl:tracking-[0.2em]",
-                "whitespace-nowrap"
-              )}
-            >
-              Products
-            </Link>
-            <Link
-              href="#directory"
-              className={clsx(
-                "text-xs xl:text-sm",
-                "font-medium",
-                "text-slate-500",
-                "dark:text-slate-300",
-                "hover:text-primary",
-                "transition-colors",
-                "whitespace-nowrap"
-              )}
-            >
-              Mall Directory
-            </Link>
-            <Link
-              href="#availability"
-              className={clsx(
-                "text-xs xl:text-sm",
-                "font-medium",
-                "text-slate-500",
-                "dark:text-slate-300",
-                "hover:text-primary",
-                "transition-colors",
-                "whitespace-nowrap"
-              )}
-            >
-              Available Spaces
-            </Link>
-            <Link
-              href="#events"
-              className={clsx(
-                "text-xs xl:text-sm",
-                "font-medium",
-                "text-slate-500",
-                "dark:text-slate-300",
-                "hover:text-primary",
-                "transition-colors",
-                "whitespace-nowrap"
-              )}
-            >
-              What's On
-            </Link>
-            <Link
-              href="#location"
-              className={clsx(
-                "text-xs xl:text-sm",
-                "font-medium",
-                "text-slate-500",
-                "dark:text-slate-300",
-                "hover:text-primary",
-                "transition-colors",
-                "whitespace-nowrap"
-              )}
-            >
-              Location
-            </Link>
+            {navItems.map((item) => {
+              const isActive = activeNav === item.id;
+              return (
+                <Link
+                  key={item.id}
+                  href={item.href}
+                  onClick={() => setActiveNav(item.id)}
+                  className={clsx(
+                    "relative py-1.5 px-2.5 xl:px-3 text-xs xl:text-sm tracking-wider uppercase transition-all duration-300 whitespace-nowrap rounded-xl",
+                    isActive
+                      ? "text-primary font-black scale-105"
+                      : "text-slate-600 dark:text-slate-300 font-bold hover:text-charcoal dark:hover:text-white",
+                  )}
+                >
+                  {item.label}
+                  {isActive && (
+                    <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4 h-0.5 bg-primary rounded-full shadow-[0_0_8px_rgba(190,30,45,0.6)] animate-in fade-in zoom-in duration-300" />
+                  )}
+                </Link>
+              );
+            })}
           </div>
 
           {/* Right: Actions */}
-          <div className={clsx("flex items-center gap-1.5 sm:gap-4")}>
+          <div className={clsx("flex items-center gap-2 sm:gap-3 shrink-0")}>
             <div
               className={clsx(
                 "hidden",
-                "xl:flex",
+                "2xl:flex",
                 "items-center",
                 "gap-2",
                 "px-3",
@@ -247,7 +227,7 @@ export const Navbar = () => {
                 className={clsx(
                   "flex",
                   "items-center",
-                  "gap-2 sm:gap-4",
+                  "gap-2 sm:gap-3",
                   "relative",
                 )}
               >
@@ -263,17 +243,17 @@ export const Navbar = () => {
                     }
                     className={clsx(
                       "hidden",
-                      "lg:flex",
+                      "sm:flex",
                       "items-center",
                       "gap-2",
-                      "px-5",
-                      "py-2",
+                      "px-4",
+                      "py-1.5",
                       "bg-white",
                       "text-black",
                       "font-black",
                       "text-xs",
                       "uppercase",
-                      "tracking-widest",
+                      "tracking-wider",
                       "rounded-full",
                       "hover:bg-slate-200",
                       "transition-colors",
@@ -296,8 +276,8 @@ export const Navbar = () => {
                       className={clsx(
                         "flex",
                         "items-center",
-                        "gap-2 sm:gap-3",
-                        "p-1.5 sm:px-4 sm:py-2",
+                        "gap-2",
+                        "p-1 sm:px-3 sm:py-1.5",
                         "bg-slate-100",
                         "dark:bg-zinc-800",
                         "rounded-full",
@@ -543,24 +523,39 @@ export const Navbar = () => {
             </div>
           )}
           <div className="flex flex-col px-4 py-4">
-            {[
-              { href: "/products", label: "All Products" },
-              { href: "#directory", label: "Mall Directory" },
-              { href: "#availability", label: "Available Spaces" },
-              { href: "#event-inquiry", label: "Book an Event" },
-              { href: "#location", label: "Location" },
-              { href: "#feedback", label: "Reviews" },
-            ].map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="flex items-center justify-between py-4 border-b border-slate-100 dark:border-white/5 text-base font-bold text-slate-700 dark:text-slate-200 hover:text-primary transition-colors"
-              >
-                {link.label}
-                <ChevronDown size={16} className="-rotate-90 text-slate-300" />
-              </Link>
-            ))}
+            {navItems.map((link) => {
+              const isActive = activeNav === link.id;
+              return (
+                <Link
+                  key={link.id}
+                  href={link.href}
+                  onClick={() => {
+                    setActiveNav(link.id);
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className={clsx(
+                    "flex items-center justify-between py-4 border-b border-slate-100 dark:border-white/5 text-base transition-colors",
+                    isActive
+                      ? "text-primary font-black"
+                      : "text-slate-700 dark:text-slate-200 font-bold hover:text-charcoal dark:hover:text-white",
+                  )}
+                >
+                  <span className="flex items-center gap-2">
+                    {isActive && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_8px_rgba(190,30,45,0.6)]" />
+                    )}
+                    {link.label}
+                  </span>
+                  <ChevronDown
+                    size={16}
+                    className={clsx(
+                      "-rotate-90 transition-transform",
+                      isActive ? "text-primary" : "text-slate-300",
+                    )}
+                  />
+                </Link>
+              );
+            })}
             {isAuthenticated && (
               <>
                 <Link
