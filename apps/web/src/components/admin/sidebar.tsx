@@ -90,9 +90,9 @@ export const AdminSidebar = () => {
         className={clsx(
           "flex-1",
           "overflow-hidden",
-          "py-8",
+          "py-4",
           "px-5",
-          "space-y-1.5",
+          "space-y-1",
         )}
       >
         <div className={clsx("px-5", "mb-4")}>
@@ -118,7 +118,7 @@ export const AdminSidebar = () => {
               key={item.href}
               href={item.href}
               className={clsx(
-                "flex items-center gap-4 px-5 py-4 rounded-[1.25rem] transition-all font-bold text-sm relative group",
+                "flex items-center gap-4 px-5 py-3 rounded-[1.25rem] transition-all font-bold text-sm relative group",
                 isActive
                   ? "bg-primary/10 text-primary border border-primary/20 shadow-sm"
                   : "text-slate-500 hover:bg-slate-50 dark:hover:bg-white/5 dark:text-slate-400 dark:hover:text-white",

@@ -432,27 +432,7 @@ export const Navbar = () => {
                           >
                             <User size={16} className="text-primary" /> My Profile
                           </Link>
-                          <Link
-                            href="/lost-and-found"
-                            onClick={() => setIsProfileOpen(false)}
-                            className={clsx(
-                              "w-full",
-                              "flex",
-                              "items-center",
-                              "gap-3",
-                              "px-6",
-                              "py-3",
-                              "text-xs",
-                              "font-bold",
-                              "text-charcoal",
-                              "dark:text-white",
-                              "hover:bg-slate-50",
-                              "dark:hover:bg-white/5",
-                              "transition-colors",
-                            )}
-                          >
-                            <Search size={16} className="text-primary" /> Lost and Found
-                          </Link>
+
                           {(user?.role === "CUSTOMER" ||
                             user?.role === "USER") && (
                               <button
@@ -591,14 +571,7 @@ export const Navbar = () => {
                   My Profile
                   <User size={16} className="text-primary/60" />
                 </Link>
-                <Link
-                  href="/lost-and-found"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center justify-between py-4 border-b border-slate-100 dark:border-white/5 text-base font-bold text-slate-700 dark:text-slate-200 hover:text-primary transition-colors"
-                >
-                  Lost and Found
-                  <Search size={16} className="text-primary/60" />
-                </Link>
+
               </>
             )}
 

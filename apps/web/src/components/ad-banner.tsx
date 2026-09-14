@@ -177,6 +177,12 @@ export const AdBanner = ({
                   >
                     {ad.linkUrl ? "Explore Now" : "View Directory"}
                   </button>
+                  <Link
+                    href="/lost-and-found"
+                    className="px-5 sm:px-10 py-3 sm:py-5 bg-primary text-white text-[10px] sm:text-xs font-black uppercase tracking-widest rounded-full hover:bg-white hover:text-primary transition-all active:scale-95 shadow-xl shadow-primary/20"
+                  >
+                    Lost and Found
+                  </Link>
                 </div>
               </div>
 

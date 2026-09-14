@@ -28,7 +28,7 @@ import clsx from "clsx";
 import { toast } from "sonner";
 import { MerchantApplicationModal } from "@/components/merchant-application-modal";
 import { createLostAndFoundItem, getLostAndFoundItems } from "@/app/actions/lost-and-found";
-import { uploadAvatarAction } from "@/app/actions/auth";
+import { uploadImageServerAction } from "@/app/actions/upload";
 import { ChatBox } from "@/components/chat-box";
 
 export default function LostAndFoundPage() {
@@ -48,7 +48,9 @@ export default function LostAndFoundPage() {
   const [reportForm, setReportForm] = useState({
     type: "FOUND" as "LOST" | "FOUND",
     title: "",
+    description: "",
     date: "",
+    time: "",
     location: "",
     imageUrl: ""
   });
@@ -58,11 +60,12 @@ export default function LostAndFoundPage() {
     setIsLoadingItems(true);
     const foundRes = await getLostAndFoundItems("FOUND");
     if (foundRes.success && foundRes.data) {
-      setFoundItems(foundRes.data);
+      // Only show items that are not PENDING for public view
+      setFoundItems(foundRes.data.filter((item: any) => item.status !== "PENDING"));
     }
     const lostRes = await getLostAndFoundItems("LOST");
     if (lostRes.success && lostRes.data) {
-      setLostItems(lostRes.data);
+      setLostItems(lostRes.data.filter((item: any) => item.status !== "PENDING"));
     }
     setIsLoadingItems(false);
   };
@@ -82,11 +85,13 @@ export default function LostAndFoundPage() {
     try {
       const formData = new FormData();
       formData.append("file", file);
-      // reusing avatar action for simple image upload
-      const res = await uploadAvatarAction(user.id, formData);
-      if (res.success && res.data) {
-        setReportForm({ ...reportForm, imageUrl: res.data.avatarUrl });
+      
+      const imageUrl = await uploadImageServerAction(formData);
+      if (imageUrl) {
+        setReportForm({ ...reportForm, imageUrl: imageUrl });
         toast.success("Image Uploaded");
+      } else {
+        toast.error("Failed to upload image");
       }
     } catch(err) {
       toast.error("Upload failed");
@@ -101,14 +106,16 @@ export default function LostAndFoundPage() {
     const res = await createLostAndFoundItem({
       type: reportForm.type,
       title: reportForm.title,
+      description: reportForm.description,
       date: reportForm.date,
+      time: reportForm.time,
       location: reportForm.location,
       imageUrl: reportForm.imageUrl,
       userId: user?.id,
     });
     if (res.success) {
-      toast.success("Report Submitted", { description: "We have received your report." });
-      setReportForm({ type: "FOUND", title: "", date: "", location: "", imageUrl: "" });
+      toast.success("Report Submitted", { description: "We have received your report. An admin will review it shortly." });
+      setReportForm({ type: "FOUND", title: "", description: "", date: "", time: "", location: "", imageUrl: "" });
       setActiveTab(reportForm.type === "FOUND" ? "found" : "lost");
       loadItems();
     } else {
@@ -398,8 +405,8 @@ export default function LostAndFoundPage() {
                               value={reportForm.type}
                               onChange={e => setReportForm({...reportForm, type: e.target.value as any})}
                               className="w-full bg-slate-50 dark:bg-black border-2 border-slate-100 dark:border-white/5 rounded-2xl py-4 px-6 text-sm font-bold text-charcoal dark:text-white focus:outline-none focus:border-primary transition-all">
-                              <option value="lost">I lost something</option>
-                              <option value="found">I found something</option>
+                              <option value="LOST">I lost something</option>
+                              <option value="FOUND">I found something</option>
                             </select>
                           </div>
                           
@@ -417,6 +424,18 @@ export default function LostAndFoundPage() {
                             />
                           </div>
 
+                          <div className="space-y-2 col-span-full">
+                            <label className="text-[10px] font-black text-slate-400 dark:text-zinc-600 uppercase tracking-[0.2em] px-1">
+                              Additional Details / Comments (Optional)
+                            </label>
+                            <textarea
+                              value={reportForm.description}
+                              onChange={e => setReportForm({...reportForm, description: e.target.value})}
+                              className="w-full bg-slate-50 dark:bg-black border-2 border-slate-100 dark:border-white/5 rounded-2xl py-4 px-6 text-sm font-bold text-charcoal dark:text-white focus:outline-none focus:border-primary transition-all min-h-[100px] resize-none"
+                              placeholder="Any specific markings, contents, etc..."
+                            />
+                          </div>
+
                           <div className="space-y-2">
                             <label className="text-[10px] font-black text-slate-400 dark:text-zinc-600 uppercase tracking-[0.2em] px-1">
                               Date
@@ -431,6 +450,18 @@ export default function LostAndFoundPage() {
                           </div>
 
                           <div className="space-y-2">
+                            <label className="text-[10px] font-black text-slate-400 dark:text-zinc-600 uppercase tracking-[0.2em] px-1">
+                              Time (Optional)
+                            </label>
+                            <input
+                              type="time"
+                              value={reportForm.time}
+                              onChange={e => setReportForm({...reportForm, time: e.target.value})}
+                              className="w-full bg-slate-50 dark:bg-black border-2 border-slate-100 dark:border-white/5 rounded-2xl py-4 px-6 text-sm font-bold text-charcoal dark:text-white focus:outline-none focus:border-primary transition-all"
+                            />
+                          </div>
+
+                          <div className="space-y-2 col-span-full">
                             <label className="text-[10px] font-black text-slate-400 dark:text-zinc-600 uppercase tracking-[0.2em] px-1">
                               Location
                             </label>

@@ -42,12 +42,13 @@ export async function updatePublicViewConfigAction(
 ) {
   try {
     const existingConfig = await prisma.publicViewConfig.findFirst();
+    const { id, createdAt, updatedAt, ...updateData } = data as any;
 
     if (existingConfig) {
       const updatedConfig = await prisma.publicViewConfig.update({
         where: { id: existingConfig.id },
         data: {
-          ...data,
+          ...updateData,
           updatedAt: new Date(),
         },
       });
@@ -56,7 +57,7 @@ export async function updatePublicViewConfigAction(
       return updatedConfig;
     } else {
       const newConfig = await prisma.publicViewConfig.create({
-        data: data,
+        data: updateData,
       });
       revalidatePath("/admindashboard/public-view-cms");
       revalidatePath("/public-view");

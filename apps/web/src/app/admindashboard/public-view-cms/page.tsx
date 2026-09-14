@@ -121,6 +121,7 @@ export default function PublicViewCMSPage() {
   const [approvedEvents, setApprovedEvents] = useState<any[]>([]);
   const [allPostSales, setAllPostSales] = useState<any[]>([]);
   const [lostAndFoundItems, setLostAndFoundItems] = useState<any[]>([]);
+  const [lfFilter, setLfFilter] = useState("ALL");
 
   const [isLostFoundModalOpen, setIsLostFoundModalOpen] = useState(false);
   const [lostFoundForm, setLostFoundForm] = useState({
@@ -1206,17 +1207,42 @@ export default function PublicViewCMSPage() {
                 </button>
               </div>
 
+              <div className="flex flex-wrap gap-2 mb-6">
+                {["ALL", "PENDING", "LOOKING", "RESOLVED", "UNCLAIMED", "FOUND", "LOST"].map((f) => (
+                  <button 
+                    key={f}
+                    onClick={() => setLfFilter(f)}
+                    className={clsx(
+                      "px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all",
+                      lfFilter === f ? "bg-primary text-white shadow-lg shadow-primary/30" : "bg-slate-100 dark:bg-zinc-800 text-slate-500 hover:text-charcoal dark:hover:text-white"
+                    )}
+                  >
+                    {f}
+                  </button>
+                ))}
+              </div>
+
               <div className="bg-white dark:bg-zinc-900/50 border border-slate-100 dark:border-white/5 rounded-[2.5rem] p-6 shadow-sm">
-                {lostAndFoundItems.length === 0 ? (
+                {lostAndFoundItems.filter(item => {
+                  if (lfFilter === "ALL") return true;
+                  if (lfFilter === "FOUND" || lfFilter === "LOST") return item.type === lfFilter;
+                  return item.status === lfFilter;
+                }).length === 0 ? (
                   <div className="py-20 text-center">
                     <Search size={48} className="mx-auto text-slate-300 mb-4" />
                     <h3 className="text-xl font-black text-slate-400 uppercase tracking-widest">
-                      No Items Reported
+                      No Items Found
                     </h3>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {lostAndFoundItems.map((item: any) => (
+                    {lostAndFoundItems
+                      .filter(item => {
+                        if (lfFilter === "ALL") return true;
+                        if (lfFilter === "FOUND" || lfFilter === "LOST") return item.type === lfFilter;
+                        return item.status === lfFilter;
+                      })
+                      .map((item: any) => (
                       <div key={item.id} className="group relative bg-slate-50 dark:bg-zinc-800/50 rounded-3xl border border-slate-200 dark:border-white/10 overflow-hidden flex flex-col">
                         <div className="aspect-video relative overflow-hidden bg-black/5">
                           {item.imageUrl ? (

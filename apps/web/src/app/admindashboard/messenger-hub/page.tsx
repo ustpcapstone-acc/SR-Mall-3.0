@@ -45,12 +45,12 @@ export default function MessengerHub() {
   useEffect(() => {
     fetchConversations();
     const interval = setInterval(fetchConversations, 30000);
-    
+
     // Clear message notifications badge when viewing the messenger
     if (user) {
       markMessageNotificationsAsReadAction(user.id);
     }
-    
+
     return () => clearInterval(interval);
   }, [user]);
 
