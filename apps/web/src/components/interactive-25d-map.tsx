@@ -124,23 +124,31 @@ export default function Interactive25DMap({ onClose }: { onClose: () => void }) 
             transformStyle: "preserve-3d"
           }}
         >
-          {/* Base Floor Plan */}
-          <div className="absolute inset-0 bg-white/5 border border-white/20 rounded-3xl overflow-hidden shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)]">
+          {/* Base Floor Plan with Defined Architectural Edges */}
+          <div className="absolute inset-0 bg-slate-900/80 border-2 border-white/25 rounded-3xl overflow-hidden shadow-[0_50px_100px_-20px_rgba(0,0,0,0.8)] ring-1 ring-white/20 p-2">
+            {/* Architectural Corner Edge Accents */}
+            <div className="absolute top-3 left-3 w-5 h-5 border-t-2 border-l-2 border-primary rounded-tl-sm pointer-events-none z-10" />
+            <div className="absolute top-3 right-3 w-5 h-5 border-t-2 border-r-2 border-primary rounded-tr-sm pointer-events-none z-10" />
+            <div className="absolute bottom-3 left-3 w-5 h-5 border-b-2 border-l-2 border-primary rounded-bl-sm pointer-events-none z-10" />
+            <div className="absolute bottom-3 right-3 w-5 h-5 border-b-2 border-r-2 border-primary rounded-br-sm pointer-events-none z-10" />
+
             {/* The Blueprint Image */}
-            <img 
-              src={currentFloor} 
-              className="w-full h-full object-contain bg-white opacity-90 transition-all duration-500" 
-              alt="Mall Floor Plan Blueprint" 
-              onError={(e) => {
-                // Fallback to placeholder if the image fails to load
-                e.currentTarget.style.display = 'none';
-                e.currentTarget.parentElement!.classList.add('bg-[url("https://www.transparenttextures.com/patterns/cubes.png")]');
-              }}
-              onLoad={(e) => {
-                e.currentTarget.style.display = 'block';
-                e.currentTarget.parentElement!.classList.remove('bg-[url("https://www.transparenttextures.com/patterns/cubes.png")]');
-              }}
-            />
+            <div className="w-full h-full rounded-2xl overflow-hidden border border-white/10 bg-white">
+              <img 
+                src={currentFloor} 
+                className="w-full h-full object-contain opacity-95 transition-all duration-500" 
+                alt="Mall Floor Plan Blueprint" 
+                onError={(e) => {
+                  // Fallback to placeholder if the image fails to load
+                  e.currentTarget.style.display = 'none';
+                  e.currentTarget.parentElement!.classList.add('bg-[url("https://www.transparenttextures.com/patterns/cubes.png")]');
+                }}
+                onLoad={(e) => {
+                  e.currentTarget.style.display = 'block';
+                  e.currentTarget.parentElement!.classList.remove('bg-[url("https://www.transparenttextures.com/patterns/cubes.png")]');
+                }}
+              />
+            </div>
           </div>
 
           {/* Interactive Pins */}

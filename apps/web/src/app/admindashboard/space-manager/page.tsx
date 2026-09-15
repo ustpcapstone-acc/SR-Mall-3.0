@@ -403,7 +403,7 @@ export default function SpaceManagerPage() {
                   "uppercase",
                 )}
               >
-                Matrix <span className="text-primary">Blueprint</span>
+                Floor <span className="text-primary">Spaces & Map</span>
               </h1>
               <p
                 className={clsx(
@@ -414,8 +414,7 @@ export default function SpaceManagerPage() {
                   "leading-relaxed",
                 )}
               >
-                Advanced space management with drag-and-drop floor planning,
-                real-time visualization, and intelligent asset tracking.
+                Manage mall floors, view rentable spaces, drag-and-drop floor layouts, and update lease units.
               </p>
             </div>
 
@@ -812,7 +811,7 @@ export default function SpaceManagerPage() {
           {viewMode === "floorplan" ? (
             <div
               className={clsx(
-                "relative bg-white dark:bg-zinc-950 rounded-3xl border border-slate-200 dark:border-white/10 overflow-hidden",
+                "relative bg-white dark:bg-[#161b26] rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm",
                 isFullscreen ? "h-screen" : "h-[600px]",
               )}
             >
@@ -824,12 +823,12 @@ export default function SpaceManagerPage() {
                   "left-0",
                   "right-0",
                   "z-20",
-                  "bg-white/90",
-                  "dark:bg-zinc-950/90",
+                  "bg-white/95",
+                  "dark:bg-[#161b26]/95",
                   "backdrop-blur-sm",
                   "border-b",
                   "border-slate-200",
-                  "dark:border-white/10",
+                  "dark:border-slate-800",
                   "p-4",
                 )}
               >
@@ -876,7 +875,7 @@ export default function SpaceManagerPage() {
                   "w-full",
                   "h-full",
                   "overflow-auto",
-                  "pt-16",
+                  "pt-16 p-4",
                 )}
                 style={{
                   transform: `scale(${zoomLevel})`,
@@ -888,10 +887,24 @@ export default function SpaceManagerPage() {
                     "relative",
                     "w-full",
                     "h-full",
-                    "min-w-[800px]",
-                    "min-h-[600px]",
+                    "min-w-[850px]",
+                    "min-h-[620px]",
+                    "bg-slate-50/40 dark:bg-slate-900/40",
+                    "rounded-2xl",
                   )}
                 >
+                  {/* Defined Floor Map Perimeter Edges & Accents */}
+                  <div className="absolute inset-0 border-2 border-dashed border-slate-300 dark:border-slate-700/70 rounded-2xl pointer-events-none" />
+                  <div className="absolute -top-0.5 -left-0.5 w-4 h-4 border-t-2 border-l-2 border-primary rounded-tl-md pointer-events-none" />
+                  <div className="absolute -top-0.5 -right-0.5 w-4 h-4 border-t-2 border-r-2 border-primary rounded-tr-md pointer-events-none" />
+                  <div className="absolute -bottom-0.5 -left-0.5 w-4 h-4 border-b-2 border-l-2 border-primary rounded-bl-md pointer-events-none" />
+                  <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 border-b-2 border-r-2 border-primary rounded-br-md pointer-events-none" />
+                  <div className="absolute top-3 right-3 flex items-center gap-1.5 pointer-events-none z-10">
+                    <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest bg-white/80 dark:bg-slate-800/80 px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-700">
+                      Floor Map Boundary
+                    </span>
+                  </div>
+
                   {/* Grid Background */}
                   {showGrid && (
                     <div
@@ -916,7 +929,7 @@ export default function SpaceManagerPage() {
                               strokeWidth="0.5"
                               className={clsx(
                                 "text-slate-200",
-                                "dark:text-white/5",
+                                "dark:text-slate-700/50",
                               )}
                             />
                           </pattern>

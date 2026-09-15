@@ -339,7 +339,7 @@ export default function AdminDashboard() {
   ];
 
   return (
-    <div className="p-4 md:p-8 lg:p-10 min-h-screen bg-slate-50/50 dark:bg-black/40 space-y-8 animate-fade-in-up">
+    <div className="p-4 md:p-8 lg:p-10 min-h-screen bg-slate-50/50 dark:bg-transparent space-y-8 animate-fade-in-up">
       {/* Background Decor */}
       <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden">
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/5 blur-[120px] rounded-full" />
@@ -352,11 +352,11 @@ export default function AdminDashboard() {
           <div className="flex items-center gap-2 mb-1">
             <div className="w-1.5 h-4 bg-primary rounded-full" />
             <span className="text-[10px] font-black uppercase tracking-widest text-primary/80">
-              Systems Operational
+              Live Overview
             </span>
           </div>
           <h1 className="text-3xl md:text-5xl font-black text-charcoal dark:text-white tracking-tight leading-none italic">
-            Executive <span className="text-primary">Console</span>
+            Admin <span className="text-primary">Dashboard</span>
           </h1>
           <p className="text-slate-500 dark:text-slate-400 font-medium text-sm md:text-base">
             Morning,{" "}
@@ -386,7 +386,7 @@ export default function AdminDashboard() {
           )}
           <div className="text-right px-4 py-2 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl shadow-sm">
             <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-              Global Sync
+              Last Updated
             </p>
             <p className="text-xs font-black text-charcoal dark:text-white flex items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>

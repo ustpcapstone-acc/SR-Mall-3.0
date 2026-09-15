@@ -549,7 +549,7 @@ export default function PublicViewCMSPage() {
           </div>
         </div>
         <p className="text-xs font-black uppercase tracking-[0.3em] text-slate-400">
-          Initializing Command Center...
+          Loading Content Manager...
         </p>
       </div>
     );
@@ -558,7 +558,7 @@ export default function PublicViewCMSPage() {
   const navItems = [
     {
       id: "general",
-      label: "General Identity",
+      label: "General Settings",
       icon: Globe,
       desc: "Naming & Contact",
     },
@@ -570,11 +570,11 @@ export default function PublicViewCMSPage() {
     },
     {
       id: "content",
-      label: "Brand Narratives",
+      label: "About & Video",
       icon: Layers,
       desc: "About & Video",
     },
-    { id: "carousel", label: "Billboards", icon: Layout, desc: "Ad Sliders" },
+    { id: "carousel", label: "Billboards", icon: Layout, desc: "Homepage Banners" },
     { id: "events", label: "Upcoming Events", icon: CalendarIcon, desc: "Approved Event Images" },
     { id: "lostfound", label: "Lost & Found", icon: Search, desc: "Manage reported items" },
   ];
@@ -585,14 +585,13 @@ export default function PublicViewCMSPage() {
       <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 pb-8 border-b border-slate-200 dark:border-white/10">
         <div className="space-y-4">
           <div className="inline-flex items-center gap-2 px-3 py-1 bg-primary/10 text-primary rounded-full text-[10px] font-black uppercase tracking-widest border border-primary/20">
-            <Sparkles size={12} /> System Administrator v3.2
+            <Sparkles size={12} /> Public Site Editor
           </div>
           <h1 className="text-5xl font-black text-charcoal dark:text-white tracking-tighter italic uppercase leading-none">
             Content <span className="text-primary">Management.</span>
           </h1>
           <p className="text-slate-500 font-medium max-w-xl text-lg">
-            Synchronize your public presence. Manage imagery, narratives, and
-            digital billboards from a centralized command center.
+            Manage homepage banners, event photos, sales announcements, and mall information shown to visitors.
           </p>
         </div>
 

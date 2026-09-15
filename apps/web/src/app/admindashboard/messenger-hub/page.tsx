@@ -169,12 +169,12 @@ export default function MessengerHub() {
         <div>
           <div className="flex items-center gap-3 mb-1">
             <h1 className="text-3xl font-black text-charcoal dark:text-white tracking-tight">
-              Messenger Command Hub
+              Messages & Support
             </h1>
             {isRefreshing && <Loader2 size={16} className="animate-spin text-slate-400" />}
           </div>
           <p className="text-sm text-slate-500 font-medium mt-1">
-            Centralized management for bookings, inquiries, and tenant support.
+            Manage customer and tenant conversations, inquiries, and support requests.
           </p>
         </div>
       </div>

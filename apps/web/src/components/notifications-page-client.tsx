@@ -13,13 +13,16 @@ import {
   Filter,
   Check,
   Search,
+  ArrowRight,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/app/providers";
 import {
   getNotificationsAction,
   markNotificationAsReadAction,
   markAllNotificationsAsReadAction,
 } from "@/app/actions/notification";
+import { getNotificationRoute } from "@/lib/notification-routes";
 
 interface Notification {
   id: string;
@@ -27,11 +30,12 @@ interface Notification {
   title: string;
   message: string;
   isRead: boolean;
-  createdAt: string;
+  createdAt: string | Date;
 }
 
 export default function NotificationsPageClient() {
   const { user } = useAuth();
+  const router = useRouter();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"ALL" | "UNREAD">("ALL");
@@ -54,6 +58,8 @@ export default function NotificationsPageClient() {
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
+      case "SPACE_RESERVATION":
+        return <Calendar className="w-5 h-5 text-emerald-500" />;
       case "NEW_BOOKING_INQUIRY":
         return <MessageSquare className="w-5 h-5 text-blue-500" />;
       case "AD_SUBMISSION_RECEIVED":
@@ -61,6 +67,7 @@ export default function NotificationsPageClient() {
       case "EXPIRING_CONTRACTS":
         return <Calendar className="w-5 h-5 text-orange-500" />;
       case "OVERDUE_RENT_PAYMENTS":
+      case "BILLING_REMINDER":
         return <CreditCard className="w-5 h-5 text-red-500" />;
       case "FEEDBACK_SPAM_DETECTED":
         return <AlertTriangle className="w-5 h-5 text-yellow-500" />;
@@ -71,8 +78,8 @@ export default function NotificationsPageClient() {
     }
   };
 
-  const formatDateTime = (dateString: string) => {
-    return new Date(dateString).toLocaleString("en-US", {
+  const formatDateTime = (dateInput: string | Date) => {
+    return new Date(dateInput).toLocaleString("en-US", {
       month: "short",
       day: "numeric",
       year: "numeric",
@@ -96,6 +103,14 @@ export default function NotificationsPageClient() {
     if (res.success) {
       setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
     }
+  };
+
+  const handleNotificationClick = (notification: Notification) => {
+    if (!notification.isRead) {
+      markAsRead(notification.id);
+    }
+    const targetUrl = getNotificationRoute(notification, user?.role);
+    router.push(targetUrl);
   };
 
   const filteredNotifications = notifications.filter((n) => {
@@ -219,10 +234,11 @@ export default function NotificationsPageClient() {
               {filteredNotifications.map((notification) => (
                 <div
                   key={notification.id}
-                  className={`p-6 flex flex-col sm:flex-row sm:items-center gap-4 hover:bg-slate-50 dark:hover:bg-zinc-800/50 transition-colors ${
+                  onClick={() => handleNotificationClick(notification)}
+                  className={`p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50 dark:hover:bg-zinc-800/80 transition-all cursor-pointer group relative ${
                     !notification.isRead
-                      ? "bg-primary/[0.02] dark:bg-primary/5"
-                      : ""
+                      ? "bg-primary/[0.02] dark:bg-primary/5 border-l-4 border-l-primary"
+                      : "hover:border-l-4 hover:border-l-slate-400"
                   }`}
                 >
                   <div className="flex items-start gap-4 flex-1">
@@ -238,13 +254,14 @@ export default function NotificationsPageClient() {
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
                         <h4
-                          className={`text-sm md:text-base font-bold ${
+                          className={`text-sm md:text-base font-bold group-hover:text-primary transition-colors flex items-center gap-2 ${
                             !notification.isRead
                               ? "text-charcoal dark:text-white"
                               : "text-slate-600 dark:text-slate-300"
                           }`}
                         >
                           {notification.title}
+                          <ArrowRight className="w-4 h-4 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-primary" />
                         </h4>
                         {!notification.isRead && (
                           <span className="w-2 h-2 bg-primary rounded-full"></span>
@@ -253,14 +270,22 @@ export default function NotificationsPageClient() {
                       <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed max-w-3xl">
                         {notification.message}
                       </p>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2 block">
-                        {formatDateTime(notification.createdAt)}
-                      </p>
+                      <div className="flex items-center gap-4 mt-2">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                          {formatDateTime(notification.createdAt)}
+                        </span>
+                        <span className="text-[10px] font-bold text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                          Click to navigate &rarr;
+                        </span>
+                      </div>
                     </div>
                   </div>
                   {!notification.isRead && (
                     <button
-                      onClick={() => markAsRead(notification.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        markAsRead(notification.id);
+                      }}
                       className="shrink-0 self-start sm:self-auto px-4 py-2 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-white/10 hover:border-primary hover:text-primary dark:hover:border-primary text-slate-500 font-bold text-xs uppercase tracking-widest rounded-xl transition-all shadow-sm flex items-center gap-2"
                     >
                       <Check size={14} />

@@ -143,7 +143,7 @@ export async function reserveSlotAction(
       await prisma.notification.createMany({
         data: admins.map((admin: any) => ({
           userId: admin.id,
-          type: "NEW_BOOKING_INQUIRY",
+          type: "SPACE_RESERVATION",
           title: "New Space Reservation",
           message: `User ${userName} has placed a reservation request for Unit ${unit_id}.`,
         })),

@@ -124,10 +124,10 @@ export default function AdminProfileSettings() {
   };
 
   const tabs: { key: Tab; label: string; icon: any }[] = [
-    { key: "profile", label: "Identity Matrix", icon: User },
-    { key: "security", label: "Security Firewall", icon: Lock },
-    { key: "notifications", label: "Intelligence Alerts", icon: Bell },
-    { key: "system", label: "System Authorization", icon: Shield },
+    { key: "profile", label: "Profile Information", icon: User },
+    { key: "security", label: "Security & Password", icon: Lock },
+    { key: "notifications", label: "Notifications", icon: Bell },
+    { key: "system", label: "Permissions & Roles", icon: Shield },
   ];
 
   return (
@@ -214,28 +214,27 @@ export default function AdminProfileSettings() {
                 </div>
                 <div>
                   <h2 className="text-2xl font-black text-charcoal dark:text-white uppercase italic tracking-tighter">
-                    Identity Matrix.
+                    Profile Details.
                   </h2>
                   <p className="text-xs text-slate-500 font-medium">
-                    Define your administrative profile within the master
-                    directory.
+                    Manage your administrator profile details.
                   </p>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <InputGroup
-                  label="First Name Matrix"
+                  label="First Name"
                   defaultValue="Mall"
                   icon={User}
                 />
                 <InputGroup
-                  label="Last Name Matrix"
+                  label="Last Name"
                   defaultValue="Administrator"
                   icon={User}
                 />
                 <InputGroup
-                  label="Secure Communication Channel"
+                  label="Email Address"
                   defaultValue="srmall@admin.com"
                   icon={Mail}
                 />
@@ -515,23 +514,22 @@ export default function AdminProfileSettings() {
                   </div>
                   <div>
                     <h2 className="text-2xl font-black text-charcoal dark:text-white uppercase italic tracking-tighter">
-                      Authorization Matrix.
+                      Permissions & Roles.
                     </h2>
                     <p className="text-xs text-slate-500 font-medium">
-                      Current administrative privileges and system access
-                      vectors.
+                      Your administrative privileges and access levels.
                     </p>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {[
-                    { label: "Tenant Master Control", granted: true },
-                    { label: "Unified Fiscal Ledger", granted: true },
-                    { label: "Public Content Moderator", granted: true },
-                    { label: "Institutional Blacklist", granted: true },
-                    { label: "Ad Strategy Scheduler", granted: true },
-                    { label: "Infrastructure Config", granted: true },
+                    { label: "Tenant Management", granted: true },
+                    { label: "Financial Ledger & Billing", granted: true },
+                    { label: "Public Content CMS", granted: true },
+                    { label: "User Blacklist", granted: true },
+                    { label: "Ad Scheduler", granted: true },
+                    { label: "System Settings", granted: true },
                   ].map((perm) => (
                     <div
                       key={perm.label}

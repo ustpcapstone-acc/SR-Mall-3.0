@@ -20,12 +20,12 @@ const navItems = [
   { href: "/admindashboard/bookings", label: "Bookings", icon: Calendar },
   {
     href: "/admindashboard/space-manager",
-    label: "Space Inventory Manager",
+    label: "Floor Spaces & Map",
     icon: Presentation,
   },
   {
     href: "/admindashboard/messenger-hub",
-    label: "Messenger Command Hub",
+    label: "Messages",
     icon: MessageSquare,
   },
   {
@@ -40,7 +40,7 @@ const navItems = [
   },
   {
     href: "/admindashboard/user-management",
-    label: "User Management & Blacklist",
+    label: "User Management",
     icon: ShieldAlert,
   },
   {
@@ -72,10 +72,10 @@ export const AdminSidebar = () => {
       className={clsx(
         "w-72",
         "bg-white",
-        "dark:bg-zinc-950",
+        "dark:bg-[#161b26]",
         "border-r",
         "border-slate-200",
-        "dark:border-white/10",
+        "dark:border-slate-800",
         "flex",
         "flex-col",
         "h-[calc(100vh-5rem)]",
@@ -101,12 +101,12 @@ export const AdminSidebar = () => {
               "text-[10px]",
               "font-black",
               "text-slate-400",
-              "dark:text-zinc-600",
+              "dark:text-slate-400",
               "uppercase",
               "tracking-[0.3em]",
             )}
           >
-            Command Center
+            Admin Menu
           </p>
         </div>
 

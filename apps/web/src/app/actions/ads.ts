@@ -87,7 +87,7 @@ export async function getAllMallAds() {
       where: {
         isGlobal: true,
       },
-      orderBy: [{ priority: "asc" }, { startDate: "desc" }],
+      orderBy: [{ isDefault: "desc" }, { priority: "asc" }, { startDate: "desc" }],
     });
   } catch (error) {
     console.error("[GET_ALL_MALL_ADS_ERROR]:", error);
@@ -100,12 +100,18 @@ export async function getActiveMallAds() {
     const now = new Date();
     return await (prisma as any).mallAd.findMany({
       where: {
-        startDate: { lte: now },
-        endDate: { gte: now },
+        OR: [
+          { isDefault: true },
+          {
+            startDate: { lte: now },
+            endDate: { gte: now },
+          },
+        ],
         isGlobal: true,
       },
       orderBy: [
-        { priority: "asc" }, // In Prisma strings, we'd ideally map this or use numbers, but let's assume UI handles sort or we use @default order
+        { isDefault: "desc" },
+        { priority: "asc" },
         { startDate: "desc" },
       ],
     });
@@ -121,10 +127,15 @@ export async function getAllActiveMallAds() {
     const now = new Date();
     return await (prisma as any).mallAd.findMany({
       where: {
-        startDate: { lte: now },
-        endDate: { gte: now },
+        OR: [
+          { isDefault: true },
+          {
+            startDate: { lte: now },
+            endDate: { gte: now },
+          },
+        ],
       },
-      orderBy: [{ priority: "asc" }, { startDate: "desc" }],
+      orderBy: [{ isDefault: "desc" }, { priority: "asc" }, { startDate: "desc" }],
     });
   } catch (error) {
     console.error("[GET_ALL_ACTIVE_MALL_ADS_ERROR]:", error);
@@ -340,9 +351,20 @@ export async function updateMallAd(
   },
 ) {
   try {
+    const existing = await (prisma.mallAd as any).findUnique({ where: { id } });
+    const updateData: any = { ...data };
+    
+    // Default ads always maintain far-future end date so they never expire
+    if (existing?.isDefault) {
+      updateData.isDefault = true;
+      if (!updateData.endDate || new Date(updateData.endDate) < new Date()) {
+        updateData.endDate = new Date("2099-12-31T23:59:59.000Z");
+      }
+    }
+
     const ad = await (prisma.mallAd as any).update({
       where: { id },
-      data,
+      data: updateData,
     });
 
     revalidatePath("/admindashboard/ad-scheduler");
@@ -360,7 +382,16 @@ export async function updateMallAd(
 export async function deleteMallAd(id: string) {
   try {
     const ad = await (prisma.mallAd as any).findUnique({ where: { id } });
-    if (ad?.storageKey) {
+    if (!ad) {
+      return { success: false, error: "Ad not found." };
+    }
+
+    // Protection: default ads cannot be deleted
+    if (ad.isDefault) {
+      return { success: false, error: "Default mall banners cannot be deleted." };
+    }
+
+    if (ad.storageKey) {
       const storage = getCloudStorageProvider();
       await storage.deleteFile(ad.storageKey);
     }

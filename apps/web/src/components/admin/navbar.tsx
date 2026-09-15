@@ -19,7 +19,7 @@ export const AdminNavbar = () => {
   };
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 glass border-b border-slate-100 dark:border-white/5 bg-white/80 dark:bg-black/80 backdrop-blur-md">
+    <nav className="fixed top-0 left-0 right-0 z-50 glass border-b border-slate-100 dark:border-slate-800 bg-white/80 dark:bg-[#161b26]/90 backdrop-blur-md">
       <div className="px-8 h-20 flex items-center justify-between">
         {/* Left: Brand & Search */}
         <div className="flex-1 flex items-center gap-8">

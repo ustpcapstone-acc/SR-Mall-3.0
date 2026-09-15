@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Bell,
   Check,
@@ -12,6 +12,7 @@ import {
   CreditCard,
   MessageSquare,
   Settings,
+  ArrowRight,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/app/providers";
@@ -20,6 +21,8 @@ import {
   markNotificationAsReadAction,
   markAllNotificationsAsReadAction,
 } from "@/app/actions/notification";
+import { getNotificationRoute } from "@/lib/notification-routes";
+import { toast } from "sonner";
 
 interface Notification {
   id: string;
@@ -27,7 +30,7 @@ interface Notification {
   title: string;
   message: string;
   isRead: boolean;
-  createdAt: string;
+  createdAt: string | Date;
 }
 
 interface NotificationDropdownProps {
@@ -43,30 +46,57 @@ export default function NotificationDropdown({
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
+  const seenIdsRef = useRef<Set<string>>(new Set());
+  const isInitialLoadRef = useRef(true);
 
   const loadNotifications = async () => {
     if (!user) return;
-    setLoading(true);
     const res = await getNotificationsAction(user.id);
     if (res.success && res.data) {
-      // @ts-ignore
-      setNotifications(res.data);
-      // @ts-ignore
-      setUnreadCount(res.data.filter((n: any) => !n.isRead).length);
+      const data = res.data as unknown as Notification[];
+      
+      // Real-time pop-up notification for newly arrived unread notifications
+      if (!isInitialLoadRef.current) {
+        const newlyArrived = data.filter(
+          (n) => !n.isRead && !seenIdsRef.current.has(n.id)
+        );
+        newlyArrived.forEach((n) => {
+          const targetUrl = getNotificationRoute(n, user?.role);
+          toast.info(n.title, {
+            description: n.message,
+            duration: 8000,
+            action: {
+              label: "Open",
+              onClick: () => {
+                markAsRead(n.id);
+                router.push(targetUrl);
+              },
+            },
+          });
+        });
+      }
+
+      // Record seen IDs
+      data.forEach((n) => seenIdsRef.current.add(n.id));
+      isInitialLoadRef.current = false;
+
+      setNotifications(data);
+      setUnreadCount(data.filter((n) => !n.isRead).length);
     }
-    setLoading(false);
   };
 
   useEffect(() => {
     loadNotifications();
 
-    // Refresh notifications every 30 seconds
-    const interval = setInterval(loadNotifications, 30000);
+    // Fast polling (10 seconds) for real-time notification pop-ups
+    const interval = setInterval(loadNotifications, 10000);
     return () => clearInterval(interval);
   }, [user]);
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
+      case "SPACE_RESERVATION":
+        return <Calendar className="w-4 h-4 text-emerald-500" />;
       case "NEW_BOOKING_INQUIRY":
         return <MessageSquare className="w-4 h-4 text-blue-500" />;
       case "AD_SUBMISSION_RECEIVED":
@@ -74,6 +104,7 @@ export default function NotificationDropdown({
       case "EXPIRING_CONTRACTS":
         return <Calendar className="w-4 h-4 text-orange-500" />;
       case "OVERDUE_RENT_PAYMENTS":
+      case "BILLING_REMINDER":
         return <CreditCard className="w-4 h-4 text-red-500" />;
       case "FEEDBACK_SPAM_DETECTED":
         return <AlertTriangle className="w-4 h-4 text-yellow-500" />;
@@ -84,8 +115,8 @@ export default function NotificationDropdown({
     }
   };
 
-  const formatTimeAgo = (dateString: string) => {
-    const date = new Date(dateString);
+  const formatTimeAgo = (dateInput: string | Date) => {
+    const date = new Date(dateInput);
     const now = new Date();
     const diffInMinutes = Math.floor(
       (now.getTime() - date.getTime()) / (1000 * 60),
@@ -114,6 +145,15 @@ export default function NotificationDropdown({
       setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
       setUnreadCount(0);
     }
+  };
+
+  const handleNotificationClick = (notification: Notification) => {
+    if (!notification.isRead) {
+      markAsRead(notification.id);
+    }
+    setIsOpen(false);
+    const targetUrl = getNotificationRoute(notification, user?.role);
+    router.push(targetUrl);
   };
 
   return (
@@ -183,10 +223,11 @@ export default function NotificationDropdown({
                 notifications.map((notification) => (
                   <div
                     key={notification.id}
-                    className={`p-4 border-b border-slate-50 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors ${
+                    onClick={() => handleNotificationClick(notification)}
+                    className={`p-4 border-b border-slate-50 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-zinc-800/80 transition-all cursor-pointer group relative ${
                       !notification.isRead
-                        ? "bg-primary/5 dark:bg-primary/10"
-                        : ""
+                        ? "bg-primary/5 dark:bg-primary/10 border-l-4 border-l-primary"
+                        : "hover:border-l-4 hover:border-l-slate-400"
                     }`}
                   >
                     <div className="flex items-start gap-3">
@@ -196,19 +237,28 @@ export default function NotificationDropdown({
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex-1">
-                            <h4 className="text-sm font-bold text-charcoal dark:text-white mb-1">
+                            <h4 className="text-sm font-bold text-charcoal dark:text-white mb-1 group-hover:text-primary transition-colors flex items-center gap-1.5">
                               {notification.title}
+                              <ArrowRight className="w-3.5 h-3.5 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-primary" />
                             </h4>
                             <p className="text-xs text-slate-500 leading-relaxed">
                               {notification.message}
                             </p>
-                            <p className="text-xs text-slate-400 mt-2">
-                              {formatTimeAgo(notification.createdAt)}
-                            </p>
+                            <div className="flex items-center justify-between mt-2">
+                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                {formatTimeAgo(notification.createdAt)}
+                              </span>
+                              <span className="text-[10px] font-bold text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                                Click to open &rarr;
+                              </span>
+                            </div>
                           </div>
                           {!notification.isRead && (
                             <button
-                              onClick={() => markAsRead(notification.id)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                markAsRead(notification.id);
+                              }}
                               className="flex-shrink-0 p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-zinc-700 transition-colors"
                               title="Mark as read"
                             >

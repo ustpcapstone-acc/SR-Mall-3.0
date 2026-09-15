@@ -102,6 +102,7 @@ model MallAd {
   startDate   DateTime
   endDate     DateTime
   isGlobal    Boolean  @default(true)
+  isDefault   Boolean  @default(false)
   adminId     String
   storageKey  String?
   createdAt   DateTime @default(now())

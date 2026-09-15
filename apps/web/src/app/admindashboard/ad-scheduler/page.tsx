@@ -5,6 +5,7 @@ import {
   Presentation,
   CheckCircle,
   ShieldAlert,
+  ShieldCheck,
   Clock,
   Filter,
   Calendar,
@@ -210,6 +211,7 @@ export default function AdScheduler() {
         return;
       }
 
+      const isDefaultAd = !!editingAd.isDefault;
       const res = await updateMallAd(editingAd.id, {
         title: formData.title,
         description: formData.description,
@@ -217,7 +219,7 @@ export default function AdScheduler() {
         linkUrl: formData.linkUrl || "/public-view",
         priority: formData.priority,
         startDate: new Date(formData.startDate),
-        endDate: new Date(formData.endDate),
+        endDate: isDefaultAd ? new Date("2099-12-31T23:59:59.000Z") : new Date(formData.endDate),
         storageKey: formData.storageKey || null,
       });
 
@@ -610,10 +612,10 @@ export default function AdScheduler() {
             <Presentation size={18} className="text-primary" />
             <div>
               <h2 className="font-black text-charcoal dark:text-white text-lg">
-                Global Hero Carousel
+                Mall Banner Carousel
               </h2>
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
-                Mall-wide banners shown to all visitors
+                Banners displayed on the homepage carousel
               </p>
             </div>
           </div>
@@ -660,11 +662,16 @@ export default function AdScheduler() {
                     PRIORITY_CONFIG[
                       ad.priority as keyof typeof PRIORITY_CONFIG
                     ] || PRIORITY_CONFIG.MEDIUM;
-                  const isExpired = new Date(ad.endDate) < new Date();
+                  const isExpired = !ad.isDefault && new Date(ad.endDate) < new Date();
                   return (
                     <div
                       key={ad.id}
-                      className="group bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-white/5 rounded-3xl overflow-hidden hover:border-primary/40 hover:-translate-y-1 transition-all duration-300 shadow-sm hover:shadow-xl hover:shadow-primary/10"
+                      className={clsx(
+                        "group bg-slate-50 dark:bg-zinc-950 border rounded-3xl overflow-hidden hover:-translate-y-1 transition-all duration-300 shadow-sm hover:shadow-xl",
+                        ad.isDefault
+                          ? "border-emerald-500/30 dark:border-emerald-500/20 hover:border-emerald-500/50 hover:shadow-emerald-500/10"
+                          : "border-slate-200 dark:border-white/5 hover:border-primary/40 hover:shadow-primary/10",
+                      )}
                     >
                       <div className="aspect-[16/9] w-full bg-slate-200 dark:bg-zinc-800 overflow-hidden relative">
                         {ad.imageUrl?.match(/\.(mp4|webm|mov|ogg)$/i) ||
@@ -696,12 +703,16 @@ export default function AdScheduler() {
                           />
                           {ad.priority}
                         </div>
-                        {/* Expired Badge */}
-                        {isExpired && (
+                        {/* Status Badges */}
+                        {ad.isDefault ? (
+                          <div className="absolute top-3 right-3 flex items-center gap-1.5 px-2.5 py-1 bg-emerald-600/90 backdrop-blur-md rounded-full text-[9px] font-black text-white uppercase tracking-widest shadow-md">
+                            <ShieldCheck size={11} /> Default
+                          </div>
+                        ) : isExpired ? (
                           <div className="absolute top-3 right-3 px-2 py-1 bg-red-500/80 backdrop-blur-md rounded-full text-[9px] font-black text-white uppercase tracking-widest">
                             Expired
                           </div>
-                        )}
+                        ) : null}
                         {/* Action Buttons */}
                         <div className="absolute bottom-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button
@@ -711,19 +722,28 @@ export default function AdScheduler() {
                           >
                             <Edit2 size={13} />
                           </button>
-                          <button
-                            onClick={() => handleDeleteAd(ad.id)}
-                            className="p-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors shadow-lg"
-                            title="Delete"
-                          >
-                            <Trash2 size={13} />
-                          </button>
+                          {!ad.isDefault && (
+                            <button
+                              onClick={() => handleDeleteAd(ad.id)}
+                              className="p-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors shadow-lg"
+                              title="Delete"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          )}
                         </div>
                       </div>
                       <div className="p-5">
-                        <h4 className="font-bold text-charcoal dark:text-white text-base mb-1 truncate">
-                          {ad.title}
-                        </h4>
+                        <div className="flex items-center gap-2 mb-1">
+                          <h4 className="font-bold text-charcoal dark:text-white text-base truncate">
+                            {ad.title}
+                          </h4>
+                          {ad.isDefault && (
+                            <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[8px] font-black uppercase tracking-widest rounded-full border border-emerald-500/20 shrink-0">
+                              Default
+                            </span>
+                          )}
+                        </div>
                         <p className="text-xs text-slate-400 mb-4 line-clamp-1">
                           {ad.description ||
                             "Global announcement for all mall visitors."}
@@ -732,16 +752,24 @@ export default function AdScheduler() {
                           <span
                             className={clsx(
                               "flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest border",
-                              isExpired
-                                ? "bg-red-50 text-red-500 border-red-200 dark:bg-red-900/10 dark:border-red-900/30"
-                                : "bg-primary/5 text-primary border-primary/20",
+                              ad.isDefault
+                                ? "bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-800/30"
+                                : isExpired
+                                  ? "bg-red-50 text-red-500 border-red-200 dark:bg-red-900/10 dark:border-red-900/30"
+                                  : "bg-primary/5 text-primary border-primary/20",
                             )}
                           >
-                            {isExpired ? "Expired" : "Live in Hero"}
+                            {ad.isDefault
+                              ? "Permanent Default"
+                              : isExpired
+                                ? "Expired"
+                                : "Live in Hero"}
                           </span>
                           <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
                             <Clock size={10} />{" "}
-                            {new Date(ad.endDate).toLocaleDateString()}
+                            {ad.isDefault
+                              ? "Always Active"
+                              : new Date(ad.endDate).toLocaleDateString()}
                           </span>
                         </div>
                       </div>
@@ -918,6 +946,14 @@ export default function AdScheduler() {
                 <X size={18} />
               </button>
             </div>
+            {editingAd?.isDefault && (
+              <div className="mb-6 p-4 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/30 rounded-2xl flex items-center gap-3 text-xs text-emerald-800 dark:text-emerald-300 font-bold">
+                <ShieldCheck size={18} className="text-emerald-600 shrink-0" />
+                <span>
+                  <strong>Default Mall Banner:</strong> This banner is permanent and will always stay active in the Mall Banner Carousel. You can freely customize its title, text, priority, and media.
+                </span>
+              </div>
+            )}
             {renderFormFields(handleUpdateAd, true)}
           </div>
         </div>

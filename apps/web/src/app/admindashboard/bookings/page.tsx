@@ -291,19 +291,19 @@ export default function MasterBookingsPage() {
   const tabs = [
     {
       id: "merchant",
-      label: "Merchant Onboarding",
+      label: "Merchant Applications",
       icon: Handshake,
       count: merchantRequests.length,
     },
     {
       id: "event",
-      label: "Experience Desk",
+      label: "Event Bookings",
       icon: CalendarIcon,
       count: pendingEvents.length,
     },
     {
       id: "reservation",
-      label: "Inventory Queue",
+      label: "Space Reservations",
       icon: Bookmark,
       count: reservedSlots.length,
     },
@@ -318,11 +318,10 @@ export default function MasterBookingsPage() {
             <ShieldCheck size={12} /> Access Level: Master Admin
           </div>
           <h1 className="text-5xl font-black text-charcoal dark:text-white tracking-tighter italic uppercase leading-none">
-            Operations <span className="text-primary">Hub.</span>
+            Bookings & <span className="text-primary">Reservations.</span>
           </h1>
           <p className="text-slate-500 font-medium max-w-2xl text-lg">
-            Synchronize partnerships, experience schedules, and physical
-            inventory from your master command console.
+            Manage event inquiries, space reservations, and merchant applications in one place.
           </p>
         </div>
 

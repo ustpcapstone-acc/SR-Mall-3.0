@@ -321,9 +321,9 @@ export default function TenantMonitoring() {
             )[0];
             const nextDueDate = nextInv
               ? new Date(nextInv.dueDate).toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                })
+                month: "short",
+                day: "numeric",
+              })
               : "N/A";
 
             const slot =
@@ -527,7 +527,7 @@ export default function TenantMonitoring() {
 
   const handleSubmitBill = async () => {
     if (!selectedTenant) return;
-    
+
     if (billFormData.amount <= 0) {
       setToast({ msg: "Invalid amount", type: "error" });
       return;
@@ -1085,18 +1085,17 @@ export default function TenantMonitoring() {
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-primary/10 border border-primary/20 rounded-full">
               <Activity size={10} className="text-primary animate-pulse" />
               <span className="text-[9px] font-black text-primary uppercase tracking-[0.2em]">
-                Live Mall ecosystem
+                Active Tenants
               </span>
             </div>
             <h1 className="text-4xl sm:text-5xl font-black text-charcoal dark:text-white tracking-tighter uppercase leading-none">
               Tenant{" "}
-              <span className="text-slate-300 dark:text-zinc-800">
-                Intelligence.
+              <span className="text-primary">
+                Monitoring.
               </span>
             </h1>
             <p className="text-sm font-medium text-slate-500 max-w-xl">
-              Unified command center for real-time tenant performance, financial
-              logistics, and boutique oversight.
+              Monitor tenant performance, store occupancy, lease payments, and store operations.
             </p>
           </div>
 
@@ -1358,7 +1357,7 @@ export default function TenantMonitoring() {
               "transition-all",
             )}
           >
-            <option value="all">Financial Health (All)</option>
+            <option value="all">Filter: Payment Status (All)</option>
             <option value="🟢 Cleared">🟢 Cleared</option>
             <option value="🟡 Pending Verification">
               🟡 Pending Verification
@@ -1644,7 +1643,7 @@ export default function TenantMonitoring() {
                             "text-slate-400",
                           )}
                         >
-                          Financial Health
+                          Payment Status
                         </th>
                         <th
                           className={clsx(
@@ -1729,7 +1728,7 @@ export default function TenantMonitoring() {
                           STATUS_CONFIG.INACTIVE;
                         const paymentConfig =
                           PAYMENT_CONFIG[
-                            tenant.paymentStatus as keyof typeof PAYMENT_CONFIG
+                          tenant.paymentStatus as keyof typeof PAYMENT_CONFIG
                           ] || PAYMENT_CONFIG["🟢 Cleared"];
 
                         return (
@@ -1965,7 +1964,7 @@ export default function TenantMonitoring() {
                       className={clsx(
                         "group bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-white/5 p-6 cursor-pointer transition-all hover:shadow-xl hover:border-primary/30",
                         selectedTenant?.id === tenant.id &&
-                          "ring-2 ring-primary",
+                        "ring-2 ring-primary",
                       )}
                     >
                       <div
@@ -2117,12 +2116,12 @@ export default function TenantMonitoring() {
                             "px-2 py-0.5 rounded text-[9px] font-bold uppercase",
                             (
                               PAYMENT_CONFIG[
-                                tenant.paymentStatus as keyof typeof PAYMENT_CONFIG
+                              tenant.paymentStatus as keyof typeof PAYMENT_CONFIG
                               ] || PAYMENT_CONFIG["🟢 Cleared"]
                             ).bg,
                             (
                               PAYMENT_CONFIG[
-                                tenant.paymentStatus as keyof typeof PAYMENT_CONFIG
+                              tenant.paymentStatus as keyof typeof PAYMENT_CONFIG
                               ] || PAYMENT_CONFIG["🟢 Cleared"]
                             ).text,
                           )}
@@ -2914,43 +2913,43 @@ export default function TenantMonitoring() {
 
                                 {(inv.status === "PENDING" ||
                                   inv.status === "OVERDUE") && (
-                                  <div className="mt-2 text-right">
-                                    <button
-                                      onClick={async () => {
-                                        const refNo = window.prompt(
-                                          "Record Cash Payment\nEnter physical receipt/reference number:",
-                                        );
-                                        if (!refNo) return;
-
-                                        setToast({
-                                          msg: "Recording payment...",
-                                          type: "success",
-                                        });
-                                        const res =
-                                          await recordManualPaymentAction(
-                                            inv.id,
-                                            refNo,
+                                    <div className="mt-2 text-right">
+                                      <button
+                                        onClick={async () => {
+                                          const refNo = window.prompt(
+                                            "Record Cash Payment\nEnter physical receipt/reference number:",
                                           );
-                                        if (res.success) {
+                                          if (!refNo) return;
+
                                           setToast({
-                                            msg: "Payment physically recorded!",
+                                            msg: "Recording payment...",
                                             type: "success",
                                           });
-                                          loadTenants();
-                                        } else {
-                                          setToast({
-                                            msg: "Error: " + res.error,
-                                            type: "error",
-                                          });
-                                        }
-                                      }}
-                                      className="px-4 py-2 bg-[#BE1E2D] hover:bg-[#a01825] text-white rounded-lg text-[9px] font-black uppercase tracking-widest shadow-md shadow-red-500/20 transition-all hover:scale-105 active:scale-95 inline-flex items-center gap-1.5"
-                                    >
-                                      <PhilippinePeso size={12} /> Record Cash
-                                      Payment
-                                    </button>
-                                  </div>
-                                )}
+                                          const res =
+                                            await recordManualPaymentAction(
+                                              inv.id,
+                                              refNo,
+                                            );
+                                          if (res.success) {
+                                            setToast({
+                                              msg: "Payment physically recorded!",
+                                              type: "success",
+                                            });
+                                            loadTenants();
+                                          } else {
+                                            setToast({
+                                              msg: "Error: " + res.error,
+                                              type: "error",
+                                            });
+                                          }
+                                        }}
+                                        className="px-4 py-2 bg-[#BE1E2D] hover:bg-[#a01825] text-white rounded-lg text-[9px] font-black uppercase tracking-widest shadow-md shadow-red-500/20 transition-all hover:scale-105 active:scale-95 inline-flex items-center gap-1.5"
+                                      >
+                                        <PhilippinePeso size={12} /> Record Cash
+                                        Payment
+                                      </button>
+                                    </div>
+                                  )}
 
                                 {inv.status === "PAID" && inv.referenceNo && (
                                   <div className="mt-1 flex items-center gap-2 text-[9px] font-bold text-slate-400 uppercase">

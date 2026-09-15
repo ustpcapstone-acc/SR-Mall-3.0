@@ -224,14 +224,13 @@ export default function UserManagement() {
       <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 pb-8 border-b border-slate-200 dark:border-white/10">
         <div className="space-y-4">
           <div className="inline-flex items-center gap-2 px-3 py-1 bg-primary/10 text-primary rounded-full text-[10px] font-black uppercase tracking-widest border border-primary/20">
-            <Shield size={12} /> Institutional Integrity Console
+            <Shield size={12} /> User Administration
           </div>
           <h1 className="text-5xl font-black text-charcoal dark:text-white tracking-tighter italic uppercase leading-none">
-            Governance <span className="text-primary">Console.</span>
+            User <span className="text-primary">Management.</span>
           </h1>
           <p className="text-slate-500 font-medium max-w-2xl text-lg">
-            Manage the master user matrix, privilege escalation, and coordinate
-            sentiment moderation for the ecosystem.
+            Manage registered users, update roles and permissions, and review customer feedback.
           </p>
         </div>
 
@@ -258,7 +257,7 @@ export default function UserManagement() {
         >
           <Users size={18} />
           <span className="text-[11px] font-black uppercase tracking-widest">
-            Identity Matrix
+            Users
           </span>
           {users.length > 0 && (
             <span className="ml-2 px-2 py-0.5 bg-primary/10 text-primary rounded-full text-[9px] font-bold">
@@ -277,7 +276,7 @@ export default function UserManagement() {
         >
           <MessageSquare size={18} />
           <span className="text-[11px] font-black uppercase tracking-widest">
-            Sentiment Ledger
+            Feedback & Reviews
           </span>
           {reviews.filter((r) => !r.isApproved || r.isSpam).length > 0 && (
             <span className="ml-2 px-2 py-0.5 bg-amber-500/10 text-amber-600 rounded-full text-[9px] font-bold">
@@ -400,7 +399,7 @@ export default function UserManagement() {
                 <div className="py-40 flex flex-col items-center justify-center gap-4">
                   <Loader2 className="w-10 h-10 text-primary animate-spin" />
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">
-                    Syncing Matrix...
+                    Loading Users...
                   </p>
                 </div>
               ) : (
@@ -408,10 +407,10 @@ export default function UserManagement() {
                   <thead>
                     <tr className="bg-slate-50/50 dark:bg-white/[0.02]">
                       <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                        Institutional Identity
+                        User Details
                       </th>
                       <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                        Privilege Level
+                        Role & Permissions
                       </th>
                       <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">
                         Security Status
@@ -899,10 +898,10 @@ export default function UserManagement() {
               <div className="flex items-center justify-between mb-10 relative z-10">
                 <div className="space-y-1">
                   <h3 className="text-lg font-black text-white uppercase italic tracking-tighter">
-                    Restricted Node Matrix
+                    Blacklisted Users
                   </h3>
                   <p className="text-[10px] font-black text-red-500 uppercase tracking-widest underline decoration-red-500/30 decoration-4">
-                    Authorization Denied
+                    Access Blocked
                   </p>
                 </div>
                 <div className="bg-red-500 text-white px-4 py-1 rounded-xl text-xs font-black shadow-lg shadow-red-500/20">
@@ -918,7 +917,7 @@ export default function UserManagement() {
                       className="text-emerald-500 mx-auto opacity-20"
                     />
                     <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest animate-pulse">
-                      Ecosystem Security Integrity: High
+                      No Blacklisted Users
                     </p>
                   </div>
                 ) : (
@@ -938,7 +937,7 @@ export default function UserManagement() {
                       <button
                         onClick={() => handleToggleBlacklist(u.id, true)}
                         className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center opacity-0 group-hover/bitem:opacity-100 hover:scale-110 active:scale-95 transition-all"
-                        title="Restore Identity"
+                        title="Unblock User"
                       >
                         <Check size={18} />
                       </button>
@@ -949,10 +948,7 @@ export default function UserManagement() {
 
               <div className="mt-10 pt-8 border-t border-white/5 space-y-4 relative z-10">
                 <p className="text-[9px] font-bold text-zinc-500 uppercase leading-relaxed tracking-wider italic">
-                  Administrative Warning: Blacklisted entities are automatically
-                  blocked from terminal authentication and manifesting. All
-                  active session keys for these identifiers have been
-                  liquidated.
+                  Notice: Blacklisted users are blocked from logging in to the system. Their active sessions have been terminated.
                 </p>
               </div>
             </div>
@@ -963,16 +959,16 @@ export default function UserManagement() {
                 <RefreshCcw size={40} />
               </div>
               <h4 className="text-lg font-black uppercase italic tracking-tighter mb-2">
-                Global Refresh
+                Refresh List
               </h4>
               <p className="text-[10px] font-bold uppercase tracking-widest opacity-80 mb-6 underline decoration-white/20">
-                Re-synchronize entire identity matrix.
+                Reload all users and status.
               </p>
               <button
                 onClick={loadUsers}
                 className="w-full py-4 bg-white text-primary rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-black/10 active:scale-95 transition-all"
               >
-                Execute Sync
+                Refresh Users
               </button>
             </div>
           </div>
