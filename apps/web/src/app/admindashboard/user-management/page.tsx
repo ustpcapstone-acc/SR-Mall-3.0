@@ -619,7 +619,7 @@ export default function UserManagement() {
                               size={40}
                               className="absolute -top-5 -right-5 text-primary opacity-5"
                             />
-                            <p className="text-sm font-bold text-slate-500 dark:text-slate-400 italic leading-relaxed">
+                            <p className="text-sm font-bold text-slate-500 dark:text-slate-400 italic leading-relaxed break-words [overflow-wrap:anywhere] whitespace-pre-line">
                               "{item.comment}"
                             </p>
                           </div>

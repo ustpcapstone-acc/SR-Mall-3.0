@@ -34,6 +34,7 @@ interface Review {
   user: {
     name: string;
     email: string;
+    role?: string;
   };
 }
 
@@ -286,7 +287,7 @@ export const FeedbackSection = ({
           >
             <div
               className={clsx(
-                "w-[85%] sm:w-[500px] lg:w-auto",
+                "w-[88vw] sm:w-[500px] lg:w-auto",
                 "shrink-0",
                 "snap-center",
                 "space-y-3 sm:space-y-4",
@@ -300,7 +301,7 @@ export const FeedbackSection = ({
               {myPendingReview && (
                 <div
                   className={clsx(
-                    "p-3",
+                    "p-3.5",
                     "sm:p-6",
                     "bg-amber-500/5",
                     "border",
@@ -308,6 +309,7 @@ export const FeedbackSection = ({
                     "rounded-xl",
                     "sm:rounded-2xl",
                     "mb-4 animate-pulse",
+                    "overflow-hidden",
                   )}
                 >
                   <div className="flex justify-between items-start mb-2">
@@ -317,7 +319,7 @@ export const FeedbackSection = ({
                       </span>
                     </div>
                   </div>
-                  <p className="text-xs sm:text-sm font-bold text-slate-500 dark:text-slate-400 italic">
+                  <p className="text-xs sm:text-sm font-bold text-slate-500 dark:text-slate-400 italic break-words [overflow-wrap:anywhere] whitespace-pre-line">
                     "{myPendingReview.comment}"
                   </p>
                 </div>
@@ -343,7 +345,7 @@ export const FeedbackSection = ({
                   <div
                     key={review.id}
                     className={clsx(
-                      "p-3",
+                      "p-3.5",
                       "sm:p-6",
                       "bg-white",
                       "dark:bg-zinc-900",
@@ -355,6 +357,8 @@ export const FeedbackSection = ({
                       "dark:border-white/5",
                       "hover:shadow-md",
                       "transition-shadow",
+                      "overflow-hidden",
+                      "w-full",
                     )}
                   >
                     <div
@@ -362,6 +366,7 @@ export const FeedbackSection = ({
                         "flex",
                         "justify-between",
                         "items-start",
+                        "gap-2",
                         "mb-2",
                         "sm:mb-4",
                       )}
@@ -370,7 +375,9 @@ export const FeedbackSection = ({
                         className={clsx(
                           "flex",
                           "items-center",
-                          "gap-2 sm:gap-3",
+                          "gap-2.5 sm:gap-3",
+                          "min-w-0",
+                          "flex-1",
                         )}
                       >
                         <div
@@ -390,31 +397,40 @@ export const FeedbackSection = ({
                             "justify-center",
                             "font-black",
                             "text-primary",
-                            "text-[10px]",
+                            "text-xs",
                             "sm:text-base",
+                            "shrink-0",
                           )}
                         >
                           {review.user?.name
                             ? review.user.name.charAt(0).toUpperCase()
                             : "U"}
                         </div>
-                        <div>
-                          <h4
-                            className={clsx(
-                              "font-black",
-                              "text-charcoal",
-                              "dark:text-white",
-                              "text-[10px]",
-                              "sm:text-base",
-                              "uppercase",
-                              "tracking-tighter",
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
+                            <h4
+                              className={clsx(
+                                "font-black",
+                                "text-charcoal",
+                                "dark:text-white",
+                                "text-xs",
+                                "sm:text-base",
+                                "uppercase",
+                                "tracking-tight",
+                                "truncate",
+                              )}
+                            >
+                              {review.user?.name || "Anonymous"}
+                            </h4>
+                            {review.user?.role === "ADMIN" && (
+                              <span className="px-1.5 py-0.5 bg-primary/10 text-primary border border-primary/20 rounded text-[8px] font-black uppercase tracking-wider shrink-0">
+                                Admin
+                              </span>
                             )}
-                          >
-                            {review.user?.name || "Anonymous"}
-                          </h4>
+                          </div>
                           <p
                             className={clsx(
-                              "text-[8px]",
+                              "text-[9px]",
                               "sm:text-xs",
                               "text-slate-400",
                               "font-bold",
@@ -424,12 +440,12 @@ export const FeedbackSection = ({
                           </p>
                         </div>
                       </div>
-                      <div className="flex flex-col items-end gap-1">
+                      <div className="flex flex-col items-end gap-1 shrink-0 ml-2">
                         <div className={clsx("flex", "gap-0.5")}>
                           {[...Array(5)].map((_, i) => (
                             <Star
                               key={i}
-                              size={8}
+                              size={11}
                               className={
                                 i < review.rating
                                   ? "fill-primary text-primary"
@@ -446,14 +462,14 @@ export const FeedbackSection = ({
                                 setRating(review.rating);
                                 setComment(review.comment || "");
                               }}
-                              className="text-[8px] text-primary font-black uppercase tracking-widest hover:underline cursor-pointer"
+                              className="text-[9px] text-primary font-black uppercase tracking-widest hover:underline cursor-pointer"
                             >
                               Edit
                             </a>
                             <button
                               onClick={handleDelete}
                               disabled={isSubmitting}
-                              className="text-[8px] text-red-500 font-black uppercase tracking-widest hover:underline cursor-pointer"
+                              className="text-[9px] text-red-500 font-black uppercase tracking-widest hover:underline cursor-pointer"
                             >
                               Del
                             </button>
@@ -464,12 +480,16 @@ export const FeedbackSection = ({
                     {review.comment && (
                       <p
                         className={clsx(
-                          "text-[10px]",
+                          "text-xs",
                           "sm:text-sm",
                           "text-slate-600",
                           "dark:text-slate-300",
-                          "leading-snug",
+                          "leading-relaxed",
                           "font-medium",
+                          "break-words",
+                          "[overflow-wrap:anywhere]",
+                          "whitespace-pre-line",
+                          "mt-2",
                         )}
                       >
                         "{review.comment}"
@@ -512,7 +532,7 @@ export const FeedbackSection = ({
             <div
               id="feedback-form"
               className={clsx(
-                "w-[85%] sm:w-[500px] lg:w-auto",
+                "w-[88vw] sm:w-[500px] lg:w-auto",
                 "shrink-0",
                 "snap-center",
                 "lg:sticky",

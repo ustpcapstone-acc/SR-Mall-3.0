@@ -231,7 +231,7 @@ export default function FeedbackReviews() {
                           </span>
                         </div>
                       </div>
-                      <p className="text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-300 leading-relaxed ml-10 sm:ml-14">
+                      <p className="text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-300 leading-relaxed ml-10 sm:ml-14 break-words [overflow-wrap:anywhere] whitespace-pre-line">
                         &ldquo;{review.comment || "No comment provided."}&rdquo;
                       </p>
                     </div>

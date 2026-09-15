@@ -183,7 +183,7 @@ export async function getApprovedReviewsAction(tenantId?: string) {
       },
       include: {
         user: {
-          select: { name: true, email: true },
+          select: { name: true, email: true, role: true },
         },
       },
       orderBy: { createdAt: "desc" },
@@ -200,6 +200,7 @@ export async function getApprovedReviewsAction(tenantId?: string) {
         user: {
           name: review.user.name || "Anonymous",
           email: review.user.email,
+          role: review.user.role,
         },
       })),
     };
