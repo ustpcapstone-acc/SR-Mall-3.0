@@ -82,20 +82,56 @@ export const ChatBox = ({
     fetchShops();
   }, [initialShopName]);
 
-  // Effect to handle prop changes (e.g. when changing shops via profile)
+  // Effect to handle prop changes and opening from notifications
   useEffect(() => {
-    if (initialRecipient) {
-      setRecipient(initialRecipient);
-      setViewMode("chat");
+    if (isOpen) {
+      if (initialRecipient === "admin") {
+        setRecipient("admin");
+        setViewMode("chat");
+        setDbMessages([]);
+      } else if (initialShopName) {
+        setRecipient("shop");
+        const match = availableShops.find(
+          (s) => s.name.toLowerCase() === initialShopName.toLowerCase(),
+        );
+        setSelectedShop(match || { name: initialShopName, logo: null });
+        setViewMode("chat");
+        setDbMessages([]);
+      } else if (initialRecipient === "shop") {
+        setRecipient("shop");
+        setViewMode("chat");
+        setDbMessages([]);
+      }
     }
-    if (initialShopName) {
-      const match = availableShops.find(s => s.name === initialShopName);
-      setSelectedShop(match || { name: initialShopName, logo: null });
-      setViewMode("chat");
-    }
-    // Clear messages when switching context to ensure isolation
-    setDbMessages([]);
-  }, [initialRecipient, initialShopName]);
+  }, [isOpen, initialRecipient, initialShopName, availableShops]);
+
+  // Listen directly to open-mall-chat events so chat focuses the conversation immediately
+  useEffect(() => {
+    const handleOpenChatEvent = (e: any) => {
+      const targetRecipient = e.detail?.recipient as "admin" | "shop" | null;
+      const targetShop = e.detail?.shop as string | null;
+
+      if (targetRecipient === "admin") {
+        setRecipient("admin");
+        setViewMode("chat");
+        setDbMessages([]);
+      } else if (targetRecipient === "shop" || targetShop) {
+        setRecipient("shop");
+        if (targetShop) {
+          const match = availableShops.find(
+            (s) => s.name.toLowerCase() === targetShop.toLowerCase(),
+          );
+          setSelectedShop(match || { name: targetShop, logo: null });
+        }
+        setViewMode("chat");
+        setDbMessages([]);
+      }
+    };
+
+    window.addEventListener("open-mall-chat", handleOpenChatEvent);
+    return () =>
+      window.removeEventListener("open-mall-chat", handleOpenChatEvent);
+  }, [availableShops]);
 
   useEffect(() => {
     if (initialMessage && isOpen) {
@@ -117,14 +153,23 @@ export const ChatBox = ({
     if (!isOpen || !user?.email) return;
 
     const fetchMessages = async () => {
-      const { getConversationHistory } =
-        await import("@/app/actions/chat-queries");
-      const history = await getConversationHistory(
-        user.email,
-        recipient,
-        selectedShop.name,
-      );
-      setDbMessages(history);
+      try {
+        const { getConversationHistory } =
+          await import("@/app/actions/chat-queries");
+        const history = await getConversationHistory(
+          user.email,
+          recipient,
+          selectedShop.name,
+        );
+        setDbMessages((prev) => {
+          const pendingOptimistic = prev.filter(
+            (p) => String(p.id).startsWith("temp-") && !history.some((h: any) => h.content === p.content && h.sender?.email === p.sender?.email)
+          );
+          return [...history, ...pendingOptimistic];
+        });
+      } catch (err) {
+        console.error("Failed to fetch messages:", err);
+      }
     };
 
     fetchMessages();
@@ -171,6 +216,8 @@ export const ChatBox = ({
 
     let textToSend = inputText;
     const fileToSend = imageFile;
+    const previewToSend = imagePreview;
+
     if (typeof slotId === "string" && slotId) {
       textToSend = inputText.trim()
         ? `${inputText} (Regarding Unit ${slotId})`
@@ -192,12 +239,13 @@ export const ChatBox = ({
 
     if (user?.email) {
       // Optimistic update
+      const tempId = `temp-${Date.now()}`;
       setDbMessages((prev) => [
         ...prev,
         {
-          id: Date.now().toString(),
+          id: tempId,
           content: textToSend,
-          imageUrl: uploadedImageUrl,
+          imageUrl: uploadedImageUrl || previewToSend,
           sender: { email: user.email },
           createdAt: new Date(),
         },

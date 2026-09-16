@@ -335,3 +335,209 @@ export async function deleteAreaSlot(id: string) {
     return { success: false, error: "Failed to delete slot" };
   }
 }
+
+/**
+ * Scans reserved commercial space slots.
+ * Automatically rejects reservations unreviewed after 24 hours.
+ * Sends an urgent pre-deadline reminder email to admin if <= 6 hours remaining.
+ */
+export async function processExpiredReservationsAction() {
+  try {
+    const reservedSlots = await prisma.areaSlot.findMany({
+      where: { status: "RESERVED" },
+    });
+
+    const now = Date.now();
+    const twentyFourHoursMs = 24 * 60 * 60 * 1000;
+    const eighteenHoursMs = 18 * 60 * 60 * 1000;
+
+    const admins = await prisma.user.findMany({
+      where: { role: "ADMIN" },
+      select: { id: true, email: true },
+    });
+
+    for (const slot of reservedSlots) {
+      const reservationTime = new Date(slot.updatedAt).getTime();
+      const ageMs = now - reservationTime;
+
+      // 1. Check if expired (>24 hours) -> Auto-Reject
+      if (ageMs >= twentyFourHoursMs) {
+        await prisma.areaSlot.update({
+          where: { unit_id: slot.unit_id },
+          data: { status: "AVAILABLE", tenant_id: null },
+        });
+
+        // Notify user if exists
+        if (slot.tenant_id) {
+          const user = await prisma.user.findUnique({
+            where: { id: slot.tenant_id },
+            select: { email: true, name: true },
+          });
+
+          await prisma.notification.create({
+            data: {
+              userId: slot.tenant_id,
+              type: "SPACE_RESERVATION",
+              title: "Reservation Automatically Released",
+              message: `Your reservation for Unit ${slot.unit_id} was automatically released after 24 hours without confirmation.`,
+            },
+          });
+
+          if (user?.email) {
+            import("@/lib/gmail")
+              .then(({ sendGmail }) =>
+                sendGmail({
+                  to: user.email,
+                  subject: `Notice: Reservation for Unit ${slot.unit_id} Expired`,
+                  html: `
+                    <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+                      <h2 style="color: #be1e2d;">Reservation Automatically Released</h2>
+                      <p>Hello ${user.name || "Valued Merchant"},</p>
+                      <p>Your pending reservation for <strong>Unit ${slot.unit_id}</strong> was automatically released because it was not reviewed within the 24-hour reservation window.</p>
+                      <p>The unit has now been returned to the available inventory pool for other applicants.</p>
+                      <p>If you are still interested, you may submit a new reservation anytime or speak directly with our leasing concierge.</p>
+                      <a href="${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/available-spaces" style="display: inline-block; padding: 10px 20px; background-color: #be1e2d; color: white; text-decoration: none; border-radius: 5px;">Browse Spaces</a>
+                    </div>
+                  `,
+                }),
+              )
+              .catch((err) => console.error("Auto-reject user email failed:", err));
+          }
+        }
+
+        // Notify Admins of auto-rejection
+        if (admins.length > 0) {
+          await prisma.notification.createMany({
+            data: admins.map((admin) => ({
+              userId: admin.id,
+              type: "SPACE_RESERVATION",
+              title: "Reservation Auto-Rejected (24h Window)",
+              message: `Reservation for Unit ${slot.unit_id} was automatically rejected and returned to available inventory due to 24-hour timeout.`,
+            })),
+          });
+        }
+      }
+      // 2. Check if approaching deadline (between 18h and 24h old, <= 6 hours left) -> Send Urgent Reminder Email
+      else if (ageMs >= eighteenHoursMs && ageMs < twentyFourHoursMs) {
+        const hoursLeft = Math.max(1, Math.round((twentyFourHoursMs - ageMs) / (1000 * 60 * 60)));
+
+        // Check if reminder was already sent for this slot session
+        const existingReminder = await prisma.notification.findFirst({
+          where: {
+            type: "SPACE_RESERVATION_REMINDER",
+            message: { contains: slot.unit_id },
+            createdAt: { gte: new Date(reservationTime) },
+          },
+        });
+
+        if (!existingReminder && admins.length > 0) {
+          // Log reminder notification to prevent duplicate reminders
+          await prisma.notification.createMany({
+            data: admins.map((admin) => ({
+              userId: admin.id,
+              type: "SPACE_RESERVATION_REMINDER",
+              title: `⚠️ URGENT: Unit ${slot.unit_id} Reservation Expiring`,
+              message: `Space reservation for Unit ${slot.unit_id} will be automatically rejected in ${hoursLeft} hour${hoursLeft === 1 ? "" : "s"} if no action is taken.`,
+            })),
+          });
+
+          // Fetch reserving user info for the email
+          let reserverName = "A guest customer";
+          if (slot.tenant_id) {
+            const reserver = await prisma.user.findUnique({
+              where: { id: slot.tenant_id },
+              select: { name: true, email: true },
+            });
+            if (reserver?.name) reserverName = `${reserver.name} (${reserver.email})`;
+          }
+
+          // Send reminder email to admin
+          import("@/lib/gmail")
+            .then(({ sendGmail }) => {
+              const adminEmail = process.env.GMAIL_USER || "jerickaradilla76@gmail.com";
+              return sendGmail({
+                to: adminEmail,
+                subject: `⚠️ ACTION REQUIRED: Pending Space Reservation for Unit ${slot.unit_id} (${hoursLeft}h Remaining)`,
+                html: `
+                  <div style="font-family: sans-serif; padding: 25px; border: 1px solid #fed7aa; background-color: #fffbeb; border-radius: 12px;">
+                    <h2 style="color: #c2410c; margin-top: 0;">⚠️ Pending Space Reservation Approaching 24h Deadline</h2>
+                    <p>This is an automated reminder that a pending commercial space reservation is approaching the <strong>24-hour review deadline</strong>.</p>
+                    <hr style="border: 0; border-top: 1px solid #fde68a;" />
+                    <p><strong>Unit ID:</strong> ${slot.unit_id}</p>
+                    <p><strong>Reserving User:</strong> ${reserverName}</p>
+                    <p><strong>Time Remaining:</strong> <span style="color: #dc2626; font-weight: bold;">Approximately ${hoursLeft} hour(s)</span></p>
+                    <hr style="border: 0; border-top: 1px solid #fde68a;" />
+                    <p style="color: #9a3412;"><strong>Important:</strong> If this reservation is not approved or rejected before the 24-hour mark, the system will automatically reject the request and return Unit ${slot.unit_id} to AVAILABLE status.</p>
+                    <div style="margin-top: 20px;">
+                      <a href="${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/admindashboard/bookings?tab=reservation" style="display: inline-block; padding: 12px 24px; background-color: #be1e2d; color: white; text-decoration: none; font-weight: bold; border-radius: 8px;">Review Reservation Now</a>
+                    </div>
+                  </div>
+                `,
+              });
+            })
+            .catch((err) => console.error("Admin reminder email dispatch failed:", err));
+        }
+      }
+    }
+
+    revalidatePath("/admindashboard/bookings");
+    revalidatePath("/admindashboard/space-manager");
+    revalidatePath("/available-spaces");
+    revalidatePath("/public-view");
+    return { success: true };
+  } catch (error) {
+    console.error("Error processing expired reservations:", error);
+    return { success: false, error: "Failed to process reservations" };
+  }
+}
+
+/**
+ * Fetches all currently reserved space slots with reserving user profile details
+ * and computed countdown metrics.
+ */
+export async function getReservedSlotsWithDetailsAction() {
+  try {
+    // 1. First trigger auto-reject & reminder checks
+    await processExpiredReservationsAction();
+
+    // 2. Query remaining active RESERVED slots
+    const slots = await prisma.areaSlot.findMany({
+      where: { status: "RESERVED" },
+      orderBy: { updatedAt: "asc" },
+    });
+
+    const userIds = slots.map((s) => s.tenant_id).filter(Boolean) as string[];
+    const users = await prisma.user.findMany({
+      where: { id: { in: userIds } },
+      select: { id: true, name: true, email: true, avatarUrl: true },
+    });
+    const userMap = new Map(users.map((u) => [u.id, u]));
+
+    const now = Date.now();
+    const twentyFourHoursMs = 24 * 60 * 60 * 1000;
+
+    const detailedSlots = slots.map((slot) => {
+      const reservedAt = new Date(slot.updatedAt);
+      const elapsedMs = now - reservedAt.getTime();
+      const remainingMs = Math.max(0, twentyFourHoursMs - elapsedMs);
+      const hoursRemaining = Math.floor(remainingMs / (1000 * 60 * 60));
+      const minutesRemaining = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60));
+
+      return {
+        ...slot,
+        reservingUser: slot.tenant_id ? userMap.get(slot.tenant_id) || null : null,
+        reservedAt: reservedAt.toISOString(),
+        hoursRemaining,
+        minutesRemaining,
+        remainingFormatted: `${hoursRemaining}h ${minutesRemaining}m`,
+        isUrgent: hoursRemaining < 6,
+        isWarning: hoursRemaining >= 6 && hoursRemaining < 12,
+      };
+    });
+
+    return { success: true, data: detailedSlots };
+  } catch (error) {
+    console.error("Error fetching detailed reserved slots:", error);
+    return { success: false, error: "Failed to fetch reserved slots" };
+  }
+}

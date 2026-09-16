@@ -110,6 +110,25 @@ export default function NotificationsPageClient() {
       markAsRead(notification.id);
     }
     const targetUrl = getNotificationRoute(notification, user?.role);
+
+    if (typeof window !== "undefined" && targetUrl.includes("chat=open")) {
+      try {
+        const parsed = new URL(targetUrl, window.location.origin);
+        const recipient = parsed.searchParams.get("recipient");
+        const shop = parsed.searchParams.get("shop");
+        const detail = { recipient, shop: shop ? decodeURIComponent(shop) : null };
+        sessionStorage.setItem("pending_chat_open", JSON.stringify(detail));
+        window.dispatchEvent(
+          new CustomEvent("open-mall-chat", {
+            detail,
+          }),
+        );
+      } catch (err) {
+        sessionStorage.setItem("pending_chat_open", JSON.stringify({}));
+        window.dispatchEvent(new CustomEvent("open-mall-chat", { detail: {} }));
+      }
+    }
+
     router.push(targetUrl);
   };
 

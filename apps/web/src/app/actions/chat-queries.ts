@@ -162,49 +162,48 @@ export async function replyToConversation(
       }
     });
 
-    // ── GMAIL NOTIFICATION ──
-    try {
-      const recipient = await prisma.user.findUnique({
+    // ── GMAIL NOTIFICATION (NON-BLOCKING) ──
+    prisma.user
+      .findUnique({
         where: { id: recipientId },
         select: { email: true, name: true },
+      })
+      .then((recipient) => {
+        if (!recipient?.email) return;
+        return import("@/lib/gmail").then(({ sendGmail }) => {
+          const sender = isFromTarget ? "SR Mall Admin" : "a guest user";
+          return sendGmail({
+            to: recipient.email,
+            subject: isFromTarget ? "📩 NEW REPLY FROM SR MALL MANAGEMENT" : "📩 NEW CUSTOMER MESSAGE",
+            html: `
+              <div style="font-family: 'Inter', sans-serif; padding: 25px; border: 1px solid #e2e8f0; border-radius: 12px; max-width: 580px; margin: auto;">
+                <header style="border-bottom: 2px solid #be1e2d; padding-bottom: 15px; margin-bottom: 20px;">
+                  <h2 style="color: #be1e2d; margin: 0; font-size: 22px;">Experience Desk Alert</h2>
+                </header>
+                <section>
+                  <p style="font-size: 16px; color: #334155;">Hello <strong>${recipient.name || "there"}</strong>,</p>
+                  <p style="color: #475569; line-height: 1.5;">You have received a response from <strong>${sender}</strong> regarding your ongoing conversation.</p>
+                  <div style="background-color: #f8fafc; border-left: 4px solid #be1e2d; padding: 16px; margin: 20px 0; border-radius: 6px;">
+                    <blockquote style="margin: 0; color: #1e293b; font-style: italic; font-size: 15px;">
+                      "${content.length > 200 ? content.substring(0, 200) + "..." : content}"
+                    </blockquote>
+                  </div>
+                  <div style="text-align: center; margin-top: 30px;">
+                    <a href="${process.env.NEXT_PUBLIC_APP_URL || ""}/messenger" style="background-color: #be1e2d; color: white !important; text-decoration: none; padding: 12px 28px; border-radius: 6px; font-weight: 600; font-size: 14px; display: inline-block;">View Entire Thread</a>
+                  </div>
+                </section>
+                <footer style="margin-top: 35px; padding-top: 15px; border-top: 1px solid #e2e8f0; text-align: center; color: #94a3b8; font-size: 12px;">
+                  Secure Communication Protocol • SR Mall Management Portal
+                </footer>
+              </div>
+            `,
+          });
+        });
+      })
+      .catch((err) => {
+        console.error("Failed to dispatch reply notification:", err);
       });
 
-      if (recipient?.email) {
-        const { sendGmail } = await import("@/lib/gmail");
-        const sender = isFromTarget ? "SR Mall Admin" : "a guest user";
-
-        await sendGmail({
-          to: recipient.email,
-          subject: isFromTarget ? "📩 NEW REPLY FROM SR MALL MANAGEMENT" : "📩 NEW CUSTOMER MESSAGE",
-          html: `
-            <div style="font-family: 'Inter', sans-serif; padding: 25px; border: 1px solid #e2e8f0; border-radius: 12px; max-width: 580px; margin: auto;">
-              <header style="border-bottom: 2px solid #be1e2d; padding-bottom: 15px; margin-bottom: 20px;">
-                <h2 style="color: #be1e2d; margin: 0; font-size: 22px;">Experience Desk Alert</h2>
-              </header>
-              <section>
-                <p style="font-size: 16px; color: #334155;">Hello <strong>${recipient.name || "there"}</strong>,</p>
-                <p style="color: #475569; line-height: 1.5;">You have received a response from <strong>${sender}</strong> regarding your ongoing conversation.</p>
-                <div style="background-color: #f8fafc; border-left: 4px solid #be1e2d; padding: 16px; margin: 20px 0; border-radius: 6px;">
-                  <blockquote style="margin: 0; color: #1e293b; font-style: italic; font-size: 15px;">
-                    "${content.length > 200 ? content.substring(0, 200) + "..." : content}"
-                  </blockquote>
-                </div>
-                <div style="text-align: center; margin-top: 30px;">
-                  <a href="${process.env.NEXT_PUBLIC_APP_URL}/messenger" style="background-color: #be1e2d; color: white !important; text-decoration: none; padding: 12px 28px; border-radius: 6px; font-weight: 600; font-size: 14px; display: inline-block;">View Entire Thread</a>
-                </div>
-              </section>
-              <footer style="margin-top: 35px; padding-top: 15px; border-top: 1px solid #e2e8f0; text-align: center; color: #94a3b8; font-size: 12px;">
-                Secure Communication Protocol • SR Mall Management Portal
-              </footer>
-            </div>
-          `,
-        });
-      }
-    } catch (err) {
-      console.error("Failed to send reply Gmail notification:", err);
-    }
-
-    revalidatePath("/tenantdashboard/customer-messenger");
     return { success: true, messageId: message.id };
   } catch (error) {
     console.error("Failed to reply:", error);

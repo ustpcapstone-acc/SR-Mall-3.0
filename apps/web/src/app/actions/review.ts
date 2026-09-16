@@ -88,6 +88,11 @@ export async function submitReviewAction(
     revalidatePath("/public-view");
     revalidatePath("/admindashboard");
     revalidatePath("/admindashboard/user-management");
+    revalidatePath("/tenantdashboard");
+    revalidatePath("/tenantdashboard/feedback-reviews");
+    if (tenantId) {
+      revalidatePath(`/shop/${tenantId}`);
+    }
 
     return {
       success: true,
@@ -109,13 +114,19 @@ export async function editMyReviewAction(
   userId: string,
   rating: number,
   comment?: string,
+  tenantId?: string,
 ) {
   try {
     if (!userId) return { success: false, error: "Unauthorized" };
     if (rating < 1 || rating > 5)
       return { success: false, error: "Invalid rating" };
 
-    const existingReview = await prisma.review.findFirst({ where: { userId } });
+    const existingReview = await prisma.review.findFirst({
+      where: {
+        userId,
+        tenantId: tenantId || null,
+      },
+    });
     if (!existingReview) return { success: false, error: "Review not found." };
 
     const review = await prisma.review.update({
@@ -125,6 +136,12 @@ export async function editMyReviewAction(
 
     revalidatePath("/public-view");
     revalidatePath("/admindashboard");
+    revalidatePath("/admindashboard/user-management");
+    revalidatePath("/tenantdashboard");
+    revalidatePath("/tenantdashboard/feedback-reviews");
+    if (tenantId) {
+      revalidatePath(`/shop/${tenantId}`);
+    }
     return {
       success: true,
       data: review,
@@ -136,21 +153,99 @@ export async function editMyReviewAction(
   }
 }
 
-export async function deleteMyReviewAction(userId: string) {
+export async function deleteMyReviewAction(userId: string, tenantId?: string) {
   try {
     if (!userId) return { success: false, error: "Unauthorized" };
 
-    const existingReview = await prisma.review.findFirst({ where: { userId } });
+    const existingReview = await prisma.review.findFirst({
+      where: {
+        userId,
+        tenantId: tenantId || null,
+      },
+    });
     if (!existingReview) return { success: false, error: "Review not found." };
 
     await prisma.review.delete({ where: { id: existingReview.id } });
 
     revalidatePath("/public-view");
     revalidatePath("/admindashboard");
+    revalidatePath("/admindashboard/user-management");
+    revalidatePath("/tenantdashboard");
+    revalidatePath("/tenantdashboard/feedback-reviews");
+    if (tenantId) {
+      revalidatePath(`/shop/${tenantId}`);
+    }
     return { success: true, message: "Review deleted successfully!" };
   } catch (error) {
     console.error("Delete review error:", error);
     return { success: false, error: "Failed to delete review." };
+  }
+}
+
+export async function getTenantStoreRatingAction(tenantId: string) {
+  try {
+    if (!tenantId) return { success: false, error: "Tenant ID required" };
+    const reviews = await prisma.review.findMany({
+      where: {
+        tenantId,
+        isApproved: true,
+        isSpam: false,
+      },
+      select: { rating: true },
+    });
+
+    const totalReviews = reviews.length;
+    const avgRating =
+      totalReviews > 0
+        ? Number(
+            (
+              reviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews
+            ).toFixed(1),
+          )
+        : 0;
+
+    return { success: true, data: { avgRating, totalReviews } };
+  } catch (error) {
+    console.error("Get tenant rating error:", error);
+    return { success: false, error: "Failed to load store rating" };
+  }
+}
+
+export async function getAllTenantRatingsAction() {
+  try {
+    const reviews = await prisma.review.findMany({
+      where: {
+        tenantId: { not: null },
+        isApproved: true,
+        isSpam: false,
+      },
+      select: { tenantId: true, rating: true },
+    });
+
+    const ratingsMap: Record<
+      string,
+      { sum: number; count: number; avg: number }
+    > = {};
+
+    for (const r of reviews) {
+      if (!r.tenantId) continue;
+      if (!ratingsMap[r.tenantId]) {
+        ratingsMap[r.tenantId] = { sum: 0, count: 0, avg: 0 };
+      }
+      ratingsMap[r.tenantId].sum += r.rating;
+      ratingsMap[r.tenantId].count += 1;
+    }
+
+    for (const tid in ratingsMap) {
+      ratingsMap[tid].avg = Number(
+        (ratingsMap[tid].sum / ratingsMap[tid].count).toFixed(1),
+      );
+    }
+
+    return { success: true, data: ratingsMap };
+  } catch (error) {
+    console.error("Get all tenant ratings error:", error);
+    return { success: false, data: {} };
   }
 }
 

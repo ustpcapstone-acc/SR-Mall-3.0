@@ -120,54 +120,65 @@ export async function sendMessage(data: {
     });
 
     // Create a Message Notification for the recipient
+    let senderDisplayName = sender.name || "a user";
+    if (sender.role === "ADMIN") {
+      senderDisplayName = "SR Mall Admin";
+    } else if (sender.role === "TENANT") {
+      const tenant = await prisma.tenant.findUnique({
+        where: { userId: sender.id },
+        select: { shopName: true },
+      });
+      if (tenant?.shopName) {
+        senderDisplayName = tenant.shopName;
+      }
+    }
+
     await prisma.notification.create({
       data: {
         userId: targetUser.id,
         type: "MESSAGE",
         title: "New Message",
-        message: `New message from ${sender.name || "a user"}`,
-      }
+        message: `New message from ${senderDisplayName}`,
+      },
     });
 
-    // ── GMAIL NOTIFICATION ──
+    // ── GMAIL NOTIFICATION (NON-BLOCKING) ──
     if (targetUser.email) {
-      try {
-        const { sendGmail } = await import("@/lib/gmail");
-        const isToAdmin = recipientType === "admin";
-        
-        await sendGmail({
-          to: targetUser.email,
-          subject: isToAdmin ? "📩 NEW EXECUTIVE INQUIRY RECEIVED" : "📩 NEW MESSAGE FROM SR MALL ADMIN",
-          html: `
-            <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px; max-width: 600px;">
-              <div style="background: #be1e2d; color: white; padding: 15px; border-radius: 8px 8px 0 0; text-align: center;">
-                <h2 style="margin: 0;">Experience Desk Hub</h2>
-              </div>
-              <div style="padding: 20px; border: 1px solid #be1e2d; border-top: none; border-radius: 0 0 8px 8px;">
-                <p>Hello <strong>${targetUser.name || "User"}</strong>,</p>
-                <p>You have received a new message through the SR Mall communication portal.</p>
-                <div style="background: #f8fafc; padding: 15px; border-radius: 8px; margin: 15px 0; font-style: italic; color: #334155; border-left: 4px solid #be1e2d;">
-                  "${content.length > 150 ? content.substring(0, 150) + "..." : content}"
+      import("@/lib/gmail")
+        .then(({ sendGmail }) => {
+          const isToAdmin = recipientType === "admin";
+          return sendGmail({
+            to: targetUser.email,
+            subject: isToAdmin ? "📩 NEW EXECUTIVE INQUIRY RECEIVED" : "📩 NEW MESSAGE FROM SR MALL ADMIN",
+            html: `
+              <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px; max-width: 600px;">
+                <div style="background: #be1e2d; color: white; padding: 15px; border-radius: 8px 8px 0 0; text-align: center;">
+                  <h2 style="margin: 0;">Experience Desk Hub</h2>
                 </div>
-                <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
-                <p>Please log in to your dashboard to view the full thread and respond.</p>
-                <div style="text-align: center; margin-top: 25px;">
-                  <a href="${process.env.NEXT_PUBLIC_APP_URL}/messenger" style="display: inline-block; padding: 12px 30px; background-color: #be1e2d; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">Launch Messenger</a>
+                <div style="padding: 20px; border: 1px solid #be1e2d; border-top: none; border-radius: 0 0 8px 8px;">
+                  <p>Hello <strong>${targetUser.name || "User"}</strong>,</p>
+                  <p>You have received a new message through the SR Mall communication portal.</p>
+                  <div style="background: #f8fafc; padding: 15px; border-radius: 8px; margin: 15px 0; font-style: italic; color: #334155; border-left: 4px solid #be1e2d;">
+                    "${content.length > 150 ? content.substring(0, 150) + "..." : content}"
+                  </div>
+                  <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+                  <p>Please log in to your dashboard to view the full thread and respond.</p>
+                  <div style="text-align: center; margin-top: 25px;">
+                    <a href="${process.env.NEXT_PUBLIC_APP_URL || ""}/messenger" style="display: inline-block; padding: 12px 30px; background-color: #be1e2d; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">Launch Messenger</a>
+                  </div>
                 </div>
+                <p style="font-size: 11px; color: #94a3b8; text-align: center; margin-top: 20px;">
+                  This is an automated intelligence dispatch from the SR Mall Experience Desk Operations Hub.
+                </p>
               </div>
-              <p style="font-size: 11px; color: #94a3b8; text-align: center; margin-top: 20px;">
-                This is an automated intelligence dispatch from the SR Mall Experience Desk Operations Hub.
-              </p>
-            </div>
-          `,
+            `,
+          });
+        })
+        .catch((err) => {
+          console.error("Failed to send message Gmail notification:", err);
         });
-      } catch (err) {
-        console.error("Failed to send message Gmail notification:", err);
-      }
     }
 
-    revalidatePath("/public-view");
-    revalidatePath("/admindashboard/messenger-hub");
     return { success: true, messageId: message.id, targetId: targetUser.id };
   } catch (error) {
     console.error("Failed to send message:", error);

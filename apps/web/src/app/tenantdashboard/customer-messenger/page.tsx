@@ -42,55 +42,66 @@ export default function CustomerMessenger() {
     if (!user?.id) return;
 
     const fetchConversations = async () => {
-      const { getTenantConversations, getPortalAdminAction } =
-        await import("@/app/actions/chat-queries");
-      const data = await getTenantConversations(user.id);
+      try {
+        const { getTenantConversations, getPortalAdminAction } =
+          await import("@/app/actions/chat-queries");
+        const data = await getTenantConversations(user.id);
 
-      // If Admin is missing, fetch and inject
-      const hasAdmin = data.some(c => c.type === "ADMIN");
-      if (!hasAdmin) {
-        const admin = await getPortalAdminAction();
-        if (admin) {
-          // Add a "virtual" conversation for the Admin
-          data.unshift({
-            id: `new-admin-${admin.id}`,
-            type: "ADMIN",
-            userId: user.id,
-            targetId: admin.id,
-            target: admin as any,
-            updatedAt: new Date(),
-            messages: [],
-            isVirtual: true // Mark as virtual so we can handle initial message
-          } as any);
+        // If Admin is missing, fetch and inject
+        const hasAdmin = data.some((c) => c.type === "ADMIN");
+        if (!hasAdmin) {
+          const admin = await getPortalAdminAction();
+          if (admin) {
+            data.unshift({
+              id: `new-admin-${admin.id}`,
+              type: "ADMIN",
+              userId: user.id,
+              targetId: admin.id,
+              target: admin as any,
+              updatedAt: new Date(),
+              messages: [],
+              isVirtual: true,
+            } as any);
+          }
         }
+
+        setConversations(data);
+        markMessageNotificationsAsReadAction(user.id);
+      } catch (err) {
+        console.error("Failed to fetch tenant conversations:", err);
       }
-
-      setConversations(data);
-
-      // Clear message notification badge
-      markMessageNotificationsAsReadAction(user.id);
     };
 
     fetchConversations();
-    const interval = setInterval(fetchConversations, 15000);
+    const interval = setInterval(fetchConversations, 4000);
     return () => clearInterval(interval);
-  }, [user?.id, activeChat]);
+  }, [user?.id]);
 
   // Poll for active chat messages
   useEffect(() => {
-    if (!activeChat) return;
+    if (!activeChat?.id) return;
 
+    const currentChatId = activeChat.id;
     const fetchMessages = async () => {
-      const { getMessagesByConversation } =
-        await import("@/app/actions/chat-queries");
-      const history = await getMessagesByConversation(activeChat.id);
-      setMessages(history);
+      try {
+        const { getMessagesByConversation } =
+          await import("@/app/actions/chat-queries");
+        const history = await getMessagesByConversation(currentChatId);
+        setMessages((prev) => {
+          const pendingOptimistic = prev.filter(
+            (p) => String(p.id).startsWith("temp-") && !history.some((h: any) => h.content === p.content && h.senderId === p.senderId)
+          );
+          return [...history, ...pendingOptimistic];
+        });
+      } catch (err) {
+        console.error("Failed to fetch active chat messages:", err);
+      }
     };
 
     fetchMessages();
-    const interval = setInterval(fetchMessages, 10000);
+    const interval = setInterval(fetchMessages, 3000);
     return () => clearInterval(interval);
-  }, [activeChat]);
+  }, [activeChat?.id]);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -121,6 +132,8 @@ export default function CustomerMessenger() {
 
     const textToSend = inputText;
     const fileToSend = imageFile;
+    const previewToSend = imagePreview;
+
     setInputText("");
     setImageFile(null);
     setImagePreview(null);
@@ -135,13 +148,14 @@ export default function CustomerMessenger() {
     const isToAdmin = activeChat.type === "ADMIN";
     const myId = isToAdmin ? activeChat.userId : activeChat.targetId;
 
-    // Optimistic Update
+    // Instant Optimistic Update
+    const tempId = `temp-${Date.now()}`;
     setMessages((prev) => [
       ...prev,
       {
-        id: Date.now().toString(),
+        id: tempId,
         content: textToSend,
-        imageUrl: uploadedImageUrl,
+        imageUrl: uploadedImageUrl || previewToSend,
         senderId: myId,
         createdAt: new Date(),
       },
@@ -157,16 +171,12 @@ export default function CustomerMessenger() {
         content: textToSend || "📎 Image",
         imageUrl: uploadedImageUrl || undefined,
       });
-      // Force refresh conversations immediately
       const { getTenantConversations } = await import("@/app/actions/chat-queries");
       const data = await getTenantConversations(user!.id);
       setConversations(data);
-      // Find the real conversation and select it
       const newRealChat = data.find((c: any) => c.type === "ADMIN");
       if (newRealChat) setActiveChat(newRealChat);
     } else {
-      // If it's an ADMIN chat, the tenant is the userId (source), so isFromTarget is false
-      // If it's a TENANT chat, the tenant is the targetId (destination), so isFromTarget is true
       const isFromTarget = !isToAdmin;
       await replyToConversation(activeChat.id, isFromTarget, textToSend || "📎 Image", uploadedImageUrl || undefined);
     }

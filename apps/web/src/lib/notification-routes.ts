@@ -27,12 +27,13 @@ export function getNotificationRoute(
     message.includes("placed a reservation")
   ) {
     if (role === "ADMIN") {
-      return "/admindashboard/space-manager";
+      return "/admindashboard/bookings?tab=reservation";
     }
     if (role === "TENANT") {
       return "/tenantdashboard";
     }
-    return "/profile";
+    // Customer goes directly to available spaces & leasing portal
+    return "/available-spaces";
   }
 
   // 2. Event Bookings & Space Inquiries
@@ -45,9 +46,10 @@ export function getNotificationRoute(
     message.includes("planned for")
   ) {
     if (role === "ADMIN") {
-      return "/admindashboard/bookings";
+      return "/admindashboard/bookings?tab=event";
     }
-    return "/profile";
+    // Customer goes directly to What's On / Events section
+    return "/public-view#events";
   }
 
   // 3. Merchant Applications & Storefront Onboarding
@@ -58,9 +60,12 @@ export function getNotificationRoute(
     message.includes("storefront partnership")
   ) {
     if (role === "ADMIN") {
-      return "/admindashboard/bookings";
+      return "/admindashboard/bookings?tab=merchant";
     }
-    return "/tenantdashboard";
+    if (role === "TENANT") {
+      return "/tenantdashboard";
+    }
+    return "/public-view";
   }
 
   // 4. Messages & Conversations
@@ -75,7 +80,34 @@ export function getNotificationRoute(
     if (role === "TENANT") {
       return "/tenantdashboard/customer-messenger";
     }
-    return "/profile";
+    
+    // CUSTOMER: Redirect directly to Chat Box / Messages (NEVER /profile)
+    // Try to extract sender from message: e.g. "New message from SR Mall Admin" or "New message from Coffee Culture"
+    const rawMsg = notification.message || "";
+    const match = rawMsg.match(/from\s+([A-Za-z0-9\s&'-]+)/i);
+    const senderName = match ? match[1].trim() : "";
+
+    if (senderName.toLowerCase().includes("admin")) {
+      return "/public-view?chat=open&recipient=admin";
+    } else if (
+      senderName &&
+      !senderName.toLowerCase().includes("user") &&
+      !senderName.toLowerCase().includes("guest")
+    ) {
+      return `/public-view?chat=open&recipient=shop&shop=${encodeURIComponent(senderName)}`;
+    }
+    return "/public-view?chat=open";
+  }
+
+  // 5. Lost & Found
+  if (
+    type === "LOST_AND_FOUND" ||
+    title.includes("lost and found") ||
+    title.includes("lost item") ||
+    title.includes("found item") ||
+    message.includes("lost and found")
+  ) {
+    return "/lost-and-found";
   }
 
   // 5. Ad & Promotion Submissions
@@ -128,7 +160,7 @@ export function getNotificationRoute(
     if (role === "TENANT") {
       return "/tenantdashboard/feedback-reviews";
     }
-    return "/profile";
+    return "/public-view#reviews";
   }
 
   // 8. Contracts & Leases

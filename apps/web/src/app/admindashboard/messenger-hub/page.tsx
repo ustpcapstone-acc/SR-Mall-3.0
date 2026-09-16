@@ -43,8 +43,8 @@ export default function MessengerHub() {
   const activeChat = conversations.find((c) => c.id === activeChatId) || null;
 
   useEffect(() => {
-    fetchConversations();
-    const interval = setInterval(fetchConversations, 30000);
+    fetchConversations(true);
+    const interval = setInterval(() => fetchConversations(false), 4000);
 
     // Clear message notifications badge when viewing the messenger
     if (user) {
@@ -54,16 +54,13 @@ export default function MessengerHub() {
     return () => clearInterval(interval);
   }, [user]);
 
-  const fetchConversations = async () => {
-    setIsRefreshing(true);
+  const fetchConversations = async (showLoading = false) => {
+    if (showLoading) setLoading(true);
     try {
       const data = await getAdminConversations();
       setConversations(data);
 
-      // We use a functional update (currentId => ...) to ensure we always have the 
-      // latest state value even inside a setInterval closure.
       setActiveChatId((currentId) => {
-        // Only auto-select the first chat if none is currently selected.
         if (!currentId && data.length > 0) {
           return data[0].id;
         }
@@ -72,8 +69,7 @@ export default function MessengerHub() {
     } catch (err) {
       console.error("Failed to fetch conversations:", err);
     } finally {
-      setLoading(false);
-      setIsRefreshing(false);
+      if (showLoading) setLoading(false);
     }
   };
 
@@ -81,24 +77,32 @@ export default function MessengerHub() {
     if (activeChatId) {
       const currentId = activeChatId;
       fetchMessages(currentId);
-      const interval = setInterval(() => fetchMessages(currentId), 15000);
+      const interval = setInterval(() => fetchMessages(currentId), 3000);
       return () => clearInterval(interval);
     }
   }, [activeChatId]);
 
   const fetchMessages = async (idToFetch: string) => {
-    const msgs = await getMessagesByConversation(idToFetch);
-    setActiveChatId((currentId) => {
-      if (currentId === idToFetch) {
-        setMessages(msgs);
-      }
-      return currentId;
-    });
+    try {
+      const msgs = await getMessagesByConversation(idToFetch);
+      setActiveChatId((currentId) => {
+        if (currentId === idToFetch) {
+          setMessages((prev) => {
+            const pendingOptimistic = prev.filter(
+              (p) => String(p.id).startsWith("temp-") && !msgs.some((m: any) => m.content === p.content && m.senderId === p.senderId)
+            );
+            return [...msgs, ...pendingOptimistic];
+          });
+        }
+        return currentId;
+      });
+    } catch (err) {
+      console.error("Failed to fetch messages:", err);
+    }
   };
 
   const handleSelectChat = (chat: any) => {
     if (chat.id === activeChatId) return;
-    setMessages([]); // Immediately clear messages to prevent misalignment
     setActiveChatId(chat.id);
   };
 
@@ -133,21 +137,46 @@ export default function MessengerHub() {
     e.preventDefault();
     if ((!replyText.trim() && !imageFile) || !activeChatId || isSending) return;
 
-    setIsSending(true);
-    let uploadedImageUrl: string | null = null;
-    if (imageFile) {
-      uploadedImageUrl = await uploadImageToCloudinary(imageFile);
-    }
+    const textToSend = replyText;
+    const fileToSend = imageFile;
+    const previewToSend = imagePreview;
 
-    const res = await replyToConversation(activeChatId, true, replyText, uploadedImageUrl || undefined);
-    if (res.success) {
-      setReplyText("");
-      setImageFile(null);
-      setImagePreview(null);
-      fetchMessages(activeChatId);
-      fetchConversations();
+    setReplyText("");
+    setImageFile(null);
+    setImagePreview(null);
+    setIsSending(true);
+
+    let uploadedImageUrl: string | null = null;
+    if (fileToSend) {
+      uploadedImageUrl = await uploadImageToCloudinary(fileToSend);
     }
     setIsSending(false);
+
+    // Instant Optimistic Message
+    const tempId = `temp-${Date.now()}`;
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: tempId,
+        content: textToSend,
+        imageUrl: uploadedImageUrl || previewToSend,
+        senderId: user?.id,
+        conversationId: activeChatId,
+        sender: {
+          id: user?.id,
+          name: user?.name || "System Admin",
+          email: user?.email,
+          avatarUrl: user?.avatarUrl,
+        },
+        createdAt: new Date(),
+      },
+    ]);
+
+    const res = await replyToConversation(activeChatId, true, textToSend, uploadedImageUrl || undefined);
+    if (res.success) {
+      fetchMessages(activeChatId);
+      fetchConversations(false);
+    }
   };
 
   const filteredChats = conversations.filter((c) => {
@@ -171,7 +200,6 @@ export default function MessengerHub() {
             <h1 className="text-3xl font-black text-charcoal dark:text-white tracking-tight">
               Messages & Support
             </h1>
-            {isRefreshing && <Loader2 size={16} className="animate-spin text-slate-400" />}
           </div>
           <p className="text-sm text-slate-500 font-medium mt-1">
             Manage customer and tenant conversations, inquiries, and support requests.

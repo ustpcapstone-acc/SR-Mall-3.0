@@ -133,8 +133,11 @@ export const Footer = () => {
         </div>
       </div>
 
-      <div className="mt-20 pt-8 border-t border-slate-200 dark:border-white/10 text-center text-xs text-slate-500">
-        &copy; 2026 SR Mall Management System. All rights reserved.
+      <div className="mt-20 pt-8 border-t border-slate-200 dark:border-white/10 text-center text-xs text-slate-500 space-y-2">
+        <p>&copy; 2026 SR Mall Management System. All rights reserved.</p>
+        <p className="text-[11px] text-slate-400 dark:text-slate-500">
+          Created by Team: <span className="font-bold text-charcoal dark:text-slate-200">Jerick Aradilla</span> (Programmer) &bull; <span className="font-bold text-charcoal dark:text-slate-200">Scott Dugang</span> (Database Manager) &bull; <span className="font-bold text-charcoal dark:text-slate-200">Nielchi Juarez</span> (Project Manager)
+        </p>
       </div>
     </footer>
   );

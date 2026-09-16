@@ -9,6 +9,8 @@ import {
   Heart,
   CheckCircle,
   AlertCircle,
+  ChevronDown,
+  Store,
 } from "lucide-react";
 import clsx from "clsx";
 import {
@@ -18,6 +20,7 @@ import {
   deleteMyReviewAction,
   getMyReviewAction,
 } from "@/app/actions/review";
+import { getAllStorefrontsAction } from "@/app/actions/tenant";
 import { LoginModal } from "@/components/login-modal";
 import { useAuth } from "@/app/providers";
 
@@ -44,6 +47,10 @@ export const FeedbackSection = ({
 }: FeedbackSectionProps) => {
   const { user } = useAuth();
 
+  const [selectedTenantId, setSelectedTenantId] = useState<string>(tenantId || "");
+  const [availableTenants, setAvailableTenants] = useState<any[]>([]);
+  const effectiveTenantId = tenantId || (selectedTenantId ? selectedTenantId : undefined);
+
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -56,10 +63,23 @@ export const FeedbackSection = ({
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [myPendingReview, setMyPendingReview] = useState<any>(null);
 
+  // ── Load available storefronts if not locked to tenantId ───
+  useEffect(() => {
+    if (!tenantId) {
+      getAllStorefrontsAction()
+        .then((res) => {
+          if (res.success && res.data) {
+            setAvailableTenants(res.data);
+          }
+        })
+        .catch(console.error);
+    }
+  }, [tenantId]);
+
   // ── Data Loaders ───────────────────────────────────────
   const loadMyPendingReview = async (userId: string) => {
     try {
-      const result = await getMyReviewAction(userId, tenantId);
+      const result = await getMyReviewAction(userId, effectiveTenantId);
       if (result.success && result.data && !(result.data as any).isApproved) {
         setMyPendingReview(result.data);
       } else {
@@ -71,8 +91,9 @@ export const FeedbackSection = ({
   };
 
   const loadReviews = async () => {
+    setIsLoading(true);
     try {
-      const result = await getApprovedReviewsAction(tenantId);
+      const result = await getApprovedReviewsAction(effectiveTenantId);
       if (result.success && result.data) {
         setReviews(result.data as Review[]);
       }
@@ -96,7 +117,7 @@ export const FeedbackSection = ({
   // ── Effects ────────────────────────────────────────────
   useEffect(() => {
     loadReviews();
-  }, [user?.id]);
+  }, [user?.id, effectiveTenantId]);
 
   useEffect(() => {
     if (myReview && rating === 0) {
@@ -110,7 +131,7 @@ export const FeedbackSection = ({
     if (!confirm("Are you sure you want to delete your review?")) return;
     setIsSubmitting(true);
     try {
-      const result = await deleteMyReviewAction(user.id);
+      const result = await deleteMyReviewAction(user.id, effectiveTenantId);
       if (result.success) {
         setSubmitMessage({
           type: "success",
@@ -119,7 +140,7 @@ export const FeedbackSection = ({
         setRating(0);
         setComment("");
         setMyPendingReview(null);
-        setTimeout(loadReviews, 1000);
+        setTimeout(loadReviews, 800);
       } else {
         setSubmitMessage({
           type: "error",
@@ -155,8 +176,8 @@ export const FeedbackSection = ({
 
     try {
       const result = myReview
-        ? await editMyReviewAction(user.id, rating, comment)
-        : await submitReviewAction(user.id, rating, comment, tenantId);
+        ? await editMyReviewAction(user.id, rating, comment, effectiveTenantId)
+        : await submitReviewAction(user.id, rating, comment, effectiveTenantId);
 
       if (result.success) {
         setSubmitMessage({
@@ -407,7 +428,7 @@ export const FeedbackSection = ({
                             : "U"}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
+                          <div className="flex items-center gap-1.5 min-w-0">
                             <h4
                               className={clsx(
                                 "font-black",
@@ -418,6 +439,8 @@ export const FeedbackSection = ({
                                 "uppercase",
                                 "tracking-tight",
                                 "truncate",
+                                "shrink",
+                                "min-w-0"
                               )}
                             >
                               {review.user?.name || "Anonymous"}
@@ -675,11 +698,10 @@ export const FeedbackSection = ({
                   <div className="space-y-4 sm:space-y-6">
                     {submitMessage && (
                       <div
-                        className={`p-2 sm:p-4 rounded-lg flex items-center gap-2 ${
-                          submitMessage.type === "success"
-                            ? "bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800"
-                            : "bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800"
-                        }`}
+                        className={`p-2 sm:p-4 rounded-lg flex items-center gap-2 ${submitMessage.type === "success"
+                          ? "bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800"
+                          : "bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800"
+                          }`}
                       >
                         <AlertCircle size={14} />
                         <p
@@ -721,11 +743,10 @@ export const FeedbackSection = ({
                           >
                             <Star
                               size={20}
-                              className={`transition-colors sm:size-8 ${
-                                star <= rating
-                                  ? "fill-primary text-primary"
-                                  : "text-slate-200"
-                              }`}
+                              className={`transition-colors sm:size-8 ${star <= rating
+                                ? "fill-primary text-primary"
+                                : "text-slate-200"
+                                }`}
                             />
                           </button>
                         ))}

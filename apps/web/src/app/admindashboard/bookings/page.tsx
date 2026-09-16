@@ -42,6 +42,7 @@ import {
   approveReservationAction,
   rejectReservationAction,
   upsertAreaSlot,
+  getReservedSlotsWithDetailsAction,
 } from "@/app/actions/space-slot";
 import {
   getInquiriesAction,
@@ -77,6 +78,17 @@ export default function MasterBookingsPage() {
   >("merchant");
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
+
+  // Check URL query parameters on mount to set active tab
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const tab = params.get("tab");
+      if (tab === "reservation" || tab === "event" || tab === "merchant") {
+        setActiveTab(tab);
+      }
+    }
+  }, []);
 
   // Merchant Requests State
   const [merchantRequests, setMerchantRequests] = useState<any[]>([]);
@@ -115,10 +127,11 @@ export default function MasterBookingsPage() {
     else setIsSyncing(true);
 
     try {
-      const [tenants, slots, inquiries] = await Promise.all([
+      const [tenants, slots, inquiries, reservedDetailed] = await Promise.all([
         getPendingTenantsAction(),
         getAreaSlots(),
         getInquiriesAction(),
+        getReservedSlotsWithDetailsAction(),
       ]);
 
       if (tenants.success) setMerchantRequests(tenants.data || []);
@@ -126,6 +139,10 @@ export default function MasterBookingsPage() {
         setAvailableSlots(
           slots.data?.filter((s: any) => s.status === "AVAILABLE") || [],
         );
+      }
+      if (reservedDetailed.success && reservedDetailed.data) {
+        setReservedSlots(reservedDetailed.data);
+      } else if (slots.success) {
         setReservedSlots(
           slots.data?.filter((s: any) => s.status === "RESERVED") || [],
         );
@@ -741,9 +758,7 @@ export default function MasterBookingsPage() {
               </div>
             </div>
           </div>
-        )}
-
-        {activeTab === "reservation" && (
+        )}        {activeTab === "reservation" && (
           <div className="space-y-8">
             <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-[2.5rem] shadow-sm overflow-hidden">
               <div className="overflow-x-auto custom-scrollbar">
@@ -751,16 +766,16 @@ export default function MasterBookingsPage() {
                   <thead>
                     <tr className="bg-slate-50/50 dark:bg-white/5">
                       <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 dark:border-white/5">
-                        Inventory Unit
+                        Commercial Space
                       </th>
                       <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 dark:border-white/5">
-                        Slate Specifications
+                        Reserving Customer
                       </th>
                       <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 dark:border-white/5">
-                        Assigned Risk
+                        24h Review Window
                       </th>
                       <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 dark:border-white/5 text-right">
-                        Queue Protocol
+                        Decision Protocol
                       </th>
                     </tr>
                   </thead>
@@ -769,9 +784,19 @@ export default function MasterBookingsPage() {
                       <tr>
                         <td
                           colSpan={4}
-                          className="p-32 text-center text-slate-400 font-bold uppercase tracking-widest text-xs"
+                          className="p-24 text-center text-slate-400 font-bold uppercase tracking-widest text-xs"
                         >
-                          Zero Pending Blockages
+                          <div className="max-w-md mx-auto space-y-3">
+                            <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-white/5 text-slate-400 flex items-center justify-center mx-auto">
+                              <Building size={24} />
+                            </div>
+                            <p className="text-sm font-black text-charcoal dark:text-white uppercase tracking-tight">
+                              No Pending Space Reservations
+                            </p>
+                            <p className="text-xs text-slate-400 font-medium">
+                              All commercial units are currently available or occupied. New reservations will appear here with a 24-hour review timer.
+                            </p>
+                          </div>
                         </td>
                       </tr>
                     ) : (
@@ -780,51 +805,96 @@ export default function MasterBookingsPage() {
                           key={res.id}
                           className="hover:bg-slate-50/80 dark:hover:bg-white/[0.02] transition-colors group/row"
                         >
-                          <td className="px-8 py-8">
+                          <td className="px-8 py-6">
                             <div className="flex items-center gap-4">
-                              <div className="w-14 h-14 bg-amber-500/10 rounded-[1.25rem] flex items-center justify-center text-amber-500 transition-transform group-hover/row:scale-110">
+                              <div className="w-14 h-14 bg-amber-500/10 rounded-[1.25rem] flex items-center justify-center text-amber-500 transition-transform group-hover/row:scale-105 shrink-0">
                                 <Building size={24} />
                               </div>
                               <div>
-                                <p className="font-black text-xl text-charcoal dark:text-white uppercase tracking-tighter italic leading-none">
-                                  {res.unit_id}
+                                <p className="font-black text-lg text-charcoal dark:text-white uppercase tracking-tighter leading-none">
+                                  Unit {res.unit_id}
                                 </p>
-                                <p className="text-[10px] text-amber-500 font-black uppercase tracking-widest mt-1">
-                                  Status: RESERVED
-                                </p>
+                                <div className="flex items-center gap-2 mt-1.5">
+                                  <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+                                    {res.sqm_size} SQM
+                                  </span>
+                                  <span className="text-slate-300 dark:text-white/20">&bull;</span>
+                                  <span className="text-[10px] font-black text-primary uppercase tracking-widest">
+                                    ₱{res.base_rent?.toLocaleString()} / mo
+                                  </span>
+                                </div>
                               </div>
                             </div>
                           </td>
-                          <td className="px-8 py-8">
-                            <div className="flex flex-col gap-1">
-                              <span className="text-sm font-black text-charcoal dark:text-white uppercase tracking-tight">
-                                {res.sqm_size} SQM TOTAL
-                              </span>
-                              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-                                ₱{res.base_rent.toLocaleString()} Base Rent / Mo
-                              </span>
+
+                          <td className="px-8 py-6">
+                            <div className="flex items-center gap-3.5">
+                              <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 flex items-center justify-center font-black text-sm text-charcoal dark:text-white uppercase overflow-hidden shrink-0">
+                                {res.reservingUser?.avatarUrl ? (
+                                  <img
+                                    src={res.reservingUser.avatarUrl}
+                                    alt="User Avatar"
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <span>{res.reservingUser?.name?.charAt(0) || "U"}</span>
+                                )}
+                              </div>
+                              <div>
+                                <p className="text-sm font-black text-charcoal dark:text-white leading-snug">
+                                  {res.reservingUser?.name || "Registered Customer"}
+                                </p>
+                                <p className="text-xs text-slate-400 font-medium">
+                                  {res.reservingUser?.email || "No email available"}
+                                </p>
+                                {res.reservedAt && (
+                                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+                                    Reserved: {new Date(res.reservedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+                                  </p>
+                                )}
+                              </div>
                             </div>
                           </td>
-                          <td className="px-8 py-8">
-                            <span className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-500/10 text-emerald-500 text-[10px] font-black uppercase tracking-widest rounded-full border border-emerald-500/20">
-                              <ShieldCheck size={12} /> Institutional Low
-                            </span>
-                          </td>
-                          <td className="px-8 py-8 text-right">
-                            <div className="flex justify-end gap-3 opacity-0 group-hover/row:opacity-100 transition-all duration-300">
-                              <button
-                                onClick={() =>
-                                  handleApproveReservation(res.unit_id)
-                                }
-                                className="px-8 py-4 bg-primary text-white font-black text-[10px] uppercase tracking-widest rounded-xl shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
+
+                          <td className="px-8 py-6">
+                            <div className="space-y-1.5">
+                              <div
+                                className={clsx(
+                                  "inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-black uppercase tracking-wider border shadow-sm",
+                                  res.isUrgent
+                                    ? "bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 border-red-500/30 animate-pulse"
+                                    : res.isWarning
+                                      ? "bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 border-amber-500/30"
+                                      : "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
+                                )}
                               >
-                                Approve
+                                <Clock size={13} className={res.isUrgent ? "animate-spin" : ""} />
+                                <span>{res.remainingFormatted || `${res.hoursRemaining ?? 24}h left`}</span>
+                                {res.isUrgent && <AlertTriangle size={13} />}
+                              </div>
+                              <p className="text-[10px] text-slate-400 font-medium">
+                                {res.isUrgent
+                                  ? "Auto-rejects in < 6h if unreviewed"
+                                  : "Auto-rejection after 24h of inactivity"}
+                              </p>
+                            </div>
+                          </td>
+
+                          <td className="px-8 py-6 text-right">
+                            <div className="flex justify-end items-center gap-2.5">
+                              <button
+                                onClick={() => handleApproveReservation(res.unit_id)}
+                                className="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-black text-xs uppercase tracking-widest rounded-xl shadow-lg shadow-emerald-500/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5"
+                                title="Approve Reservation"
+                              >
+                                <CheckCircle2 size={15} /> Approve
                               </button>
                               <button
                                 onClick={() => handleRejectReservation(res)}
-                                className="px-8 py-4 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-white/10 text-slate-500 hover:text-red-500 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all"
+                                className="px-5 py-2.5 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-white/10 text-slate-500 hover:text-red-500 hover:border-red-500/30 rounded-xl font-black text-xs uppercase tracking-widest hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5"
+                                title="Reject Reservation"
                               >
-                                Reject
+                                <XCircle size={15} /> Reject
                               </button>
                             </div>
                           </td>
