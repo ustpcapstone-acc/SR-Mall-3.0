@@ -197,6 +197,9 @@ export default function PublicDigitalConcierge() {
         } else if (recipient === "shop" || shop) {
           setChatRecipient("shop");
           setChatInitialShopName(shop || null);
+        } else {
+          setChatRecipient(null);
+          setChatInitialShopName(null);
         }
       }
     };
@@ -214,6 +217,9 @@ export default function PublicDigitalConcierge() {
       } else if (recipient === "shop" || shop) {
         setChatRecipient("shop");
         setChatInitialShopName(shop || null);
+      } else {
+        setChatRecipient(null);
+        setChatInitialShopName(null);
       }
     };
 
@@ -1819,7 +1825,17 @@ export default function PublicDigitalConcierge() {
 
       {/* Floating Action Button for Chat - Available for all, but gated inside */}
       <button suppressHydrationWarning
-        onClick={() => setIsChatOpen(!isChatOpen)}
+        onClick={() => {
+          if (isChatOpen) {
+            setIsChatOpen(false);
+            setChatRecipient(null);
+            setChatInitialShopName(null);
+          } else {
+            setChatRecipient(null);
+            setChatInitialShopName(null);
+            setIsChatOpen(true);
+          }
+        }}
         className={`fixed bottom-4 right-4 sm:bottom-10 sm:right-10 w-14 h-14 sm:w-20 sm:h-20 bg-primary text-white rounded-full flex items-center justify-center shadow-2xl shadow-primary/40 hover:scale-110 active:scale-95 transition-all z-50 group ${isChatOpen ? "rotate-90" : ""}`}
       >
         {isChatOpen ? <X size={32} /> : <MessageCircle size={32} />}
@@ -1848,7 +1864,11 @@ export default function PublicDigitalConcierge() {
 
       <ChatBox
         isOpen={isChatOpen}
-        onClose={() => setIsChatOpen(false)}
+        onClose={() => {
+          setIsChatOpen(false);
+          setChatRecipient(null);
+          setChatInitialShopName(null);
+        }}
         isAuthenticated={isAuthenticated}
         initialShopName={chatInitialShopName}
         initialRecipient={chatRecipient}

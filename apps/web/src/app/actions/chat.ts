@@ -29,6 +29,13 @@ export async function sendMessage(data: {
       });
     }
 
+    if (sender.isBlacklisted) {
+      return {
+        success: false,
+        error: "Your account has been suspended by mall management. Messaging is disabled.",
+      };
+    }
+
     // In a real app, you would look up the specific Admin or Tenant User ID.
     // Here we find or create dummy target users based on the recipientType to simulate routing.
     let targetUser = null;
@@ -49,17 +56,33 @@ export async function sendMessage(data: {
         });
       }
     } else if (recipientType === "shop" && shopName) {
+      const cleanShopName = shopName.trim();
       // Find the Tenant entry by shopName, then get its associated User
-      const tenantRecord = await prisma.tenant.findFirst({
-        where: { shopName: shopName },
-        include: { user: true },
-      });
+      const tenantRecord =
+        (await prisma.tenant.findFirst({
+          where: {
+            shopName: {
+              equals: cleanShopName,
+              mode: "insensitive",
+            },
+          },
+          include: { user: true },
+        })) ||
+        (await prisma.tenant.findFirst({
+          where: {
+            shopName: {
+              contains: cleanShopName,
+              mode: "insensitive",
+            },
+          },
+          include: { user: true },
+        }));
 
       if (tenantRecord?.user) {
         targetUser = tenantRecord.user;
       } else {
         // Create a fallback tenant for testing if it doesn't exist
-        const fallbackEmail = `${shopName.replace(/\s+/g, "").toLowerCase()}@tenant.com`;
+        const fallbackEmail = `${cleanShopName.replace(/\s+/g, "").toLowerCase()}@tenant.com`;
         targetUser = await prisma.user.upsert({
           where: { email: fallbackEmail },
           update: {},
@@ -67,15 +90,15 @@ export async function sendMessage(data: {
             email: fallbackEmail,
             password: "hash",
             role: "TENANT",
-            name: shopName,
+            name: cleanShopName,
           },
         });
 
         // Link it to a tenant record if it's missing
         await prisma.tenant.upsert({
           where: { userId: targetUser.id },
-          update: { shopName },
-          create: { shopName, unitId: "L1-XXX", userId: targetUser.id },
+          update: { shopName: cleanShopName },
+          create: { shopName: cleanShopName, unitId: "L1-XXX", userId: targetUser.id },
         });
       }
     }
@@ -84,11 +107,36 @@ export async function sendMessage(data: {
       throw new Error("Target recipient not found.");
     }
 
-    // Check if conversation already exists
+    // Check if targetUser has blocked sender from sending chat messages
+    const { isChatBlocked } = await import("@/app/actions/chat-queries");
+    const isBlocked = await isChatBlocked(targetUser.id, sender.id);
+    if (isBlocked) {
+      return {
+        success: false,
+        error: "This recipient is currently not accepting incoming messages from you.",
+      };
+    }
+
+    // Check if conversation already exists in either direction
     let conversation = await prisma.conversation.findFirst({
-      where: recipientType === "admin" 
-        ? { type: "ADMIN", userId: sender.id }
-        : { userId: sender.id, targetId: targetUser.id },
+      where:
+        recipientType === "admin"
+          ? {
+              type: "ADMIN",
+              OR: [
+                { userId: sender.id, targetId: targetUser.id },
+                { userId: targetUser.id, targetId: sender.id },
+                { userId: sender.id },
+                { targetId: sender.id },
+              ],
+            }
+          : {
+              OR: [
+                { userId: sender.id, targetId: targetUser.id },
+                { userId: targetUser.id, targetId: sender.id },
+              ],
+            },
+      orderBy: { updatedAt: "desc" },
     });
 
     // Create a new conversation channel if it doesn't exist
@@ -178,6 +226,10 @@ export async function sendMessage(data: {
           console.error("Failed to send message Gmail notification:", err);
         });
     }
+
+    revalidatePath("/admindashboard/messenger-hub");
+    revalidatePath("/tenantdashboard/customer-messenger");
+    revalidatePath("/public-view");
 
     return { success: true, messageId: message.id, targetId: targetUser.id };
   } catch (error) {

@@ -74,27 +74,34 @@ export function getNotificationRoute(
     title.includes("message") ||
     message.includes("message from")
   ) {
+    const rawMsg = notification.message || "";
+    const match = rawMsg.match(/from\s+(.+)$/i);
+    const senderName = match ? match[1].trim() : "";
+    const isFromAdmin = senderName.toLowerCase().includes("admin");
+
+    // If message is from a tenant store/shop, customer opens the specific shop thread in public-view
+    if (
+      !isFromAdmin &&
+      senderName &&
+      !senderName.toLowerCase().includes("user") &&
+      !senderName.toLowerCase().includes("guest")
+    ) {
+      if (role === "TENANT") {
+        return "/tenantdashboard/customer-messenger";
+      }
+      return `/public-view?chat=open&recipient=shop&shop=${encodeURIComponent(senderName)}`;
+    }
+
     if (role === "ADMIN") {
       return "/admindashboard/messenger-hub";
     }
     if (role === "TENANT") {
       return "/tenantdashboard/customer-messenger";
     }
-    
-    // CUSTOMER: Redirect directly to Chat Box / Messages (NEVER /profile)
-    // Try to extract sender from message: e.g. "New message from SR Mall Admin" or "New message from Coffee Culture"
-    const rawMsg = notification.message || "";
-    const match = rawMsg.match(/from\s+([A-Za-z0-9\s&'-]+)/i);
-    const senderName = match ? match[1].trim() : "";
 
-    if (senderName.toLowerCase().includes("admin")) {
+    // CUSTOMER in Public View
+    if (isFromAdmin) {
       return "/public-view?chat=open&recipient=admin";
-    } else if (
-      senderName &&
-      !senderName.toLowerCase().includes("user") &&
-      !senderName.toLowerCase().includes("guest")
-    ) {
-      return `/public-view?chat=open&recipient=shop&shop=${encodeURIComponent(senderName)}`;
     }
     return "/public-view?chat=open";
   }

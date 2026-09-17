@@ -525,7 +525,7 @@ export default function UserManagement() {
                               >
                                 {item.isBlacklisted
                                   ? "Restore Access"
-                                  : "Revoke Authorization"}
+                                  : "Suspend"}
                               </button>
                             </div>
                           </td>
@@ -714,7 +714,7 @@ export default function UserManagement() {
                                   <button
                                     onClick={() => {
                                       const values = [1, 3, 7, 14, 0];
-                                      const activeDays = values.find(val => 
+                                      const activeDays = values.find(val =>
                                         document.getElementById(`dur-${item.id}-${val}`)?.classList.contains("bg-primary")
                                       ) ?? 7;
                                       handleSetCommentStatus(item.user.id, "MUTED", activeDays);
@@ -726,7 +726,7 @@ export default function UserManagement() {
                                   <button
                                     onClick={() => {
                                       const values = [1, 3, 7, 14, 0];
-                                      const activeDays = values.find(val => 
+                                      const activeDays = values.find(val =>
                                         document.getElementById(`dur-${item.id}-${val}`)?.classList.contains("bg-primary")
                                       ) ?? 7;
                                       handleSetCommentStatus(item.user.id, "RESTRICTED", activeDays);
@@ -1238,7 +1238,7 @@ export default function UserManagement() {
                 </div>
               </div>
             </div>
-            
+
             <div className="p-6 border-t border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.02] shrink-0 text-right">
               <button onClick={() => setSelectedPastTenant(null)} className="px-8 py-4 bg-charcoal dark:bg-white text-white dark:text-black rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl hover:scale-105 active:scale-95 transition-all">
                 Close Details
