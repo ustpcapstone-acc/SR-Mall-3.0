@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   Search,
   MoreVertical,
@@ -21,8 +22,12 @@ import {
 import { markMessageNotificationsAsReadAction } from "@/app/actions/notification";
 import { useAuth } from "@/app/providers";
 
-export default function MessengerHub() {
+function MessengerHubContent() {
   const { user } = useAuth();
+  const searchParams = useSearchParams();
+  const queryConversationId = searchParams.get("conversationId");
+  const queryTenantId = searchParams.get("tenantId");
+
   const [conversations, setConversations] = useState<any[]>([]);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [messages, setMessages] = useState<any[]>([]);
@@ -61,6 +66,17 @@ export default function MessengerHub() {
       setConversations(data);
 
       setActiveChatId((currentId) => {
+        if (queryConversationId && data.some((c) => c.id === queryConversationId)) {
+          return queryConversationId;
+        }
+        if (queryTenantId) {
+          const matchingChat = data.find(
+            (c) =>
+              c.user?.tenant?.id === queryTenantId ||
+              c.target?.tenant?.id === queryTenantId
+          );
+          if (matchingChat) return matchingChat.id;
+        }
         if (!currentId && data.length > 0) {
           return data[0].id;
         }
@@ -268,7 +284,7 @@ export default function MessengerHub() {
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-start mb-1">
                       <h4 className="text-sm font-bold text-charcoal dark:text-white truncate">
-                        {chat.user.name || chat.user.email}
+                        {chat.user?.tenant?.shopName || chat.user.name || chat.user.email}
                       </h4>
                       <span className="text-[9px] font-bold text-slate-400 uppercase shrink-0">
                         {new Date(chat.updatedAt).toLocaleTimeString([], {
@@ -279,7 +295,7 @@ export default function MessengerHub() {
                     </div>
                     <div className="flex items-center gap-2 mb-2">
                       <span className="text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 dark:bg-zinc-800">
-                        {chat.user?.role || "USER"}
+                        {chat.user?.tenant ? `TENANT • ${chat.user.tenant.unitId}` : chat.user?.role || "USER"}
                       </span>
                     </div>
                     <p className="text-xs text-slate-500 font-medium truncate">
@@ -299,7 +315,9 @@ export default function MessengerHub() {
               <div className="h-16 border-b border-slate-100 dark:border-white/5 flex items-center justify-between px-6 shadow-sm z-10 transition-all">
                 <div className="flex items-center gap-3">
                   <h3 className="font-bold text-charcoal dark:text-white">
-                    {activeChat.user.name || activeChat.user.email}
+                    {activeChat.user?.tenant?.shopName
+                      ? `${activeChat.user.tenant.shopName} (${activeChat.user.tenant.unitId})`
+                      : activeChat.user.name || activeChat.user.email}
                   </h3>
                 </div>
                 <div className="flex items-center gap-2">
@@ -523,3 +541,23 @@ export default function MessengerHub() {
     </div>
   );
 }
+
+export default function MessengerHub() {
+  return (
+    <Suspense
+      fallback={
+        <div className="h-screen flex items-center justify-center">
+          <div className="flex flex-col items-center gap-3">
+            <Loader2 size={32} className="animate-spin text-primary" />
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+              Loading Messenger...
+            </span>
+          </div>
+        </div>
+      }
+    >
+      <MessengerHubContent />
+    </Suspense>
+  );
+}
+

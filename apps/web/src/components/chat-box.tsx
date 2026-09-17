@@ -138,7 +138,7 @@ export const ChatBox = ({
       setInputText(initialMessage);
     }
   }, [initialMessage, isOpen]);
-  
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Real DB Messages state

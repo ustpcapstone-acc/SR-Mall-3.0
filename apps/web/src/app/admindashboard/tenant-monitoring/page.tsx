@@ -17,6 +17,7 @@ import {
   Star,
   TrendingUp,
   UserPlus,
+  Users,
   CheckCircle,
   Building,
   Phone,
@@ -53,6 +54,12 @@ import {
   getTenantReportDataAction,
   adminUpdateTenantAction,
 } from "@/app/actions/tenant";
+import { getOrCreateAdminConversationForTenantAction } from "@/app/actions/chat-queries";
+import {
+  generateVoucherPDF,
+  generateTenantReceiptPDF,
+  generateTenantPDF,
+} from "@/utils/report-generator";
 // Dynamic import used in handler to prevent SSR issues
 import { getAreaSlots } from "@/app/actions/space-slot";
 import {
@@ -235,6 +242,7 @@ export default function TenantMonitoring() {
     active: 0,
     pending: 0,
     overdue: 0,
+    paidTenants: 0,
     totalRevenue: 0,
     collectedRevenue: 0,
     pendingRevenue: 0,
@@ -256,6 +264,10 @@ export default function TenantMonitoring() {
     dueDate: "",
     description: "Manual Billing - Rent & Utilities",
   });
+  const [isDocumentsModalOpen, setIsDocumentsModalOpen] = useState(false);
+  const [tenantToDelete, setTenantToDelete] = useState<Tenant | null>(null);
+  const [isDeletingTenant, setIsDeletingTenant] = useState(false);
+  const [generatingDoc, setGeneratingDoc] = useState<string | null>(null);
 
   const loadTenants = async () => {
     setLoading(true);
@@ -371,6 +383,15 @@ export default function TenantMonitoring() {
           overdue: enhancedTenants.filter(
             (tenant: Tenant) => tenant.paymentStatus === "OVERDUE",
           ).length,
+          paidTenants: enhancedTenants.filter((tenant: Tenant) => {
+            const tInvoices = invoicesResult.filter(
+              (inv: any) => inv.tenantId === tenant.id,
+            );
+            return (
+              tInvoices.some((inv: any) => inv.status === "PAID") ||
+              (tenant.paymentStatus === "🟢 Cleared" && tenant.status === "ACTIVE")
+            );
+          }).length,
           totalRevenue: enhancedTenants.reduce(
             (sum: number, tenant: Tenant) => sum + (tenant.rentCost || 0),
             0,
@@ -506,12 +527,115 @@ export default function TenantMonitoring() {
   };
 
   const handleViewDocuments = () => {
-    setToast({ msg: "Documents feature coming soon!", type: "success" });
+    if (!selectedTenant) return;
+    setIsDocumentsModalOpen(true);
   };
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!selectedTenant) return;
-    window.location.href = `/admindashboard/messages?tenantId=${selectedTenant.id}`;
+    try {
+      const res = await getOrCreateAdminConversationForTenantAction(selectedTenant.id);
+      if (res.success && res.conversationId) {
+        window.location.href = `/admindashboard/messenger-hub?conversationId=${res.conversationId}&tenantId=${selectedTenant.id}`;
+      } else {
+        window.location.href = `/admindashboard/messenger-hub?tenantId=${selectedTenant.id}`;
+      }
+    } catch {
+      window.location.href = `/admindashboard/messenger-hub?tenantId=${selectedTenant.id}`;
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!tenantToDelete) return;
+    setIsDeletingTenant(true);
+    try {
+      const result = await deleteTenantAction(tenantToDelete.id);
+      if (result.success) {
+        setToast({
+          msg: `✓ ${tenantToDelete.shopName} deleted successfully`,
+          type: "success",
+        });
+        setTenantToDelete(null);
+        setSelectedTenant(null);
+        loadTenants();
+        loadAvailableSlots();
+      } else {
+        setToast({
+          msg: result.error || "Failed to delete tenant",
+          type: "error",
+        });
+      }
+    } catch (error: any) {
+      setToast({
+        msg: error.message || "Error deleting tenant",
+        type: "error",
+      });
+    } finally {
+      setIsDeletingTenant(false);
+    }
+  };
+
+  const handleDownloadVoucher = async (tenant: Tenant) => {
+    try {
+      setGeneratingDoc("voucher");
+      await generateVoucherPDF({
+        shopName: tenant.shopName,
+        category: (tenant as any).category || "Retail",
+        email: tenant.user?.email || "tenant@srmall.com",
+        tempPass: "••••••••",
+        slotId: tenant.unitId,
+        rentCost: tenant.rentCost || 0,
+        startDate: tenant.contractStart || "N/A",
+        endDate: tenant.contractEnd || "N/A",
+      });
+      setToast({ msg: "✓ Lease agreement voucher downloaded", type: "success" });
+    } catch (e: any) {
+      console.error("Voucher download error:", e);
+      setToast({ msg: "Could not generate voucher PDF", type: "error" });
+    } finally {
+      setGeneratingDoc(null);
+    }
+  };
+
+  const handleDownloadReceipt = async (inv: any, tenant: Tenant) => {
+    try {
+      setGeneratingDoc(`receipt-${inv.id}`);
+      await generateTenantReceiptPDF(inv, tenant);
+      setToast({ msg: "✓ Official receipt downloaded", type: "success" });
+    } catch (e: any) {
+      console.error("Receipt download error:", e);
+      setToast({ msg: "Could not generate receipt PDF", type: "error" });
+    } finally {
+      setGeneratingDoc(null);
+    }
+  };
+
+  const handleDownloadTenantSummary = async (tenant: Tenant) => {
+    try {
+      setGeneratingDoc("summary");
+      await generateTenantPDF([
+        {
+          shopName: tenant.shopName,
+          tenantOwner: tenant.user?.name || tenant.user?.email || "N/A",
+          category: (tenant as any).category || "Retail",
+          unitId: tenant.unitId,
+          monthlyRent: tenant.rentCost || 0,
+          balance: allInvoices
+            .filter((i: any) => i.tenantId === tenant.id && i.status !== "PAID")
+            .reduce((sum: number, i: any) => sum + i.amount, 0),
+          status: tenant.status,
+          nextDueDate: tenant.nextDueDate,
+          leaseExpiryDate: tenant.contractEnd || new Date().toISOString(),
+          sqmSize: availableSlots.find((s: any) => s.unit_id === tenant.unitId)?.sqm_size || 50,
+        },
+      ]);
+      setToast({ msg: "✓ Tenant report downloaded", type: "success" });
+    } catch (e: any) {
+      console.error("Report download error:", e);
+      setToast({ msg: "Could not generate tenant report PDF", type: "error" });
+    } finally {
+      setGeneratingDoc(null);
+    }
   };
 
   const handlePostMonthlyBill = () => {
@@ -1042,6 +1166,322 @@ export default function TenantMonitoring() {
         </div>
       )}
 
+      {/* Tenant Documents Modal */}
+      {isDocumentsModalOpen && selectedTenant && (
+        <div className="fixed inset-0 z-[250] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setIsDocumentsModalOpen(false)}
+          />
+          <div className="relative w-full max-w-2xl bg-white dark:bg-zinc-950 rounded-[2rem] shadow-2xl overflow-hidden animate-fade-in-up flex flex-col max-h-[90vh]">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-slate-900 to-slate-800 dark:from-zinc-900 dark:to-zinc-950 p-6 text-white relative shrink-0 border-b border-white/10">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-primary/20 text-primary rounded-2xl flex items-center justify-center border border-primary/30">
+                  <FileText size={24} />
+                </div>
+                <div>
+                  <h2 className="text-xl font-black tracking-tight">
+                    Tenant Documents & Records
+                  </h2>
+                  <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-0.5">
+                    {selectedTenant.shopName} • {selectedTenant.unitId}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsDocumentsModalOpen(false)}
+                className="absolute top-6 right-6 p-2 rounded-full hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Content Area */}
+            <div className="p-6 overflow-y-auto space-y-6">
+              {/* Section 1: Lease Contract & Official Voucher */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 flex items-center gap-2">
+                    <Calendar size={14} /> Official Lease Agreement & Voucher
+                  </h4>
+                  <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+                    Active Document
+                  </span>
+                </div>
+
+                <div className="bg-slate-50 dark:bg-zinc-900/60 rounded-2xl border border-slate-200 dark:border-white/5 p-5 space-y-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-left">
+                    <div>
+                      <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 block mb-1">
+                        Unit Assignment
+                      </span>
+                      <span className="text-sm font-black text-charcoal dark:text-white">
+                        {selectedTenant.unitId}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 block mb-1">
+                        Monthly Lease
+                      </span>
+                      <span className="text-sm font-black text-charcoal dark:text-white">
+                        ₱{(selectedTenant.rentCost || 0).toLocaleString()}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 block mb-1">
+                        Effective Date
+                      </span>
+                      <span className="text-xs font-bold text-slate-600 dark:text-slate-300">
+                        {selectedTenant.contractStart || "N/A"}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 block mb-1">
+                        Term Expiry
+                      </span>
+                      <span className="text-xs font-bold text-slate-600 dark:text-slate-300">
+                        {selectedTenant.contractEnd || "N/A"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="pt-3 border-t border-slate-200 dark:border-white/5 flex items-center justify-between gap-3">
+                    <p className="text-[10px] text-slate-500">
+                      Standard SR-Mall Commercial Space Lease Agreement Voucher with system verification code and security credentials.
+                    </p>
+                    <button
+                      onClick={() => handleDownloadVoucher(selectedTenant)}
+                      disabled={generatingDoc === "voucher"}
+                      className="px-4 py-2.5 bg-[#BE1E2D] hover:bg-[#a01825] text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-md shadow-red-500/20 hover:scale-105 active:scale-95 inline-flex items-center gap-2 shrink-0 disabled:opacity-50"
+                    >
+                      {generatingDoc === "voucher" ? (
+                        <>
+                          <RefreshCw size={12} className="animate-spin" /> Generating...
+                        </>
+                      ) : (
+                        <>
+                          <Download size={12} /> Download Lease PDF
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 2: Invoices & Receipts Ledger */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 flex items-center gap-2">
+                    <Receipt size={14} /> Official Payment Receipts & Invoices
+                  </h4>
+                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                    {allInvoices.filter((i: any) => i.tenantId === selectedTenant.id).length} Documents
+                  </span>
+                </div>
+
+                <div className="bg-slate-50 dark:bg-zinc-900/60 rounded-2xl border border-slate-200 dark:border-white/5 overflow-hidden">
+                  {allInvoices.filter((i: any) => i.tenantId === selectedTenant.id).length > 0 ? (
+                    <div className="divide-y divide-slate-200 dark:divide-white/5 max-h-60 overflow-y-auto">
+                      {allInvoices
+                        .filter((i: any) => i.tenantId === selectedTenant.id)
+                        .map((inv: any) => (
+                          <div
+                            key={inv.id}
+                            className="p-4 flex items-center justify-between gap-4 hover:bg-slate-100/60 dark:hover:bg-white/5 transition-colors"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div
+                                className={clsx(
+                                  "w-9 h-9 rounded-xl flex items-center justify-center shrink-0",
+                                  inv.status === "PAID"
+                                    ? "bg-emerald-500/10 text-emerald-500"
+                                    : "bg-amber-500/10 text-amber-500",
+                                )}
+                              >
+                                <Receipt size={16} />
+                              </div>
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs font-black text-charcoal dark:text-white uppercase tracking-tight">
+                                    {inv.invoiceNumber}
+                                  </span>
+                                  <span
+                                    className={clsx(
+                                      "text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded",
+                                      inv.status === "PAID"
+                                        ? "bg-emerald-500/20 text-emerald-600"
+                                        : inv.status === "OVERDUE"
+                                          ? "bg-red-500/20 text-red-600"
+                                          : "bg-amber-500/20 text-amber-600",
+                                    )}
+                                  >
+                                    {inv.status === "REVIEWING" ? "PENDING" : inv.status}
+                                  </span>
+                                </div>
+                                <p className="text-[10px] text-slate-400 font-bold uppercase mt-0.5">
+                                  {inv.month} • Due {new Date(inv.dueDate).toLocaleDateString()} • ₱{inv.amount.toLocaleString()}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              {inv.depositSlipUrl && (
+                                <a
+                                  href={inv.depositSlipUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="px-3 py-1.5 bg-white dark:bg-zinc-800 text-slate-600 dark:text-slate-300 hover:text-primary rounded-lg text-[9px] font-black uppercase tracking-widest border border-slate-200 dark:border-white/10 transition-colors inline-flex items-center gap-1.5"
+                                >
+                                  <Eye size={12} /> View Slip
+                                </a>
+                              )}
+                              {inv.status === "PAID" && (
+                                <button
+                                  onClick={() => handleDownloadReceipt(inv, selectedTenant)}
+                                  disabled={generatingDoc === `receipt-${inv.id}`}
+                                  className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-[9px] font-black uppercase tracking-widest shadow-sm transition-all hover:scale-105 active:scale-95 inline-flex items-center gap-1.5 disabled:opacity-50"
+                                >
+                                  <Download size={12} /> Official Receipt
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  ) : (
+                    <div className="p-8 text-center text-slate-400">
+                      <FileText size={28} className="mx-auto mb-2 opacity-20" />
+                      <p className="text-xs font-bold uppercase tracking-widest">
+                        No billing ledger records found
+                      </p>
+                      <p className="text-[10px] text-slate-500 mt-1">
+                        Posted invoices and official payments will be logged and downloadable here.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Section 3: Intelligence & Audit Report */}
+              <div>
+                <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-3 flex items-center gap-2">
+                  <BarChart3 size={14} /> Intelligence & Compliance Export
+                </h4>
+
+                <div className="bg-slate-50 dark:bg-zinc-900/60 rounded-2xl border border-slate-200 dark:border-white/5 p-4 flex items-center justify-between gap-4">
+                  <div>
+                    <h5 className="text-xs font-black text-charcoal dark:text-white uppercase tracking-tight">
+                      Comprehensive Tenant Audit Report
+                    </h5>
+                    <p className="text-[10px] text-slate-500 mt-0.5">
+                      Full administrative summary including occupancy area, rental figures, ledger status, and ratings.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleDownloadTenantSummary(selectedTenant)}
+                    disabled={generatingDoc === "summary"}
+                    className="px-4 py-2.5 bg-slate-900 dark:bg-zinc-800 hover:bg-black text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all hover:scale-105 active:scale-95 inline-flex items-center gap-2 shrink-0 disabled:opacity-50"
+                  >
+                    {generatingDoc === "summary" ? (
+                      <>
+                        <RefreshCw size={12} className="animate-spin" /> Generating...
+                      </>
+                    ) : (
+                      <>
+                        <Download size={12} /> Export Report
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-5 bg-slate-50 dark:bg-zinc-900 border-t border-slate-200 dark:border-white/5 shrink-0 flex justify-end">
+              <button
+                onClick={() => setIsDocumentsModalOpen(false)}
+                className="px-6 py-2.5 bg-slate-200 dark:bg-zinc-800 text-slate-700 dark:text-slate-200 font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-slate-300 dark:hover:bg-zinc-700 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Tenant Confirmation Modal */}
+      {tenantToDelete && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => !isDeletingTenant && setTenantToDelete(null)}
+          />
+          <div className="relative w-full max-w-md bg-white dark:bg-zinc-950 rounded-[2rem] shadow-2xl overflow-hidden animate-fade-in-up border border-red-200 dark:border-red-900/30">
+            <div className="p-6 text-center space-y-4">
+              <div className="w-16 h-16 bg-red-500/10 text-red-600 rounded-3xl flex items-center justify-center mx-auto border border-red-500/20">
+                <Trash2 size={32} />
+              </div>
+
+              <div>
+                <h3 className="text-xl font-black text-charcoal dark:text-white uppercase tracking-tight">
+                  Delete Tenant
+                </h3>
+                <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">
+                  Permanent Administrative Action
+                </p>
+              </div>
+
+              <div className="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-900/20 rounded-2xl p-4 text-left">
+                <p className="text-xs text-red-900 dark:text-red-300 font-medium leading-relaxed">
+                  Are you sure you want to delete{" "}
+                  <strong className="font-black text-red-600 dark:text-red-400">
+                    {tenantToDelete.shopName}
+                  </strong>
+                  ?
+                </p>
+                <ul className="text-[11px] text-slate-600 dark:text-slate-400 mt-2 space-y-1 list-disc list-inside">
+                  <li>Tenant profile will be permanently deleted</li>
+                  <li>
+                    Assigned Unit{" "}
+                    <span className="font-bold text-charcoal dark:text-white">
+                      {tenantToDelete.unitId}
+                    </span>{" "}
+                    will be released to Available
+                  </li>
+                  <li>Merchant account will revert to standard customer</li>
+                </ul>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => setTenantToDelete(null)}
+                  disabled={isDeletingTenant}
+                  className="flex-1 py-3.5 bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-slate-300 font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-slate-200 transition-all disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmDelete}
+                  disabled={isDeletingTenant}
+                  className="flex-1 py-3.5 bg-red-600 hover:bg-red-700 text-white font-black text-xs uppercase tracking-widest rounded-xl shadow-lg shadow-red-600/30 transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {isDeletingTenant ? (
+                    <>
+                      <RefreshCw size={14} className="animate-spin" /> Deleting...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 size={14} /> Confirm Delete
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div
         className={clsx(
           "min-h-screen",
@@ -1120,13 +1560,13 @@ export default function TenantMonitoring() {
               onClick={() => setIsRegisterOpen(true)}
               className="h-14 px-8 bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest flex items-center gap-3 hover:scale-105 transition-all shadow-xl shadow-primary/20 active:scale-95"
             >
-              <UserPlus size={18} /> Add Boutique
+              <UserPlus size={18} /> Add Account
             </button>
           </div>
         </div>
 
         {/* Executive Summary Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-10">
           <div className="group relative p-1">
             <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-[2rem] blur-xl opacity-0 group-hover:opacity-10 transition-opacity"></div>
             <div className="relative p-6 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-[1.8rem] shadow-sm overflow-hidden h-full">
@@ -1198,7 +1638,7 @@ export default function TenantMonitoring() {
                   </span>
                   <div className="flex items-center gap-1 text-amber-500">
                     <Activity size={10} />
-                    <span className="text-[10px] font-bold">Reviewing</span>
+                    <span className="text-[10px] font-bold">Pending</span>
                   </div>
                 </div>
               </div>
@@ -1233,6 +1673,60 @@ export default function TenantMonitoring() {
               </p>
               <p className="text-[10px] font-bold text-slate-500 uppercase mt-1">
                 Urgent Action Items
+              </p>
+            </div>
+          </div>
+
+          {/* Paid Tenants Card */}
+          <div className="group relative p-1">
+            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-[2rem] blur-xl opacity-0 group-hover:opacity-10 transition-opacity"></div>
+            <div className="relative p-6 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-[1.8rem] shadow-sm overflow-hidden h-full">
+              <div className="flex items-start justify-between mb-8">
+                <div className="w-12 h-12 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-500 group-hover:scale-110 transition-transform">
+                  <CheckCircle size={22} />
+                </div>
+                <div className="flex flex-col items-end">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    Paid Tenants
+                  </span>
+                  <div className="flex items-center gap-1 text-emerald-500 font-black">
+                    <CheckCircle size={10} />
+                    <span className="text-[10px]">Cleared</span>
+                  </div>
+                </div>
+              </div>
+              <p className="text-4xl font-black text-charcoal dark:text-white tracking-tighter">
+                {stats.paidTenants}
+              </p>
+              <p className="text-[10px] font-bold text-slate-500 uppercase mt-1">
+                Settled Accounts
+              </p>
+            </div>
+          </div>
+
+          {/* Total Tenants Card */}
+          <div className="group relative p-1">
+            <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-[2rem] blur-xl opacity-0 group-hover:opacity-10 transition-opacity"></div>
+            <div className="relative p-6 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-[1.8rem] shadow-sm overflow-hidden h-full">
+              <div className="flex items-start justify-between mb-8">
+                <div className="w-12 h-12 bg-indigo-500/10 rounded-2xl flex items-center justify-center text-indigo-500 group-hover:scale-110 transition-transform">
+                  <Users size={22} />
+                </div>
+                <div className="flex flex-col items-end">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    Total Tenants
+                  </span>
+                  <div className="flex items-center gap-1 text-indigo-500 font-black">
+                    <TrendingUp size={10} />
+                    <span className="text-[10px]">Directory</span>
+                  </div>
+                </div>
+              </div>
+              <p className="text-4xl font-black text-charcoal dark:text-white tracking-tighter">
+                {stats.total}
+              </p>
+              <p className="text-[10px] font-bold text-slate-500 uppercase mt-1">
+                All Merchants
               </p>
             </div>
           </div>
@@ -2860,7 +3354,7 @@ export default function TenantMonitoring() {
                                             : "bg-amber-500/20 text-amber-600",
                                       )}
                                     >
-                                      {inv.status}
+                                      {inv.status === "REVIEWING" ? "PENDING" : inv.status}
                                     </span>
                                   </div>
                                 </div>
@@ -3123,60 +3617,30 @@ export default function TenantMonitoring() {
                   "space-y-3",
                 )}
               >
-                <div className={clsx("flex", "gap-3")}>
-                  <button
-                    onClick={() => setIsEditModalOpen(true)}
-                    className={clsx(
-                      "flex-1",
-                      "h-14",
-                      "bg-white",
-                      "dark:bg-white/5",
-                      "text-slate-600",
-                      "dark:text-white",
-                      "border",
-                      "border-slate-200",
-                      "dark:border-white/10",
-                      "rounded-2xl",
-                      "font-black",
-                      "text-[10px]",
-                      "uppercase",
-                      "tracking-[0.2em]",
-                      "hover:bg-slate-50",
-                      "dark:hover:bg-white/10",
-                      "transition-colors",
-                      "flex",
-                      "items-center",
-                      "justify-center",
-                      "gap-2",
-                    )}
-                  >
-                    <Edit size={16} /> Edit Profile
-                  </button>
-                  <button
-                    onClick={handlePostMonthlyBill}
-                    className={clsx(
-                      "flex-1",
-                      "h-14",
-                      "bg-[#BE1E2D]",
-                      "text-white",
-                      "rounded-2xl",
-                      "font-black",
-                      "text-[10px]",
-                      "uppercase",
-                      "tracking-[0.2em]",
-                      "hover:bg-[#a01825]",
-                      "transition-colors",
-                      "flex",
-                      "items-center",
-                      "justify-center",
-                      "gap-2",
-                      "shadow-lg",
-                      "shadow-red-500/20",
-                    )}
-                  >
-                    <Receipt size={16} /> Post Monthly Bill
-                  </button>
-                </div>
+                <button
+                  onClick={handlePostMonthlyBill}
+                  className={clsx(
+                    "w-full",
+                    "h-14",
+                    "bg-[#BE1E2D]",
+                    "text-white",
+                    "rounded-2xl",
+                    "font-black",
+                    "text-[10px]",
+                    "uppercase",
+                    "tracking-[0.2em]",
+                    "hover:bg-[#a01825]",
+                    "transition-colors",
+                    "flex",
+                    "items-center",
+                    "justify-center",
+                    "gap-2",
+                    "shadow-lg",
+                    "shadow-red-500/20",
+                  )}
+                >
+                  <Receipt size={16} /> Post Monthly Bill
+                </button>
                 <div className={clsx("grid", "grid-cols-2", "gap-3")}>
                   <button
                     onClick={handleViewDocuments}
@@ -3206,7 +3670,7 @@ export default function TenantMonitoring() {
                     <FileText size={14} /> Documents
                   </button>
                   <button
-                    onClick={() => handleDeleteTenant(selectedTenant.id)}
+                    onClick={() => setTenantToDelete(selectedTenant)}
                     className={clsx(
                       "py-2.5",
                       "bg-red-50",

@@ -87,8 +87,16 @@ export async function getAdminConversations() {
         type: "ADMIN",
       },
       include: {
-        user: true,
-        target: true,
+        user: {
+          include: {
+            tenant: true,
+          },
+        },
+        target: {
+          include: {
+            tenant: true,
+          },
+        },
         areaSlot: true,
         messages: {
           orderBy: { createdAt: "desc" },
@@ -222,3 +230,66 @@ export async function getPortalAdminAction() {
     return null;
   }
 }
+
+export async function getOrCreateAdminConversationForTenantAction(tenantId: string) {
+  try {
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: tenantId },
+      include: { user: true },
+    });
+    if (!tenant || !tenant.userId) {
+      return { success: false, error: "Tenant or tenant user not found" };
+    }
+
+    let admin = await prisma.user.findFirst({
+      where: { role: "ADMIN" },
+    });
+
+    if (!admin) {
+      admin = await prisma.user.create({
+        data: {
+          email: "jerickaradilla76@gmail.com",
+          password: "hash",
+          role: "ADMIN",
+          name: "Mall Admin",
+        },
+      });
+    }
+
+    // Check if an ADMIN conversation already exists with this tenant's user
+    let conversation = await prisma.conversation.findFirst({
+      where: {
+        type: "ADMIN",
+        OR: [
+          { userId: tenant.userId },
+          { targetId: tenant.userId },
+        ],
+      },
+    });
+
+    if (!conversation) {
+      let spaceSlot = null;
+      if (tenant.unitId && tenant.unitId !== "PENDING_ASSIGNMENT") {
+        spaceSlot = await prisma.areaSlot.findFirst({
+          where: { unit_id: tenant.unitId },
+        });
+      }
+
+      conversation = await prisma.conversation.create({
+        data: {
+          type: "ADMIN",
+          userId: tenant.userId,
+          targetId: admin.id,
+          spaceSlotId: spaceSlot?.id || null,
+        },
+      });
+    }
+
+    revalidatePath("/admindashboard/messenger-hub");
+    return { success: true, conversationId: conversation.id };
+  } catch (error: any) {
+    console.error("Failed to get or create admin conversation for tenant:", error);
+    return { success: false, error: error.message };
+  }
+}
+
