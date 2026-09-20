@@ -13,13 +13,11 @@ import {
   Loader2,
   Paperclip,
   X,
-  Trash2,
   ExternalLink,
   Maximize2,
 } from "lucide-react";
 import { useAuth } from "@/app/providers";
 import { markMessageNotificationsAsReadAction } from "@/app/actions/notification";
-import { deleteMessageAction, unsendImageAction } from "@/app/actions/chat-queries";
 import clsx from "clsx";
 
 export default function CustomerMessenger() {
@@ -36,9 +34,6 @@ export default function CustomerMessenger() {
   const [filter, setFilter] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Modals state
-  const [messageToUnsend, setMessageToUnsend] = useState<any | null>(null);
-  const [isUnsending, setIsUnsending] = useState(false);
   const [lightboxImageUrl, setLightboxImageUrl] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -261,39 +256,7 @@ export default function CustomerMessenger() {
     }
   };
 
-  const handleConfirmUnsend = async (mode: "all" | "imageOnly" = "all") => {
-    if (!messageToUnsend) return;
-    const msgId = messageToUnsend.id;
-    setIsUnsending(true);
 
-    if (mode === "all") {
-      setMessages((prev) => prev.filter((m) => m.id !== msgId));
-    } else {
-      setMessages((prev) =>
-        prev.map((m) => (m.id === msgId ? { ...m, imageUrl: null } : m))
-      );
-    }
-
-    try {
-      const res =
-        mode === "all"
-          ? await deleteMessageAction(msgId, user?.id)
-          : await unsendImageAction(msgId, user?.id);
-
-      if (!res.success) {
-        alert(res.error || "Failed to unsend message");
-        if (activeChat?.id) fetchMessages(activeChat.id, false);
-      } else {
-        fetchConversations();
-      }
-    } catch (err) {
-      console.error("Error unsending:", err);
-      if (activeChat?.id) fetchMessages(activeChat.id, false);
-    } finally {
-      setIsUnsending(false);
-      setMessageToUnsend(null);
-    }
-  };
 
   const getOtherPerson = (chat: any) => {
     if (!chat) return null;
@@ -594,18 +557,7 @@ export default function CustomerMessenger() {
                                         {msg.content}
                                       </p>
                                     )}
-
-                                    {/* Unsend button for sent messages */}
-                                    {isMyMsg && !isTemporary && (
-                                      <button
-                                        onClick={() => setMessageToUnsend(msg)}
-                                        title="Unsend"
-                                        className="absolute -left-8 top-1/2 -translate-y-1/2 opacity-0 group-hover/bubble:opacity-100 transition-opacity p-1.5 hover:bg-red-50 dark:hover:bg-red-950/50 rounded-lg text-slate-400 hover:text-red-500 shadow-sm bg-white dark:bg-zinc-800 border border-slate-200 dark:border-white/10"
-                                      >
-                                        <Trash2 size={12} />
-                                      </button>
-                                    )}
-                                  </div>
+                                    </div>
                                 </div>
                                 <span className="text-[9px] font-bold text-slate-400 uppercase mt-1 lg:mt-2">
                                   {new Date(msg.createdAt).toLocaleTimeString([], {
@@ -757,63 +709,7 @@ export default function CustomerMessenger() {
         </div>
       </div>
 
-      {/* ── MODAL: UNSEND MESSAGE ── */}
-      {messageToUnsend && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
-          <div className="bg-white dark:bg-zinc-900 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 dark:border-white/10 space-y-5 animate-scale-up">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-red-50 dark:bg-red-950/30 text-red-600 flex items-center justify-center shrink-0">
-                <Trash2 size={24} />
-              </div>
-              <div>
-                <h3 className="text-lg font-black text-charcoal dark:text-white">
-                  Unsend Message
-                </h3>
-                <p className="text-xs text-slate-500 font-medium">
-                  Permanent removal from conversation
-                </p>
-              </div>
-            </div>
 
-            <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-              Are you sure you want to unsend this transmission? It will be permanently removed for all participants.
-            </p>
-
-            <div className="flex flex-col sm:flex-row gap-2 justify-end pt-2">
-              <button
-                type="button"
-                onClick={() => setMessageToUnsend(null)}
-                disabled={isUnsending}
-                className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors"
-              >
-                Cancel
-              </button>
-
-              {messageToUnsend.imageUrl && messageToUnsend.content && (
-                <button
-                  type="button"
-                  onClick={() => handleConfirmUnsend("imageOnly")}
-                  disabled={isUnsending}
-                  className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition-colors flex items-center justify-center gap-1.5"
-                >
-                  {isUnsending && <Loader2 size={14} className="animate-spin" />}
-                  Remove Image Only
-                </button>
-              )}
-
-              <button
-                type="button"
-                onClick={() => handleConfirmUnsend("all")}
-                disabled={isUnsending}
-                className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-black uppercase tracking-wider transition-all shadow-md shadow-red-500/20 flex items-center justify-center gap-2"
-              >
-                {isUnsending && <Loader2 size={14} className="animate-spin" />}
-                Unsend for Everyone
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ── MODAL: IMAGE LIGHTBOX ── */}
       {lightboxImageUrl && (

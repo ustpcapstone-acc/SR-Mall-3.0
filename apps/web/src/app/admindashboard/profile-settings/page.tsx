@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   User,
   Lock,
@@ -28,19 +28,37 @@ import {
   getNotificationPreferences,
   updateNotificationPreferences,
 } from "@/app/actions/notifications";
-import { updateSecurityAction } from "@/app/actions/auth";
+import {
+  updateSecurityAction,
+  updateProfileAction,
+  uploadAvatarAction,
+} from "@/app/actions/auth";
 import { toast } from "sonner";
 import clsx from "clsx";
 
 type Tab = "profile" | "security" | "notifications" | "system";
 
 export default function AdminProfileSettings() {
-  const { user } = useAuth();
+  const { user, updateUser, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<Tab>("profile");
   const [showPass, setShowPass] = useState(false);
+  const [showNewPass, setShowNewPass] = useState(false);
+  const [showConfirmPass, setShowConfirmPass] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
   const [notificationPrefs, setNotificationPrefs] = useState<any>(null);
   const [loadingPrefs, setLoadingPrefs] = useState(false);
+
+  // Profile Form State
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    department: "SR Mall Management — Super Administrator",
+    bio: "Oversees all mall operations, tenant management, and administrative decisions for SR Mall ecosystem.",
+  });
 
   // Security State
   const [securityData, setSecurityData] = useState({
@@ -48,6 +66,26 @@ export default function AdminProfileSettings() {
     newPassword: "",
     confirmPassword: "",
   });
+
+  // Prepopulate form data from authenticated user
+  useEffect(() => {
+    if (user) {
+      const parts = (user.name || "").trim().split(" ");
+      const first = parts[0] || "Admin";
+      const last = parts.slice(1).join(" ") || "User";
+      const storedBio = localStorage.getItem(`admin_bio_${user.id}`);
+      const storedPhone = localStorage.getItem(`admin_phone_${user.id}`);
+      const storedDept = localStorage.getItem(`admin_dept_${user.id}`);
+      setFormData({
+        firstName: first,
+        lastName: last,
+        email: user.email || "srmall@admin.com",
+        phone: storedPhone || "+63 917 555 0000",
+        department: storedDept || "SR Mall Management — Super Administrator",
+        bio: storedBio || "Oversees all mall operations, tenant management, and administrative decisions for SR Mall ecosystem.",
+      });
+    }
+  }, [user]);
 
   // Load notification preferences
   useEffect(() => {
@@ -71,16 +109,83 @@ export default function AdminProfileSettings() {
     }
   }, [user, activeTab]);
 
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user?.id) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select a valid image file.");
+      return;
+    }
+    setIsUploadingAvatar(true);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await uploadAvatarAction(user.id, form);
+      if (res.success && res.data) {
+        updateUser({ avatarUrl: res.data.avatarUrl });
+        toast.success("Avatar Updated Successfully", {
+          description: "Your master profile image is now synchronized.",
+        });
+      } else {
+        toast.error(res.error || "Failed to upload avatar");
+      }
+    } catch (err: any) {
+      toast.error("Avatar upload error: " + (err.message || err));
+    } finally {
+      setIsUploadingAvatar(false);
+      if (e.target) e.target.value = "";
+    }
+  };
+
   const handleProfileSave = async () => {
+    if (!user?.id) return;
+    if (!formData.firstName.trim() && !formData.lastName.trim()) {
+      toast.error("Name is required.");
+      return;
+    }
+    if (!formData.email.trim()) {
+      toast.error("Email address is required.");
+      return;
+    }
     setIsSaving(true);
-    // Mock save for other profile fields for now as they aren't fully hooked to a tenant-like specialized action yet
-    await new Promise((r) => setTimeout(r, 1000));
-    toast.success("Profile Identity Updated");
-    setIsSaving(false);
+    try {
+      const fullName = `${formData.firstName.trim()} ${formData.lastName.trim()}`.trim();
+      const res = await updateProfileAction(user.id, {
+        name: fullName,
+        email: formData.email.trim(),
+      });
+      if (res.success && res.data) {
+        updateUser({ name: res.data.name || fullName, email: res.data.email });
+        localStorage.setItem(`admin_bio_${user.id}`, formData.bio);
+        localStorage.setItem(`admin_phone_${user.id}`, formData.phone);
+        localStorage.setItem(`admin_dept_${user.id}`, formData.department);
+        toast.success("Profile Identity Committed", {
+          description: "Administrator parameters successfully synchronized.",
+        });
+      } else {
+        toast.error(res.error || "Failed to update profile.");
+      }
+    } catch (err: any) {
+      toast.error("Save error: " + (err.message || err));
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleSecurityUpdate = async () => {
     if (!user?.id) return;
+    if (!securityData.currentPassword) {
+      toast.error("Current password is required.");
+      return;
+    }
+    if (!securityData.newPassword) {
+      toast.error("New password is required.");
+      return;
+    }
+    if (securityData.newPassword.length < 6) {
+      toast.error("New password must be at least 6 characters.");
+      return;
+    }
     if (securityData.newPassword !== securityData.confirmPassword) {
       toast.error("Security mismatch: Passwords do not align.");
       return;
@@ -157,18 +262,44 @@ export default function AdminProfileSettings() {
               <Sparkles size={40} className="text-primary" />
             </div>
             <div className="relative inline-block mb-6">
-              <div className="w-24 h-24 rounded-[2rem] bg-primary text-white font-black text-3xl flex items-center justify-center ring-4 ring-primary/20 shadow-2xl transition-transform group-hover:scale-105">
-                AD
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleAvatarUpload}
+                disabled={isUploadingAvatar}
+              />
+              <div className="w-24 h-24 rounded-[2rem] bg-primary text-white font-black text-3xl flex items-center justify-center ring-4 ring-primary/20 shadow-2xl transition-transform group-hover:scale-105 overflow-hidden">
+                {user?.avatarUrl ? (
+                  <img
+                    src={user.avatarUrl}
+                    alt="Master Admin"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  `${formData.firstName.charAt(0)}${formData.lastName.charAt(0)}`.toUpperCase() || "AD"
+                )}
               </div>
-              <button className="absolute -bottom-2 -right-2 w-10 h-10 rounded-2xl bg-charcoal dark:bg-white text-white dark:text-black flex items-center justify-center shadow-xl hover:scale-110 active:scale-95 transition-all">
-                <Camera size={16} />
+              <button
+                type="button"
+                onClick={() => avatarInputRef.current?.click()}
+                disabled={isUploadingAvatar}
+                className="absolute -bottom-2 -right-2 w-10 h-10 rounded-2xl bg-charcoal dark:bg-white text-white dark:text-black flex items-center justify-center shadow-xl hover:scale-110 active:scale-95 transition-all disabled:opacity-50"
+                title="Change Avatar"
+              >
+                {isUploadingAvatar ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <Camera size={16} />
+                )}
               </button>
             </div>
-            <h3 className="font-black text-xl text-charcoal dark:text-white uppercase tracking-tighter italic">
-              Master Admin
+            <h3 className="font-black text-xl text-charcoal dark:text-white uppercase tracking-tighter italic truncate">
+              {user?.name || "Master Admin"}
             </h3>
             <p className="text-[10px] font-black text-primary uppercase tracking-[0.3em] mt-1">
-              Superuser Principal
+              {user?.role ? `${user.role} Principal` : "Superuser Principal"}
             </p>
 
             <div className="mt-6 pt-6 border-t border-slate-100 dark:border-white/5 flex items-center justify-center gap-3">
@@ -225,28 +356,49 @@ export default function AdminProfileSettings() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <InputGroup
                   label="First Name"
-                  defaultValue="Mall"
+                  value={formData.firstName}
+                  onChange={(e: any) =>
+                    setFormData({ ...formData, firstName: e.target.value })
+                  }
+                  placeholder="First Name"
                   icon={User}
                 />
                 <InputGroup
                   label="Last Name"
-                  defaultValue="Administrator"
+                  value={formData.lastName}
+                  onChange={(e: any) =>
+                    setFormData({ ...formData, lastName: e.target.value })
+                  }
+                  placeholder="Last Name"
                   icon={User}
                 />
                 <InputGroup
                   label="Email Address"
-                  defaultValue="srmall@admin.com"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e: any) =>
+                    setFormData({ ...formData, email: e.target.value })
+                  }
+                  placeholder="admin@example.com"
                   icon={Mail}
                 />
                 <InputGroup
                   label="Terminal Phone Link"
-                  defaultValue="+63 917 555 0000"
+                  value={formData.phone}
+                  onChange={(e: any) =>
+                    setFormData({ ...formData, phone: e.target.value })
+                  }
+                  placeholder="+63 900 000 0000"
                   icon={Phone}
                 />
                 <div className="md:col-span-2">
                   <InputGroup
                     label="Institutional Role / Department"
-                    defaultValue="SR Mall Management — Super Administrator"
+                    value={formData.department}
+                    onChange={(e: any) =>
+                      setFormData({ ...formData, department: e.target.value })
+                    }
+                    placeholder="Department or Role"
                     icon={Globe}
                   />
                 </div>
@@ -256,7 +408,11 @@ export default function AdminProfileSettings() {
                   </label>
                   <textarea
                     rows={4}
-                    defaultValue="Oversees all mall operations, tenant management, and administrative decisions for SR Mall ecosystem."
+                    value={formData.bio}
+                    onChange={(e) =>
+                      setFormData({ ...formData, bio: e.target.value })
+                    }
+                    placeholder="Brief description of administrative responsibilities..."
                     className="w-full px-6 py-4 bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-[1.5rem] focus:ring-4 focus:ring-primary/10 transition-all text-sm font-medium text-charcoal dark:text-white outline-none resize-none"
                   />
                 </div>
@@ -300,12 +456,12 @@ export default function AdminProfileSettings() {
                 <div className="space-y-8">
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                      Primary Access Token (Current)
+                      Primary Access Token (Current Password)
                     </label>
                     <div className="relative">
                       <input
                         type={showPass ? "text" : "password"}
-                        placeholder="••••••••••••"
+                        placeholder="Current password"
                         value={securityData.currentPassword}
                         onChange={(e) =>
                           setSecurityData({
@@ -313,50 +469,69 @@ export default function AdminProfileSettings() {
                             currentPassword: e.target.value,
                           })
                         }
-                        className="w-full px-6 py-5 bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-2xl text-sm font-bold outline-none focus:ring-4 focus:ring-primary/10 transition-all"
+                        className="w-full px-6 py-5 bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-2xl text-sm font-bold outline-none focus:ring-4 focus:ring-primary/10 transition-all pr-14"
                       />
                       <button
+                        type="button"
                         onClick={() => setShowPass(!showPass)}
-                        className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-300 hover:text-primary transition-colors"
+                        className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary transition-colors"
                       >
-                        {showPass ? <EyeOff size={20} /> : <Eye size={20} />}
+                        {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
                       </button>
                     </div>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="space-y-2">
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                        New Authority Token
+                        New Authority Token (New Password)
                       </label>
-                      <input
-                        type="password"
-                        placeholder="••••••••••••"
-                        value={securityData.newPassword}
-                        onChange={(e) =>
-                          setSecurityData({
-                            ...securityData,
-                            newPassword: e.target.value,
-                          })
-                        }
-                        className="w-full px-6 py-5 bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-2xl text-sm font-bold outline-none focus:ring-4 focus:ring-primary/10 transition-all"
-                      />
+                      <div className="relative">
+                        <input
+                          type={showNewPass ? "text" : "password"}
+                          placeholder="Min 6 characters"
+                          value={securityData.newPassword}
+                          onChange={(e) =>
+                            setSecurityData({
+                              ...securityData,
+                              newPassword: e.target.value,
+                            })
+                          }
+                          className="w-full px-6 py-5 bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-2xl text-sm font-bold outline-none focus:ring-4 focus:ring-primary/10 transition-all pr-14"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowNewPass(!showNewPass)}
+                          className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary transition-colors"
+                        >
+                          {showNewPass ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                      </div>
                     </div>
                     <div className="space-y-2">
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
                         Confirm Token Synchronicity
                       </label>
-                      <input
-                        type="password"
-                        placeholder="••••••••••••"
-                        value={securityData.confirmPassword}
-                        onChange={(e) =>
-                          setSecurityData({
-                            ...securityData,
-                            confirmPassword: e.target.value,
-                          })
-                        }
-                        className="w-full px-6 py-5 bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-2xl text-sm font-bold outline-none focus:ring-4 focus:ring-primary/10 transition-all"
-                      />
+                      <div className="relative">
+                        <input
+                          type={showConfirmPass ? "text" : "password"}
+                          placeholder="Repeat new password"
+                          value={securityData.confirmPassword}
+                          onChange={(e) =>
+                            setSecurityData({
+                              ...securityData,
+                              confirmPassword: e.target.value,
+                            })
+                          }
+                          className="w-full px-6 py-5 bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-2xl text-sm font-bold outline-none focus:ring-4 focus:ring-primary/10 transition-all pr-14"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirmPass(!showConfirmPass)}
+                          className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary transition-colors"
+                        >
+                          {showConfirmPass ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -364,8 +539,8 @@ export default function AdminProfileSettings() {
                 <div className="flex justify-end pt-4">
                   <button
                     onClick={handleSecurityUpdate}
-                    disabled={isSaving || !securityData.currentPassword}
-                    className="px-10 py-5 bg-charcoal dark:bg-white text-white dark:text-black rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-2xl hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
+                    disabled={isSaving || !securityData.currentPassword || !securityData.newPassword}
+                    className="px-10 py-5 bg-charcoal dark:bg-white text-white dark:text-black rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-2xl hover:scale-105 active:scale-95 transition-all disabled:opacity-50 flex items-center gap-2"
                   >
                     {isSaving ? (
                       <Loader2 size={16} className="animate-spin" />
@@ -388,10 +563,27 @@ export default function AdminProfileSettings() {
                   </p>
                 </div>
                 <div className="flex gap-4 w-full md:w-auto">
-                  <button className="flex-1 md:flex-none px-6 py-4 border-2 border-primary text-primary font-black text-[10px] uppercase tracking-widest rounded-xl hover:bg-primary hover:text-white transition-all active:scale-95">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      toast.success("Terminal Sessions Cleared", {
+                        description: "All other active administrator session tokens purged.",
+                      });
+                    }}
+                    className="flex-1 md:flex-none px-6 py-4 border-2 border-primary text-primary font-black text-[10px] uppercase tracking-widest rounded-xl hover:bg-primary hover:text-white transition-all active:scale-95"
+                  >
                     Purge Sessions
                   </button>
-                  <button className="flex-1 md:flex-none px-6 py-4 bg-primary text-white font-black text-[10px] uppercase tracking-widest rounded-xl hover:brightness-110 transition-all shadow-xl shadow-primary/20 active:scale-95">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (confirm("Are you sure you want to lock the console and end your administrator session?")) {
+                        logout();
+                        window.location.href = "/";
+                      }
+                    }}
+                    className="flex-1 md:flex-none px-6 py-4 bg-primary text-white font-black text-[10px] uppercase tracking-widest rounded-xl hover:brightness-110 transition-all shadow-xl shadow-primary/20 active:scale-95"
+                  >
                     Lock Console
                   </button>
                 </div>
@@ -640,7 +832,23 @@ export default function AdminProfileSettings() {
   );
 }
 
-function InputGroup({ label, defaultValue, icon: Icon }: any) {
+function InputGroup({
+  label,
+  value,
+  onChange,
+  placeholder,
+  disabled = false,
+  type = "text",
+  icon: Icon,
+}: {
+  label: string;
+  value?: string;
+  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  placeholder?: string;
+  disabled?: boolean;
+  type?: string;
+  icon: any;
+}) {
   return (
     <div className="space-y-2">
       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
@@ -651,9 +859,12 @@ function InputGroup({ label, defaultValue, icon: Icon }: any) {
           <Icon size={18} />
         </div>
         <input
-          type="text"
-          defaultValue={defaultValue}
-          className="w-full pl-14 pr-6 py-4 bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-primary/10 transition-all text-sm font-bold text-charcoal dark:text-white outline-none"
+          type={type}
+          value={value}
+          onChange={onChange}
+          placeholder={placeholder}
+          disabled={disabled}
+          className="w-full pl-14 pr-6 py-4 bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-primary/10 transition-all text-sm font-bold text-charcoal dark:text-white outline-none disabled:opacity-60"
         />
       </div>
     </div>

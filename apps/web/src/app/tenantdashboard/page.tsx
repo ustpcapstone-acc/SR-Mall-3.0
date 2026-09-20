@@ -19,11 +19,15 @@ import {
   MapPin,
   CheckCircle,
   ArrowUpRight,
+  Clock,
+  AlertCircle,
+  CheckCircle2,
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/app/providers";
 import { getApprovedReviewsAction } from "@/app/actions/review";
 import { getStorefrontAction } from "@/app/actions/tenant";
+import { getTenantPaymentScheduleAction } from "@/app/actions/finance";
 import clsx from "clsx";
 
 function SpinnerIcon(props: any) {
@@ -52,21 +56,61 @@ export default function TenantDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [shopName, setShopName] = useState("");
   const [unitId, setUnitId] = useState("");
+  const [paymentSchedule, setPaymentSchedule] = useState<{
+    nextPaymentDate: string | Date | null;
+    paymentMonth: string;
+    paymentAmount: number;
+    paymentStatus: "Paid" | "Pending" | "Overdue" | "Reviewing";
+    lastPaymentDate: string | Date | null;
+    invoiceNumber?: string | null;
+    totalUnpaidBalance?: number;
+    paidInvoicesCount?: number;
+    totalInvoices?: number;
+  } | null>(null);
+  const [isLoadingSchedule, setIsLoadingSchedule] = useState(true);
+
+  const formatDate = (val: string | Date | null | undefined): string => {
+    if (!val) return "None recorded";
+    try {
+      const d = new Date(val);
+      if (isNaN(d.getTime())) return String(val);
+      return d.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
+    } catch {
+      return String(val);
+    }
+  };
 
   useEffect(() => {
     async function loadData() {
       if (!user?.id) {
         setIsLoading(false);
+        setIsLoadingSchedule(false);
         return;
       }
       try {
-        const tenantRes = await getStorefrontAction(user.id);
+        const [tenantRes, scheduleRes] = await Promise.all([
+          getStorefrontAction(user.id),
+          getTenantPaymentScheduleAction(user.id).catch(() => ({
+            success: false,
+            data: null,
+          })),
+        ]);
+
         let tId = undefined;
         if (tenantRes.success && tenantRes.data) {
           tId = tenantRes.data.id;
           setShopName(tenantRes.data.shop_name);
           setUnitId(tenantRes.data.unit_id);
         }
+
+        if (scheduleRes?.success && scheduleRes?.data) {
+          setPaymentSchedule(scheduleRes.data);
+        }
+
         const result = await getApprovedReviewsAction(tId);
         if (result.success && result.data) {
           setLiveReviews(result.data);
@@ -84,6 +128,7 @@ export default function TenantDashboard() {
         console.error(err);
       } finally {
         setIsLoading(false);
+        setIsLoadingSchedule(false);
       }
     }
     loadData();
@@ -412,6 +457,266 @@ export default function TenantDashboard() {
           </Link>
         ))}
       </div>
+
+      {/* ── PAYMENT SCHEDULE SECTION ── */}
+      <section className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl shadow-sm p-5 sm:p-6 relative overflow-hidden group">
+        {/* Ambient background glow */}
+        <div className="absolute top-0 right-0 w-72 h-72 bg-emerald-500/5 blur-[90px] rounded-full pointer-events-none" />
+
+        {/* Section Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-50 dark:border-white/5 relative z-10">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-xl flex items-center justify-center shrink-0 border border-emerald-500/15">
+              <Calendar size={20} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-sm sm:text-base font-black text-charcoal dark:text-white uppercase tracking-wider leading-none">
+                  Payment Schedule
+                </h2>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 rounded-full text-[9px] font-black uppercase tracking-widest">
+                  Remittance Cycle
+                </span>
+              </div>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">
+                Dues timeline, next scheduled billing &amp; payment records
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            {paymentSchedule && (
+              <span
+                className={clsx(
+                  "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border",
+                  paymentSchedule.paymentStatus === "Paid"
+                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+                    : paymentSchedule.paymentStatus === "Overdue"
+                      ? "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20"
+                      : paymentSchedule.paymentStatus === "Reviewing"
+                        ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20"
+                        : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+                )}
+              >
+                <span
+                  className={clsx(
+                    "w-1.5 h-1.5 rounded-full",
+                    paymentSchedule.paymentStatus === "Paid"
+                      ? "bg-emerald-500 animate-pulse"
+                      : paymentSchedule.paymentStatus === "Overdue"
+                        ? "bg-red-500 animate-ping"
+                        : paymentSchedule.paymentStatus === "Reviewing"
+                          ? "bg-blue-500 animate-pulse"
+                          : "bg-amber-500 animate-pulse",
+                  )}
+                />
+                {paymentSchedule.paymentStatus === "Paid"
+                  ? "Settled / Up to Date"
+                  : paymentSchedule.paymentStatus === "Overdue"
+                    ? "Overdue Account"
+                    : paymentSchedule.paymentStatus === "Reviewing"
+                      ? "Proof Under Review"
+                      : "Payment Due"}
+              </span>
+            )}
+
+            <Link
+              href="/tenantdashboard/lease-payments"
+              className="flex items-center gap-1 px-3 py-1.5 bg-slate-50 dark:bg-white/5 hover:bg-primary/10 text-slate-500 dark:text-slate-400 hover:text-primary rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border border-slate-100 dark:border-white/5"
+            >
+              <span>Lease &amp; Billing</span>
+              <ArrowUpRight size={13} />
+            </Link>
+          </div>
+        </div>
+
+        {/* 5 Core Schedule Metrics */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 pt-5 relative z-10">
+          {/* 1. Next Payment Date */}
+          <div className="bg-slate-50/60 dark:bg-black/20 border border-slate-100 dark:border-white/5 rounded-xl p-4 flex flex-col justify-between hover:border-emerald-500/30 transition-all group/box">
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                Next Payment Date
+              </span>
+              <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                <Calendar size={14} />
+              </div>
+            </div>
+            <div>
+              <p className="text-lg sm:text-xl font-black text-charcoal dark:text-white tracking-tight leading-snug">
+                {isLoadingSchedule
+                  ? "—"
+                  : formatDate(paymentSchedule?.nextPaymentDate)}
+              </p>
+              <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mt-0.5">
+                {paymentSchedule?.paymentStatus === "Overdue"
+                  ? "Immediate Settlement Required"
+                  : paymentSchedule?.paymentStatus === "Paid"
+                    ? "Next Billing Cycle"
+                    : "Due Date"}
+              </p>
+            </div>
+          </div>
+
+          {/* 2. Payment Month */}
+          <div className="bg-slate-50/60 dark:bg-black/20 border border-slate-100 dark:border-white/5 rounded-xl p-4 flex flex-col justify-between hover:border-blue-500/30 transition-all group/box">
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                Payment Month
+              </span>
+              <div className="w-7 h-7 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+                <Clock size={14} />
+              </div>
+            </div>
+            <div>
+              <p className="text-lg sm:text-xl font-black text-charcoal dark:text-white tracking-tight leading-snug truncate">
+                {isLoadingSchedule
+                  ? "—"
+                  : paymentSchedule?.paymentMonth || "Current Cycle"}
+              </p>
+              <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mt-0.5">
+                Billing Period
+              </p>
+            </div>
+          </div>
+
+          {/* 3. Payment Amount */}
+          <div className="bg-slate-50/60 dark:bg-black/20 border border-slate-100 dark:border-white/5 rounded-xl p-4 flex flex-col justify-between hover:border-primary/30 transition-all group/box">
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                Payment Amount
+              </span>
+              <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                <Receipt size={14} />
+              </div>
+            </div>
+            <div>
+              <p className="text-lg sm:text-xl font-black text-primary tracking-tight leading-snug">
+                {isLoadingSchedule
+                  ? "—"
+                  : `₱${(paymentSchedule?.paymentAmount || 0).toLocaleString()}`}
+              </p>
+              <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mt-0.5 truncate">
+                {paymentSchedule?.invoiceNumber
+                  ? `Invoice ${paymentSchedule.invoiceNumber}`
+                  : "Monthly Rental Fee"}
+              </p>
+            </div>
+          </div>
+
+          {/* 4. Payment Status */}
+          <div className="bg-slate-50/60 dark:bg-black/20 border border-slate-100 dark:border-white/5 rounded-xl p-4 flex flex-col justify-between hover:border-amber-500/30 transition-all group/box">
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                Payment Status
+              </span>
+              <div
+                className={clsx(
+                  "w-7 h-7 rounded-lg flex items-center justify-center",
+                  paymentSchedule?.paymentStatus === "Paid"
+                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                    : paymentSchedule?.paymentStatus === "Overdue"
+                      ? "bg-red-500/10 text-red-600 dark:text-red-400"
+                      : paymentSchedule?.paymentStatus === "Reviewing"
+                        ? "bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                        : "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+                )}
+              >
+                {paymentSchedule?.paymentStatus === "Paid" ? (
+                  <CheckCircle size={14} />
+                ) : paymentSchedule?.paymentStatus === "Overdue" ? (
+                  <AlertCircle size={14} />
+                ) : (
+                  <Clock size={14} />
+                )}
+              </div>
+            </div>
+            <div>
+              <span
+                className={clsx(
+                  "text-lg sm:text-xl font-black uppercase tracking-tight leading-snug",
+                  paymentSchedule?.paymentStatus === "Paid"
+                    ? "text-emerald-600 dark:text-emerald-400"
+                    : paymentSchedule?.paymentStatus === "Overdue"
+                      ? "text-red-600 dark:text-red-400"
+                      : paymentSchedule?.paymentStatus === "Reviewing"
+                        ? "text-blue-600 dark:text-blue-400"
+                        : "text-amber-600 dark:text-amber-400",
+                )}
+              >
+                {isLoadingSchedule
+                  ? "—"
+                  : paymentSchedule?.paymentStatus || "Pending"}
+              </span>
+              <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mt-0.5">
+                {paymentSchedule?.paymentStatus === "Paid"
+                  ? "Cleared Standing"
+                  : paymentSchedule?.paymentStatus === "Overdue"
+                    ? "Past Due Date"
+                    : paymentSchedule?.paymentStatus === "Reviewing"
+                      ? "Awaiting Admin Verification"
+                      : "Awaiting Remittance"}
+              </p>
+            </div>
+          </div>
+
+          {/* 5. Last Payment Date */}
+          <div className="bg-slate-50/60 dark:bg-black/20 border border-slate-100 dark:border-white/5 rounded-xl p-4 flex flex-col justify-between hover:border-purple-500/30 transition-all group/box sm:col-span-2 lg:col-span-1">
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                Last Payment Date
+              </span>
+              <div className="w-7 h-7 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+                <ShieldCheck size={14} />
+              </div>
+            </div>
+            <div>
+              <p className="text-lg sm:text-xl font-black text-charcoal dark:text-white tracking-tight leading-snug">
+                {isLoadingSchedule
+                  ? "—"
+                  : paymentSchedule?.lastPaymentDate
+                    ? formatDate(paymentSchedule.lastPaymentDate)
+                    : "None recorded"}
+              </p>
+              <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mt-0.5">
+                {paymentSchedule?.lastPaymentDate
+                  ? "Last Settled Transaction"
+                  : "No Prior Remittance"}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Ledger Summary & Action Link */}
+        <div className="mt-4 pt-4 border-t border-slate-50 dark:border-white/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-[10px] text-slate-500">
+          <div className="flex items-center gap-2 flex-wrap font-medium">
+            <span className="font-bold text-charcoal dark:text-white uppercase tracking-wider">
+              Payment Record:
+            </span>
+            <span>
+              {paymentSchedule
+                ? `${paymentSchedule.paidInvoicesCount ?? 0} of ${paymentSchedule.totalInvoices ?? 0} Invoices Cleared`
+                : "Checking ledger..."}
+            </span>
+            {(paymentSchedule?.totalUnpaidBalance ?? 0) > 0 && (
+              <span className="text-red-500 font-bold">
+                • Total Outstanding: ₱{(paymentSchedule?.totalUnpaidBalance ?? 0).toLocaleString()}
+              </span>
+            )}
+          </div>
+
+          <Link
+            href="/tenantdashboard/lease-payments"
+            className="inline-flex items-center gap-1.5 text-[10px] font-black text-primary hover:text-primary-hover uppercase tracking-widest group/link shrink-0"
+          >
+            <span>Submit Proof of Payment</span>
+            <ArrowRight
+              size={12}
+              className="group-hover/link:translate-x-1 transition-transform"
+            />
+          </Link>
+        </div>
+      </section>
     </div>
   );
 }

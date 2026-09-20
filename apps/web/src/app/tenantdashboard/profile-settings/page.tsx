@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   User,
   Lock,
@@ -36,17 +36,28 @@ import {
   deactivateTenantTerminalAction,
 } from "@/app/actions/tenant";
 import { updateSecurityAction } from "@/app/actions/auth";
+import {
+  getNotificationPreferences,
+  updateNotificationPreferences,
+} from "@/app/actions/notifications";
 import { toast } from "sonner";
 import clsx from "clsx";
 
 type Tab = "profile" | "business" | "security" | "notifications";
 
 export default function TenantProfileSettings() {
-  const { user, logout } = useAuth();
+  const { user, updateUser, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<Tab>("profile");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [showPass, setShowPass] = useState(false);
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const [isSavingNotifs, setIsSavingNotifs] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Security pass visibility
+  const [showCurrentPass, setShowCurrentPass] = useState(false);
+  const [showNewPass, setShowNewPass] = useState(false);
+  const [showConfirmPass, setShowConfirmPass] = useState(false);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -69,6 +80,14 @@ export default function TenantProfileSettings() {
     confirmPassword: "",
   });
 
+  // Notification Preferences State
+  const [notificationPrefs, setNotificationPrefs] = useState({
+    overdueRentPayments: true,
+    feedbackSpamDetected: true,
+    newBookingInquiry: true,
+    adSubmissionReceived: false,
+  });
+
   useEffect(() => {
     if (user?.id) {
       loadProfileData();
@@ -78,7 +97,14 @@ export default function TenantProfileSettings() {
   const loadProfileData = async () => {
     setIsLoading(true);
     try {
-      const res = await getTenantProfileAction(user!.id);
+      const [res, notifRes] = await Promise.all([
+        getTenantProfileAction(user!.id),
+        getNotificationPreferences(user!.id).catch(() => ({
+          success: false,
+          data: null,
+        })),
+      ]);
+
       if (res.success && res.data) {
         setFormData({
           name: res.data.name || "",
@@ -92,10 +118,53 @@ export default function TenantProfileSettings() {
           status: res.data.status,
         });
       }
+
+      if (notifRes.success && notifRes.data) {
+        setNotificationPrefs({
+          overdueRentPayments: notifRes.data.overdueRentPayments ?? true,
+          feedbackSpamDetected: notifRes.data.feedbackSpamDetected ?? true,
+          newBookingInquiry: notifRes.data.newBookingInquiry ?? true,
+          adSubmissionReceived: notifRes.data.adSubmissionReceived ?? false,
+        });
+      }
     } catch (err) {
       toast.error("Terminal telemetry synchronization failed");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user?.id) return;
+
+    setIsUploadingLogo(true);
+    try {
+      const { uploadAvatarAction } = await import("@/app/actions/auth");
+      const uploadData = new FormData();
+      uploadData.append("file", file);
+
+      const res = await uploadAvatarAction(user.id, uploadData);
+      if (res.success && res.data?.avatarUrl) {
+        const newLogo = res.data.avatarUrl;
+        setFormData((prev) => ({ ...prev, logoUrl: newLogo }));
+        await updateTenantProfileAction(user.id, { logoUrl: newLogo });
+        updateUser({ avatarUrl: newLogo });
+        toast.success("Merchant Brand Logo Synchronized");
+      } else {
+        toast.error("Upload Failed", {
+          description: res.error || "Could not upload image",
+        });
+      }
+    } catch (err: any) {
+      toast.error("Upload Error", {
+        description: err?.message || "File upload failed",
+      });
+    } finally {
+      setIsUploadingLogo(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
     }
   };
 
@@ -104,6 +173,7 @@ export default function TenantProfileSettings() {
     setIsSaving(true);
     const res = await updateTenantProfileAction(user.id, formData);
     if (res.success) {
+      updateUser({ name: formData.name, email: formData.email });
       toast.success("Merchant Identity Synchronized");
       loadProfileData();
     } else {
@@ -112,8 +182,39 @@ export default function TenantProfileSettings() {
     setIsSaving(false);
   };
 
+  const handleSaveNotifications = async () => {
+    if (!user?.id) return;
+    setIsSavingNotifs(true);
+    try {
+      const res = await updateNotificationPreferences(user.id, notificationPrefs);
+      if (res.success) {
+        toast.success("Telemetry Alert Preferences Synchronized");
+      } else {
+        toast.error("Preferences Update Failed", { description: res.error });
+      }
+    } catch (err: any) {
+      toast.error("Telemetry Error", {
+        description: err?.message || "Failed to update preferences",
+      });
+    } finally {
+      setIsSavingNotifs(false);
+    }
+  };
+
   const handleSecurityUpdate = async () => {
     if (!user?.id) return;
+    if (!securityData.currentPassword) {
+      toast.error("Active authentication key is required");
+      return;
+    }
+    if (!securityData.newPassword) {
+      toast.error("New terminal token is required");
+      return;
+    }
+    if (securityData.newPassword.length < 6) {
+      toast.error("New token must be at least 6 characters long");
+      return;
+    }
     if (securityData.newPassword !== securityData.confirmPassword) {
       toast.error("Access keys do not match");
       return;
@@ -181,6 +282,16 @@ export default function TenantProfileSettings() {
 
   return (
     <div className="p-4 md:p-8 lg:p-10 animate-fade-in-up space-y-10 min-h-screen max-w-[1400px] mx-auto">
+      {/* Hidden Logo Input */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        className="hidden"
+        accept="image/*"
+        onChange={handleLogoUpload}
+        disabled={isUploadingLogo}
+      />
+
       {/* Premium Header */}
       <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 pb-8 border-b border-slate-200 dark:border-white/10">
         <div className="space-y-4">
@@ -198,6 +309,7 @@ export default function TenantProfileSettings() {
         <button
           onClick={loadProfileData}
           className="p-4 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-2xl text-slate-400 hover:text-primary transition-all shadow-sm active:scale-95"
+          title="Refresh Settings"
         >
           <Monitor size={20} />
         </button>
@@ -217,27 +329,38 @@ export default function TenantProfileSettings() {
                   <img
                     src={formData.logoUrl}
                     className="w-full h-full object-cover"
+                    alt={formData.shopName || "Store logo"}
                   />
                 ) : (
-                  formData.shopName.charAt(0)
+                  formData.shopName ? formData.shopName.charAt(0).toUpperCase() : "B"
                 )}
               </div>
-              <button className="absolute -bottom-2 -right-2 w-10 h-10 rounded-2xl bg-charcoal dark:bg-white text-white dark:text-black flex items-center justify-center shadow-xl hover:scale-110 active:scale-95 transition-all">
-                <Camera size={16} />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploadingLogo}
+                className="absolute -bottom-2 -right-2 w-10 h-10 rounded-2xl bg-charcoal dark:bg-white text-white dark:text-black flex items-center justify-center shadow-xl hover:scale-110 active:scale-95 transition-all disabled:opacity-50"
+                title="Upload Store Logo"
+              >
+                {isUploadingLogo ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <Camera size={16} />
+                )}
               </button>
             </div>
             <h3 className="font-black text-2xl text-charcoal dark:text-white uppercase tracking-tighter italic leading-tight truncate">
               {formData.shopName || "Boutique"}
             </h3>
             <p className="text-[10px] font-black text-primary uppercase tracking-[0.3em] mt-1">
-              Allocation: {meta.unitId}
+              Allocation: {meta.unitId || "Unit -"}
             </p>
 
             <div className="mt-8 pt-8 border-t border-slate-50 dark:border-white/5">
               <div className="flex items-center justify-center gap-2 px-4 py-2 bg-emerald-500/10 text-emerald-600 rounded-2xl border border-emerald-500/20">
                 <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
                 <span className="text-[10px] font-black uppercase tracking-widest">
-                  {meta.status} TERMINAL
+                  {meta.status || "ACTIVE"} TERMINAL
                 </span>
               </div>
             </div>
@@ -378,6 +501,7 @@ export default function TenantProfileSettings() {
                       setFormData({ ...formData, shopName: e.target.value })
                     }
                     className="w-full px-8 py-5 bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-3xl focus:ring-4 focus:ring-primary/10 transition-all text-sm font-black text-charcoal dark:text-white outline-none"
+                    placeholder="Boutique Name"
                   />
                 </div>
                 <div className="space-y-3">
@@ -395,9 +519,24 @@ export default function TenantProfileSettings() {
                   />
                 </div>
                 <div className="space-y-3">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">
-                    Asset Uplink (Logo URL)
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">
+                      Asset Uplink (Logo URL)
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isUploadingLogo}
+                      className="text-[10px] font-black text-primary hover:underline flex items-center gap-1.5 uppercase tracking-wider disabled:opacity-50 cursor-pointer"
+                    >
+                      {isUploadingLogo ? (
+                        <Loader2 size={12} className="animate-spin" />
+                      ) : (
+                        <Camera size={12} />
+                      )}
+                      Upload Image File
+                    </button>
+                  </div>
                   <div className="relative group/input">
                     <Globe
                       size={18}
@@ -409,6 +548,7 @@ export default function TenantProfileSettings() {
                       onChange={(e) =>
                         setFormData({ ...formData, logoUrl: e.target.value })
                       }
+                      placeholder="https://example.com/logo.png"
                       className="w-full pl-16 pr-6 py-5 bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-2xl focus:ring-4 focus:ring-primary/10 transition-all text-[11px] font-medium text-slate-400 outline-none"
                     />
                   </div>
@@ -421,7 +561,12 @@ export default function TenantProfileSettings() {
                   disabled={isSaving}
                   className="flex items-center gap-4 px-12 py-5 bg-primary text-white rounded-[1.5rem] font-black text-[11px] uppercase tracking-[0.2em] shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
                 >
-                  <Save size={18} /> Push Manifest Update
+                  {isSaving ? (
+                    <Loader2 size={16} className="animate-spin" />
+                  ) : (
+                    <Save size={18} />
+                  )}
+                  Push Manifest Update
                 </button>
               </div>
             </div>
@@ -451,7 +596,7 @@ export default function TenantProfileSettings() {
                     </label>
                     <div className="relative">
                       <input
-                        type={showPass ? "text" : "password"}
+                        type={showCurrentPass ? "text" : "password"}
                         placeholder="••••••••••••"
                         value={securityData.currentPassword}
                         onChange={(e) =>
@@ -460,13 +605,14 @@ export default function TenantProfileSettings() {
                             currentPassword: e.target.value,
                           })
                         }
-                        className="w-full px-8 py-5 bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-2xl text-sm font-bold outline-none focus:ring-4 focus:ring-primary/10 transition-all"
+                        className="w-full px-8 py-5 pr-16 bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-2xl text-sm font-bold outline-none focus:ring-4 focus:ring-primary/10 transition-all text-charcoal dark:text-white"
                       />
                       <button
-                        onClick={() => setShowPass(!showPass)}
-                        className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-300 hover:text-primary transition-colors"
+                        type="button"
+                        onClick={() => setShowCurrentPass(!showCurrentPass)}
+                        className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-300 hover:text-primary transition-colors cursor-pointer"
                       >
-                        {showPass ? <EyeOff size={20} /> : <Eye size={20} />}
+                        {showCurrentPass ? <EyeOff size={20} /> : <Eye size={20} />}
                       </button>
                     </div>
                   </div>
@@ -475,35 +621,53 @@ export default function TenantProfileSettings() {
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">
                         New Terminal Token
                       </label>
-                      <input
-                        type="password"
-                        placeholder="••••••••••••"
-                        value={securityData.newPassword}
-                        onChange={(e) =>
-                          setSecurityData({
-                            ...securityData,
-                            newPassword: e.target.value,
-                          })
-                        }
-                        className="w-full px-8 py-5 bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-2xl text-sm font-bold outline-none"
-                      />
+                      <div className="relative">
+                        <input
+                          type={showNewPass ? "text" : "password"}
+                          placeholder="••••••••••••"
+                          value={securityData.newPassword}
+                          onChange={(e) =>
+                            setSecurityData({
+                              ...securityData,
+                              newPassword: e.target.value,
+                            })
+                          }
+                          className="w-full px-8 py-5 pr-16 bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-2xl text-sm font-bold outline-none focus:ring-4 focus:ring-primary/10 transition-all text-charcoal dark:text-white"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowNewPass(!showNewPass)}
+                          className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-300 hover:text-primary transition-colors cursor-pointer"
+                        >
+                          {showNewPass ? <EyeOff size={20} /> : <Eye size={20} />}
+                        </button>
+                      </div>
                     </div>
                     <div className="space-y-3">
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">
                         Confirm Security Token
                       </label>
-                      <input
-                        type="password"
-                        placeholder="••••••••••••"
-                        value={securityData.confirmPassword}
-                        onChange={(e) =>
-                          setSecurityData({
-                            ...securityData,
-                            confirmPassword: e.target.value,
-                          })
-                        }
-                        className="w-full px-8 py-5 bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-2xl text-sm font-bold outline-none"
-                      />
+                      <div className="relative">
+                        <input
+                          type={showConfirmPass ? "text" : "password"}
+                          placeholder="••••••••••••"
+                          value={securityData.confirmPassword}
+                          onChange={(e) =>
+                            setSecurityData({
+                              ...securityData,
+                              confirmPassword: e.target.value,
+                            })
+                          }
+                          className="w-full px-8 py-5 pr-16 bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-2xl text-sm font-bold outline-none focus:ring-4 focus:ring-primary/10 transition-all text-charcoal dark:text-white"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirmPass(!showConfirmPass)}
+                          className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-300 hover:text-primary transition-colors cursor-pointer"
+                        >
+                          {showConfirmPass ? <EyeOff size={20} /> : <Eye size={20} />}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -564,24 +728,28 @@ export default function TenantProfileSettings() {
               <div className="space-y-2 divide-y divide-slate-100 dark:divide-white/5">
                 {[
                   {
+                    key: "overdueRentPayments" as const,
                     label: "Fiscal Due Dates",
                     desc: "Critical alerts for upcoming monthly lease and utility synchronizations.",
                   },
                   {
+                    key: "feedbackSpamDetected" as const,
                     label: "Shopper Engagement Manifest",
                     desc: "Instant push signals when a shopper leaves feedback for your store.",
                   },
                   {
+                    key: "newBookingInquiry" as const,
                     label: "Intelligent Messenger Hub",
                     desc: "Real-time telemetry for incoming shopper inquiries and requests.",
                   },
                   {
+                    key: "adSubmissionReceived" as const,
                     label: "Campaign Life-cycle",
                     desc: "Alerts for scheduled ad banner activation and terminal release.",
                   },
                 ].map((item) => (
                   <div
-                    key={item.label}
+                    key={item.key}
                     className="flex items-center justify-between py-8 gap-10 group/alert"
                   >
                     <div className="space-y-1">
@@ -592,11 +760,47 @@ export default function TenantProfileSettings() {
                         {item.desc}
                       </p>
                     </div>
-                    <button className="w-14 h-7 rounded-full bg-primary relative shrink-0 shadow-lg shadow-primary/25">
-                      <span className="w-5 h-5 bg-white rounded-full absolute top-1 right-1 shadow-md" />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setNotificationPrefs((prev) => ({
+                          ...prev,
+                          [item.key]: !prev[item.key],
+                        }))
+                      }
+                      className={clsx(
+                        "w-14 h-7 rounded-full relative shrink-0 transition-colors shadow-lg cursor-pointer",
+                        notificationPrefs[item.key]
+                          ? "bg-primary shadow-primary/25"
+                          : "bg-slate-200 dark:bg-zinc-800 shadow-black/10",
+                      )}
+                      title={`Toggle ${item.label}`}
+                    >
+                      <span
+                        className={clsx(
+                          "w-5 h-5 bg-white rounded-full absolute top-1 transition-all shadow-md",
+                          notificationPrefs[item.key] ? "right-1" : "left-1",
+                        )}
+                      />
                     </button>
                   </div>
                 ))}
+              </div>
+
+              <div className="pt-8 border-t border-slate-100 dark:border-white/5 flex justify-end">
+                <button
+                  type="button"
+                  onClick={handleSaveNotifications}
+                  disabled={isSavingNotifs}
+                  className="flex items-center gap-4 px-12 py-5 bg-primary text-white rounded-[1.5rem] font-black text-[11px] uppercase tracking-[0.2em] shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
+                >
+                  {isSavingNotifs ? (
+                    <Loader2 size={16} className="animate-spin" />
+                  ) : (
+                    <Save size={18} />
+                  )}
+                  Commit Telemetry Settings
+                </button>
               </div>
 
               <div className="p-8 bg-blue-500/5 border border-blue-500/10 rounded-3xl flex items-start gap-5">

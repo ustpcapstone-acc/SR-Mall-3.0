@@ -13,8 +13,6 @@ import {
   Loader2,
   Paperclip,
   X,
-  Trash2,
-  CheckCircle,
   Maximize2,
   ExternalLink,
   AlertTriangle,
@@ -23,10 +21,6 @@ import {
   getAdminConversations,
   getMessagesByConversation,
   replyToConversation,
-  deleteMessageAction,
-  unsendImageAction,
-  toggleBlockUserAction,
-  checkBlockStatusAction,
 } from "@/app/actions/chat-queries";
 import { markMessageNotificationsAsReadAction } from "@/app/actions/notification";
 import { useAuth } from "@/app/providers";
@@ -70,14 +64,7 @@ function MessengerHubContent() {
   const [fileInputKey, setFileInputKey] = useState(0);
 
   // Modals state
-  const [messageToUnsend, setMessageToUnsend] = useState<any | null>(null);
-  const [isUnsending, setIsUnsending] = useState(false);
-  const [isBlockModalOpen, setIsBlockModalOpen] = useState(false);
-  const [isProcessingBlock, setIsProcessingBlock] = useState(false);
   const [lightboxImageUrl, setLightboxImageUrl] = useState<string | null>(null);
-
-  // Chat-only block tracking map
-  const [isBlockedMap, setIsBlockedMap] = useState<Record<string, boolean>>({});
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -105,7 +92,6 @@ function MessengerHubContent() {
   // Derived active chat object ensures data is always current from the conversations list
   const activeChat = conversations.find((c) => c.id === activeChatId) || null;
   const activeOtherUser = getOtherParticipant(activeChat);
-  const isCurrentParticipantBlocked = !!(activeOtherUser?.id && isBlockedMap[activeOtherUser.id]);
   const activeTenantData = activeChat?.user?.tenant || activeChat?.target?.tenant;
   const isCurrentTenant = !!(
     activeChat?.user?.tenant ||
@@ -118,15 +104,6 @@ function MessengerHubContent() {
     isCurrentTenant && activeTenantData?.shopName
       ? `${activeTenantData.shopName} (${activeTenantData.unitId || "UNIT"})`
       : activeOtherUser?.name || activeOtherUser?.email || "SR Mall Member";
-
-  // Check messaging block status whenever active participant changes
-  useEffect(() => {
-    if (user?.id && activeOtherUser?.id) {
-      checkBlockStatusAction(user.id, activeOtherUser.id).then((blocked) => {
-        setIsBlockedMap((prev) => ({ ...prev, [activeOtherUser.id]: blocked }));
-      });
-    }
-  }, [user?.id, activeOtherUser?.id]);
 
   const fetchConversations = useCallback(async (showLoading = false) => {
     if (showLoading) setLoading(true);
@@ -339,63 +316,7 @@ function MessengerHubContent() {
     }
   };
 
-  // Unsend message handler
-  const handleConfirmUnsend = async (mode: "all" | "imageOnly" = "all") => {
-    if (!messageToUnsend) return;
-    const msgId = messageToUnsend.id;
-    setIsUnsending(true);
 
-    // Optimistic removal
-    if (mode === "all") {
-      setMessages((prev) => prev.filter((m) => m.id !== msgId));
-    } else {
-      setMessages((prev) =>
-        prev.map((m) => (m.id === msgId ? { ...m, imageUrl: null } : m))
-      );
-    }
-
-    try {
-      const res =
-        mode === "all"
-          ? await deleteMessageAction(msgId, user?.id)
-          : await unsendImageAction(msgId, user?.id);
-
-      if (!res.success) {
-        alert(res.error || "Failed to unsend message");
-        if (activeChatId) fetchMessages(activeChatId, false);
-      } else {
-        fetchConversations(false);
-      }
-    } catch (err) {
-      console.error("Error unsending message:", err);
-      if (activeChatId) fetchMessages(activeChatId, false);
-    } finally {
-      setIsUnsending(false);
-      setMessageToUnsend(null);
-    }
-  };
-
-  // Block / Unblock user handler (messaging only)
-  const handleToggleBlock = async () => {
-    const targetUserId = activeOtherUser?.id;
-    if (!targetUserId || !user?.id) return;
-    const nextStatus = !isCurrentParticipantBlocked;
-    setIsProcessingBlock(true);
-
-    try {
-      const res = await toggleBlockUserAction(user.id, targetUserId, nextStatus);
-      if (res.success) {
-        setIsBlockedMap((prev) => ({ ...prev, [targetUserId]: nextStatus }));
-        setIsBlockModalOpen(false);
-      } else {
-        alert(res.error || "Failed to update block status.");
-      }
-    } catch (err) {
-      console.error("Failed to toggle block status:", err);
-    } finally {
-      setIsProcessingBlock(false);
-    }
-  };
 
   // Filter conversations
   const filteredChats = conversations
@@ -593,64 +514,17 @@ function MessengerHubContent() {
                         activeDisplayName.charAt(0).toUpperCase()
                       )}
                     </div>
-                    {isCurrentParticipantBlocked && (
-                      <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-red-500 rounded-full border-2 border-white dark:border-zinc-900 flex items-center justify-center text-white text-[8px] font-black">
-                        ×
-                      </span>
-                    )}
                   </div>
                   <div>
                     <h3 className="font-bold text-charcoal dark:text-white flex items-center gap-2 leading-tight">
                       {activeDisplayName}
-                      {isCurrentParticipantBlocked && (
-                        <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-red-100 text-red-600 dark:bg-red-950/50 dark:text-red-400">
-                          Suspended
-                        </span>
-                      )}
                     </h3>
                     <p className="text-[10px] font-medium text-slate-400 truncate max-w-xs">
                       {activeOtherUser?.email}
                     </p>
                   </div>
                 </div>
-
-                {/* Header Action: Block / Unblock User */}
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setIsBlockModalOpen(true)}
-                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all border shadow-sm active:scale-95 ${
-                      isCurrentParticipantBlocked
-                        ? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-600 hover:text-white border-emerald-200 dark:border-emerald-800/50"
-                        : "bg-red-50 dark:bg-red-950/30 text-error dark:text-red-400 hover:bg-error dark:hover:bg-red-600 hover:text-white border-red-100 dark:border-red-900/50"
-                    }`}
-                  >
-                    {isCurrentParticipantBlocked ? (
-                      <>
-                        <CheckCircle size={14} /> Unblock User
-                      </>
-                    ) : (
-                      <>
-                        <Ban size={14} /> Block User
-                      </>
-                    )}
-                  </button>
-                </div>
               </div>
-
-              {/* Blocked Alert Banner */}
-              {isCurrentParticipantBlocked && (
-                <div className="px-6 py-2.5 bg-red-500/10 border-b border-red-500/20 text-red-600 dark:text-red-400 text-xs font-bold flex items-center justify-between animate-fade-in">
-                  <span className="flex items-center gap-2">
-                    <Ban size={14} /> You have blocked this user from sending direct messages to you.
-                  </span>
-                  <button
-                    onClick={() => setIsBlockModalOpen(true)}
-                    className="underline hover:text-red-700 dark:hover:text-red-300 font-black uppercase text-[10px] tracking-wider"
-                  >
-                    Unblock
-                  </button>
-                </div>
-              )}
 
               {/* Messages Container */}
               <div
@@ -745,17 +619,6 @@ function MessengerHubContent() {
                                 <p className="text-sm font-medium leading-relaxed break-words whitespace-pre-wrap">
                                   {msg.content}
                                 </p>
-                              )}
-
-                              {/* Unsend hover button for sent messages */}
-                              {isFromAdmin && !isTemporary && (
-                                <button
-                                  onClick={() => setMessageToUnsend(msg)}
-                                  title="Unsend / Delete"
-                                  className="absolute -left-9 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 hover:bg-red-50 dark:hover:bg-red-950/50 rounded-lg text-slate-400 hover:text-red-500 shadow-sm bg-white dark:bg-zinc-800 border border-slate-200 dark:border-white/10"
-                                >
-                                  <Trash2 size={12} />
-                                </button>
                               )}
                             </div>
                           </div>
@@ -901,16 +764,8 @@ function MessengerHubContent() {
                       <h4 className="font-bold text-charcoal dark:text-white truncate">
                         {activeDisplayName}
                       </h4>
-                      <p
-                        className={`text-[10px] font-bold uppercase tracking-wider ${
-                          isCurrentParticipantBlocked
-                            ? "text-red-500"
-                            : "text-emerald-500"
-                        }`}
-                      >
-                        {isCurrentParticipantBlocked
-                          ? "Blocked User"
-                          : "Verified Member"}
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-500">
+                        Verified Member
                       </p>
                     </div>
                   </div>
@@ -925,14 +780,8 @@ function MessengerHubContent() {
                       </p>
                     </div>
                     <div>
-                      <p
-                        className={`text-lg font-black uppercase ${
-                          isCurrentParticipantBlocked
-                            ? "text-red-500"
-                            : "text-charcoal dark:text-white"
-                        }`}
-                      >
-                        {isCurrentParticipantBlocked ? "Blocked" : "Active"}
+                      <p className="text-lg font-black uppercase text-charcoal dark:text-white">
+                        Active
                       </p>
                       <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400 mt-1">
                         Status
@@ -977,132 +826,7 @@ function MessengerHubContent() {
         )}
       </div>
 
-      {/* ── MODAL: BLOCK / UNBLOCK USER ── */}
-      {isBlockModalOpen && activeChat && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
-          <div className="bg-white dark:bg-zinc-900 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 dark:border-white/10 space-y-5 animate-scale-up">
-            <div className="flex items-center gap-3">
-              <div
-                className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${
-                  isCurrentParticipantBlocked
-                    ? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600"
-                    : "bg-red-50 dark:bg-red-950/30 text-red-600"
-                }`}
-              >
-                {isCurrentParticipantBlocked ? (
-                  <CheckCircle size={24} />
-                ) : (
-                  <Ban size={24} />
-                )}
-              </div>
-              <div>
-                <h3 className="text-lg font-black text-charcoal dark:text-white">
-                  {isCurrentParticipantBlocked
-                    ? "Unblock User"
-                    : "Block User from Messaging"}
-                </h3>
-                <p className="text-xs text-slate-500 font-medium">
-                  {activeDisplayName} ({activeOtherUser?.email})
-                </p>
-              </div>
-            </div>
 
-            <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-              {isCurrentParticipantBlocked
-                ? "Unblocking will allow this user to send direct messages to you again. Their account and other functions continue working normally."
-                : "Blocking will prevent this user from sending direct messages to you. Their account, store, and other portal services will continue working normally."}
-            </p>
-
-            <div className="flex gap-3 justify-end pt-2">
-              <button
-                type="button"
-                onClick={() => setIsBlockModalOpen(false)}
-                disabled={isProcessingBlock}
-                className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleToggleBlock}
-                disabled={isProcessingBlock}
-                className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider text-white transition-all shadow-md flex items-center gap-2 ${
-                  isCurrentParticipantBlocked
-                    ? "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20"
-                    : "bg-red-600 hover:bg-red-700 shadow-red-500/20"
-                }`}
-              >
-                {isProcessingBlock && <Loader2 size={14} className="animate-spin" />}
-                {isCurrentParticipantBlocked ? "Confirm Unblock" : "Confirm Block"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── MODAL: UNSEND / DELETE MESSAGE ── */}
-      {messageToUnsend && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
-          <div className="bg-white dark:bg-zinc-900 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 dark:border-white/10 space-y-5 animate-scale-up">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-red-50 dark:bg-red-950/30 text-red-600 flex items-center justify-center shrink-0">
-                <Trash2 size={24} />
-              </div>
-              <div>
-                <h3 className="text-lg font-black text-charcoal dark:text-white">
-                  Unsend Message
-                </h3>
-                <p className="text-xs text-slate-500 font-medium">
-                  Permanent removal from conversation
-                </p>
-              </div>
-            </div>
-
-            <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-              Are you sure you want to unsend this transmission? It will be permanently removed for all participants in this chat.
-            </p>
-
-            {messageToUnsend.imageUrl && messageToUnsend.content && (
-              <div className="p-3 rounded-xl bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 text-xs text-slate-600 dark:text-slate-300">
-                This transmission contains both text and an attached image.
-              </div>
-            )}
-
-            <div className="flex flex-col sm:flex-row gap-2 justify-end pt-2">
-              <button
-                type="button"
-                onClick={() => setMessageToUnsend(null)}
-                disabled={isUnsending}
-                className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors"
-              >
-                Cancel
-              </button>
-
-              {messageToUnsend.imageUrl && messageToUnsend.content && (
-                <button
-                  type="button"
-                  onClick={() => handleConfirmUnsend("imageOnly")}
-                  disabled={isUnsending}
-                  className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition-colors flex items-center justify-center gap-1.5"
-                >
-                  {isUnsending && <Loader2 size={14} className="animate-spin" />}
-                  Remove Image Only
-                </button>
-              )}
-
-              <button
-                type="button"
-                onClick={() => handleConfirmUnsend("all")}
-                disabled={isUnsending}
-                className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-black uppercase tracking-wider transition-all shadow-md shadow-red-500/20 flex items-center justify-center gap-2"
-              >
-                {isUnsending && <Loader2 size={14} className="animate-spin" />}
-                Unsend for Everyone
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ── MODAL: IMAGE LIGHTBOX ── */}
       {lightboxImageUrl && (
