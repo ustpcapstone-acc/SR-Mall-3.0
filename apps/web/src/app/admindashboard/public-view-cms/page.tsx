@@ -418,7 +418,7 @@ export default function PublicViewCMSPage() {
       const result = await storageProvider.uploadFile(file, "lostfound");
       setLostFoundForm(prev => ({ ...prev, imageUrl: result.url }));
       showToast("Media uploaded", "success");
-    } catch(err) {
+    } catch (err) {
       showToast("Upload failed", "error");
     } finally {
       setIsSaving(false);
@@ -1208,7 +1208,7 @@ export default function PublicViewCMSPage() {
 
               <div className="flex flex-wrap gap-2 mb-6">
                 {["ALL", "PENDING", "LOOKING", "RESOLVED", "UNCLAIMED", "FOUND", "LOST"].map((f) => (
-                  <button 
+                  <button
                     key={f}
                     onClick={() => setLfFilter(f)}
                     className={clsx(
@@ -1242,43 +1242,43 @@ export default function PublicViewCMSPage() {
                         return item.status === lfFilter;
                       })
                       .map((item: any) => (
-                      <div key={item.id} className="group relative bg-slate-50 dark:bg-zinc-800/50 rounded-3xl border border-slate-200 dark:border-white/10 overflow-hidden flex flex-col">
-                        <div className="aspect-video relative overflow-hidden bg-black/5">
-                          {item.imageUrl ? (
-                            <img src={item.imageUrl} className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full bg-slate-200 dark:bg-zinc-800 flex items-center justify-center">
-                              <ImageIcon size={32} className="text-slate-400" />
+                        <div key={item.id} className="group relative bg-slate-50 dark:bg-zinc-800/50 rounded-3xl border border-slate-200 dark:border-white/10 overflow-hidden flex flex-col">
+                          <div className="aspect-video relative overflow-hidden bg-black/5">
+                            {item.imageUrl ? (
+                              <img src={item.imageUrl} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full bg-slate-200 dark:bg-zinc-800 flex items-center justify-center">
+                                <ImageIcon size={32} className="text-slate-400" />
+                              </div>
+                            )}
+                            <div className={clsx(
+                              "absolute top-3 left-3 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest text-white border border-white/10",
+                              item.type === "LOST" ? "bg-orange-500" : "bg-primary"
+                            )}>
+                              {item.type}
                             </div>
-                          )}
-                          <div className={clsx(
-                            "absolute top-3 left-3 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest text-white border border-white/10",
-                            item.type === "LOST" ? "bg-orange-500" : "bg-primary"
-                          )}>
-                            {item.type}
+                          </div>
+                          <div className="p-5 flex-1 flex flex-col justify-between">
+                            <h4 className="font-black text-charcoal dark:text-white uppercase tracking-tight text-sm mb-1">{item.title}</h4>
+                            <p className="text-xs text-slate-500 font-medium line-clamp-2 mb-4">{item.location} • {new Date(item.date).toLocaleDateString()}</p>
+                            <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-200 dark:border-white/10">
+                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                {item.status}
+                              </span>
+                              <select
+                                value={item.status}
+                                onChange={(e) => handleUpdateStatus(item.id, e.target.value)}
+                                className="bg-slate-100 dark:bg-zinc-700 border border-slate-200 dark:border-white/5 rounded-lg text-xs font-bold px-2 py-1 outline-none focus:ring-1 focus:ring-primary"
+                              >
+                                <option value="PENDING">Pending</option>
+                                <option value="LOOKING">Looking</option>
+                                <option value="RESOLVED">Resolved</option>
+                                <option value="UNCLAIMED">Unclaimed</option>
+                              </select>
+                            </div>
                           </div>
                         </div>
-                        <div className="p-5 flex-1 flex flex-col justify-between">
-                          <h4 className="font-black text-charcoal dark:text-white uppercase tracking-tight text-sm mb-1">{item.title}</h4>
-                          <p className="text-xs text-slate-500 font-medium line-clamp-2 mb-4">{item.location} • {new Date(item.date).toLocaleDateString()}</p>
-                          <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-200 dark:border-white/10">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                              {item.status}
-                            </span>
-                            <select
-                              value={item.status}
-                              onChange={(e) => handleUpdateStatus(item.id, e.target.value)}
-                              className="bg-slate-100 dark:bg-zinc-700 border border-slate-200 dark:border-white/5 rounded-lg text-xs font-bold px-2 py-1 outline-none focus:ring-1 focus:ring-primary"
-                            >
-                              <option value="PENDING">Pending</option>
-                              <option value="LOOKING">Looking</option>
-                              <option value="RESOLVED">Resolved</option>
-                              <option value="UNCLAIMED">Unclaimed</option>
-                            </select>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+                      ))}
                   </div>
                 )}
               </div>
@@ -1537,7 +1537,7 @@ export default function PublicViewCMSPage() {
             <div className="p-6 sm:p-8 md:p-10 space-y-6 overflow-y-auto custom-scrollbar flex-1">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <InputGroup label="Type" icon={Layers}>
-                  <select 
+                  <select
                     value={lostFoundForm.type}
                     onChange={(e) => setLostFoundForm(prev => ({ ...prev, type: e.target.value as "LOST" | "FOUND" }))}
                     className="cms-input"

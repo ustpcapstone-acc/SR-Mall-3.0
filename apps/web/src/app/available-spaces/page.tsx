@@ -128,16 +128,16 @@ export default function AvailableSpacesPage() {
                   Showing {filteredSlots.length} available units
                 </p>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 sm:gap-10">
+              <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-8 lg:gap-10">
                 {filteredSlots.map((slot, idx) => (
                   <div
                     key={slot.id}
                     onClick={() => setSelectedSlot(slot)}
                     className={clsx(
-                      "group relative bg-white dark:bg-zinc-900 rounded-[2rem] border border-slate-100 dark:border-white/5 overflow-hidden transition-all duration-700 cursor-pointer shadow-sm hover:shadow-2xl hover:-translate-y-2",
+                      "group relative bg-white dark:bg-zinc-900 rounded-[1.25rem] sm:rounded-[2rem] border border-slate-100 dark:border-white/5 overflow-hidden transition-all duration-700 cursor-pointer shadow-sm hover:shadow-2xl hover:-translate-y-2",
                     )}
                   >
-                    <div className="aspect-[16/10] relative overflow-hidden bg-slate-100 dark:bg-black">
+                    <div className="aspect-[4/3] sm:aspect-[16/10] relative overflow-hidden bg-slate-100 dark:bg-black">
                       {slot.space_images && slot.space_images[0] ? (
                         <img
                           src={slot.space_images[0]}
@@ -145,9 +145,9 @@ export default function AvailableSpacesPage() {
                           className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
                         />
                       ) : (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center p-8 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-zinc-900 dark:to-zinc-950">
-                          <ShoppingBag className="w-12 h-12 text-slate-200 dark:text-zinc-800 mb-4" />
-                          <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest text-center">
+                        <div className="absolute inset-0 flex flex-col items-center justify-center p-4 sm:p-8 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-zinc-900 dark:to-zinc-950">
+                          <ShoppingBag className="w-6 h-6 sm:w-12 sm:h-12 text-slate-200 dark:text-zinc-800 mb-2 sm:mb-4" />
+                          <p className="text-[8px] sm:text-[10px] font-black text-slate-300 uppercase tracking-widest text-center">
                             Premium Unit <br />
                             Preview Pending
                           </p>
@@ -156,54 +156,54 @@ export default function AvailableSpacesPage() {
 
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity duration-500"></div>
                       
-                      <div className="absolute top-6 right-6">
+                      <div className="absolute top-2 sm:top-6 right-2 sm:right-6">
                         <div
                           className={clsx(
-                            "backdrop-blur-xl px-4 py-2 rounded-full border text-[9px] font-black uppercase tracking-[0.2em] transition-all shadow-2xl",
+                            "backdrop-blur-xl px-2 sm:px-4 py-1 sm:py-2 rounded-full border text-[7px] sm:text-[9px] font-black uppercase tracking-[0.1em] sm:tracking-[0.2em] transition-all shadow-2xl",
                             slot.status === "AVAILABLE"
                               ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-400"
                               : "bg-amber-500/20 border-amber-500/40 text-amber-400",
                           )}
                         >
-                          {slot.status === "AVAILABLE" ? "Available Now" : "Reserved"}
+                          {slot.status === "AVAILABLE" ? "Available" : "Reserved"}
                         </div>
                       </div>
 
-                      <div className="absolute bottom-6 left-8 right-8">
-                        <h4 className="text-3xl font-black text-white tracking-tighter uppercase leading-none">
+                      <div className="absolute bottom-3 sm:bottom-6 left-3 sm:left-8 right-3 sm:right-8">
+                        <h4 className="text-base sm:text-3xl font-black text-white tracking-tighter uppercase leading-none">
                           Unit {slot.unit_id}
                         </h4>
-                        <div className="flex items-center gap-2 mt-2">
-                           <div className={clsx("w-1.5 h-1.5 rounded-full", slot.status === "AVAILABLE" ? "bg-emerald-400 animate-pulse" : "bg-amber-400")}></div>
-                           <p className="text-[10px] font-bold text-white/70 uppercase tracking-widest">
+                        <div className="flex items-center gap-1.5 sm:gap-2 mt-1 sm:mt-2">
+                           <div className={clsx("w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full", slot.status === "AVAILABLE" ? "bg-emerald-400 animate-pulse" : "bg-amber-400")}></div>
+                           <p className="text-[7px] sm:text-[10px] font-bold text-white/70 uppercase tracking-widest">
                              Plaza Wing — Level 1
                            </p>
                         </div>
                       </div>
 
                       <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-500 bg-black/20 backdrop-blur-[2px]">
-                        <div className="px-8 py-3 bg-white text-black text-[10px] font-black uppercase tracking-widest rounded-full shadow-3xl transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
+                        <div className="px-4 sm:px-8 py-2 sm:py-3 bg-white text-black text-[8px] sm:text-[10px] font-black uppercase tracking-widest rounded-full shadow-3xl transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
                           Inquire Details
                         </div>
                       </div>
                     </div>
 
-                    <div className="p-8 flex items-center justify-between bg-white dark:bg-zinc-900/50">
-                      <div className="space-y-1.5">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">
+                    <div className="p-3 sm:p-8 flex items-center justify-between bg-white dark:bg-zinc-900/50">
+                      <div className="space-y-0.5 sm:space-y-1.5">
+                        <p className="text-[7px] sm:text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] sm:tracking-[0.3em]">
                           Floor Area
                         </p>
                         <div className="flex items-baseline gap-1">
-                          <p className="text-3xl font-black text-charcoal dark:text-white tracking-tighter">
+                          <p className="text-lg sm:text-3xl font-black text-charcoal dark:text-white tracking-tighter">
                             {slot.sqm_size}
                           </p>
-                          <span className="text-xs font-black text-primary">SQM</span>
+                          <span className="text-[9px] sm:text-xs font-black text-primary">SQM</span>
                         </div>
                       </div>
                       
-                      <div className="flex flex-col items-end gap-1 text-right">
-                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Lease Terms</span>
-                         <span className="text-xs font-black text-charcoal dark:text-white uppercase">Flexible</span>
+                      <div className="flex flex-col items-end gap-0.5 sm:gap-1 text-right">
+                         <span className="text-[7px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest">Lease</span>
+                         <span className="text-[8px] sm:text-xs font-black text-charcoal dark:text-white uppercase">Flexible</span>
                       </div>
                     </div>
                   </div>

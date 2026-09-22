@@ -84,7 +84,7 @@ export const ShopCard = ({ shop, onClick, onMessage }: ShopCardProps) => {
     >
       {/* Image Container with Hover Zoom & Grayscale Logic */}
       <div
-        className={`relative h-48 sm:h-64 md:h-72 overflow-hidden transition-all duration-700 ${!is_open ? "grayscale" : ""}`}
+        className={`relative h-32 sm:h-48 md:h-64 lg:h-72 overflow-hidden transition-all duration-700 ${!is_open ? "grayscale" : ""}`}
       >
         <Image
           src={getSafeUrl(logo_url, 0) || "/placeholder-shop.jpg"}
@@ -95,14 +95,15 @@ export const ShopCard = ({ shop, onClick, onMessage }: ShopCardProps) => {
 
         {/* Dark Overlay on Hover */}
         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-700 pointer-events-none flex items-center justify-center">
-          <div className="w-16 h-16 bg-white/20 backdrop-blur-xl rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 scale-50 group-hover:scale-100 transition-all duration-500 shadow-2xl">
-            <Eye size={28} />
+          <div className="w-10 h-10 sm:w-16 sm:h-16 bg-white/20 backdrop-blur-xl rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 scale-50 group-hover:scale-100 transition-all duration-500 shadow-2xl">
+            <Eye size={18} className="sm:hidden" />
+            <Eye size={28} className="hidden sm:block" />
           </div>
         </div>
 
         {/* Status Badge */}
         <div
-          className={`absolute top-5 left-5 flex items-center gap-2 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.2em] backdrop-blur-xl transition-all duration-500 border border-white/20 shadow-xl ${is_open
+          className={`absolute top-2 sm:top-5 left-2 sm:left-5 flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-1 sm:py-2 rounded-full text-[8px] sm:text-[10px] font-black uppercase tracking-[0.1em] sm:tracking-[0.2em] backdrop-blur-xl transition-all duration-500 border border-white/20 shadow-xl ${is_open
             ? "bg-emerald-500/80 text-white"
             : "bg-zinc-800/80 text-zinc-100"
             }`}
@@ -116,12 +117,13 @@ export const ShopCard = ({ shop, onClick, onMessage }: ShopCardProps) => {
         {/* Favorite Icon */}
         <button
           onClick={toggleFavorite}
-          className={`absolute top-5 right-5 w-10 h-10 rounded-full flex items-center justify-center transition-all duration-500 border border-white/20 backdrop-blur-xl shadow-xl ${isFavorited
+          className={`absolute top-2 sm:top-5 right-2 sm:right-5 w-7 h-7 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-all duration-500 border border-white/20 backdrop-blur-xl shadow-xl ${isFavorited
             ? "bg-primary text-white scale-110 shadow-primary/40"
             : "bg-white/30 text-white hover:bg-white hover:text-primary hover:scale-110"
             }`}
         >
-          <Heart size={18} fill={isFavorited ? "currentColor" : "none"} />
+          <Heart size={12} className="sm:hidden" fill={isFavorited ? "currentColor" : "none"} />
+          <Heart size={18} className="hidden sm:block" fill={isFavorited ? "currentColor" : "none"} />
         </button>
 
         {/* Floating Unit ID Tag */}
@@ -134,17 +136,17 @@ export const ShopCard = ({ shop, onClick, onMessage }: ShopCardProps) => {
       </div>
 
       {/* Info Section */}
-      <div className="p-6 sm:p-10 relative">
+      <div className="p-3 sm:p-6 lg:p-10 relative">
         {/* Mall Theme Accent */}
         <div className="absolute top-0 right-10 w-16 h-1 bg-primary transform origin-right scale-x-0 group-hover:scale-x-100 transition-transform duration-500 rounded-b-full shadow-[0_0_10px_rgba(190,30,45,0.5)]"></div>
 
-        <div className="flex flex-col gap-2 mb-6">
+        <div className="flex flex-col gap-1 sm:gap-2 mb-3 sm:mb-6">
           <div className="flex justify-between items-start">
             <div>
-              <h3 className="text-3xl font-black text-charcoal dark:text-white tracking-tighter group-hover:text-primary transition-colors leading-none mb-3 uppercase">
+              <h3 className="text-sm sm:text-2xl lg:text-3xl font-black text-charcoal dark:text-white tracking-tighter group-hover:text-primary transition-colors leading-tight sm:leading-none mb-1 sm:mb-3 uppercase line-clamp-2">
                 {shop_name}
               </h3>
-              <div className="flex items-center gap-3">
+              <div className="hidden sm:flex items-center gap-3">
                 <div className="px-3 py-1 bg-primary/5 border border-primary/20 rounded-md flex items-center gap-2">
                   <Tag size={12} className="text-primary" />
                   <span className="text-[10px] font-black text-primary uppercase tracking-widest">
@@ -156,9 +158,13 @@ export const ShopCard = ({ shop, onClick, onMessage }: ShopCardProps) => {
                   Official Tenant
                 </div>
               </div>
+              {/* Mobile-only compact category badge */}
+              <span className="sm:hidden inline-block px-1.5 py-0.5 bg-primary/5 border border-primary/20 rounded text-[7px] font-black text-primary uppercase tracking-wider">
+                {shop.category || "Fashion"}
+              </span>
             </div>
           </div>
-          <p className="text-sm text-slate-500 dark:text-slate-400 font-medium leading-relaxed line-clamp-2 mt-4 italic">
+          <p className="hidden sm:block text-sm text-slate-500 dark:text-slate-400 font-medium leading-relaxed line-clamp-2 mt-4 italic">
             "
             {shop.description ||
               "Step into a world of curated style and premium experiences."}
@@ -166,24 +172,29 @@ export const ShopCard = ({ shop, onClick, onMessage }: ShopCardProps) => {
           </p>
         </div>
 
-        <div className="flex items-center gap-4 pt-8 mt-4 border-t border-slate-100 dark:border-white/10">
+        <div className="flex items-center gap-2 sm:gap-4 pt-3 sm:pt-8 mt-2 sm:mt-4 border-t border-slate-100 dark:border-white/10">
           <button
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
               if (onMessage) onMessage(shop_name);
             }}
-            className="flex-1 py-4.5 bg-slate-50 dark:bg-zinc-900 border-2 border-slate-100 dark:border-white/5 hover:border-primary/40 hover:bg-primary/5 hover:text-primary text-slate-900 dark:text-white rounded-[1.5rem] text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 active:scale-95 group/btn"
+            className="flex-1 py-2.5 sm:py-4 bg-slate-50 dark:bg-zinc-900 border-2 border-slate-100 dark:border-white/5 hover:border-primary/40 hover:bg-primary/5 hover:text-primary text-slate-900 dark:text-white rounded-xl sm:rounded-[1.5rem] text-[7px] sm:text-[10px] font-black uppercase tracking-[0.1em] sm:tracking-[0.2em] transition-all flex items-center justify-center gap-1.5 sm:gap-3 active:scale-95 group/btn"
           >
             <MessageCircle
-              size={18}
-              className="text-primary group-hover/btn:scale-125 transition-transform"
+              size={12}
+              className="sm:hidden text-primary group-hover/btn:scale-125 transition-transform"
             />
-            Live Inquiry
+            <MessageCircle
+              size={18}
+              className="hidden sm:block text-primary group-hover/btn:scale-125 transition-transform"
+            />
+            <span className="hidden sm:inline">Live </span>Inquiry
           </button>
 
-          <div className="w-14 h-14 rounded-[1.5rem] bg-charcoal dark:bg-zinc-900 text-white flex items-center justify-center transition-all shadow-xl group-hover:bg-primary group-hover:shadow-[0_20px_40px_-5px_rgba(190,30,45,0.4)] active:scale-95 group-hover:scale-110 border border-white/5">
-            <ChevronRight size={24} />
+          <div className="w-9 h-9 sm:w-14 sm:h-14 rounded-xl sm:rounded-[1.5rem] bg-charcoal dark:bg-zinc-900 text-white flex items-center justify-center transition-all shadow-xl group-hover:bg-primary group-hover:shadow-[0_20px_40px_-5px_rgba(190,30,45,0.4)] active:scale-95 group-hover:scale-110 border border-white/5">
+            <ChevronRight size={16} className="sm:hidden" />
+            <ChevronRight size={24} className="hidden sm:block" />
           </div>
         </div>
       </div>
