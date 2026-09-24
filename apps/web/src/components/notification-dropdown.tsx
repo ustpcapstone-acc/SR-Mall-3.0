@@ -48,57 +48,43 @@ export default function NotificationDropdown({
   const [loading, setLoading] = useState(false);
   const seenIdsRef = useRef<Set<string>>(new Set());
   const isInitialLoadRef = useRef(true);
+  const mountTimeRef = useRef(Date.now());
+  const isFetchingRef = useRef(false);
 
   const loadNotifications = async () => {
-    if (!user) return;
-    const res = await getNotificationsAction(user.id);
-    if (res.success && res.data) {
-      const data = res.data as unknown as Notification[];
-      
-      // Real-time pop-up notification for newly arrived unread notifications
-      if (!isInitialLoadRef.current) {
-        const newlyArrived = data.filter(
-          (n) => !n.isRead && !seenIdsRef.current.has(n.id)
-        );
-        newlyArrived.forEach((n) => {
-          const targetUrl = getNotificationRoute(n, user?.role);
-          toast.info(n.title, {
-            description: n.message,
-            duration: 8000,
-            action: {
-              label: "Open",
-              onClick: () => {
-                markAsRead(n.id);
-                if (typeof window !== "undefined" && targetUrl.includes("chat=open")) {
-                  try {
-                    const parsed = new URL(targetUrl, window.location.origin);
-                    const recipient = parsed.searchParams.get("recipient");
-                    const shop = parsed.searchParams.get("shop");
-                    const detail = { recipient, shop: shop ? decodeURIComponent(shop) : null };
-                    sessionStorage.setItem("pending_chat_open", JSON.stringify(detail));
-                    window.dispatchEvent(
-                      new CustomEvent("open-mall-chat", {
-                        detail,
-                      }),
-                    );
-                  } catch (err) {
-                    sessionStorage.setItem("pending_chat_open", JSON.stringify({}));
-                    window.dispatchEvent(new CustomEvent("open-mall-chat", { detail: {} }));
-                  }
-                }
-                router.push(targetUrl);
-              },
-            },
+    if (!user || isFetchingRef.current) return;
+    isFetchingRef.current = true;
+    try {
+      const res = await getNotificationsAction(user.id);
+      if (res.success && res.data) {
+        const data = res.data as unknown as Notification[];
+
+        // Only show informational toast pop-up for notifications created after page mount
+        if (!isInitialLoadRef.current) {
+          const newlyArrived = data.filter(
+            (n) =>
+              !n.isRead &&
+              !seenIdsRef.current.has(n.id) &&
+              new Date(n.createdAt).getTime() >= mountTimeRef.current,
+          );
+          newlyArrived.forEach((n) => {
+            // Purely informational toast; does NOT redirect or hijack navigation
+            toast.info(n.title, {
+              description: n.message,
+              duration: 5000,
+            });
           });
-        });
+        }
+
+        // Record all seen notification IDs
+        data.forEach((n) => seenIdsRef.current.add(n.id));
+        isInitialLoadRef.current = false;
+
+        setNotifications(data);
+        setUnreadCount(data.filter((n) => !n.isRead).length);
       }
-
-      // Record seen IDs
-      data.forEach((n) => seenIdsRef.current.add(n.id));
-      isInitialLoadRef.current = false;
-
-      setNotifications(data);
-      setUnreadCount(data.filter((n) => !n.isRead).length);
+    } finally {
+      isFetchingRef.current = false;
     }
   };
 
@@ -108,7 +94,7 @@ export default function NotificationDropdown({
     // Fast polling (10 seconds) for real-time notification pop-ups
     const interval = setInterval(loadNotifications, 10000);
     return () => clearInterval(interval);
-  }, [user]);
+  }, [user?.id]);
 
   const getNotificationIcon = (type: string) => {
     switch (type) {

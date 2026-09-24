@@ -24,7 +24,7 @@ export const TenantNavbar = ({ onMenuClick }: TenantNavbarProps) => {
   };
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 glass border-b border-slate-100 dark:border-white/5 bg-white/80 dark:bg-black/80 backdrop-blur-md">
+    <nav className="fixed top-0 left-0 right-0 z-50 glass border-b border-slate-100 dark:border-slate-800 bg-white/80 dark:bg-[#161b26]/90 backdrop-blur-md">
       <div className="px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between">
         {/* Left: Mobile Menu + Brand */}
         <div className="flex items-center gap-3 sm:gap-8">
@@ -71,7 +71,7 @@ export const TenantNavbar = ({ onMenuClick }: TenantNavbarProps) => {
           <div className="relative">
             <button
               onClick={() => setIsProfileOpen(!isProfileOpen)}
-              className="flex items-center gap-2 px-2 sm:px-3 py-1.5 bg-slate-50 dark:bg-zinc-800 rounded-full border border-slate-100 dark:border-white/5 transition-all hover:shadow-lg"
+              className="flex items-center gap-2 px-2 sm:px-3 py-1.5 bg-slate-50 dark:bg-white/5 rounded-full border border-slate-100 dark:border-slate-800 transition-all hover:shadow-lg"
             >
               <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold text-xs sm:text-sm shadow-inner tracking-wider overflow-hidden border border-slate-100 dark:border-white/5">
                 {user?.avatarUrl ? (
@@ -95,8 +95,8 @@ export const TenantNavbar = ({ onMenuClick }: TenantNavbarProps) => {
             </button>
 
             {isProfileOpen && (
-              <div className="absolute top-full right-0 mt-3 w-52 bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl border border-slate-100 dark:border-white/5 py-2 animate-fade-in-up">
-                <div className="px-4 py-2 border-b border-slate-50 dark:border-white/5 mb-1">
+              <div className="absolute top-full right-0 mt-3 w-52 bg-white dark:bg-[#161b26] rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-800 py-2 animate-fade-in-up">
+                <div className="px-4 py-2 border-b border-slate-50 dark:border-slate-800 mb-1">
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                     Menu
                   </p>

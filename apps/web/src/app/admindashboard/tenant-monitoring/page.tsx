@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Search,
   Filter,
@@ -248,6 +248,44 @@ export default function TenantMonitoring() {
     pendingRevenue: 0,
   });
   const [isExporting, setIsExporting] = useState(false);
+  const [isReportDropdownOpen, setIsReportDropdownOpen] = useState(false);
+  const [reportMonth, setReportMonth] = useState(new Date().getMonth());
+  const [reportYear, setReportYear] = useState(new Date().getFullYear());
+  const [reportYearFilter, setReportYearFilter] = useState(new Date().getFullYear());
+  const reportDropdownRef = useRef<HTMLDivElement>(null);
+  const [dropdownAlign, setDropdownAlign] = useState<"left" | "right">("left");
+
+  useEffect(() => {
+    if (isReportDropdownOpen && reportDropdownRef.current) {
+      const rect = reportDropdownRef.current.getBoundingClientRect();
+      const dropdownWidth = 384;
+      const wouldOverflowRight = rect.left + dropdownWidth > window.innerWidth - 20;
+      const hasRoomOnLeft = rect.right - dropdownWidth > 300;
+
+      if (wouldOverflowRight && hasRoomOnLeft) {
+        setDropdownAlign("right");
+      } else {
+        setDropdownAlign("left");
+      }
+    }
+  }, [isReportDropdownOpen]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        reportDropdownRef.current &&
+        !reportDropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsReportDropdownOpen(false);
+      }
+    };
+    if (isReportDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isReportDropdownOpen]);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingTenant, setEditingTenant] = useState<Tenant | null>(null);
   const [editFormData, setEditFormData] = useState({
@@ -689,13 +727,98 @@ export default function TenantMonitoring() {
     }
   };
 
+  const MONTH_NAMES = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ];
+
+  const handleExportMonthlyReport = async () => {
+    setIsExporting(true);
+    try {
+      const { generateTenantPDF } = await import("@/utils/report-generator");
+      const result = await getTenantReportDataAction({
+        month: reportMonth,
+        year: reportYear,
+      });
+      if (result.success && result.data) {
+        const monthLabel = MONTH_NAMES[reportMonth];
+        await generateTenantPDF(
+          result.data,
+          `Tenant Summary Report — ${monthLabel} ${reportYear}`,
+          `Tenant_Report_${monthLabel}_${reportYear}.pdf`,
+        );
+        setToast({
+          msg: `Monthly report for ${monthLabel} ${reportYear} downloaded!`,
+          type: "success",
+        });
+      } else {
+        setToast({
+          msg: result.error || "Failed to generate monthly report",
+          type: "error",
+        });
+      }
+    } catch (error) {
+      console.error("Export error:", error);
+      setToast({ msg: "Error generating monthly report", type: "error" });
+    } finally {
+      setIsExporting(false);
+      setIsReportDropdownOpen(false);
+    }
+  };
+
+  const handleExportYearlyReport = async () => {
+    setIsExporting(true);
+    try {
+      const { generateTenantPDF } = await import("@/utils/report-generator");
+      const result = await getTenantReportDataAction({
+        year: reportYearFilter,
+      });
+      if (result.success && result.data) {
+        await generateTenantPDF(
+          result.data,
+          `Annual Tenant Summary Report — ${reportYearFilter}`,
+          `Tenant_Report_Annual_${reportYearFilter}.pdf`,
+        );
+        setToast({
+          msg: `Annual report for ${reportYearFilter} downloaded!`,
+          type: "success",
+        });
+      } else {
+        setToast({
+          msg: result.error || "Failed to generate yearly report",
+          type: "error",
+        });
+      }
+    } catch (error) {
+      console.error("Export error:", error);
+      setToast({ msg: "Error generating yearly report", type: "error" });
+    } finally {
+      setIsExporting(false);
+      setIsReportDropdownOpen(false);
+    }
+  };
+
   const handleExportReport = async () => {
     setIsExporting(true);
     try {
       const { generateTenantPDF } = await import("@/utils/report-generator");
       const result = await getTenantReportDataAction();
       if (result.success && result.data) {
-        await generateTenantPDF(result.data);
+        await generateTenantPDF(
+          result.data,
+          "All-Time Tenant Summary Report",
+          `Tenant_Report_Overall_${new Date().toISOString().split("T")[0]}.pdf`,
+        );
         setToast({ msg: "Report generated successfully!", type: "success" });
       } else {
         setToast({
@@ -708,6 +831,7 @@ export default function TenantMonitoring() {
       setToast({ msg: "Error generating report", type: "error" });
     } finally {
       setIsExporting(false);
+      setIsReportDropdownOpen(false);
     }
   };
 
@@ -1945,35 +2069,158 @@ export default function TenantMonitoring() {
             </button>
           </div>
 
-          {/* Export */}
-          <button
-            onClick={handleExportReport}
-            disabled={isExporting}
-            className={clsx(
-              "flex",
-              "items-center",
-              "gap-2",
-              "px-6",
-              "py-3",
-              "bg-[#BE1E2D]/5",
-              "hover:bg-[#BE1E2D]/10",
-              "border",
-              "border-[#BE1E2D]/20",
-              "rounded-2xl",
-              "text-[#BE1E2D]",
-              "font-bold",
-              "transition-all",
-              "active:scale-95",
-              isExporting && "opacity-50 cursor-not-allowed",
+          {/* Export Dropdown */}
+          <div className="relative z-30" ref={reportDropdownRef}>
+            <button
+              onClick={() => setIsReportDropdownOpen((prev) => !prev)}
+              disabled={isExporting}
+              className={clsx(
+                "flex",
+                "items-center",
+                "gap-2",
+                "px-5",
+                "py-3",
+                "bg-[#BE1E2D]/5",
+                "hover:bg-[#BE1E2D]/10",
+                "border",
+                "border-[#BE1E2D]/20",
+                "rounded-2xl",
+                "text-[#BE1E2D]",
+                "font-bold",
+                "transition-all",
+                "active:scale-95",
+                isExporting && "opacity-50 cursor-not-allowed",
+              )}
+            >
+              {isExporting ? (
+                <RefreshCw size={18} className="animate-spin" />
+              ) : (
+                <FileText size={18} />
+              )}
+              <span>{isExporting ? "Generating Report..." : "Download Report"}</span>
+              <ChevronDown
+                size={16}
+                className={clsx(
+                  "transition-transform duration-200",
+                  isReportDropdownOpen && "rotate-180",
+                )}
+              />
+            </button>
+
+            {isReportDropdownOpen && (
+              <div
+                className={clsx(
+                  "absolute top-full mt-2 w-80 sm:w-96 max-w-[calc(100vw-2rem)] bg-white dark:bg-[#161b26] border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-4 z-50 animate-fade-in-up",
+                  dropdownAlign === "right" ? "right-0" : "left-0",
+                )}
+              >
+                <div className="pb-3 border-b border-slate-100 dark:border-slate-800">
+                  <h4 className="text-sm font-black text-charcoal dark:text-white uppercase tracking-wider flex items-center gap-2">
+                    <Download size={16} className="text-[#BE1E2D]" />
+                    Export Tenant Reports
+                  </h4>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    Select a periodic breakdown or export complete records.
+                  </p>
+                </div>
+
+                <div className="py-3 space-y-4">
+                  {/* Option 1: Monthly Report */}
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Calendar size={15} className="text-[#BE1E2D]" />
+                        <span className="text-xs font-bold text-charcoal dark:text-white uppercase tracking-wide">
+                          Monthly Report
+                        </span>
+                      </div>
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+                        Specific Month
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <select
+                        value={reportMonth}
+                        onChange={(e) => setReportMonth(Number(e.target.value))}
+                        className="px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#161b26] text-charcoal dark:text-white font-medium focus:outline-none focus:border-[#BE1E2D]"
+                      >
+                        {MONTH_NAMES.map((m, idx) => (
+                          <option key={m} value={idx}>
+                            {m}
+                          </option>
+                        ))}
+                      </select>
+                      <select
+                        value={reportYear}
+                        onChange={(e) => setReportYear(Number(e.target.value))}
+                        className="px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#161b26] text-charcoal dark:text-white font-medium focus:outline-none focus:border-[#BE1E2D]"
+                      >
+                        {[2024, 2025, 2026, 2027, 2028].map((yr) => (
+                          <option key={yr} value={yr}>
+                            {yr}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <button
+                      onClick={handleExportMonthlyReport}
+                      disabled={isExporting}
+                      className="w-full py-2 bg-[#BE1E2D] hover:bg-[#a01825] text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all active:scale-95 disabled:opacity-50"
+                    >
+                      <Download size={14} />
+                      Download {MONTH_NAMES[reportMonth]} {reportYear} PDF
+                    </button>
+                  </div>
+
+                  {/* Option 2: Yearly Report */}
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Calendar size={15} className="text-[#BE1E2D]" />
+                        <span className="text-xs font-bold text-charcoal dark:text-white uppercase tracking-wide">
+                          Yearly Report
+                        </span>
+                      </div>
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+                        Full Year
+                      </span>
+                    </div>
+                    <select
+                      value={reportYearFilter}
+                      onChange={(e) => setReportYearFilter(Number(e.target.value))}
+                      className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#161b26] text-charcoal dark:text-white font-medium focus:outline-none focus:border-[#BE1E2D]"
+                    >
+                      {[2024, 2025, 2026, 2027, 2028].map((yr) => (
+                        <option key={yr} value={yr}>
+                          Year {yr}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      onClick={handleExportYearlyReport}
+                      disabled={isExporting}
+                      className="w-full py-2 bg-[#BE1E2D] hover:bg-[#a01825] text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all active:scale-95 disabled:opacity-50"
+                    >
+                      <Download size={14} />
+                      Download {reportYearFilter} Annual PDF
+                    </button>
+                  </div>
+
+                  {/* Option 3: Overall Report */}
+                  <div className="pt-1">
+                    <button
+                      onClick={handleExportReport}
+                      disabled={isExporting}
+                      className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-charcoal dark:text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 border border-slate-200 dark:border-white/10 transition-all active:scale-95 disabled:opacity-50"
+                    >
+                      <FileText size={15} className="text-[#BE1E2D]" />
+                      Download Overall Report (All-Time)
+                    </button>
+                  </div>
+                </div>
+              </div>
             )}
-          >
-            {isExporting ? (
-              <RefreshCw size={18} className="animate-spin" />
-            ) : (
-              <FileText size={18} />
-            )}
-            {isExporting ? "Generating Report..." : "Download Report"}
-          </button>
+          </div>
         </div>
 
         {/* Loading State */}

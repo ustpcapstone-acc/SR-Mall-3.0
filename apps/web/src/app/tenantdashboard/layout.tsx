@@ -45,7 +45,7 @@ export default function TenantLayout({
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-black font-sans selection:bg-primary selection:text-white flex">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#0f1117] font-sans selection:bg-primary selection:text-white flex">
       <TenantNavbar onMenuClick={() => setIsMobileMenuOpen(true)} />
       <TenantSidebar
         isMobileOpen={isMobileMenuOpen}

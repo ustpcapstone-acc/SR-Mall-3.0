@@ -121,7 +121,11 @@ export const generateTenantReceiptPDF = async (
   doc.save(`SR-Receipt-${orNumber}.pdf`);
 };
 
-export const generateTenantPDF = async (data: any[]) => {
+export const generateTenantPDF = async (
+  data: any[],
+  reportTitle?: string,
+  filename?: string,
+) => {
   if (typeof window === "undefined") return;
 
   const { jsPDF } = await import("jspdf");
@@ -146,7 +150,7 @@ export const generateTenantPDF = async (data: any[]) => {
 
   doc.setTextColor(40, 40, 40);
   doc.setFontSize(22);
-  doc.text("Official Tenant Summary Report", 14, 40);
+  doc.text(reportTitle || "Official Tenant Summary Report", 14, 40);
 
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
@@ -287,7 +291,8 @@ export const generateTenantPDF = async (data: any[]) => {
   }
 
   doc.save(
-    `Tenant_Intelligence_Report_${new Date().toISOString().split("T")[0]}.pdf`,
+    filename ||
+      `Tenant_Intelligence_Report_${new Date().toISOString().split("T")[0]}.pdf`,
   );
 };
 

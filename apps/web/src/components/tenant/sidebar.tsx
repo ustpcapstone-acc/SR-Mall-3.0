@@ -114,7 +114,7 @@ export const TenantSidebar = ({
       {/* Sidebar */}
       <aside
         className={clsx(
-          "bg-white dark:bg-zinc-950 border-r border-slate-200 dark:border-white/10 flex flex-col transition-transform duration-300 ease-in-out",
+          "bg-white dark:bg-[#161b26] border-r border-slate-200 dark:border-slate-800 flex flex-col transition-transform duration-300 ease-in-out",
           "lg:fixed lg:top-20 lg:left-0 lg:h-[calc(100vh-5rem)] lg:w-72 lg:z-30",
           "fixed inset-y-0 left-0 w-72 z-50",
           isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
@@ -138,7 +138,7 @@ export const TenantSidebar = ({
                 "text-[10px]",
                 "font-black",
                 "text-slate-400",
-                "dark:text-zinc-600",
+                "dark:text-slate-400",
                 "uppercase",
                 "tracking-[0.3em]",
                 "font-sans",
@@ -157,7 +157,7 @@ export const TenantSidebar = ({
                     "p-2.5 rounded-xl transition-all shrink-0",
                     isActive
                       ? "bg-primary text-white scale-110 shadow-lg shadow-primary/30"
-                      : "bg-slate-50 dark:bg-zinc-900 text-slate-400 group-hover:text-charcoal dark:group-hover:text-white group-hover:scale-110",
+                      : "bg-slate-50 dark:bg-white/5 text-slate-400 group-hover:text-charcoal dark:group-hover:text-white group-hover:scale-110",
                   )}
                 >
                   <Icon size={20} />

@@ -742,7 +742,10 @@ export async function getTenantStatusAction(userId: string) {
     return { success: false, error: error.message };
   }
 }
-export async function getTenantReportDataAction() {
+export async function getTenantReportDataAction(filter?: {
+  month?: number;
+  year?: number;
+}) {
   try {
     const tenants = await (prisma as any).tenant.findMany({
       include: {
@@ -767,7 +770,15 @@ export async function getTenantReportDataAction() {
       const expiryDate = new Date(t.createdAt);
       expiryDate.setFullYear(expiryDate.getFullYear() + 1);
 
-      const unpaidInvoices = t.invoices.filter(
+      const relevantInvoices = t.invoices.filter((inv: any) => {
+        if (!filter) return true;
+        const d = new Date(inv.dueDate || inv.createdAt);
+        if (filter.year !== undefined && d.getFullYear() !== filter.year) return false;
+        if (filter.month !== undefined && d.getMonth() !== filter.month) return false;
+        return true;
+      });
+
+      const unpaidInvoices = relevantInvoices.filter(
         (inv: any) => inv.status !== "PAID",
       );
       const balance = unpaidInvoices.reduce(
@@ -775,13 +786,13 @@ export async function getTenantReportDataAction() {
         0,
       );
 
-      const lastPaidInvoice = t.invoices.find(
+      const lastPaidInvoice = relevantInvoices.find(
         (inv: any) => inv.status === "PAID",
       );
       const lastPaymentDate = lastPaidInvoice
         ? lastPaidInvoice.createdAt
         : null;
-      const lastReceiptNo = t.invoices[0] ? t.invoices[0].invoiceNumber : null;
+      const lastReceiptNo = relevantInvoices[0] ? relevantInvoices[0].invoiceNumber : null;
 
       // Find the earliest due date among unpaid invoices
       const overdueInvoice = unpaidInvoices.sort(
@@ -821,9 +832,9 @@ export async function getTenantReportDataAction() {
         leaseExpiryDate: expiryDate,
         category: category,
         status:
-          t.invoices[0]?.status === "PAID"
+          relevantInvoices[0]?.status === "PAID"
             ? "PAID"
-            : t.invoices[0]?.status || "PENDING",
+            : relevantInvoices[0]?.status || (filter ? (t.status === "ACTIVE" ? "ACTIVE" : t.status || "N/A") : t.invoices[0]?.status || "PENDING"),
         floorLevel,
       };
     });
