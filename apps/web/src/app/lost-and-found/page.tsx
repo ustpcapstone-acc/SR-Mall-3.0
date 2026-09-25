@@ -21,7 +21,8 @@ import {
   Store,
   Camera,
   Loader2,
-  Image as ImageIcon
+  Image as ImageIcon,
+  CheckCircle2,
 } from "lucide-react";
 import Link from "next/link";
 import clsx from "clsx";
@@ -35,13 +36,14 @@ export default function LostAndFoundPage() {
   const { isAuthenticated, user, logout } = useAuth();
   const router = useRouter();
 
-  const [activeTab, setActiveTab] = useState<"found" | "lost" | "report">("found");
+  const [activeTab, setActiveTab] = useState<"found" | "lost" | "report" | "claimed">("found");
   const [isMerchantModalOpen, setIsMerchantModalOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [chatMessage, setChatMessage] = useState("");
   
   const [foundItems, setFoundItems] = useState<any[]>([]);
   const [lostItems, setLostItems] = useState<any[]>([]);
+  const [claimedItems, setClaimedItems] = useState<any[]>([]);
   const [isLoadingItems, setIsLoadingItems] = useState(true);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -58,14 +60,15 @@ export default function LostAndFoundPage() {
 
   const loadItems = async () => {
     setIsLoadingItems(true);
-    const foundRes = await getLostAndFoundItems("FOUND");
-    if (foundRes.success && foundRes.data) {
-      // Only show items that are not PENDING for public view
-      setFoundItems(foundRes.data.filter((item: any) => item.status !== "PENDING"));
-    }
-    const lostRes = await getLostAndFoundItems("LOST");
-    if (lostRes.success && lostRes.data) {
-      setLostItems(lostRes.data.filter((item: any) => item.status !== "PENDING"));
+    const res = await getLostAndFoundItems();
+    if (res.success && res.data) {
+      const all = res.data;
+      // Found items that are active and not yet claimed
+      setFoundItems(all.filter((item: any) => item.type === "FOUND" && item.status !== "PENDING" && item.status !== "CLAIMED"));
+      // Lost items that are active and not yet claimed/resolved
+      setLostItems(all.filter((item: any) => item.type === "LOST" && item.status !== "PENDING" && item.status !== "CLAIMED"));
+      // Claimed items (verified and returned to owner)
+      setClaimedItems(all.filter((item: any) => item.status === "CLAIMED"));
     }
     setIsLoadingItems(false);
   };
@@ -212,6 +215,7 @@ export default function LostAndFoundPage() {
                   { id: "found", label: "Found Items", icon: Package },
                   { id: "lost", label: "Lost Items", icon: Search },
                   { id: "report", label: "Report Item", icon: Megaphone },
+                  { id: "claimed", label: "Claimed Items", icon: CheckCircle2 },
                 ].map((tab) => (
                   <button
                     key={tab.id}
@@ -503,6 +507,86 @@ export default function LostAndFoundPage() {
                           </button>
                         </div>
                       </form>
+                    </div>
+                  </div>
+                )}
+
+                {/* Claimed Items Tab */}
+                {activeTab === "claimed" && (
+                  <div className="flex-1 animate-fade-in">
+                    <div className="flex items-center gap-3 mb-10">
+                      <div className="w-1.5 h-8 bg-emerald-500 rounded-full"></div>
+                      <div>
+                        <h2 className="text-2xl font-black text-charcoal dark:text-white uppercase tracking-tighter italic">
+                          Claimed Items
+                        </h2>
+                        <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-0.5">
+                          Items that have been successfully verified and returned to their owners
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      {isLoadingItems ? (
+                        <div className="py-20 flex justify-center">
+                          <Loader2 className="animate-spin text-emerald-500" size={32} />
+                        </div>
+                      ) : claimedItems.length > 0 ? (
+                        claimedItems.map((item) => (
+                          <div
+                            key={item.id}
+                            className="p-6 bg-emerald-50/40 dark:bg-emerald-950/10 rounded-3xl border border-emerald-100 dark:border-emerald-900/20 flex flex-col sm:flex-row gap-6 justify-between items-start sm:items-center hover:border-emerald-300 dark:hover:border-emerald-800 transition-all"
+                          >
+                            {item.imageUrl && (
+                              <img
+                                src={item.imageUrl}
+                                alt={item.title}
+                                className="w-24 h-24 rounded-2xl object-cover shrink-0 bg-white"
+                              />
+                            )}
+                            <div className="space-y-2 flex-1">
+                              <div className="flex items-center gap-2">
+                                <h3 className="text-lg font-black text-charcoal dark:text-white tracking-tight">
+                                  {item.title}
+                                </h3>
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 text-[10px] font-black uppercase tracking-widest rounded-full">
+                                  <CheckCircle2 size={12} /> Claimed
+                                </span>
+                              </div>
+                              {item.description && (
+                                <p className="text-xs text-slate-500 line-clamp-2">
+                                  {item.description}
+                                </p>
+                              )}
+                              <div className="flex flex-wrap items-center gap-4 text-xs font-bold text-slate-500 uppercase tracking-widest">
+                                <span className="flex items-center gap-1.5">
+                                  <MapPin size={14} /> {item.location}
+                                </span>
+                                <span className="flex items-center gap-1.5">
+                                  <Calendar size={14} /> {new Date(item.date).toLocaleDateString()}
+                                </span>
+                                {item.time && (
+                                  <span className="flex items-center gap-1.5">
+                                    <Clock size={14} /> {item.time}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex flex-col items-end gap-2 shrink-0">
+                              <span className="px-4 py-2 bg-emerald-500 text-white text-[10px] font-black uppercase tracking-widest rounded-xl flex items-center gap-1.5 shadow-md shadow-emerald-500/20">
+                                <CheckCircle2 size={14} /> Returned
+                              </span>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="py-20 text-center text-slate-400">
+                          <CheckCircle2 size={48} className="mx-auto mb-4 opacity-20 text-emerald-500" />
+                          <p className="text-sm font-bold uppercase tracking-widest">
+                            No claimed items yet.
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}

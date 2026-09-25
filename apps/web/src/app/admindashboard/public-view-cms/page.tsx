@@ -397,12 +397,31 @@ export default function PublicViewCMSPage() {
         setLostAndFoundItems((prev) =>
           prev.map((i) => (i.id === id ? { ...i, status: newStatus } : i))
         );
-        showToast("Status updated", "success");
+        showToast(`Status updated to ${newStatus}`, "success");
       } else {
         showToast("Failed to update status", "error");
       }
     } catch (error) {
       showToast("Error updating status", "error");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDeleteLostFound = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this lost & found item?")) return;
+    setIsSaving(true);
+    try {
+      const { deleteLostAndFoundItem } = await import("@/app/actions/lost-and-found");
+      const res = await deleteLostAndFoundItem(id);
+      if (res.success) {
+        setLostAndFoundItems((prev) => prev.filter((i) => i.id !== id));
+        showToast("Item deleted successfully", "success");
+      } else {
+        showToast("Failed to delete item", "error");
+      }
+    } catch {
+      showToast("Error deleting item", "error");
     } finally {
       setIsSaving(false);
     }
@@ -1206,26 +1225,83 @@ export default function PublicViewCMSPage() {
                 </button>
               </div>
 
-              <div className="flex flex-wrap gap-2 mb-6">
-                {["ALL", "PENDING", "LOOKING", "RESOLVED", "UNCLAIMED", "FOUND", "LOST"].map((f) => (
-                  <button
-                    key={f}
-                    onClick={() => setLfFilter(f)}
-                    className={clsx(
-                      "px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all",
-                      lfFilter === f ? "bg-primary text-white shadow-lg shadow-primary/30" : "bg-slate-100 dark:bg-zinc-800 text-slate-500 hover:text-charcoal dark:hover:text-white"
-                    )}
-                  >
-                    {f}
-                  </button>
-                ))}
+              {/* Category Filter Tabs */}
+              <div className="flex flex-wrap gap-2.5 mb-6">
+                {[
+                  { id: "ALL", label: "All" },
+                  { id: "FOUND", label: "Found Item" },
+                  { id: "LOST", label: "Lost Item" },
+                  { id: "REPORT", label: "Report Item" },
+                  { id: "CLAIMED", label: "Claimed Item" },
+                ].map((cat) => {
+                  const count = lostAndFoundItems.filter((item) => {
+                    if (cat.id === "ALL") return true;
+                    if (cat.id === "CLAIMED") return item.status === "CLAIMED";
+                    if (cat.id === "REPORT") return item.status === "PENDING";
+                    if (cat.id === "FOUND")
+                      return (
+                        item.type === "FOUND" &&
+                        item.status !== "CLAIMED" &&
+                        item.status !== "PENDING"
+                      );
+                    if (cat.id === "LOST")
+                      return (
+                        item.type === "LOST" &&
+                        item.status !== "CLAIMED" &&
+                        item.status !== "PENDING"
+                      );
+                    return true;
+                  }).length;
+                  const isSelected = lfFilter === cat.id;
+                  const isReport = cat.id === "REPORT";
+
+                  return (
+                    <button
+                      key={cat.id}
+                      onClick={() => setLfFilter(cat.id)}
+                      className={clsx(
+                        "px-5 py-2.5 rounded-full text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2.5 border",
+                        isSelected
+                          ? "bg-primary text-white border-primary shadow-lg shadow-primary/30 scale-105"
+                          : "bg-slate-100 dark:bg-zinc-800 text-slate-500 hover:text-charcoal dark:hover:text-white border-transparent"
+                      )}
+                    >
+                      <span>{cat.label}</span>
+                      <span
+                        className={clsx(
+                          "px-2 py-0.5 rounded-full text-[10px] font-black",
+                          isSelected
+                            ? "bg-white/20 text-white"
+                            : isReport && count > 0
+                            ? "bg-amber-500 text-white animate-pulse"
+                            : "bg-slate-200 dark:bg-zinc-700 text-slate-600 dark:text-zinc-300"
+                        )}
+                      >
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
 
               <div className="bg-white dark:bg-zinc-900/50 border border-slate-100 dark:border-white/5 rounded-[2.5rem] p-6 shadow-sm">
-                {lostAndFoundItems.filter(item => {
+                {lostAndFoundItems.filter((item) => {
                   if (lfFilter === "ALL") return true;
-                  if (lfFilter === "FOUND" || lfFilter === "LOST") return item.type === lfFilter;
-                  return item.status === lfFilter;
+                  if (lfFilter === "CLAIMED") return item.status === "CLAIMED";
+                  if (lfFilter === "REPORT") return item.status === "PENDING";
+                  if (lfFilter === "FOUND")
+                    return (
+                      item.type === "FOUND" &&
+                      item.status !== "CLAIMED" &&
+                      item.status !== "PENDING"
+                    );
+                  if (lfFilter === "LOST")
+                    return (
+                      item.type === "LOST" &&
+                      item.status !== "CLAIMED" &&
+                      item.status !== "PENDING"
+                    );
+                  return true;
                 }).length === 0 ? (
                   <div className="py-20 text-center">
                     <Search size={48} className="mx-auto text-slate-300 mb-4" />
@@ -1236,13 +1312,29 @@ export default function PublicViewCMSPage() {
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {lostAndFoundItems
-                      .filter(item => {
+                      .filter((item) => {
                         if (lfFilter === "ALL") return true;
-                        if (lfFilter === "FOUND" || lfFilter === "LOST") return item.type === lfFilter;
-                        return item.status === lfFilter;
+                        if (lfFilter === "CLAIMED") return item.status === "CLAIMED";
+                        if (lfFilter === "REPORT") return item.status === "PENDING";
+                        if (lfFilter === "FOUND")
+                          return (
+                            item.type === "FOUND" &&
+                            item.status !== "CLAIMED" &&
+                            item.status !== "PENDING"
+                          );
+                        if (lfFilter === "LOST")
+                          return (
+                            item.type === "LOST" &&
+                            item.status !== "CLAIMED" &&
+                            item.status !== "PENDING"
+                          );
+                        return true;
                       })
                       .map((item: any) => (
-                        <div key={item.id} className="group relative bg-slate-50 dark:bg-zinc-800/50 rounded-3xl border border-slate-200 dark:border-white/10 overflow-hidden flex flex-col">
+                        <div
+                          key={item.id}
+                          className="group relative bg-slate-50 dark:bg-zinc-800/50 rounded-3xl border border-slate-200 dark:border-white/10 overflow-hidden flex flex-col hover:border-primary/30 transition-all"
+                        >
                           <div className="aspect-video relative overflow-hidden bg-black/5">
                             {item.imageUrl ? (
                               <img src={item.imageUrl} className="w-full h-full object-cover" />
@@ -1251,30 +1343,87 @@ export default function PublicViewCMSPage() {
                                 <ImageIcon size={32} className="text-slate-400" />
                               </div>
                             )}
-                            <div className={clsx(
-                              "absolute top-3 left-3 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest text-white border border-white/10",
-                              item.type === "LOST" ? "bg-orange-500" : "bg-primary"
-                            )}>
-                              {item.type}
+                            <div className="absolute top-3 left-3 flex items-center gap-1.5">
+                              <span
+                                className={clsx(
+                                  "px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest text-white border border-white/10",
+                                  item.type === "LOST" ? "bg-orange-500" : "bg-primary"
+                                )}
+                              >
+                                {item.type}
+                              </span>
+                              {item.status === "CLAIMED" && (
+                                <span className="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest bg-emerald-500 text-white border border-white/10 shadow-sm flex items-center gap-1">
+                                  <CheckCircle size={10} /> CLAIMED
+                                </span>
+                              )}
+                              {item.status === "PENDING" && (
+                                <span className="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest bg-amber-500 text-white border border-white/10 shadow-sm animate-pulse">
+                                  NEW REPORT
+                                </span>
+                              )}
                             </div>
                           </div>
                           <div className="p-5 flex-1 flex flex-col justify-between">
-                            <h4 className="font-black text-charcoal dark:text-white uppercase tracking-tight text-sm mb-1">{item.title}</h4>
-                            <p className="text-xs text-slate-500 font-medium line-clamp-2 mb-4">{item.location} • {new Date(item.date).toLocaleDateString()}</p>
-                            <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-200 dark:border-white/10">
-                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                                {item.status}
-                              </span>
+                            <div>
+                              <h4 className="font-black text-charcoal dark:text-white uppercase tracking-tight text-sm mb-1">
+                                {item.title}
+                              </h4>
+                              <p className="text-xs text-slate-500 font-medium line-clamp-2 mb-2">
+                                {item.location} • {new Date(item.date).toLocaleDateString()}
+                              </p>
+                              {item.description && (
+                                <p className="text-[11px] text-slate-400 line-clamp-2 mb-2 italic">
+                                  "{item.description}"
+                                </p>
+                              )}
+                              {item.user && (
+                                <p className="text-[10px] text-slate-400 font-semibold mb-2">
+                                  <span className="text-primary font-bold uppercase tracking-wider">
+                                    Reported by:
+                                  </span>{" "}
+                                  {item.user.name || item.user.email}
+                                </p>
+                              )}
+                            </div>
+                            <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-200 dark:border-white/10 gap-2">
                               <select
                                 value={item.status}
                                 onChange={(e) => handleUpdateStatus(item.id, e.target.value)}
-                                className="bg-slate-100 dark:bg-zinc-700 border border-slate-200 dark:border-white/5 rounded-lg text-xs font-bold px-2 py-1 outline-none focus:ring-1 focus:ring-primary"
+                                className={clsx(
+                                  "border rounded-lg text-xs font-bold px-2.5 py-1.5 outline-none transition-all",
+                                  item.status === "CLAIMED"
+                                    ? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800"
+                                    : item.status === "PENDING"
+                                    ? "bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-800"
+                                    : "bg-slate-100 dark:bg-zinc-700 text-charcoal dark:text-white border-slate-200 dark:border-white/5"
+                                )}
                               >
-                                <option value="PENDING">Pending</option>
-                                <option value="LOOKING">Looking</option>
+                                <option value="PENDING">Pending (Report)</option>
+                                <option value="LOOKING">Looking / Active</option>
+                                <option value="CLAIMED">Claimed</option>
                                 <option value="RESOLVED">Resolved</option>
                                 <option value="UNCLAIMED">Unclaimed</option>
                               </select>
+
+                              <div className="flex items-center gap-1.5">
+                                {item.status !== "CLAIMED" && (
+                                  <button
+                                    onClick={() => handleUpdateStatus(item.id, "CLAIMED")}
+                                    className="px-2.5 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-[10px] font-black uppercase tracking-wider rounded-lg transition-all shadow-sm flex items-center gap-1 shrink-0"
+                                    title="Mark this item as Claimed"
+                                  >
+                                    <CheckCircle size={12} /> Claim
+                                  </button>
+                                )}
+                                <button
+                                  onClick={() => handleDeleteLostFound(item.id)}
+                                  className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-lg transition-colors shrink-0"
+                                  title="Delete Item"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
                             </div>
                           </div>
                         </div>

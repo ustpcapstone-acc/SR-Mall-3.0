@@ -72,3 +72,20 @@ export async function updateLostAndFoundItemStatus(id: string, status: string) {
     return { success: false, error: error.message || "Something went wrong" };
   }
 }
+
+export async function deleteLostAndFoundItem(id: string) {
+  try {
+    await prisma.lostAndFoundItem.delete({
+      where: { id },
+    });
+
+    revalidatePath("/lost-and-found");
+    revalidatePath("/admindashboard/public-view-cms");
+
+    return { success: true };
+  } catch (error: any) {
+    console.error("Failed to delete lost and found item", error);
+    return { success: false, error: error.message || "Something went wrong" };
+  }
+}
+
