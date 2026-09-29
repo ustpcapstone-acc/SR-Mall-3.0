@@ -15,6 +15,8 @@ export interface DigitalStorefront {
   logo_url: string | null; // URL from Supabase Storage
   gallery_urls: string[]; // Array of gallery image URLs
   category?: string; // Store category (e.g., Fashion, Food & Dining)
+  phone?: string | null; // Shop contact number (Profile Settings → Shop)
+  opening_hours?: string | null; // e.g. "Mon–Sun 10:00 AM – 9:00 PM"
   products?: StoreProduct[]; // JSON array of products for the storefront
   post_sales?: {id: string; title: string; image_url: string; date: string}[]; // JSON array for Shop Sales posts
   rent_cost?: number; // Monthly rent cost

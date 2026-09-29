@@ -714,6 +714,16 @@ export default function ShopProfilePage() {
                       </span>
                     </div>
                   </div>
+                  {(shop.opening_hours || shop.phone) && (
+                    <div className="flex flex-wrap items-center justify-center lg:justify-start gap-x-4 gap-y-1 pt-2 text-[10px] sm:text-xs font-bold text-slate-500">
+                      {shop.opening_hours && <span>🕒 {shop.opening_hours}</span>}
+                      {shop.phone && (
+                        <a href={`tel:${shop.phone.replace(/\s+/g, "")}`} className="hover:text-primary">
+                          📞 {shop.phone}
+                        </a>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 

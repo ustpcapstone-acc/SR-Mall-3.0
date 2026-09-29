@@ -1,8 +1,10 @@
 "use server";
 
 import { prisma } from "@srmall/database";
+import { safeUserSelect } from "@/lib/user-select";
 import { revalidatePath } from "next/cache";
 import { getBaseUrl } from "@/utils/get-base-url";
+import { notify, resolveChannels } from "@/lib/notify";
 
 export async function getTenantInvoices(tenantId: string) {
   try {
@@ -30,9 +32,24 @@ export async function submitDepositSlip(
         storageKey: storageKey || null,
         status: "REVIEWING",
       },
+      include: {
+        tenant: {
+          include: { user: { select: { id: true, name: true, email: true } } },
+        },
+      },
     });
+
+    // 💰 Tell every admin a proof of payment is waiting for verification.
+    await notify("DEPOSIT_SLIP_SUBMITTED", {
+      title: "Deposit Slip Awaiting Review",
+      message: `${invoice.invoiceNumber} — ₱${invoice.amount} for ${
+        invoice.tenant?.shopName || "a shop"
+      } (Unit ${invoice.tenant?.unitId || "n/a"}) was uploaded and is now awaiting verification.`,
+      link: "/admindashboard/tenant-monitoring",
+    });
+
     revalidatePath("/tenantdashboard/lease-payments");
-    revalidatePath("/admindashboard/finance");
+    revalidatePath("/admindashboard/tenant-monitoring");
     return { success: true, invoice };
   } catch (error: any) {
     console.error("Failed to submit deposit slip:", error);
@@ -63,12 +80,55 @@ export async function getAllInvoices() {
 
 export async function updateInvoiceStatus(invoiceId: string, status: string) {
   try {
+    const before = await (prisma as any).invoice.findUnique({
+      where: { id: invoiceId },
+      select: {
+        status: true,
+        invoiceNumber: true,
+        amount: true,
+        month: true,
+        tenant: {
+          select: {
+            shopName: true,
+            unitId: true,
+            user: { select: { id: true } },
+          },
+        },
+      },
+    });
+
     const invoice = await (prisma as any).invoice.update({
       where: { id: invoiceId },
       data: { status },
     });
+
+    // 💰 Tell the merchant the verdict on their invoice / deposit slip.
+    const tenantUserId = before?.tenant?.user?.id;
+    if (tenantUserId && before?.status !== status) {
+      const statusCopy: Record<string, string> = {
+        PAID: "approved — your payment has been recorded and the balance cleared.",
+        REVIEWING: "received — your proof of payment is now with the finance team.",
+        OVERDUE: "flagged overdue — please settle the balance as soon as possible.",
+        PENDING: "reset to pending — no payment has been recorded yet.",
+      };
+
+      await notify("INVOICE_STATUS_CHANGED", {
+        recipients: [tenantUserId],
+        title:
+          status === "PAID"
+            ? "Invoice Approved"
+            : status === "OVERDUE"
+              ? "Invoice Overdue"
+              : "Invoice Status Updated",
+        message: `${before?.invoiceNumber} for ${before?.month} (₱${before?.amount}) is now: ${
+          statusCopy[status] || status
+        }`,
+        link: "/tenantdashboard/lease-payments",
+      });
+    }
+
     revalidatePath("/tenantdashboard/lease-payments");
-    revalidatePath("/admindashboard/finance");
+    revalidatePath("/admindashboard/tenant-monitoring");
     return { success: true, invoice };
   } catch (error: any) {
     console.error("Failed to update invoice status:", error);
@@ -90,32 +150,53 @@ export async function recordManualPaymentAction(
       include: {
         tenant: {
           include: {
-            user: true,
+            user: { select: safeUserSelect },
           },
         },
       },
     });
 
-    // Notify Tenant of Payment Confirmation
-    if (invoice?.tenant?.user?.email) {
-      const appUrl = await getBaseUrl();
-      fetch(`${appUrl}/api/notify`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          type: "PAYMENT_CONFIRMED",
-          email: invoice.tenant.user.email,
-          data: {
-            unitId: invoice.tenant.unitId,
-            shopName: invoice.tenant.shopName,
-            referenceNo: referenceNo,
+    // 💰 Notify tenant of payment confirmation (in-app), then email only if
+    // they have the EMAIL channel switched on for this alert.
+    const tenantUserId = invoice?.tenant?.user?.id;
+    if (tenantUserId) {
+      await notify("PAYMENT_CONFIRMED", {
+        recipients: [tenantUserId],
+        title: "Payment Confirmed",
+        message: `Reference ${referenceNo} for ${
+          invoice.tenant?.shopName || "your store"
+        } (Unit ${invoice.tenant?.unitId || "n/a"}) was recorded against invoice ${
+          invoice.invoiceNumber
+        }. Your balance has been updated.`,
+        link: "/tenantdashboard/lease-payments",
+        email: false,
+      });
+
+      const prefs = await resolveChannels("PAYMENT_CONFIRMED", [tenantUserId]);
+      const wantsEmail =
+        prefs[tenantUserId]?.enabled &&
+        prefs[tenantUserId]?.channels.includes("EMAIL");
+
+      if (wantsEmail && invoice?.tenant?.user?.email) {
+        const appUrl = await getBaseUrl();
+        fetch(`${appUrl}/api/notify`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
           },
-        }),
-      }).catch((err: any) =>
-        console.error("Failed to dispatch payment confirmation email:", err),
-      );
+          body: JSON.stringify({
+            type: "PAYMENT_CONFIRMED",
+            email: invoice.tenant.user.email,
+            data: {
+              unitId: invoice.tenant.unitId,
+              shopName: invoice.tenant.shopName,
+              referenceNo: referenceNo,
+            },
+          }),
+        }).catch((err: any) =>
+          console.error("Failed to dispatch payment confirmation email:", err),
+        );
+      }
     }
 
     revalidatePath("/tenantdashboard/lease-payments");
@@ -149,7 +230,7 @@ export async function generateInvoice(data: {
       include: {
         tenant: {
           include: {
-            user: true,
+            user: { select: safeUserSelect },
           },
         },
       },
@@ -179,7 +260,7 @@ export async function generateInvoice(data: {
     }
 
     revalidatePath("/tenantdashboard/lease-payments");
-    revalidatePath("/admindashboard/finance");
+    revalidatePath("/admindashboard/tenant-monitoring");
     return { success: true, invoice };
   } catch (error: any) {
     console.error("Failed to create invoice:", error);

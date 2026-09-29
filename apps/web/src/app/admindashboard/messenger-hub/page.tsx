@@ -22,27 +22,39 @@ import {
   getMessagesByConversation,
   replyToConversation,
 } from "@/app/actions/chat-queries";
-import { markMessageNotificationsAsReadAction } from "@/app/actions/notification";
+import { refreshChatUnread, setViewingChats } from "@/lib/chat-unread";
 import { useAuth } from "@/app/providers";
+import {
+  subscribeToConversation,
+  subscribeToInbox,
+  type ChatRealtimeStatus,
+} from "@/lib/chat-realtime";
+import {
+  MESSAGE_PAGE_SIZE,
+  applyRealtimeDelete,
+  applyRealtimeMessage,
+  conversationIdsOf,
+  conversationKey,
+  isOptimistic,
+  markOptimisticFailed,
+  markOptimisticSending,
+  mergeFetchedMessages,
+  normalizeMessages,
+  prependOlderMessages,
+  replaceOptimistic,
+} from "@/lib/chat-messages";
+import { formatConversationTime, formatMessageTime, startsNewDay } from "@/lib/chat-time";
+import {
+  BlockToggleButton,
+  BlockedBanner,
+  ChatConfirmModal,
+  ChatDaySeparator,
+  UnsendButton,
+  useChatBlock,
+} from "@/components/chat/chat-ui";
+import { toast } from "sonner";
 
 const FILTER_TABS = ["All", "Tenant Messages", "Customer Chat Messages", "Unread"] as const;
-
-function formatTimestamp(dateInput: string | Date | undefined) {
-  if (!dateInput) return "";
-  const d = new Date(dateInput);
-  if (isNaN(d.getTime())) return "";
-  const now = new Date();
-  const isToday = d.toDateString() === now.toDateString();
-  if (isToday) {
-    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  }
-  const yesterday = new Date(now);
-  yesterday.setDate(yesterday.getDate() - 1);
-  if (d.toDateString() === yesterday.toDateString()) {
-    return `Yesterday ${d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
-  }
-  return `${d.toLocaleDateString([], { month: "short", day: "numeric" })} ${d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
-}
 
 function MessengerHubContent() {
   const { user } = useAuth();
@@ -73,6 +85,15 @@ function MessengerHubContent() {
   const activeChatIdRef = useRef<string | null>(null);
   const messagesCacheRef = useRef<Record<string, any[]>>({});
   const conversationsRef = useRef<any[]>([]);
+  /** Files of still-sending bubbles, so a failed image send can be retried. */
+  const pendingFilesRef = useRef<Map<string, File>>(new Map());
+  const loadingOlderRef = useRef(false);
+
+  // Realtime + pagination state
+  const [conversationIds, setConversationIds] = useState<string[]>([]);
+  const [realtimeStatus, setRealtimeStatus] =
+    useState<ChatRealtimeStatus>("connecting");
+  const [hasOlderMessages, setHasOlderMessages] = useState(true);
 
   activeChatIdRef.current = activeChatId;
   conversationsRef.current = conversations;
@@ -92,6 +113,57 @@ function MessengerHubContent() {
   // Derived active chat object ensures data is always current from the conversations list
   const activeChat = conversations.find((c) => c.id === activeChatId) || null;
   const activeOtherUser = getOtherParticipant(activeChat);
+
+  // The open conversation counts as read (also as new messages arrive).
+  const activeReadKey = activeChat
+    ? (activeChat.allConversationIds || [activeChat.id]).join("|")
+    : "";
+  const lastMessageId = messages[messages.length - 1]?.id;
+  useEffect(() => {
+    if (!user?.id || !activeReadKey) return;
+    void import("@/app/actions/chat-queries")
+      .then(({ markConversationReadAction }) => markConversationReadAction(user.id, activeReadKey.split("|")))
+      .then(() => refreshChatUnread());
+  }, [user?.id, activeReadKey, lastMessageId]);
+
+  // The chat on screen doesn't count as unread and doesn't pop a toast.
+  useEffect(() => {
+    if (!activeReadKey) return;
+    return setViewingChats(activeReadKey.split("|"));
+  }, [activeReadKey]);
+
+  // Blocks are recorded against the portal admin: the account public chats
+  // are routed to, so every admin sees and enforces the same block.
+  const [portalAdminId, setPortalAdminId] = useState<string | null>(null);
+  useEffect(() => {
+    void import("@/app/actions/chat-queries")
+      .then(({ getPortalAdminAction }) => getPortalAdminAction())
+      .then((admin) => setPortalAdminId(admin?.id || null))
+      .catch(() => {});
+  }, []);
+  const canBlockActive = Boolean(activeOtherUser && activeOtherUser.role !== "ADMIN");
+  const block = useChatBlock(portalAdminId, canBlockActive ? activeOtherUser?.id : null);
+  const [confirmBlock, setConfirmBlock] = useState(false);
+  const activeSuspended = Boolean(activeOtherUser?.isBlacklisted);
+
+  const [unsendTarget, setUnsendTarget] = useState<any | null>(null);
+  const [isUnsending, setIsUnsending] = useState(false);
+  const confirmUnsend = async () => {
+    if (!unsendTarget || !user?.id) return;
+    setIsUnsending(true);
+    try {
+      const { deleteMessageAction } = await import("@/app/actions/chat-queries");
+      const res = await deleteMessageAction(unsendTarget.id, user.id);
+      if (res.success) {
+        setMessages((prev) => applyRealtimeDelete(prev, unsendTarget.id));
+        setUnsendTarget(null);
+      } else {
+        toast.error(res.error || "Couldn't unsend the message");
+      }
+    } finally {
+      setIsUnsending(false);
+    }
+  };
   const activeTenantData = activeChat?.user?.tenant || activeChat?.target?.tenant;
   const isCurrentTenant = !!(
     activeChat?.user?.tenant ||
@@ -112,8 +184,12 @@ function MessengerHubContent() {
       setConversations(data);
 
       setActiveChatId((currentId) => {
-        if (queryConversationId && data.some((c) => c.id === queryConversationId)) {
-          return queryConversationId;
+        if (queryConversationId) {
+          // Links point at one conversation; the list merges them per contact.
+          const match = data.find(
+            (c: any) => c.id === queryConversationId || c.allConversationIds?.includes(queryConversationId),
+          );
+          if (match) return match.id;
         }
         if (queryTenantId) {
           const matchingChat = data.find(
@@ -137,76 +213,185 @@ function MessengerHubContent() {
 
   useEffect(() => {
     fetchConversations(true);
-    const interval = setInterval(() => fetchConversations(false), 4000);
+    // Conversation previews refresh every 15s; live messages arrive through
+    // Supabase Realtime instead of hammering this endpoint.
+    const interval = setInterval(() => fetchConversations(false), 15000);
 
-    if (user) {
-      markMessageNotificationsAsReadAction(user.id);
-    }
 
     return () => clearInterval(interval);
   }, [user, fetchConversations]);
 
-  const fetchMessages = useCallback(async (idToFetch: string, shouldScroll = false) => {
-    try {
-      const activeObj = conversationsRef.current.find((c) => c.id === idToFetch);
-      const msgs = await getMessagesByConversation(idToFetch, activeObj?.allConversationIds);
-      messagesCacheRef.current[idToFetch] = msgs;
+  // A message in any conversation (including ones not in the list yet) pushes
+  // a debounced list refresh, so new chats appear without waiting for the poll.
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const unsubscribe = subscribeToInbox(() => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => void fetchConversations(false), 400);
+    });
+    return () => {
+      if (timer) clearTimeout(timer);
+      unsubscribe();
+    };
+  }, [fetchConversations]);
 
-      if (activeChatIdRef.current === idToFetch) {
-        setMessages((prev) => {
-          const hasOptimistic = prev.some((p) => String(p.id).startsWith("temp-"));
-          if (
-            !hasOptimistic &&
-            prev.length === msgs.length &&
-            prev[prev.length - 1]?.id === msgs[msgs.length - 1]?.id
-          ) {
-            return prev;
-          }
-          const pendingOptimistic = prev.filter(
-            (p) =>
-              String(p.id).startsWith("temp-") &&
-              !msgs.some(
-                (m: any) =>
-                  (m.content === p.content && m.senderId === p.senderId) ||
-                  m.id === p.id
-              )
+  const scrollToEnd = () => {
+    requestAnimationFrame(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    });
+  };
+
+  // Latest page of the active chat (and older pages on scroll-up).
+  const fetchMessages = useCallback(
+    async (
+      idToFetch: string,
+      shouldScroll = false,
+      page?: { before: string; beforeId: string },
+    ) => {
+      try {
+        const activeObj = conversationsRef.current.find((c) => c.id === idToFetch);
+
+        if (page) {
+          // Older page → merge above what is already on screen.
+          const container = messagesContainerRef.current;
+          const previousHeight = container?.scrollHeight ?? 0;
+          const history = await getMessagesByConversation(
+            idToFetch,
+            activeObj?.allConversationIds,
+            {
+              limit: MESSAGE_PAGE_SIZE,
+              before: page.before,
+              beforeId: page.beforeId,
+            },
           );
-          return [...msgs, ...pendingOptimistic];
-        });
 
-        if (shouldScroll || isNearBottomRef.current) {
-          requestAnimationFrame(() => {
-            messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-          });
+          if (activeChatIdRef.current !== idToFetch) return;
+          if (history.length < MESSAGE_PAGE_SIZE) setHasOlderMessages(false);
+
+          setMessages((prev) => prependOlderMessages(prev, history));
+          if (container) {
+            requestAnimationFrame(() => {
+              container.scrollTop += container.scrollHeight - previousHeight;
+            });
+          }
+          return;
         }
+
+        const msgs = await getMessagesByConversation(
+          idToFetch,
+          activeObj?.allConversationIds,
+          { limit: MESSAGE_PAGE_SIZE },
+        );
+        messagesCacheRef.current[idToFetch] = msgs;
+        setHasOlderMessages(msgs.length >= MESSAGE_PAGE_SIZE);
+
+        const ids = conversationIdsOf(msgs, idToFetch);
+        setConversationIds((prev) =>
+          conversationKey(prev) === conversationKey(ids) ? prev : ids,
+        );
+
+        if (activeChatIdRef.current === idToFetch) {
+          setMessages((prev) => mergeFetchedMessages(prev, msgs));
+
+          if (shouldScroll || isNearBottomRef.current) {
+            scrollToEnd();
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch messages:", err);
       }
+    },
+    [],
+  );
+
+  const loadOlderMessages = useCallback(async () => {
+    if (loadingOlderRef.current || !hasOlderMessages || !activeChatId) return;
+
+    const oldest = messages.find((m) => !isOptimistic(m));
+    if (!oldest) return;
+
+    loadingOlderRef.current = true;
+    try {
+      await fetchMessages(activeChatId, false, {
+        before: new Date(oldest.createdAt).toISOString(),
+        beforeId: String(oldest.id),
+      });
     } catch (err) {
-      console.error("Failed to fetch messages:", err);
+      console.error("Failed to load older messages:", err);
+    } finally {
+      loadingOlderRef.current = false;
     }
-  }, []);
+  }, [activeChatId, fetchMessages, hasOlderMessages, messages]);
+
+  // Which conversation(s) the open chat spans — kept reference-stable so the
+  // realtime effect does not resubscribe on every conversation refresh.
+  useEffect(() => {
+    if (!activeChatId) {
+      setConversationIds([]);
+      return;
+    }
+    const activeObj = conversationsRef.current.find((c) => c.id === activeChatId);
+    const base =
+      activeObj?.allConversationIds?.length
+        ? activeObj.allConversationIds
+        : [activeChatId];
+    setConversationIds((prev) =>
+      conversationKey(prev) === conversationKey(base) ? prev : base,
+    );
+  }, [activeChatId, conversations]);
 
   useEffect(() => {
     if (activeChatId) {
       const currentId = activeChatId;
+      setHasOlderMessages(true);
       if (!messagesCacheRef.current[currentId]) {
         setLoadingMessages(true);
       }
       fetchMessages(currentId, true).finally(() => setLoadingMessages(false));
-      const interval = setInterval(() => fetchMessages(currentId, false), 3000);
-      return () => clearInterval(interval);
     } else {
       setMessages([]);
     }
   }, [activeChatId, fetchMessages]);
 
+  // Supabase Realtime: exactly one channel for the open chat, disposed when the
+  // chat changes or the page unmounts.
+  useEffect(() => {
+    if (conversationIds.length === 0) return;
+
+    const unsubscribe = subscribeToConversation(conversationIds, {
+      onMessage: (row) => {
+        setMessages((prev) => applyRealtimeMessage(prev, row));
+        if (isNearBottomRef.current) scrollToEnd();
+      },
+      onDelete: (messageId) => {
+        setMessages((prev) => applyRealtimeDelete(prev, messageId));
+      },
+      onStatus: setRealtimeStatus,
+    });
+
+    return unsubscribe;
+  }, [conversationIds]);
+
+  // Fallback only: polls while realtime is not connected (never when it is).
+  useEffect(() => {
+    if (!activeChatId || realtimeStatus === "subscribed") return;
+    const interval = setInterval(() => {
+      void fetchMessages(activeChatId, false);
+    }, 15000);
+    return () => clearInterval(interval);
+  }, [activeChatId, realtimeStatus, fetchMessages]);
+
   const handleSelectChat = (chat: any) => {
     if (chat.id === activeChatId) return;
     setActiveChatId(chat.id);
+    setConversations((prev: any[]) =>
+      prev.map((c) => (c.id === chat.id ? { ...c, unreadCount: 0 } : c)),
+    );
     isNearBottomRef.current = true;
 
     // Messenger-like instantaneous switch: display cached messages immediately with 0 delay!
     if (messagesCacheRef.current[chat.id]) {
-      setMessages(messagesCacheRef.current[chat.id]);
+      setMessages(normalizeMessages(messagesCacheRef.current[chat.id]));
       setLoadingMessages(false);
     } else {
       setMessages([]);
@@ -218,6 +403,10 @@ function MessengerHubContent() {
     const el = e.currentTarget;
     const isAtBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
     isNearBottomRef.current = isAtBottom;
+    // Scrolled to the top → load the previous page of history.
+    if (!isAtBottom && el.scrollTop < 80) {
+      void loadOlderMessages();
+    }
   };
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -243,6 +432,62 @@ function MessengerHubContent() {
     }
   };
 
+  // Persist an optimistic bubble. Never throws: a failure flips the bubble to
+  // "failed" so the message stays visible and can be retried.
+  const persistMessage = async (payload: {
+    tempId: string;
+    content: string;
+    file?: File | null;
+    preview?: string | null;
+  }) => {
+    if (!activeChatId) return;
+
+    setIsSending(true);
+    try {
+      let uploadedImageUrl: string | null = null;
+      if (payload.file) {
+        uploadedImageUrl = await uploadImageToCloudinary(payload.file);
+        if (!uploadedImageUrl) throw new Error("Image upload failed");
+      } else if (payload.preview && /^https?:\/\//i.test(payload.preview)) {
+        // Retry of a message whose image already reached the CDN.
+        uploadedImageUrl = payload.preview;
+      }
+
+      const res: any = await replyToConversation(
+        activeChatId,
+        true,
+        payload.content,
+        uploadedImageUrl || undefined,
+        user?.id,
+      );
+
+      if (!res?.success) {
+        if (res?.error) toast.error(res.error);
+        setMessages((prev) => markOptimisticFailed(prev, payload.tempId));
+        return;
+      }
+
+      pendingFilesRef.current.delete(payload.tempId);
+
+      if (res.conversationId && res.conversationId !== activeChatId) {
+        // Message was routed into another conversation → follow it.
+        setActiveChatId(res.conversationId);
+        fetchMessages(res.conversationId, false);
+      } else if (res.message) {
+        // Swap temp-… for the real row (same id the realtime event carries).
+        setMessages((prev) =>
+          replaceOptimistic(prev, payload.tempId, res.message),
+        );
+      }
+      fetchConversations(false);
+    } catch (err) {
+      console.error("Failed to send message:", err);
+      setMessages((prev) => markOptimisticFailed(prev, payload.tempId));
+    } finally {
+      setIsSending(false);
+    }
+  };
+
   const handleSendReply = async (e: React.FormEvent) => {
     e.preventDefault();
     if ((!replyText.trim() && !imageFile) || !activeChatId || isSending) return;
@@ -258,7 +503,7 @@ function MessengerHubContent() {
     setFileInputKey((k) => k + 1);
 
     // Instant optimistic message
-    const tempId = `temp-${Date.now()}`;
+    const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     const optimisticMessage = {
       id: tempId,
       content: textToSend,
@@ -273,47 +518,34 @@ function MessengerHubContent() {
         role: "ADMIN",
       },
       createdAt: new Date(),
+      sending: true,
     };
 
-    setMessages((prev) => [...prev, optimisticMessage]);
+    setMessages((prev) => normalizeMessages([...prev, optimisticMessage]));
     isNearBottomRef.current = true;
-    requestAnimationFrame(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    scrollToEnd();
+
+    if (fileToSend) pendingFilesRef.current.set(tempId, fileToSend);
+
+    await persistMessage({
+      tempId,
+      content: textToSend,
+      file: fileToSend,
+      preview: previewToSend,
     });
+  };
 
-    setIsSending(true);
-
-    try {
-      let uploadedImageUrl: string | null = null;
-      if (fileToSend) {
-        uploadedImageUrl = await uploadImageToCloudinary(fileToSend);
-      }
-
-      const res = await replyToConversation(
-        activeChatId,
-        true,
-        textToSend,
-        uploadedImageUrl || undefined,
-        user?.id
-      );
-
-      if (res.success) {
-        if (res.conversationId && res.conversationId !== activeChatId) {
-          setActiveChatId(res.conversationId);
-          fetchMessages(res.conversationId, false);
-        } else {
-          fetchMessages(activeChatId, false);
-        }
-        fetchConversations(false);
-      } else if (res.error) {
-        alert(res.error);
-        setMessages((prev) => prev.filter((m) => m.id !== tempId));
-      }
-    } catch (err) {
-      console.error("Failed to send message:", err);
-    } finally {
-      setIsSending(false);
-    }
+  // Retry a failed bubble — its text and image are preserved.
+  const retryMessage = (message: any) => {
+    if (!message?.id || message.sending) return;
+    const file = pendingFilesRef.current.get(message.id) ?? null;
+    setMessages((prev) => markOptimisticSending(prev, message.id));
+    void persistMessage({
+      tempId: message.id,
+      content: message.content,
+      file,
+      preview: message.imageUrl ?? null,
+    });
   };
 
 
@@ -347,7 +579,7 @@ function MessengerHubContent() {
 
       if (filter === "Tenant Messages") return isTenant;
       if (filter === "Customer Chat Messages") return !isTenant;
-      if (filter === "Unread") return c.messages[0]?.senderId !== user?.id;
+      if (filter === "Unread") return (c.unreadCount || 0) > 0 && c.id !== activeChatId;
       return true;
     })
     .sort(
@@ -434,6 +666,7 @@ function MessengerHubContent() {
                     ? tenantData.shopName
                     : otherUser?.name || otherUser?.email || "SR Mall User";
                 const displayUnit = tenantData?.unitId;
+                const unread = activeChat?.id === chat.id ? 0 : chat.unreadCount || 0;
 
                 return (
                   <div
@@ -456,18 +689,26 @@ function MessengerHubContent() {
                         displayName.substring(0, 2).toUpperCase()
                       )}
                       {isBlocked && (
-                        <div className="absolute inset-0 bg-red-600/70 flex items-center justify-center text-white" title="User Blocked">
+                        <div className="absolute inset-0 bg-red-600/70 flex items-center justify-center text-white" title="Account suspended">
                           <Ban size={12} />
                         </div>
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-start mb-1">
-                        <h4 className="text-sm font-bold text-charcoal dark:text-white truncate">
+                        <h4
+                          className={`text-sm text-charcoal dark:text-white truncate ${
+                            unread > 0 ? "font-black" : "font-bold"
+                          }`}
+                        >
                           {displayName}
                         </h4>
-                        <span className="text-[9px] font-bold text-slate-400 uppercase shrink-0 ml-1">
-                          {formatTimestamp(chat.updatedAt)}
+                        <span
+                          className={`text-[9px] font-bold uppercase shrink-0 ml-1 ${
+                            unread > 0 ? "text-primary" : "text-slate-400"
+                          }`}
+                        >
+                          {formatConversationTime(chat.messages[0]?.createdAt || chat.updatedAt)}
                         </span>
                       </div>
                       <div className="flex items-center gap-1.5 mb-1.5">
@@ -478,15 +719,26 @@ function MessengerHubContent() {
                         </span>
                         {isBlocked && (
                           <span className="text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-red-100 text-red-600 dark:bg-red-950/40 dark:text-red-400">
-                            BLOCKED
+                            SUSPENDED
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-slate-500 font-medium truncate">
-                        {chat.messages[0]?.imageUrl && !chat.messages[0]?.content
-                          ? "📷 Attached Image"
-                          : chat.messages[0]?.content || "Started a transmission"}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <p
+                          className={`flex-1 text-xs truncate ${
+                            unread > 0 ? "text-charcoal dark:text-white font-bold" : "text-slate-500 font-medium"
+                          }`}
+                        >
+                          {chat.messages[0]?.imageUrl && !chat.messages[0]?.content
+                            ? "📷 Image"
+                            : chat.messages[0]?.content || "No messages yet"}
+                        </p>
+                        {unread > 0 && (
+                          <span className="min-w-[1.25rem] h-5 px-1.5 rounded-full bg-primary text-white text-[10px] font-black flex items-center justify-center shrink-0">
+                            {unread > 99 ? "99+" : unread}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );
@@ -524,6 +776,9 @@ function MessengerHubContent() {
                     </p>
                   </div>
                 </div>
+                {canBlockActive && portalAdminId && (
+                  <BlockToggleButton blocked={block.blockedByMe} onClick={() => setConfirmBlock(true)} />
+                )}
               </div>
 
               {/* Messages Container */}
@@ -547,7 +802,7 @@ function MessengerHubContent() {
                     </p>
                   </div>
                 ) : (
-                  messages.map((msg) => {
+                  messages.map((msg, index) => {
                     const isFromAdmin =
                       msg.senderId === user?.id ||
                       msg.sender?.role === "ADMIN";
@@ -563,12 +818,18 @@ function MessengerHubContent() {
                     const isTemporary = String(msg.id).startsWith("temp-");
 
                     return (
+                      <React.Fragment key={msg.id}>
+                      {startsNewDay(messages[index - 1]?.createdAt, msg.createdAt) && (
+                        <ChatDaySeparator date={msg.createdAt} />
+                      )}
                       <div
-                        key={msg.id}
                         className={`flex gap-3 ${
                           isFromAdmin ? "justify-end" : "justify-start"
-                        } items-end animate-fade-in group relative`}
+                        } items-end animate-fade-in group group/msg relative`}
                       >
+                        {msg.senderId === user?.id && !isTemporary && (
+                          <UnsendButton onClick={() => setUnsendTarget(msg)} />
+                        )}
                         {!isFromAdmin && (
                           <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-zinc-800 flex items-center justify-center overflow-hidden shrink-0 border border-slate-100 dark:border-white/5">
                             {senderAvatar ? (
@@ -586,7 +847,6 @@ function MessengerHubContent() {
                         )}
 
                         <div className={`flex flex-col ${isFromAdmin ? "items-end" : "items-start"}`}>
-                          {/* Unsend Action Button for Admin Messages */}
                           <div className="relative group/bubble">
                             <div
                               className={`max-w-[280px] sm:max-w-[400px] lg:max-w-[500px] px-5 py-3 shadow-sm rounded-2xl relative ${
@@ -625,13 +885,21 @@ function MessengerHubContent() {
 
                           <div className="flex items-center gap-1.5 mt-1 px-1">
                             <span className="text-[9px] font-bold text-slate-400 uppercase">
-                              {formatTimestamp(msg.createdAt)}
+                              {formatMessageTime(msg.createdAt)}
                             </span>
-                            {isTemporary && (
+                            {isTemporary && msg.failed ? (
+                              <button
+                                type="button"
+                                onClick={() => retryMessage(msg)}
+                                className="text-[8px] font-bold text-red-500 hover:text-red-600 hover:underline uppercase"
+                              >
+                                Not sent · Retry
+                              </button>
+                            ) : isTemporary && msg.sending !== false ? (
                               <span className="text-[8px] font-bold text-primary animate-pulse">
                                 Sending...
                               </span>
-                            )}
+                            ) : null}
                           </div>
                         </div>
 
@@ -651,11 +919,22 @@ function MessengerHubContent() {
                           </div>
                         )}
                       </div>
+                      </React.Fragment>
                     );
                   })
                 )}
                 <div ref={messagesEndRef} />
               </div>
+
+              {(block.blockedByMe || activeSuspended) && (
+                <BlockedBanner
+                  text={
+                    block.blockedByMe
+                      ? "This user is blocked from messaging the mall. Unblock them to reply."
+                      : "This account is suspended. They can't send messages until it's restored in User Management."
+                  }
+                />
+              )}
 
               {/* Message Input Footer */}
               <div className="p-5 border-t border-slate-100 dark:border-white/5 bg-white dark:bg-zinc-900">
@@ -707,13 +986,18 @@ function MessengerHubContent() {
                     value={replyText}
                     onChange={(e) => setReplyText(e.target.value)}
                     placeholder={
-                      imageFile ? "Add a caption... (optional)" : "Type a reply..."
+                      block.blockedByMe
+                        ? "Messaging disabled"
+                        : imageFile
+                          ? "Add a caption... (optional)"
+                          : "Type a reply..."
                     }
-                    className="flex-1 px-3 py-2 bg-transparent outline-none text-sm font-medium"
+                    disabled={block.blockedByMe}
+                    className="flex-1 px-3 py-2 bg-transparent outline-none text-sm font-medium disabled:opacity-40"
                   />
                   <button
                     type="submit"
-                    disabled={(!replyText.trim() && !imageFile) || isSending}
+                    disabled={(!replyText.trim() && !imageFile) || isSending || block.blockedByMe}
                     className="p-2.5 bg-primary text-white rounded-lg hover:bg-primary-hover transition-colors disabled:opacity-50 shadow-sm flex items-center justify-center"
                   >
                     {isSending ? (
@@ -861,6 +1145,33 @@ function MessengerHubContent() {
             </div>
           </div>
         </div>
+      )}
+      {unsendTarget && (
+        <ChatConfirmModal
+          title="Unsend message?"
+          message="It will be removed for everyone in this conversation."
+          confirmLabel="Unsend"
+          busy={isUnsending}
+          onCancel={() => setUnsendTarget(null)}
+          onConfirm={confirmUnsend}
+        />
+      )}
+      {confirmBlock && (
+        <ChatConfirmModal
+          title={block.blockedByMe ? "Unblock this user?" : "Block this user?"}
+          message={
+            block.blockedByMe
+              ? "They will be able to message the mall administration again."
+              : "They won't be able to message the mall administration until you unblock them."
+          }
+          confirmLabel={block.blockedByMe ? "Unblock" : "Block"}
+          tone={block.blockedByMe ? "neutral" : "danger"}
+          busy={block.busy}
+          onCancel={() => setConfirmBlock(false)}
+          onConfirm={async () => {
+            if (await block.setBlocked(!block.blockedByMe)) setConfirmBlock(false);
+          }}
+        />
       )}
     </div>
   );

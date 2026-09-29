@@ -6,9 +6,7 @@ import {
   ShieldCheck,
   Loader2,
   Mail,
-  ShieldAlert,
   Store,
-  Check,
   Trash2,
   Ban,
   CheckCircle2,
@@ -23,10 +21,11 @@ import {
   RefreshCcw,
   MoreHorizontal,
   X,
-  Star,
-  AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
+import { FixUserRolesBanner } from "@/components/admin/fix-user-roles-banner";
+import { ReviewsModeration } from "@/components/admin/reviews-moderation";
+import { useAuth } from "@/app/providers";
 import clsx from "clsx";
 
 export default function UserManagement() {
@@ -40,8 +39,9 @@ export default function UserManagement() {
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("ALL");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
-  const [reviews, setReviews] = useState<any[]>([]);
-  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const { user: currentUser } = useAuth();
+  // Needs review + flagged, reported by <ReviewsModeration> for the tab badge.
+  const [reviewAttention, setReviewAttention] = useState(0);
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
 
   const loadUsers = async () => {
@@ -59,29 +59,12 @@ export default function UserManagement() {
     }
   };
 
-  const loadReviews = async () => {
-    setReviewsLoading(true);
-    try {
-      const { getAllReviewsAction } = await import("@/app/actions/review");
-      const res = await getAllReviewsAction();
-      if (res.success && res.data) {
-        setReviews(res.data);
-      }
-    } catch (err) {
-      toast.error("Sentiment ledger sync failed.");
-    } finally {
-      setReviewsLoading(false);
-    }
-  };
-
   useEffect(() => {
     loadUsers();
   }, []);
 
   useEffect(() => {
-    if (activeTab === "feedback") {
-      loadReviews();
-    } else if (activeTab === "history") {
+    if (activeTab === "history") {
       loadHistory();
     }
   }, [activeTab]);
@@ -110,7 +93,7 @@ export default function UserManagement() {
       return;
     setIsProcessing(id);
     const { toggleUserBlacklistAction } = await import("@/app/actions/auth");
-    const res = await toggleUserBlacklistAction(id, !currentStatus);
+    const res = await toggleUserBlacklistAction(id, !currentStatus, currentUser?.id);
     if (res.success) {
       toast.success(
         `Entity ${!currentStatus ? "Restricted" : "Restored"} Successfully`,
@@ -121,7 +104,7 @@ export default function UserManagement() {
         ),
       );
     } else {
-      toast.error("Administrative Override Failed");
+      toast.error((res as any).error || "Couldn't update the account.");
     }
     setIsProcessing(null);
   };
@@ -130,93 +113,24 @@ export default function UserManagement() {
   const handleRoleChange = async (id: string, newRole: string) => {
     setIsProcessing(id);
     const { updateUserRoleAction } = await import("@/app/actions/auth");
-    const res = await updateUserRoleAction(id, newRole);
+    const res = await updateUserRoleAction(id, newRole, currentUser?.id);
     if (res.success) {
       toast.success(`Privilege Matrix Updated to: ${newRole}`);
       setUsers(users.map((u) => (u.id === id ? { ...u, role: newRole } : u)));
     } else {
-      toast.error("Privilege Update Denied");
+      toast.error((res as any).error || "Couldn't change the role.");
     }
     setIsProcessing(null);
-  };
-
-  const handleApproveReview = async (id: string) => {
-    setIsProcessing(id);
-    const { approveReviewAction } = await import("@/app/actions/review");
-    const res = await approveReviewAction(id);
-    if (res.success) {
-      toast.success("Sentiment Approved for Public Manifest");
-      setReviews(
-        reviews.map((r) => (r.id === id ? { ...r, isApproved: true } : r)),
-      );
-    } else {
-      toast.error("Moderation Sync Failure");
-    }
-    setIsProcessing(null);
-  };
-
-  const handleDeleteReview = async (id: string) => {
-    if (!confirm("Moderation Filter: Purge this feedback from ledger?")) return;
-    setIsProcessing(id);
-    const { deleteReviewAction } = await import("@/app/actions/review");
-    const res = await deleteReviewAction(id);
-    if (res.success) {
-      toast.warning("Sentiment Purged");
-      setReviews(reviews.filter((r) => r.id !== id));
-    } else {
-      toast.error("Purge Protocol Failure");
-    }
-    setIsProcessing(null);
-  };
-
-  const handleSetCommentStatus = async (
-    userId: string,
-    status: "ACTIVE" | "MUTED" | "RESTRICTED" | "BANNED",
-    days?: number
-  ) => {
-    setIsProcessing(userId);
-    try {
-      const { setCommentStatusAction } = await import("@/app/actions/review");
-      const res = await setCommentStatusAction(userId, status, days);
-      if (res.success) {
-        toast.success(`User comment status updated to: ${status}`);
-        loadReviews();
-        loadUsers();
-      } else {
-        toast.error("Failed to update status: " + res.error);
-      }
-    } catch (err: any) {
-      toast.error("Error updating comment status: " + err.message);
-    } finally {
-      setIsProcessing(null);
-    }
-  };
-
-  const handleToggleSpam = async (reviewId: string, currentSpamStatus: boolean) => {
-    setIsProcessing(reviewId);
-    try {
-      const { markReviewSpamAction } = await import("@/app/actions/review");
-      const res = await markReviewSpamAction(reviewId, !currentSpamStatus);
-      if (res.success) {
-        toast.success(`Review ${!currentSpamStatus ? "marked as spam" : "unmarked as spam"}`);
-        loadReviews();
-      } else {
-        toast.error("Failed to update spam status");
-      }
-    } catch (err: any) {
-      toast.error("Error: " + err.message);
-    } finally {
-      setIsProcessing(null);
-    }
   };
 
   const filteredUsers = users.filter((u) => {
     const matchesSearch = u.name?.toLowerCase().includes(searchQuery.toLowerCase()) || u.email?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesRole = roleFilter === "ALL" || u.role === roleFilter;
+    const matchesRole =
+      roleFilter === "ALL" ||
+      (roleFilter === "BLACKLISTED" ? u.isBlacklisted : u.role === roleFilter);
     return matchesSearch && matchesRole;
   });
 
-  const blacklistedUsers = users.filter((u) => u.isBlacklisted);
 
   return (
     <div className="p-4 md:p-8 lg:p-10 animate-fade-in-up space-y-10 min-h-screen max-w-[1700px] mx-auto">
@@ -243,6 +157,8 @@ export default function UserManagement() {
           </button>
         </div>
       </div>
+
+      <FixUserRolesBanner onFixed={loadUsers} />
 
       {/* Navigation Matrix */}
       <div className="flex items-center gap-2 bg-slate-100/50 dark:bg-white/5 p-2 rounded-[2rem] w-fit border border-slate-200 dark:border-white/5">
@@ -278,9 +194,9 @@ export default function UserManagement() {
           <span className="text-[11px] font-black uppercase tracking-widest">
             Feedback & Reviews
           </span>
-          {reviews.filter((r) => !r.isApproved || r.isSpam).length > 0 && (
+          {reviewAttention > 0 && (
             <span className="ml-2 px-2 py-0.5 bg-amber-500/10 text-amber-600 rounded-full text-[9px] font-bold">
-              {reviews.filter((r) => !r.isApproved || r.isSpam).length}
+              {reviewAttention}
             </span>
           )}
         </button>
@@ -321,7 +237,7 @@ export default function UserManagement() {
               <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
                 {/* Role Filter */}
                 <div className="flex items-center gap-1 p-1 bg-slate-100/50 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/5 w-full md:w-auto overflow-x-auto custom-scrollbar">
-                  {["ALL", "CUSTOMER", "TENANT", "ADMIN"].map((role) => (
+                  {["ALL", "CUSTOMER", "TENANT", "ADMIN", "BLACKLISTED"].map((role) => (
                     <button
                       key={role}
                       onClick={() => setRoleFilter(role)}
@@ -540,439 +456,7 @@ export default function UserManagement() {
       )}
 
       {activeTab === "feedback" && (
-        <div className="grid grid-cols-1 xl:grid-cols-12 gap-10 animate-fade-in">
-          {/* Left: Moderation Feed */}
-          <div className="xl:col-span-8 space-y-12">
-            <div className="space-y-8">
-              <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-black text-charcoal dark:text-white uppercase item-center italic tracking-tighter">
-                  Sentiment <span className="text-primary">Moderation.</span>
-                </h2>
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                  {reviews.filter((r) => r.isApproved).length} Approved Manifests
-                </span>
-              </div>
-
-              <div className="space-y-6">
-                {reviewsLoading ? (
-                  <div className="p-40 text-center">
-                    <Loader2
-                      className="animate-spin mx-auto text-primary"
-                      size={40}
-                    />
-                  </div>
-                ) : reviews.filter((r) => r.isApproved).length === 0 ? (
-                  <div className="p-20 text-center border-2 border-dashed border-slate-200 dark:border-white/5 rounded-[3rem] bg-white/50 dark:bg-zinc-900/50">
-                    <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">
-                      No Approved Sentiment Manifests
-                    </p>
-                  </div>
-                ) : (
-                  reviews.filter((r) => r.isApproved).map((item: any) => (
-                    <div
-                      key={item.id}
-                      className={clsx(
-                        "p-10 rounded-[3rem] border transition-all group/review relative overflow-hidden",
-                        item.isSpam
-                          ? "bg-red-500/5 border-red-500/20"
-                          : "bg-white dark:bg-zinc-900 border-slate-100 dark:border-white/5",
-                      )}
-                    >
-                      <div className="flex flex-col md:flex-row items-start justify-between gap-10 relative z-10">
-                        <div className="flex-1 space-y-6">
-                          <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-slate-100 dark:bg-zinc-800 rounded-2xl flex items-center justify-center font-black text-primary">
-                              {item.user?.name?.charAt(0) || "U"}
-                            </div>
-                            <div>
-                              <div className="flex items-center gap-3">
-                                <h4 className="text-sm font-black text-charcoal dark:text-white uppercase">
-                                  {item.user?.name || "Authorized Shopper"}
-                                </h4>
-                                <div className="flex items-center gap-1">
-                                  {[...Array(5)].map((_, i) => (
-                                    <Star
-                                      key={i}
-                                      size={10}
-                                      className={clsx(
-                                        i < (item.rating || 5)
-                                          ? "fill-amber-500 text-amber-500"
-                                          : "text-slate-200",
-                                      )}
-                                    />
-                                  ))}
-                                </div>
-                                {item.isSpam && (
-                                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-red-500/10 text-red-500 border border-red-500/20 rounded-lg text-[8px] font-black uppercase tracking-wider animate-pulse">
-                                    <AlertTriangle size={10} /> Auto-Detected Spam
-                                  </span>
-                                )}
-                              </div>
-                              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
-                                {new Date(item.createdAt).toLocaleDateString()}
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="p-6 bg-slate-50/50 dark:bg-black/40 rounded-[2rem] border border-slate-100/50 dark:border-white/5 relative">
-                            <MessageSquare
-                              size={40}
-                              className="absolute -top-5 -right-5 text-primary opacity-5"
-                            />
-                            <p className="text-sm font-bold text-slate-500 dark:text-slate-400 italic leading-relaxed break-words [overflow-wrap:anywhere] whitespace-pre-line">
-                              "{item.comment}"
-                            </p>
-                          </div>
-
-                          <div className="flex flex-wrap items-center gap-4 pt-2">
-                            <button
-                              onClick={() => handleToggleSpam(item.id, item.isSpam)}
-                              className={clsx(
-                                "px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
-                                item.isSpam
-                                  ? "bg-amber-500 text-white shadow-lg shadow-amber-500/20"
-                                  : "bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200"
-                              )}
-                            >
-                              {item.isSpam ? "Mark as Legitimate" : "Flag as Spam"}
-                            </button>
-                            <button
-                              onClick={() => handleDeleteReview(item.id)}
-                              className="px-6 py-3 bg-red-500/10 text-red-500 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all"
-                            >
-                              Purge Sentiment
-                            </button>
-                          </div>
-
-                          {item.user && (
-                            <div className="pt-6 border-t border-slate-100 dark:border-white/5 space-y-4">
-                              <div className="flex flex-wrap items-center justify-between gap-4">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                                    User Account Status:
-                                  </span>
-                                  <span className={clsx(
-                                    "px-2.5 py-1 text-[9px] font-black rounded-lg uppercase tracking-wider border",
-                                    (!item.user.commentStatus || item.user.commentStatus === "ACTIVE") && "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
-                                    item.user.commentStatus === "MUTED" && "bg-amber-500/10 text-amber-500 border-amber-500/20",
-                                    item.user.commentStatus === "RESTRICTED" && "bg-orange-500/10 text-orange-500 border-orange-500/20",
-                                    item.user.commentStatus === "BANNED" && "bg-red-500/10 text-red-500 border-red-500/20"
-                                  )}>
-                                    {item.user.commentStatus || "ACTIVE"}
-                                    {item.user.commentRestrictedUntil && new Date(item.user.commentRestrictedUntil) > new Date() && (
-                                      ` (Restricted until ${new Date(item.user.commentRestrictedUntil).toLocaleDateString()})`
-                                    )}
-                                  </span>
-                                </div>
-                              </div>
-
-                              {/* Admin violation controls */}
-                              <div className="bg-slate-50/50 dark:bg-black/20 p-5 rounded-3xl border border-slate-100 dark:border-white/5 space-y-4">
-                                <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                                    Duration selection:
-                                  </span>
-                                  <div className="flex flex-wrap gap-1.5">
-                                    {[
-                                      { label: "1 Day", days: 1 },
-                                      { label: "3 Days", days: 3 },
-                                      { label: "1 Week", days: 7 },
-                                      { label: "2 Weeks", days: 14 },
-                                      { label: "Permanent", days: 0 }
-                                    ].map((d) => (
-                                      <button
-                                        key={d.label}
-                                        id={`dur-${item.id}-${d.days}`}
-                                        onClick={() => {
-                                          // Update active tab style inside this duration selector
-                                          const values = [1, 3, 7, 14, 0];
-                                          values.forEach(val => {
-                                            const el = document.getElementById(`dur-${item.id}-${val}`);
-                                            if (el) {
-                                              if (val === d.days) {
-                                                el.classList.remove("bg-white", "dark:bg-zinc-800", "text-slate-500");
-                                                el.classList.add("bg-primary", "text-white");
-                                              } else {
-                                                el.classList.add("bg-white", "dark:bg-zinc-800", "text-slate-500");
-                                                el.classList.remove("bg-primary", "text-white");
-                                              }
-                                            }
-                                          });
-                                        }}
-                                        className={clsx(
-                                          "px-2.5 py-1 text-[8px] font-black uppercase tracking-wider rounded-md transition-all border border-slate-100 dark:border-white/5 shadow-sm",
-                                          d.days === 7 ? "bg-primary text-white" : "bg-white dark:bg-zinc-800 text-slate-500"
-                                        )}
-                                      >
-                                        {d.label}
-                                      </button>
-                                    ))}
-                                  </div>
-                                </div>
-
-                                <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-slate-100 dark:border-white/5 pt-3">
-                                  <button
-                                    onClick={() => {
-                                      const values = [1, 3, 7, 14, 0];
-                                      const activeDays = values.find(val =>
-                                        document.getElementById(`dur-${item.id}-${val}`)?.classList.contains("bg-primary")
-                                      ) ?? 7;
-                                      handleSetCommentStatus(item.user.id, "MUTED", activeDays);
-                                    }}
-                                    className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-[9px] font-black uppercase tracking-wider transition-all"
-                                  >
-                                    Cannot Comment (Mute)
-                                  </button>
-                                  <button
-                                    onClick={() => {
-                                      const values = [1, 3, 7, 14, 0];
-                                      const activeDays = values.find(val =>
-                                        document.getElementById(`dur-${item.id}-${val}`)?.classList.contains("bg-primary")
-                                      ) ?? 7;
-                                      handleSetCommentStatus(item.user.id, "RESTRICTED", activeDays);
-                                    }}
-                                    className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-[9px] font-black uppercase tracking-wider transition-all"
-                                  >
-                                    Temporary Restriction
-                                  </button>
-                                  <button
-                                    onClick={() => {
-                                      handleSetCommentStatus(item.user.id, "BANNED", 0);
-                                    }}
-                                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-[9px] font-black uppercase tracking-wider transition-all"
-                                  >
-                                    Block or Ban
-                                  </button>
-                                  {item.user.commentStatus && item.user.commentStatus !== "ACTIVE" && (
-                                    <button
-                                      onClick={() => handleSetCommentStatus(item.user.id, "ACTIVE")}
-                                      className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-[9px] font-black uppercase tracking-wider transition-all ml-auto border border-emerald-500/20"
-                                    >
-                                      Restore / Unrestrict
-                                    </button>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="shrink-0 text-right opacity-40 group-hover/review:opacity-100 transition-opacity">
-                          <div className="bg-slate-100 dark:bg-zinc-800 p-4 rounded-2xl flex flex-col items-center">
-                            <span className="text-2xl font-black text-charcoal dark:text-white">
-                              {item.rating || 5}
-                            </span>
-                            <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">
-                              Stars
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-
-            {/* DOWN of Sentiment Moderation: Spam Quarantine */}
-            <div className="space-y-8 pt-12 border-t border-slate-200 dark:border-white/5">
-              <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <h2 className="text-2xl font-black text-charcoal dark:text-white uppercase item-center italic tracking-tighter">
-                    Spam <span className="text-amber-500">Quarantine.</span>
-                  </h2>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                    Auto-flagged sentiments waiting for admin review
-                  </p>
-                </div>
-                <span className="bg-amber-500/10 text-amber-500 border border-amber-500/20 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider">
-                  {reviews.filter((r) => !r.isApproved || r.isSpam).length} Suspicious
-                </span>
-              </div>
-
-              <div className="space-y-6">
-                {reviewsLoading ? (
-                  <div className="p-40 text-center">
-                    <Loader2
-                      className="animate-spin mx-auto text-primary"
-                      size={40}
-                    />
-                  </div>
-                ) : reviews.filter((r) => !r.isApproved || r.isSpam).length === 0 ? (
-                  <div className="p-20 text-center border-2 border-dashed border-slate-200 dark:border-white/5 rounded-[3rem] bg-white/50 dark:bg-zinc-900/50">
-                    <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest">
-                      Ledger is Clear: No suspicious activity detected
-                    </p>
-                  </div>
-                ) : (
-                  reviews.filter((r) => !r.isApproved || r.isSpam).map((item: any) => (
-                    <div
-                      key={item.id}
-                      className="p-10 rounded-[3rem] border transition-all group/review relative overflow-hidden bg-amber-500/5 border-amber-500/20"
-                    >
-                      <div className="flex flex-col md:flex-row items-start justify-between gap-10 relative z-10">
-                        <div className="flex-1 space-y-6">
-                          <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-slate-100 dark:bg-zinc-800 rounded-2xl flex items-center justify-center font-black text-primary">
-                              {item.user?.name?.charAt(0) || "U"}
-                            </div>
-                            <div>
-                              <div className="flex items-center gap-3">
-                                <h4 className="text-sm font-black text-charcoal dark:text-white uppercase">
-                                  {item.user?.name || "Authorized Shopper"}
-                                </h4>
-                                <div className="flex items-center gap-1">
-                                  {[...Array(5)].map((_, i) => (
-                                    <Star
-                                      key={i}
-                                      size={10}
-                                      className={clsx(
-                                        i < (item.rating || 5)
-                                          ? "fill-amber-500 text-amber-500"
-                                          : "text-slate-200",
-                                      )}
-                                    />
-                                  ))}
-                                </div>
-                              </div>
-                              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
-                                {new Date(item.createdAt).toLocaleDateString()}
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="p-6 bg-slate-50/50 dark:bg-black/40 rounded-[2rem] border border-slate-100/50 dark:border-white/5 relative">
-                            <MessageSquare
-                              size={40}
-                              className="absolute -top-5 -right-5 text-primary opacity-5"
-                            />
-                            <p className="text-sm font-bold text-slate-500 dark:text-slate-400 italic leading-relaxed">
-                              "{item.comment}"
-                            </p>
-                          </div>
-
-                          <div className="flex flex-wrap items-center gap-4 pt-2">
-                            <button
-                              onClick={() => handleApproveReview(item.id)}
-                              className="px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-emerald-500/20"
-                            >
-                              Authorize Comment
-                            </button>
-                            <button
-                              onClick={() => handleDeleteReview(item.id)}
-                              className="px-6 py-3 bg-red-500/10 text-red-500 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all"
-                            >
-                              Reject & Purge
-                            </button>
-                          </div>
-                        </div>
-
-                        <div className="shrink-0 text-right opacity-40 group-hover/review:opacity-100 transition-opacity">
-                          <div className="bg-slate-100 dark:bg-zinc-800 p-4 rounded-2xl flex flex-col items-center">
-                            <span className="text-2xl font-black text-charcoal dark:text-white">
-                              {item.rating || 5}
-                            </span>
-                            <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">
-                              Stars
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Right: Restricted Entities Terminal */}
-          <div className="xl:col-span-4 space-y-8">
-            <h2 className="text-2xl font-black text-charcoal dark:text-white uppercase italic tracking-tighter">
-              Blacklist <span className="text-red-500">Terminal.</span>
-            </h2>
-            <div className="bg-charcoal dark:bg-zinc-900 rounded-[3rem] p-10 border border-white/5 shadow-2xl relative overflow-hidden">
-              <div className="absolute top-0 right-0 p-8 opacity-5">
-                <ShieldAlert size={120} />
-              </div>
-
-              <div className="flex items-center justify-between mb-10 relative z-10">
-                <div className="space-y-1">
-                  <h3 className="text-lg font-black text-white uppercase italic tracking-tighter">
-                    Blacklisted Users
-                  </h3>
-                  <p className="text-[10px] font-black text-red-500 uppercase tracking-widest underline decoration-red-500/30 decoration-4">
-                    Access Blocked
-                  </p>
-                </div>
-                <div className="bg-red-500 text-white px-4 py-1 rounded-xl text-xs font-black shadow-lg shadow-red-500/20">
-                  {blacklistedUsers.length}
-                </div>
-              </div>
-
-              <div className="space-y-4 max-h-[600px] overflow-y-auto custom-scrollbar pr-2 relative z-10">
-                {blacklistedUsers.length === 0 ? (
-                  <div className="py-20 text-center space-y-4">
-                    <ShieldCheck
-                      size={48}
-                      className="text-emerald-500 mx-auto opacity-20"
-                    />
-                    <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest animate-pulse">
-                      No Blacklisted Users
-                    </p>
-                  </div>
-                ) : (
-                  blacklistedUsers.map((u) => (
-                    <div
-                      key={u.id}
-                      className="flex items-center justify-between p-5 bg-white/5 rounded-[1.5rem] border border-white/5 group/bitem hover:bg-white/10 hover:border-red-500/30 transition-all"
-                    >
-                      <div className="truncate flex-1">
-                        <p className="text-sm font-black text-white truncate uppercase tracking-tight">
-                          {u.name || "ANONYMOUS"}
-                        </p>
-                        <p className="text-[10px] text-zinc-500 font-bold truncate tracking-widest mt-0.5">
-                          {u.email}
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => handleToggleBlacklist(u.id, true)}
-                        className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center opacity-0 group-hover/bitem:opacity-100 hover:scale-110 active:scale-95 transition-all"
-                        title="Unblock User"
-                      >
-                        <Check size={18} />
-                      </button>
-                    </div>
-                  ))
-                )}
-              </div>
-
-              <div className="mt-10 pt-8 border-t border-white/5 space-y-4 relative z-10">
-                <p className="text-[9px] font-bold text-zinc-500 uppercase leading-relaxed tracking-wider italic">
-                  Notice: Blacklisted users are blocked from logging in to the system. Their active sessions have been terminated.
-                </p>
-              </div>
-            </div>
-
-            {/* Quick Actions Card */}
-            <div className="bg-primary rounded-[2.5rem] p-8 text-white shadow-2xl relative overflow-hidden group">
-              <div className="absolute top-0 right-0 p-4 opacity-20 group-hover:rotate-12 transition-transform">
-                <RefreshCcw size={40} />
-              </div>
-              <h4 className="text-lg font-black uppercase italic tracking-tighter mb-2">
-                Refresh List
-              </h4>
-              <p className="text-[10px] font-bold uppercase tracking-widest opacity-80 mb-6 underline decoration-white/20">
-                Reload all users and status.
-              </p>
-              <button
-                onClick={loadUsers}
-                className="w-full py-4 bg-white text-primary rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-black/10 active:scale-95 transition-all"
-              >
-                Refresh Users
-              </button>
-            </div>
-          </div>
-        </div>
+        <ReviewsModeration adminId={currentUser?.id} onAttentionCount={setReviewAttention} />
       )}
 
       {activeTab === "history" && (

@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { supabase } from "@/utils/supabase";
-import { loginAction } from "./actions/auth";
+import { signInWithGoogleAction } from "./actions/auth";
 
 // ─── Auth Context ─────────────────────────────────────────────────────────────
 
@@ -37,56 +37,39 @@ export const AppProviders = ({ children }: { children: React.ReactNode }) => {
 
   // Persistence logic
   useEffect(() => {
-    // Restore local session from localStorage immediately on mount to prevent logouts on refresh
+    // Show the cached user immediately so a refresh doesn't flash "logged out"…
     const storedUser = localStorage.getItem("srmall_user");
     if (storedUser) {
       try {
         const parsed = JSON.parse(storedUser);
         setIsAuthenticated(true);
         setUser(parsed);
-
-        // Re-fetch fresh user data from DB to sync avatarUrl and name in case they were updated
-        // on another device or from another account. This fixes the stale avatar bug.
-        loginAction({ email: parsed.email, password: "OAUTH_LOGIN_BYPASS" }).then((res) => {
-          if (res.success && res.data) {
-            const freshData = { id: res.data.id, name: res.data.name, email: res.data.email, role: res.data.role, avatarUrl: res.data.avatarUrl };
-            setUser(freshData);
-            localStorage.setItem("srmall_user", JSON.stringify(freshData));
-          }
-        }).catch(() => { /* silent fail - we already have cached data */ });
       } catch (err) {
         console.error("Failed to parse stored user:", err);
       }
     }
 
-    let subscription: { unsubscribe: () => void } | null = null;
+    // …then, for Google sign-ins, confirm it with the server: it verifies the
+    // Supabase access token and returns the account for that Gmail address.
+    // Email + password sign-ins have no Google session and keep the cached user.
+    const { data } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === "SIGNED_OUT") {
+        logout();
+        return;
+      }
+      if (event !== "SIGNED_IN" && event !== "INITIAL_SESSION") return;
+      if (!session?.access_token) return;
 
-    const syncSession = async () => {
-      // Automatic session recovery disabled as per user request.
-      // Users must now manually log in each time the site is opened.
+      const res = await signInWithGoogleAction(session.access_token);
+      if (res.success) {
+        login(res.data.id, res.data.name, res.data.email, res.data.role, res.data.avatarUrl);
+      } else {
+        // Google account not allowed (non-Gmail, suspended) or expired.
+        logout();
+      }
+    });
 
-      // 3. Listen for auth changes
-      const { data } = supabase.auth.onAuthStateChange(async (event, session) => {
-        if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.user?.email) {
-           const res = await loginAction({ 
-             email: session.user.email, 
-             password: "OAUTH_LOGIN_BYPASS" 
-           });
-           if (res.success && res.data) {
-             login(res.data.id, res.data.name, res.data.email, res.data.role, res.data.avatarUrl);
-           }
-        } else if (event === 'SIGNED_OUT') {
-           logout();
-        }
-      });
-      subscription = data.subscription;
-    };
-
-    syncSession();
-
-    return () => {
-      if (subscription) subscription.unsubscribe();
-    };
+    return () => data.subscription.unsubscribe();
   }, []);
 
   const login = (id: string, name: string, email: string, role?: string, avatarUrl?: string | null) => {
@@ -105,13 +88,15 @@ export const AppProviders = ({ children }: { children: React.ReactNode }) => {
   };
 
   const logout = () => {
-    const hasUser = localStorage.getItem("srmall_user");
     setIsAuthenticated(false);
     setUser(null);
     localStorage.removeItem("srmall_user");
-    if (hasUser) {
-      supabase.auth.signOut().catch((err) => console.error("SignOut error:", err));
-    }
+    // End the Google/Supabase session as well (no-op if there is none).
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) {
+        supabase.auth.signOut().catch((err) => console.error("SignOut error:", err));
+      }
+    });
   };
 
   return (

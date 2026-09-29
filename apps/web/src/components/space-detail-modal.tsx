@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AreaSlot } from "@srmall/database";
 import {
@@ -13,10 +13,14 @@ import {
   Send,
   MapPin,
   Clock,
+  AlertTriangle,
+  CheckCircle2,
+  Loader2,
 } from "lucide-react";
 import { useAuth } from "@/app/providers";
 import { reserveSlotAction } from "@/app/actions/space-slot";
 import { toast } from "sonner";
+import { announceSlotChange } from "@/lib/slot-live";
 
 interface SpaceDetailModalProps {
   slot: AreaSlot;
@@ -33,6 +37,14 @@ export default function SpaceDetailModal({
 }: SpaceDetailModalProps) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isReserving, setIsReserving] = useState(false);
+  // Confirmation step before the reservation is actually submitted
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [agreed, setAgreed] = useState(false);
+  const [confirmError, setConfirmError] = useState<string | null>(null);
+  // Live status: flips to RESERVED/OCCUPIED if someone else got the unit first
+  const [status, setStatus] = useState<string>(slot.status);
+  // Follow live updates from the page (someone else reserved it while open)
+  useEffect(() => setStatus(slot.status), [slot.status]);
   const { isAuthenticated, user } = useAuth();
   const router = useRouter();
 
@@ -58,55 +70,55 @@ export default function SpaceDetailModal({
       onInquire(slot.unit_id);
     } else {
       // Fallback or default behavior
-      router.push(
-        `/messenger?recipient=admin&subject=Inquiry_for_${slot.unit_id}&unitId=${slot.id}`,
-      );
+      router.push(`/public-view?recipient=admin&unit=${encodeURIComponent(slot.unit_id)}`);
       onClose();
     }
   };
 
-  const handleReservation = async () => {
+  // Step 1: checks, then show the confirmation dialog (nothing is submitted yet)
+  const handleReservation = () => {
     if (!isAuthenticated || !user) {
-      if (onLoginRequired) {
-        onLoginRequired();
-      } else {
-        router.push("/login");
-      }
+      if (onLoginRequired) onLoginRequired();
+      else toast.error("Please log in to reserve a unit.");
       return;
     }
-
-    if (slot.status !== "AVAILABLE") {
-      toast.error("Unit Unavailable", {
+    if (status !== "AVAILABLE") {
+      toast.error("Unit unavailable", {
         description: "This unit has already been reserved or occupied.",
       });
       return;
     }
+    setAgreed(false);
+    setConfirmError(null);
+    setConfirmOpen(true);
+  };
 
+  // Step 2: the customer confirmed → submit
+  const submitReservation = async () => {
+    if (!user || !agreed) return;
+    setIsReserving(true);
+    setConfirmError(null);
     try {
-      setIsReserving(true);
-      const res = await reserveSlotAction(
-        slot.unit_id,
-        user.id,
-        user.name || "Anonymous User",
-      );
-
+      const res: any = await reserveSlotAction(slot.unit_id, user.id, user.name || "Customer");
       if (res.success) {
-        toast.success("Interest Registered", {
-          description: `Success! Our leasing team has been notified of your interest in Unit ${slot.unit_id}. We will contact you shortly.`,
-          duration: 6000,
+        setStatus("RESERVED");
+        // Update this tab's lists right away (other tabs get it via realtime)
+        announceSlotChange({ id: slot.id, status: "RESERVED", tenant_id: user.id });
+        setConfirmOpen(false);
+        toast.success(`Unit ${slot.unit_id} reserved`, {
+          description: "It's held for you for 24 hours. The leasing team will contact you to confirm.",
+          duration: 7000,
         });
         onClose();
       } else {
-        toast.error("Request Interrupted", {
-          description:
-            res.error || "The reservation could not be processed at this time.",
-        });
+        if (res.code === "UNAVAILABLE" && res.status) {
+          setStatus(res.status);
+          announceSlotChange({ id: slot.id, status: res.status, tenant_id: null });
+        }
+        setConfirmError(res.error || "The reservation could not be processed right now.");
       }
-    } catch (err) {
-      toast.error("Network Error", {
-        description:
-          "Unable to reach the leasing server. Please check your connection.",
-      });
+    } catch {
+      setConfirmError("Couldn't reach the server. Check your connection and try again.");
     } finally {
       setIsReserving(false);
     }
@@ -188,17 +200,17 @@ export default function SpaceDetailModal({
           <div className="absolute top-8 left-8 flex items-center gap-3 px-5 py-2.5 bg-black/60 backdrop-blur-xl rounded-full border border-white/10 shadow-2xl">
             <div
               className={`w-2.5 h-2.5 rounded-full ${
-                slot.status === "AVAILABLE"
+                status === "AVAILABLE"
                   ? "bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.8)] animate-pulse"
-                  : slot.status === "RESERVED"
+                  : status === "RESERVED"
                     ? "bg-amber-500"
                     : "bg-red-500"
               }`}
             />
             <span className="text-[10px] font-black text-white tracking-[0.3em] uppercase">
-              {slot.status === "AVAILABLE"
+              {status === "AVAILABLE"
                 ? "Available"
-                : slot.status === "RESERVED"
+                : status === "RESERVED"
                   ? "Reserved"
                   : "Occupied"}
             </span>
@@ -271,16 +283,14 @@ export default function SpaceDetailModal({
           </div>
 
           <div className="mt-14 space-y-4">
-            {slot.status === "AVAILABLE" ? (
+            {status === "AVAILABLE" ? (
               <div className="flex flex-col gap-4">
                 <button
                   onClick={handleReservation}
                   disabled={isReserving}
                   className="w-full py-6 bg-charcoal dark:bg-white text-white dark:text-black hover:bg-primary dark:hover:bg-primary dark:hover:text-white font-black rounded-2xl transition-all shadow-xl dark:shadow-[0_20px_40px_-10px_rgba(255,255,255,0.2)] disabled:opacity-50 active:scale-95 uppercase tracking-widest text-xs"
                 >
-                  {isReserving
-                    ? "Confirming Protocol..."
-                    : "Secure Reservation"}
+                  Secure Reservation
                 </button>
                 <button
                   onClick={handleInquiry}
@@ -316,6 +326,107 @@ export default function SpaceDetailModal({
           </div>
         </div>
       </div>
+
+      {confirmOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => !isReserving && setConfirmOpen(false)}
+          />
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="reserve-title"
+            className="relative w-full max-w-md bg-white dark:bg-zinc-950 rounded-[2rem] shadow-2xl p-7 space-y-5 animate-in zoom-in-95 duration-200"
+          >
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-widest text-primary">Confirm reservation</p>
+              <h2 id="reserve-title" className="mt-1 text-xl font-black text-charcoal dark:text-white">
+                Reserve Unit {slot.unit_id}?
+              </h2>
+            </div>
+
+            <dl className="grid grid-cols-2 gap-3 p-4 rounded-2xl bg-slate-50 dark:bg-zinc-900 border border-slate-100 dark:border-white/5 text-sm">
+              <div>
+                <dt className="text-[10px] font-black uppercase tracking-widest text-slate-400">Unit</dt>
+                <dd className="font-bold text-charcoal dark:text-white">{slot.unit_id}</dd>
+              </div>
+              <div>
+                <dt className="text-[10px] font-black uppercase tracking-widest text-slate-400">Floor</dt>
+                <dd className="font-bold text-charcoal dark:text-white capitalize">{slot.floor || "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-[10px] font-black uppercase tracking-widest text-slate-400">Size</dt>
+                <dd className="font-bold text-charcoal dark:text-white">{slot.sqm_size} sqm</dd>
+              </div>
+              <div>
+                <dt className="text-[10px] font-black uppercase tracking-widest text-slate-400">Monthly rent</dt>
+                <dd className="font-bold text-charcoal dark:text-white">
+                  ₱{Number(slot.base_rent || 0).toLocaleString()}
+                </dd>
+              </div>
+            </dl>
+
+            <ul className="space-y-2 text-sm text-slate-600 dark:text-slate-300">
+              <li className="flex gap-2">
+                <Clock size={16} className="shrink-0 mt-0.5 text-amber-500" />
+                <span>
+                  The unit is held for you for <strong>24 hours</strong>, then released automatically if it isn&apos;t confirmed.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <CheckCircle2 size={16} className="shrink-0 mt-0.5 text-emerald-500" />
+                <span>The leasing team reviews your request and contacts you. This is not yet a lease contract.</span>
+              </li>
+              <li className="flex gap-2">
+                <AlertTriangle size={16} className="shrink-0 mt-0.5 text-slate-400" />
+                <span>You can have one active reservation at a time.</span>
+              </li>
+            </ul>
+
+            <label className="flex items-start gap-3 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={agreed}
+                onChange={(e) => setAgreed(e.target.checked)}
+                className="mt-0.5 w-4 h-4 accent-[#BE1E2D]"
+              />
+              <span className="text-sm text-charcoal dark:text-white">
+                I understand and want to reserve Unit {slot.unit_id}.
+              </span>
+            </label>
+
+            {confirmError && (
+              <div
+                role="alert"
+                className="flex items-start gap-2 p-3 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-100 dark:border-red-900/30 text-red-600 text-xs font-bold"
+              >
+                <AlertTriangle size={14} className="shrink-0 mt-0.5" /> {confirmError}
+              </div>
+            )}
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setConfirmOpen(false)}
+                disabled={isReserving}
+                className="flex-1 py-3.5 rounded-xl bg-slate-100 dark:bg-zinc-900 text-slate-600 dark:text-slate-300 text-xs font-bold uppercase tracking-widest hover:bg-slate-200 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={submitReservation}
+                disabled={!agreed || isReserving || status !== "AVAILABLE"}
+                className="flex-1 py-3.5 rounded-xl bg-primary hover:bg-primary-hover text-white text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {isReserving && <Loader2 size={14} className="animate-spin" />}
+                {isReserving ? "Reserving…" : "Confirm reservation"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

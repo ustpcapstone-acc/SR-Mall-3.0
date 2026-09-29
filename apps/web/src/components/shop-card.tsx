@@ -12,6 +12,8 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { DigitalStorefront } from "@/types/storefront";
+import { useAuth } from "@/app/providers";
+import { FAVORITES_EVENT, readLocalFavorites, setFavorite } from "@/lib/favorites";
 
 interface ShopCardProps {
   shop: DigitalStorefront;
@@ -39,35 +41,22 @@ export const ShopCard = ({ shop, onClick, onMessage }: ShopCardProps) => {
   const [isFavorited, setIsFavorited] = useState(false);
   const { id, shop_name, unit_id, is_open, logo_url } = shop;
 
-  // Sync favorites with localStorage
+  // Favourites: account-backed when signed in (see lib/favorites).
+  const { user } = useAuth();
   React.useEffect(() => {
-    const favorites = JSON.parse(
-      localStorage.getItem("sr_mall_favorites") || "[]",
-    );
-    setIsFavorited(favorites.includes(id));
+    const refresh = () => setIsFavorited(readLocalFavorites().includes(id));
+    refresh();
+    window.addEventListener(FAVORITES_EVENT, refresh);
+    return () => window.removeEventListener(FAVORITES_EVENT, refresh);
   }, [id]);
 
-  const toggleFavorite = (e: React.MouseEvent) => {
+  const toggleFavorite = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-
-    const favorites = JSON.parse(
-      localStorage.getItem("sr_mall_favorites") || "[]",
-    );
-    let newFavorites;
-
-    if (favorites.includes(id)) {
-      newFavorites = favorites.filter((favId: string) => favId !== id);
-      setIsFavorited(false);
-    } else {
-      newFavorites = [...favorites, id];
-      setIsFavorited(true);
-    }
-
-    localStorage.setItem("sr_mall_favorites", JSON.stringify(newFavorites));
-
-    // Trigger a custom event so other components can react if needed
-    window.dispatchEvent(new Event("favorites-updated"));
+    const next = !isFavorited;
+    setIsFavorited(next);
+    const ok = await setFavorite(id, next, user?.id);
+    if (!ok) setIsFavorited(!next);
   };
 
   return (

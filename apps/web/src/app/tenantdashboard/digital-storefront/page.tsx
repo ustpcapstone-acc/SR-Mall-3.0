@@ -327,11 +327,14 @@ export default function DigitalStorefrontPage() {
         </div>
       )}
 
-      {/* Mobile Preview Modal */}
+      {/* Mobile Preview Modal
+          On phones the preview fills the screen (same 16px gutters as the real
+          mobile page) so the card keeps its live sizing and every element stays
+          reachable; sm+ keeps the centred sheet. */}
       {previewOpen && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[200] flex items-end sm:items-center justify-center p-0 sm:p-6 lg:hidden">
-          <div className="w-full sm:max-w-md bg-white dark:bg-zinc-900 rounded-t-3xl sm:rounded-3xl overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-white/5">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[200] flex items-stretch sm:items-center justify-center p-0 sm:p-6 lg:hidden">
+          <div className="w-full sm:max-w-md h-full sm:h-auto sm:max-h-[85vh] flex flex-col bg-white dark:bg-zinc-900 rounded-none sm:rounded-3xl overflow-hidden">
+            <div className="shrink-0 flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-white/5">
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
                 <span className="text-xs font-black text-charcoal dark:text-white uppercase tracking-widest">
@@ -345,7 +348,7 @@ export default function DigitalStorefrontPage() {
                 <X size={18} />
               </button>
             </div>
-            <div className="p-5 overflow-y-auto max-h-[70vh]">
+            <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5">
               <ShopCard shop={previewShop} />
             </div>
           </div>
@@ -353,9 +356,12 @@ export default function DigitalStorefrontPage() {
       )}
 
       <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10 py-6 sm:py-8 lg:py-10 space-y-6">
-        {/* ── Page Header ── */}
-        <div className="flex items-end justify-between gap-4">
-          <div>
+        {/* ── Page Header ──
+            On phones the title and the action buttons are stacked, because one
+            row cannot hold both without the buttons overflowing the container
+            (Save was being pushed past the edge). sm+ keeps the original row. */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
+          <div className="min-w-0">
             <p className="text-[10px] sm:text-xs font-black text-primary uppercase tracking-[0.3em] mb-1">
               Store Management
             </p>
@@ -368,7 +374,7 @@ export default function DigitalStorefrontPage() {
           </div>
 
           {/* Header Actions */}
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 shrink-0 sm:justify-end">
             {/* Mobile: Preview button */}
             <button
               onClick={() => setPreviewOpen(true)}

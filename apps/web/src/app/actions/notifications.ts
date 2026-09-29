@@ -2,136 +2,19 @@
 
 import { prisma } from "@srmall/database";
 import { getBaseUrl } from "@/utils/get-base-url";
+import {
+  NOTIFICATION_CATALOG,
+  getNotificationMeta,
+  type NotificationChannel,
+} from "@/lib/notification-catalog";
+import { notify } from "@/lib/notify";
 
-export async function getNotifications(userId: string) {
-  try {
-    const notifications = await prisma.notification.findMany({
-      where: { userId },
-      orderBy: { createdAt: "desc" },
-      take: 50,
-    });
-    return { success: true, data: notifications };
-  } catch (error) {
-    console.error("Error fetching notifications:", error);
-    return { success: false, error: "Failed to fetch notifications" };
-  }
-}
+export type NotificationSetting = {
+  enabled: boolean;
+  channels: NotificationChannel[];
+};
 
-export async function markNotificationAsRead(notificationId: string) {
-  try {
-    await prisma.notification.update({
-      where: { id: notificationId },
-      data: { isRead: true },
-    });
-    return { success: true };
-  } catch (error) {
-    console.error("Error marking notification as read:", error);
-    return { success: false, error: "Failed to mark notification as read" };
-  }
-}
-
-export async function markAllNotificationsAsRead(userId: string) {
-  try {
-    await prisma.notification.updateMany({
-      where: { userId, isRead: false },
-      data: { isRead: true },
-    });
-    return { success: true };
-  } catch (error) {
-    console.error("Error marking all notifications as read:", error);
-    return {
-      success: false,
-      error: "Failed to mark all notifications as read",
-    };
-  }
-}
-
-export async function getNotificationPreferences(userId: string) {
-  try {
-    const preferences = await prisma.notificationPreference.findUnique({
-      where: { userId },
-    });
-    return { success: true, data: preferences };
-  } catch (error) {
-    console.error("Error fetching notification preferences:", error);
-    return {
-      success: false,
-      error: "Failed to fetch notification preferences",
-    };
-  }
-}
-
-export async function updateNotificationPreferences(
-  userId: string,
-  preferences: any,
-) {
-  try {
-    await prisma.notificationPreference.upsert({
-      where: { userId },
-      update: preferences,
-      create: { userId, ...preferences },
-    });
-    return { success: true };
-  } catch (error) {
-    console.error("Error updating notification preferences:", error);
-    return {
-      success: false,
-      error: "Failed to update notification preferences",
-    };
-  }
-}
-
-export async function createNotification(data: {
-  userId: string;
-  type: string;
-  title: string;
-  message: string;
-}) {
-  try {
-    // Check user preferences
-    const preferences = await prisma.notificationPreference.findUnique({
-      where: { userId: data.userId },
-    });
-
-    // If user has preferences, check if this notification type is enabled
-    if (preferences) {
-      const isEnabled = preferences[
-        data.type as keyof typeof preferences
-      ] as boolean;
-      if (!isEnabled) {
-        return { success: true, data: null }; // Skip notification if disabled
-      }
-    }
-
-    const notification = await prisma.notification.create({
-      data: {
-        userId: data.userId,
-        type: data.type,
-        title: data.title,
-        message: data.message,
-      },
-    });
-    return { success: true, data: notification };
-  } catch (error) {
-    console.error("Error creating notification:", error);
-    return { success: false, error: "Failed to create notification" };
-  }
-}
-
-export async function getUnreadNotificationCount(userId: string) {
-  try {
-    const count = await prisma.notification.count({
-      where: { userId, isRead: false },
-    });
-    return { success: true, data: count };
-  } catch (error) {
-    console.error("Error fetching unread notification count:", error);
-    return {
-      success: false,
-      error: "Failed to fetch unread notification count",
-    };
-  }
-}
+export type NotificationSettings = Record<string, NotificationSetting>;
 
 export async function sendMassEmailAnnouncement(
   subject: string,
@@ -166,6 +49,198 @@ export async function sendMassEmailAnnouncement(
     return {
       success: false,
       error: error.message || "Failed to send mass emails",
+    };
+  }
+}
+
+/**
+ * Build the default settings for a user from the catalogue, seeded from the
+ * legacy `NotificationPreference` booleans where a mapping exists.
+ */
+async function seedSettings(userId: string): Promise<NotificationSettings> {
+  let legacy: Record<string, any> | null = null;
+  try {
+    legacy = (await prisma.notificationPreference.findUnique({
+      where: { userId },
+    })) as Record<string, any> | null;
+  } catch (err) {
+    console.error("Legacy preference lookup failed:", err);
+  }
+
+  const settings: NotificationSettings = {};
+  for (const meta of NOTIFICATION_CATALOG) {
+    const fromLegacy =
+      legacy && meta.legacyKey
+        ? Boolean((legacy as Record<string, any>)[meta.legacyKey])
+        : null;
+
+    settings[meta.type] = {
+      enabled: fromLegacy === null ? meta.defaultEnabled : fromLegacy,
+      channels: [...meta.defaultChannels],
+    };
+  }
+
+  // Best effort — if the row-per-type table has not been migrated in yet the
+  // defaults are still returned so the settings screen stays usable.
+  try {
+    await prisma.notificationPref.createMany({
+      data: Object.entries(settings).map(([type, value]) => ({
+        userId,
+        type,
+        enabled: value.enabled,
+        channels: value.channels,
+      })),
+      skipDuplicates: true,
+    });
+  } catch (err) {
+    console.error(
+      "NotificationPref seed failed — run `npm run db:push`:",
+      err,
+    );
+  }
+
+  return settings;
+}
+
+/**
+ * Read every alert's enabled/channels state for this user.
+ * Seeds the row-per-type table from the legacy booleans on first read.
+ */
+export async function getNotificationSettings(
+  userId: string,
+): Promise<{ success: boolean; data?: NotificationSettings; error?: string }> {
+  try {
+    let existing: Array<{ type: string; enabled: boolean; channels: unknown }> =
+      [];
+    try {
+      existing = await prisma.notificationPref.findMany({
+        where: { userId },
+      });
+    } catch (err) {
+      console.error(
+        "NotificationPref read failed — run `npm run db:push`:",
+        err,
+      );
+      return { success: true, data: await seedSettings(userId) };
+    }
+
+    if (existing.length === 0) {
+      return { success: true, data: await seedSettings(userId) };
+    }
+
+    const data: NotificationSettings = {};
+    for (const meta of NOTIFICATION_CATALOG) {
+      const row = existing.find((r) => r.type === meta.type);
+      data[meta.type] = row
+        ? {
+            enabled: row.enabled,
+            channels: (row.channels as NotificationChannel[]) || [
+              "IN_APP",
+            ],
+          }
+        : {
+            enabled: meta.defaultEnabled,
+            channels: [...meta.defaultChannels],
+          };
+    }
+
+    return { success: true, data };
+  } catch (error: any) {
+    console.error("Error fetching notification settings:", error);
+    return {
+      success: false,
+      error: error.message || "Failed to fetch notification settings",
+    };
+  }
+}
+
+/** Persist enabled + channels per alert type (only touches known types). */
+export async function saveNotificationSettings(
+  userId: string,
+  settings: NotificationSettings,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const rows = NOTIFICATION_CATALOG.filter((m) => settings[m.type]).map(
+      (m) => ({
+        userId,
+        type: m.type,
+        enabled: Boolean(settings[m.type].enabled),
+        channels:
+          settings[m.type].channels && settings[m.type].channels.length > 0
+            ? settings[m.type].channels
+            : ["IN_APP"],
+      }),
+    );
+
+    for (const row of rows) {
+      await prisma.notificationPref.upsert({
+        where: { userId_type: { userId, type: row.type } },
+        update: { enabled: row.enabled, channels: row.channels },
+        create: row,
+      });
+    }
+
+    return { success: true };
+  } catch (error: any) {
+    console.error("Error saving notification settings:", error);
+    const missingTable =
+      typeof error?.message === "string" &&
+      error.message.includes("NotificationPref");
+    return {
+      success: false,
+      error: missingTable
+        ? "The NotificationPref table is missing — run `npm run db:push` (or apply the migration), then try again."
+        : error.message || "Failed to save notification settings",
+    };
+  }
+}
+
+/**
+ * Fire a sample alert so an admin/tenant can verify the bell + email wiring
+ * from the settings screen.
+ */
+export async function sendTestNotification(
+  userId: string,
+  type: string,
+): Promise<{ success: boolean; message?: string; error?: string }> {
+  try {
+    const meta = getNotificationMeta(type);
+    if (!meta) {
+      return { success: false, error: "Unknown notification type." };
+    }
+
+    const appUrl = await getBaseUrl();
+    const link = meta.link?.DEFAULT || meta.link?.ADMIN || appUrl;
+
+    const result = await notify(type, {
+      recipients: [userId],
+      title: `Test alert: ${meta.label}`,
+      message: `${meta.description} If you can read this, your channels are wired correctly.`,
+      link,
+      email: true,
+    });
+
+    const channels: string[] = [];
+    if (result.created > 0) channels.push("in-app");
+    if (result.emailed > 0) channels.push("email");
+
+    if (channels.length === 0) {
+      return {
+        success: true,
+        message:
+          "Nothing was sent — this alert is turned off or has no channels selected.",
+      };
+    }
+
+    return {
+      success: true,
+      message: `Test alert sent via ${channels.join(" + ")}.`,
+    };
+  } catch (error: any) {
+    console.error("Error sending test notification:", error);
+    return {
+      success: false,
+      error: error.message || "Failed to send test notification",
     };
   }
 }

@@ -1,7 +1,47 @@
 "use server";
 
 import { prisma } from "@srmall/database";
-import { revalidatePath } from "next/cache";
+import { safeUserSelect } from "@/lib/user-select";
+import { after } from "next/server";
+import { notifyChatMessage } from "@/lib/notify-chat";
+import { isChatBlocked, markConversationReadAction } from "@/app/actions/chat-queries";
+
+// Chat data is fetched on the client and pushed by Supabase Realtime, so these
+// actions deliberately do NOT call revalidatePath(): doing so makes Next.js
+// re-render the caller's whole page (e.g. /public-view) inside the action
+// response, which was the main source of the multi-second send delay.
+
+async function findSender(email: string) {
+  return prisma.user.findUnique({
+    where: { email },
+    include: { tenant: { select: { shopName: true } } },
+  });
+}
+
+/**
+ * Who a public-chat message goes to. Never creates placeholder accounts: an
+ * unknown shop or a mall without an admin is reported back to the sender.
+ */
+async function resolveTargetUser(
+  recipientType: "admin" | "shop",
+  shopName?: string,
+  tenantId?: string,
+) {
+  if (recipientType === "admin") {
+    return prisma.user.findFirst({ where: { role: "ADMIN" }, orderBy: { createdAt: "asc" } });
+  }
+  if (recipientType !== "shop") return null;
+
+  const tenant = tenantId
+    ? await prisma.tenant.findUnique({ where: { id: tenantId }, include: { user: true } })
+    : shopName?.trim()
+      ? await prisma.tenant.findFirst({
+          where: { shopName: { equals: shopName.trim(), mode: "insensitive" } },
+          include: { user: true },
+        })
+      : null;
+  return tenant?.user ?? null;
+}
 
 export async function sendMessage(data: {
   userId: string;
@@ -9,24 +49,22 @@ export async function sendMessage(data: {
   content: string;
   imageUrl?: string;
   shopName?: string;
+  /** Preferred over shopName: identifies the shop exactly. */
+  tenantId?: string;
   slotId?: string;
 }) {
-  const { userId: email, recipientType, content, imageUrl, shopName, slotId } = data;
+  const { userId: email, recipientType, content, imageUrl, shopName, tenantId, slotId } = data;
 
   try {
-    let sender = await prisma.user.findUnique({
-      where: { email },
-    });
+    // The sender and the recipient are independent lookups — resolve them in
+    // one round trip instead of two.
+    const [sender, targetUser] = await Promise.all([
+      findSender(email),
+      resolveTargetUser(recipientType, shopName, tenantId),
+    ]);
 
     if (!sender) {
-      sender = await prisma.user.create({
-        data: {
-          email,
-          name: email.split("@")[0],
-          password: "mockpassword",
-          role: "CUSTOMER",
-        },
-      });
+      return { success: false, error: "Please sign in again to send messages." };
     }
 
     if (sender.isBlacklisted) {
@@ -36,80 +74,43 @@ export async function sendMessage(data: {
       };
     }
 
-    // In a real app, you would look up the specific Admin or Tenant User ID.
-    // Here we find or create dummy target users based on the recipientType to simulate routing.
-    let targetUser = null;
-
-    if (recipientType === "admin") {
-      targetUser = await prisma.user.findFirst({
-        where: { role: "ADMIN" },
-      });
-      if (!targetUser) {
-        // Fallback: create a dummy admin for testing
-        targetUser = await prisma.user.create({
-          data: {
-            email: "jerickaradilla76@gmail.com",
-            password: "hash",
-            role: "ADMIN",
-            name: "Mall Admin",
-          },
-        });
-      }
-    } else if (recipientType === "shop" && shopName) {
-      const cleanShopName = shopName.trim();
-      // Find the Tenant entry by shopName, then get its associated User
-      const tenantRecord =
-        (await prisma.tenant.findFirst({
-          where: {
-            shopName: {
-              equals: cleanShopName,
-              mode: "insensitive",
-            },
-          },
-          include: { user: true },
-        })) ||
-        (await prisma.tenant.findFirst({
-          where: {
-            shopName: {
-              contains: cleanShopName,
-              mode: "insensitive",
-            },
-          },
-          include: { user: true },
-        }));
-
-      if (tenantRecord?.user) {
-        targetUser = tenantRecord.user;
-      } else {
-        // Create a fallback tenant for testing if it doesn't exist
-        const fallbackEmail = `${cleanShopName.replace(/\s+/g, "").toLowerCase()}@tenant.com`;
-        targetUser = await prisma.user.upsert({
-          where: { email: fallbackEmail },
-          update: {},
-          create: {
-            email: fallbackEmail,
-            password: "hash",
-            role: "TENANT",
-            name: cleanShopName,
-          },
-        });
-
-        // Link it to a tenant record if it's missing
-        await prisma.tenant.upsert({
-          where: { userId: targetUser.id },
-          update: { shopName: cleanShopName },
-          create: { shopName: cleanShopName, unitId: "L1-XXX", userId: targetUser.id },
-        });
-      }
-    }
-
     if (!targetUser) {
-      throw new Error("Target recipient not found.");
+      return {
+        success: false,
+        error:
+          recipientType === "admin"
+            ? "Mall administration is not available right now. Please try again later."
+            : "This shop can't receive messages right now.",
+      };
     }
 
-    // Check if targetUser has blocked sender from sending chat messages
-    const { isChatBlocked } = await import("@/app/actions/chat-queries");
-    const isBlocked = await isChatBlocked(targetUser.id, sender.id);
+    // Block check and the existing-conversation lookup are also independent.
+    const [isBlocked, existingConversation] = await Promise.all([
+      // Check if targetUser has blocked sender from sending chat messages
+      isChatBlocked(targetUser.id, sender.id),
+      // Check if conversation already exists in either direction
+      prisma.conversation.findFirst({
+        where:
+          recipientType === "admin"
+            ? {
+                type: "ADMIN",
+                OR: [
+                  { userId: sender.id, targetId: targetUser.id },
+                  { userId: targetUser.id, targetId: sender.id },
+                  { userId: sender.id },
+                  { targetId: sender.id },
+                ],
+              }
+            : {
+                OR: [
+                  { userId: sender.id, targetId: targetUser.id },
+                  { userId: targetUser.id, targetId: sender.id },
+                ],
+              },
+        orderBy: { updatedAt: "desc" },
+      }),
+    ]);
+
     if (isBlocked) {
       return {
         success: false,
@@ -117,121 +118,70 @@ export async function sendMessage(data: {
       };
     }
 
-    // Check if conversation already exists in either direction
-    let conversation = await prisma.conversation.findFirst({
-      where:
-        recipientType === "admin"
-          ? {
-              type: "ADMIN",
-              OR: [
-                { userId: sender.id, targetId: targetUser.id },
-                { userId: targetUser.id, targetId: sender.id },
-                { userId: sender.id },
-                { targetId: sender.id },
-              ],
-            }
-          : {
-              OR: [
-                { userId: sender.id, targetId: targetUser.id },
-                { userId: targetUser.id, targetId: sender.id },
-              ],
-            },
-      orderBy: { updatedAt: "desc" },
-    });
-
     // Create a new conversation channel if it doesn't exist
-    if (!conversation) {
-      conversation = await prisma.conversation.create({
+    const conversation =
+      existingConversation ??
+      (await prisma.conversation.create({
         data: {
           type: recipientType === "admin" ? "ADMIN" : "TENANT",
           userId: sender.id,
           targetId: targetUser.id,
           spaceSlotId: slotId,
         },
-      });
-    }
+      }));
 
-    // Insert the actual message
-    const message = await prisma.message.create({
-      data: {
-        content: content || "",
-        imageUrl: imageUrl || null,
-        conversationId: conversation.id,
-        senderId: sender.id,
-      },
-    });
-
-    // Update conversation's updatedAt
-    await prisma.conversation.update({
-      where: { id: conversation.id },
-      data: { updatedAt: new Date() },
-    });
+    // Insert the message and bump the conversation's updatedAt concurrently.
+    const [message] = await Promise.all([
+      prisma.message.create({
+        data: {
+          content: content || "",
+          imageUrl: imageUrl || null,
+          conversationId: conversation.id,
+          senderId: sender.id,
+        },
+      }),
+      prisma.conversation.update({
+        where: { id: conversation.id },
+        data: { updatedAt: new Date() },
+      }),
+    ]);
 
     // Create a Message Notification for the recipient
     let senderDisplayName = sender.name || "a user";
     if (sender.role === "ADMIN") {
       senderDisplayName = "SR Mall Admin";
-    } else if (sender.role === "TENANT") {
-      const tenant = await prisma.tenant.findUnique({
-        where: { userId: sender.id },
-        select: { shopName: true },
-      });
-      if (tenant?.shopName) {
-        senderDisplayName = tenant.shopName;
-      }
+    } else if (sender.role === "TENANT" && sender.tenant?.shopName) {
+      senderDisplayName = sender.tenant.shopName;
     }
 
-    await prisma.notification.create({
-      data: {
-        userId: targetUser.id,
-        type: "MESSAGE",
-        title: "New Message",
-        message: `New message from ${senderDisplayName}`,
-      },
+    // ⚡ One dispatch handles the in-app row and the email, each gated by the
+    // recipient's own MESSAGE preferences. Scheduled with `after()` so the send
+    // response (and the optimistic bubble) is never held up by SMTP round-trips;
+    // `after()` still runs the callback for the route's full max duration.
+    const excerpt = content.length > 150 ? `${content.slice(0, 150)}...` : content;
+    after(async () => {
+      await notifyChatMessage({
+        conversationId: conversation.id,
+        senderId: sender.id,
+        recipientId: targetUser.id,
+        senderName: senderDisplayName,
+        excerpt,
+        subject:
+          recipientType === "admin"
+            ? "📩 New executive inquiry received"
+            : "📩 New message from SR Mall",
+      });
     });
 
-    // ── GMAIL NOTIFICATION (NON-BLOCKING) ──
-    if (targetUser.email) {
-      import("@/lib/gmail")
-        .then(({ sendGmail }) => {
-          const isToAdmin = recipientType === "admin";
-          return sendGmail({
-            to: targetUser.email,
-            subject: isToAdmin ? "📩 NEW EXECUTIVE INQUIRY RECEIVED" : "📩 NEW MESSAGE FROM SR MALL ADMIN",
-            html: `
-              <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px; max-width: 600px;">
-                <div style="background: #be1e2d; color: white; padding: 15px; border-radius: 8px 8px 0 0; text-align: center;">
-                  <h2 style="margin: 0;">Experience Desk Hub</h2>
-                </div>
-                <div style="padding: 20px; border: 1px solid #be1e2d; border-top: none; border-radius: 0 0 8px 8px;">
-                  <p>Hello <strong>${targetUser.name || "User"}</strong>,</p>
-                  <p>You have received a new message through the SR Mall communication portal.</p>
-                  <div style="background: #f8fafc; padding: 15px; border-radius: 8px; margin: 15px 0; font-style: italic; color: #334155; border-left: 4px solid #be1e2d;">
-                    "${content.length > 150 ? content.substring(0, 150) + "..." : content}"
-                  </div>
-                  <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
-                  <p>Please log in to your dashboard to view the full thread and respond.</p>
-                  <div style="text-align: center; margin-top: 25px;">
-                    <a href="${process.env.NEXT_PUBLIC_APP_URL || ""}/messenger" style="display: inline-block; padding: 12px 30px; background-color: #be1e2d; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">Launch Messenger</a>
-                  </div>
-                </div>
-                <p style="font-size: 11px; color: #94a3b8; text-align: center; margin-top: 20px;">
-                  This is an automated intelligence dispatch from the SR Mall Experience Desk Operations Hub.
-                </p>
-              </div>
-            `,
-          });
-        })
-        .catch((err) => {
-          console.error("Failed to send message Gmail notification:", err);
-        });
-    }
+    await markConversationReadAction(sender.id, [conversation.id]);
 
-    revalidatePath("/admindashboard/messenger-hub");
-    revalidatePath("/tenantdashboard/customer-messenger");
-    revalidatePath("/public-view");
-
-    return { success: true, messageId: message.id, targetId: targetUser.id };
+    return {
+      success: true,
+      messageId: message.id,
+      conversationId: message.conversationId,
+      targetId: targetUser.id,
+      message,
+    };
   } catch (error) {
     console.error("Failed to send message:", error);
     return { success: false, error: "Failed to route message." };

@@ -28,27 +28,23 @@ import {
   Save,
   MoreVertical,
   ArrowRight,
-  Activity,
   Handshake,
   Monitor,
 } from "lucide-react";
 import {
-  getPendingTenantsAction,
   approveTenantAction,
   rejectTenantAction,
 } from "@/app/actions/tenant";
 import {
-  getAreaSlots,
-  approveReservationAction,
-  rejectReservationAction,
   upsertAreaSlot,
-  getReservedSlotsWithDetailsAction,
 } from "@/app/actions/space-slot";
 import {
-  getInquiriesAction,
   updateInquiryStatusAction,
 } from "@/app/actions/inquiry";
+import { getBookingsDataAction } from "@/app/actions/bookings";
+import { DashboardSkeleton } from "@/components/dashboard-skeleton";
 import { toast } from "sonner";
+import { ReservationDecisionModal } from "@/components/admin/reservation-decision-modal";
 import clsx from "clsx";
 
 // Calendar Helpers
@@ -127,12 +123,9 @@ export default function MasterBookingsPage() {
     else setIsSyncing(true);
 
     try {
-      const [tenants, slots, inquiries, reservedDetailed] = await Promise.all([
-        getPendingTenantsAction(),
-        getAreaSlots(),
-        getInquiriesAction(),
-        getReservedSlotsWithDetailsAction(),
-      ]);
+      // One request for all tabs (see getBookingsDataAction).
+      const { tenants, slots, inquiries, reservedDetailed } =
+        await getBookingsDataAction();
 
       if (tenants.success) setMerchantRequests(tenants.data || []);
       if (slots.success) {
@@ -231,29 +224,16 @@ export default function MasterBookingsPage() {
   };
 
   // --- Reservation Handlers ---
-  const handleApproveReservation = async (unitId: string) => {
-    if (confirm(`Approve strategic reservation for Unit ${unitId}?`)) {
-      const res = await approveReservationAction(unitId);
-      if (res.success) {
-        toast.success("Inventory Slot Secured");
-        loadData(true);
-      }
-    }
+  // Approve / reject open a decision modal (components/admin/reservation-decision-modal)
+  const [reservationDecision, setReservationDecision] = useState<{
+    reservation: any;
+    action: "approve" | "reject";
+  } | null>(null);
+  const handleApproveReservation = (unitId: string) => {
+    const reservation = reservedSlots.find((r: any) => r.unit_id === unitId) || { unit_id: unitId };
+    setReservationDecision({ reservation, action: "approve" });
   };
-
-  const handleRejectReservation = async (slot: any) => {
-    if (
-      confirm(
-        `Release reservation for Unit ${slot.unit_id}? Space status will revert to AVAILABLE.`,
-      )
-    ) {
-      const res = await rejectReservationAction(slot.unit_id);
-      if (res.success) {
-        toast.warning("Inventory Slot Released");
-        loadData(true);
-      }
-    }
-  };
+  const handleRejectReservation = (slot: any) => setReservationDecision({ reservation: slot, action: "reject" });
 
   // --- Calendar Logic ---
   const pendingEvents = eventInquiries.filter((i) => i.status === "PENDING");
@@ -290,19 +270,7 @@ export default function MasterBookingsPage() {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
-        <div className="relative">
-          <div className="w-16 h-16 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
-          <div className="absolute inset-0 flex items-center justify-center">
-            <Activity size={20} className="text-primary animate-pulse" />
-          </div>
-        </div>
-        <p className="text-xs font-black uppercase tracking-[0.3em] text-slate-400">
-          Loading Operational Data...
-        </p>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   const tabs = [
@@ -758,7 +726,8 @@ export default function MasterBookingsPage() {
               </div>
             </div>
           </div>
-        )}        {activeTab === "reservation" && (
+        )}
+        {activeTab === "reservation" && (
           <div className="space-y-8">
             <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-[2.5rem] shadow-sm overflow-hidden">
               <div className="overflow-x-auto custom-scrollbar">
@@ -1073,6 +1042,14 @@ export default function MasterBookingsPage() {
           background: rgba(var(--primary-rgb), 0.3);
         }
       `}</style>
+      {reservationDecision && (
+        <ReservationDecisionModal
+          reservation={reservationDecision.reservation}
+          action={reservationDecision.action}
+          onClose={() => setReservationDecision(null)}
+          onDone={() => loadData(true)}
+        />
+      )}
     </div>
   );
 }

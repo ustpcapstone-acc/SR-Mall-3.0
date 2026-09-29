@@ -237,7 +237,8 @@ export function RegisterTenantModal({ isOpen, onClose, onSuccess }: Props) {
     }
   };
 
-  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  // New tenant accounts must use a Gmail address.
+  const emailValid = /^[^\s@]+@gmail\.com$/i.test(email.trim());
   const emailsMatch = email === confirmEmail;
   const canStep1 = emailValid && emailsMatch && tempPass.length >= 6;
   const canStep2 = shopName.trim() !== "" && category !== "";

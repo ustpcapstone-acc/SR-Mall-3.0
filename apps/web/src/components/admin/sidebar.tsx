@@ -14,6 +14,7 @@ import {
 import clsx from "clsx";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/app/providers";
+import { useChatUnread } from "@/lib/chat-unread";
 
 const navItems = [
   { href: "/admindashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -53,19 +54,8 @@ const navItems = [
 export const AdminSidebar = () => {
   const pathname = usePathname();
   const { user } = useAuth();
-  const [unreadMessages, setUnreadMessages] = useState(0);
-
-  useEffect(() => {
-    if (!user) return;
-    const fetchCount = async () => {
-      const { getUnreadMessageCountAction } = await import("@/app/actions/notification");
-      const res = await getUnreadMessageCountAction(user.id);
-      if (res.success && res.data !== undefined) setUnreadMessages(res.data);
-    };
-    fetchCount();
-    const interval = setInterval(fetchCount, 10000); // Poll every 10 seconds
-    return () => clearInterval(interval);
-  }, [user]);
+  // Live unread chat count (same source as the bell's Messages tab).
+  const unreadMessages = useChatUnread(user?.id).total;
 
   return (
     <aside

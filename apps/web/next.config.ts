@@ -23,6 +23,9 @@ const getLocalOrigins = () => {
 };
 
 const nextConfig: NextConfig = {
+  // Dev server listens on 0.0.0.0 (see package.json), so allow this machine's
+  // current LAN addresses to load dev assets from phones / other PCs.
+  allowedDevOrigins: getLocalOrigins().filter((o) => !o.includes(":")),
   images: {
     remotePatterns: [
       {

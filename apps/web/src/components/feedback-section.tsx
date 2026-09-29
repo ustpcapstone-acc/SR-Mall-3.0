@@ -31,12 +31,16 @@ interface FeedbackSectionProps {
 
 interface Review {
   id: string;
+  userId?: string;
   rating: number;
   comment?: string;
   createdAt: string;
+  /** The shop's public reply, if any. */
+  reply?: string | null;
+  repliedAt?: string | null;
   user: {
     name: string;
-    email: string;
+    email?: string;
     role?: string;
   };
 }
@@ -111,7 +115,7 @@ export const FeedbackSection = ({
 
   // ── Derived ────────────────────────────────────────────
   const myReview = user
-    ? reviews.find((r) => r.user.email === user.email)
+    ? reviews.find((r) => r.userId === user.id)
     : undefined;
 
   // ── Effects ────────────────────────────────────────────
@@ -477,7 +481,7 @@ export const FeedbackSection = ({
                             />
                           ))}
                         </div>
-                        {user && user.email === review.user?.email && (
+                        {user && user.id === review.userId && (
                           <div className="flex items-center gap-2 mt-0.5">
                             <a
                               href="#feedback-form"
@@ -517,6 +521,16 @@ export const FeedbackSection = ({
                       >
                         "{review.comment}"
                       </p>
+                    )}
+                    {review.reply && (
+                      <div className="mt-3 ml-1 pl-3 border-l-2 border-primary/40">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-primary">
+                          Reply from the shop
+                        </p>
+                        <p className="mt-1 text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-line [overflow-wrap:anywhere]">
+                          {review.reply}
+                        </p>
+                      </div>
                     )}
                   </div>
                 ))

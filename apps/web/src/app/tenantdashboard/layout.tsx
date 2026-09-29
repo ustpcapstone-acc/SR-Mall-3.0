@@ -6,6 +6,7 @@ import { useAuth } from "@/app/providers";
 import { LoginModal } from "@/components/login-modal";
 import React, { useState } from "react";
 import { Lock, LogIn } from "lucide-react";
+import { ResetPublicTheme } from "@/components/reset-public-theme";
 
 export default function TenantLayout({
   children,
@@ -46,6 +47,7 @@ export default function TenantLayout({
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#0f1117] font-sans selection:bg-primary selection:text-white flex">
+      <ResetPublicTheme />
       <TenantNavbar onMenuClick={() => setIsMobileMenuOpen(true)} />
       <TenantSidebar
         isMobileOpen={isMobileMenuOpen}

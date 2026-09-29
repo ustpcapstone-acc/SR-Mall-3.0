@@ -20,6 +20,8 @@ import { useAuth } from "@/app/providers";
 import clsx from "clsx";
 import { AreaSlot } from "@srmall/database";
 import SpaceDetailModal from "@/components/space-detail-modal";
+import { mergeSlotPatch, slotAccess, useLiveSlots } from "@/lib/slot-live";
+import { toast } from "sonner";
 import { LoginModal } from "@/components/login-modal";
 
 export default function AvailableSpacesPage() {
@@ -38,15 +40,21 @@ export default function AvailableSpacesPage() {
     fetchSlots();
   }, []);
 
-  const fetchSlots = async () => {
-    setLoading(true);
+  const fetchSlots = async (silent = false) => {
+    if (!silent) setLoading(true);
     const res = await getAreaSlots();
     if (res.success && res.data) {
       // Filter for Available and Reserved per user preference in public view
       setSlots(res.data.filter(s => s.status === "AVAILABLE" || s.status === "RESERVED"));
     }
-    setLoading(false);
+    if (!silent) setLoading(false);
   };
+
+  // Live: a unit someone just reserved flips to Pending here without a reload.
+  useLiveSlots(
+    (patch) => setSlots((prev) => mergeSlotPatch(prev as any, patch) as any),
+    () => fetchSlots(true),
+  );
 
   const filteredSlots = slots.filter((slot) => {
     return slot.unit_id.toLowerCase().includes(searchQuery.toLowerCase());
@@ -129,12 +137,24 @@ export default function AvailableSpacesPage() {
                 </p>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-8 lg:gap-10">
-                {filteredSlots.map((slot, idx) => (
+                {filteredSlots.map((slot, idx) => {
+                  const access = slotAccess(slot as any, user?.id);
+                  return (
                   <div
                     key={slot.id}
-                    onClick={() => setSelectedSlot(slot)}
+                    onClick={() =>
+                      access.open
+                        ? setSelectedSlot(slot)
+                        : toast.info(
+                          slot.status === "RESERVED"
+                            ? `Unit ${slot.unit_id} is pending: another customer reserved it first. It's released automatically if it isn't confirmed within 24 hours.`
+                            : `Unit ${slot.unit_id} is already occupied.`,
+                        )
+                    }
+                    aria-disabled={!access.open}
                     className={clsx(
-                      "group relative bg-white dark:bg-zinc-900 rounded-[1.25rem] sm:rounded-[2rem] border border-slate-100 dark:border-white/5 overflow-hidden transition-all duration-700 cursor-pointer shadow-sm hover:shadow-2xl hover:-translate-y-2",
+                      "group relative bg-white dark:bg-zinc-900 rounded-[1.25rem] sm:rounded-[2rem] border border-slate-100 dark:border-white/5 overflow-hidden transition-all duration-700 shadow-sm",
+                      access.open ? "cursor-pointer hover:shadow-2xl hover:-translate-y-2" : "cursor-not-allowed opacity-75 grayscale-[35%]",
                     )}
                   >
                     <div className="aspect-[4/3] sm:aspect-[16/10] relative overflow-hidden bg-slate-100 dark:bg-black">
@@ -162,10 +182,12 @@ export default function AvailableSpacesPage() {
                             "backdrop-blur-xl px-2 sm:px-4 py-1 sm:py-2 rounded-full border text-[7px] sm:text-[9px] font-black uppercase tracking-[0.1em] sm:tracking-[0.2em] transition-all shadow-2xl",
                             slot.status === "AVAILABLE"
                               ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-400"
-                              : "bg-amber-500/20 border-amber-500/40 text-amber-400",
+                              : access.mine
+                                ? "bg-yellow-400/25 border-yellow-400/60 text-yellow-300"
+                                : "bg-amber-500/20 border-amber-500/40 text-amber-400",
                           )}
                         >
-                          {slot.status === "AVAILABLE" ? "Available" : "Reserved"}
+                          {access.label}
                         </div>
                       </div>
 
@@ -207,7 +229,8 @@ export default function AvailableSpacesPage() {
                       </div>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </>
           ) : (
@@ -233,7 +256,7 @@ export default function AvailableSpacesPage() {
       {/* Detail Modals */}
       {selectedSlot && (
         <SpaceDetailModal
-          slot={selectedSlot as any}
+          slot={(slots.find((s) => s.id === selectedSlot.id) || selectedSlot) as any}
           onClose={() => setSelectedSlot(null)}
           onLoginRequired={() => setIsLoginModalOpen(true)}
           onInquire={(unitId) => {

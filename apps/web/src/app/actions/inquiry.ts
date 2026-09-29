@@ -1,6 +1,7 @@
 "use server";
 
 import { prisma } from "@srmall/database";
+import { safeUserSelect } from "@/lib/user-select";
 import { revalidatePath } from "next/cache";
 
 export async function submitInquiryAction(data: {
@@ -43,73 +44,42 @@ export async function submitInquiryAction(data: {
       }
     }
 
-    // Create notifications for all admins
-    const admins = await prisma.user.findMany({
-      where: { role: "ADMIN" },
-      select: { id: true },
+    // ⚡ New inquiry → every admin, routed through notify() so each admin's
+    // own alert preferences (and in-app / email channels) are honoured.
+    const { notify } = await import("@/lib/notify");
+    await notify("NEW_BOOKING_INQUIRY", {
+      title: "Strategic Project Inquiry",
+      message: `New inquiry: ${data.eventType} planned for ${new Date(
+        data.eventDate,
+      ).toLocaleDateString()} at ${data.eventTime}.${
+        data.message ? ` Message: ${data.message}` : ""
+      }`,
+      link: "/admindashboard/bookings?tab=event",
     });
 
-    if (admins.length > 0) {
-      await prisma.notification.createMany({
-        data: admins.map((admin: any) => ({
-          userId: admin.id,
-          type: "NEW_BOOKING_INQUIRY",
-          title: "Strategic Project Inquiry",
-          message: `New masterpiece inquiry: ${data.eventType} planned for ${new Date(data.eventDate).toLocaleDateString()}.`,
-        })),
-      });
-
-      // Send Gmail notification to Admin
+    // Transactional confirmation to the person who submitted the inquiry
+    if (user && user.email) {
       try {
         const { sendGmail } = await import("@/lib/gmail");
         await sendGmail({
-          to: process.env.GMAIL_USER || "jerickaradilla76@gmail.com",
-          subject: "🚨 NEW STRATEGIC PROJECT INQUIRY",
+          to: user.email,
+          subject: "Confirmation: Your SR Mall Strategic Inquiry",
           html: `
             <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-              <h2 style="color: #be1e2d;">New Secure Reservation / Inquiry</h2>
-              <p>A new event inquiry has been submitted through the SR Mall Secure Reservation portal.</p>
+              <h2 style="color: #be1e2d;">Inquiry Received</h2>
+              <p>Hello ${user.name || "Valued Merchant"},</p>
+              <p>Thank you for your interest in SR Mall. We have received your inquiry for a <strong>${data.eventType}</strong>.</p>
               <hr />
-              <p><strong>Event Type:</strong> ${data.eventType}</p>
-              <p><strong>Date:</strong> ${new Date(data.eventDate).toLocaleDateString()}</p>
-              <p><strong>Time:</strong> ${data.eventTime}</p>
-              <p><strong>Message:</strong> ${data.message || 'No additional message'}</p>
-              <p><strong>Image attached:</strong> ${data.imageUrl ? 'Yes' : 'No'}</p>
-              <p><strong>User ID:</strong> ${data.userId}</p>
+              <p><strong>Scheduled Date:</strong> ${new Date(data.eventDate).toLocaleDateString()}</p>
+              <p><strong>Scheduled Time:</strong> ${data.eventTime}</p>
               <hr />
-              <p>Please log in to the admin dashboard to review and respond.</p>
-              <a href="${process.env.NEXT_PUBLIC_APP_URL}/admindashboard/requests" style="display: inline-block; padding: 10px 20px; background-color: #be1e2d; color: white; text-decoration: none; border-radius: 5px;">View Inquiries</a>
+              <p>Our leasing and events team will review your request and get back to you within 12-24 hours. You can monitor the status of your inquiry in your account dashboard.</p>
+              <a href="${process.env.NEXT_PUBLIC_APP_URL}/public-view?recipient=admin" style="display: inline-block; padding: 10px 20px; background-color: #be1e2d; color: white; text-decoration: none; border-radius: 5px;">Open Messenger</a>
             </div>
           `,
         });
       } catch (err) {
-        console.error("Failed to send Gmail notification for inquiry:", err);
-      }
-
-      // Send Gmail notification to USER
-      if (user && user.email) {
-        try {
-          const { sendGmail } = await import("@/lib/gmail");
-          await sendGmail({
-            to: user.email,
-            subject: "Confirmation: Your SR Mall Strategic Inquiry",
-            html: `
-              <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-                <h2 style="color: #be1e2d;">Inquiry Received</h2>
-                <p>Hello ${user.name || "Valued Merchant"},</p>
-                <p>Thank you for your interest in SR Mall. We have received your inquiry for a <strong>${data.eventType}</strong>.</p>
-                <hr />
-                <p><strong>Scheduled Date:</strong> ${new Date(data.eventDate).toLocaleDateString()}</p>
-                <p><strong>Scheduled Time:</strong> ${data.eventTime}</p>
-                <hr />
-                <p>Our leasing and events team will review your request and get back to you within 12-24 hours. You can monitor the status of your inquiry in your account dashboard.</p>
-                <a href="${process.env.NEXT_PUBLIC_APP_URL}/messenger" style="display: inline-block; padding: 10px 20px; background-color: #be1e2d; color: white; text-decoration: none; border-radius: 5px;">Open Messenger</a>
-              </div>
-            `,
-          });
-        } catch (err) {
-          console.error("Failed to send User Gmail notification for inquiry:", err);
-        }
+        console.error("Failed to send User Gmail notification for inquiry:", err);
       }
     }
 
@@ -124,9 +94,14 @@ export async function submitInquiryAction(data: {
 
 export async function getInquiriesAction() {
   try {
+    // Expiry sweeps run in the background after this response (throttled),
+    // so the admin never waits on auto-reject writes and emails.
+    const { scheduleSweeps } = await import("@/lib/sweeps");
+    scheduleSweeps();
+
     const inquiries = await prisma.eventInquiry.findMany({
       include: {
-        user: true,
+        user: { select: safeUserSelect },
       },
       orderBy: {
         createdAt: "desc",
@@ -148,7 +123,7 @@ export async function updateInquiryStatusAction(
     const inquiry = await prisma.eventInquiry.update({
       where: { id },
       data: { status },
-      include: { user: true },
+      include: { user: { select: safeUserSelect } },
     });
 
     // Create a message from Admin to User
@@ -210,7 +185,7 @@ export async function updateInquiryStatusAction(
               ${feedback ? `<div style="background: #f8fafc; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid ${isApproved ? "#10b981" : "#be1e2d"};"><strong>Admin Feedback:</strong> ${feedback}</div>` : ""}
               <hr />
               <p>${isApproved ? "Our team will contact you shortly to finalize the details and logistics." : "If you have questions regarding this decision, please reach out to us via the mall messenger."}</p>
-              <a href="${process.env.NEXT_PUBLIC_APP_URL}/messenger" style="display: inline-block; padding: 10px 20px; background-color: #334155; color: white; text-decoration: none; border-radius: 5px;">View Message Thread</a>
+              <a href="${process.env.NEXT_PUBLIC_APP_URL}/public-view?recipient=admin" style="display: inline-block; padding: 10px 20px; background-color: #334155; color: white; text-decoration: none; border-radius: 5px;">View Message Thread</a>
             </div>
           `,
         });
@@ -224,6 +199,58 @@ export async function updateInquiryStatusAction(
   } catch (error) {
     console.error("Failed to update inquiry status:", error);
     return { success: false, error: "Failed to update inquiry" };
+  }
+}
+
+/**
+ * Auto-reject rule: an Event Booking that is still PENDING 72 hours (3 days)
+ * after submission is rejected automatically.
+ *
+ * - The countdown uses the submission timestamp (`createdAt`), so eligibility
+ *   is `createdAt <= now - 72h` — a record is never rejected before 72h.
+ * - Only `PENDING` rows are touched; Approved / Rejected / Cancelled /
+ *   completed records are never affected.
+ * - The flip is guarded with `updateMany({ status: "PENDING" })`, so a record
+ *   an admin decided on between the scan and the write is left alone.
+ * - Rejection goes through the existing `updateInquiryStatusAction`, which is
+ *   the same path the admin button uses: same message thread + same email.
+ * - Once rejected the status stays REJECTED unless an admin changes it
+ *   through the existing authorised action.
+ */
+const AUTO_REJECT_REASON =
+  "This booking was automatically rejected because it remained pending for more than 72 hours (3 days) without a review.";
+
+export async function processExpiredEventBookingsAction() {
+  try {
+    const cutoff = new Date(Date.now() - 72 * 60 * 60 * 1000);
+
+    const expired = await prisma.eventInquiry.findMany({
+      where: { status: "PENDING", createdAt: { lte: cutoff } },
+      select: { id: true },
+    });
+
+    let rejected = 0;
+    for (const { id } of expired) {
+      const flipped = await prisma.eventInquiry.updateMany({
+        where: { id, status: "PENDING" },
+        data: { status: "REJECTED" },
+      });
+      if (flipped.count === 0) continue; // already decided by an admin
+
+      // Existing rejection flow: message thread + email, no new UI.
+      await updateInquiryStatusAction(id, "REJECTED", AUTO_REJECT_REASON);
+      rejected++;
+    }
+
+    if (rejected > 0) {
+      console.log(
+        `[AUTO-REJECT] ${rejected} event booking(s) rejected after 72h.`,
+      );
+    }
+    return { success: true, rejected, scanned: expired.length };
+  } catch (error) {
+    console.error("Failed to auto-reject expired event bookings:", error);
+    return { success: false, rejected: 0, scanned: 0 };
   }
 }
 

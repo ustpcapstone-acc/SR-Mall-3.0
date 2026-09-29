@@ -3,7 +3,7 @@
 import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/utils/supabase";
-import { loginAction } from "@/app/actions/auth";
+import { signInWithGoogleAction } from "@/app/actions/auth";
 import { useAuth } from "@/app/providers";
 
 function AuthCallbackPageContent() {
@@ -40,27 +40,22 @@ function AuthCallbackPageContent() {
           return;
         }
 
-        const email = session?.user?.email;
-        if (!email) {
-          throw new Error("No email returned from auth provider");
+        if (!session?.access_token) {
+          throw new Error("Google sign-in did not complete. Please try again.");
         }
 
-        // Call loginAction to fetch or create user in Prisma DB
-        const res = await loginAction({
-          email,
-          password: "OAUTH_LOGIN_BYPASS",
-        });
-
-        if (!res.success || !res.data) {
-          throw new Error(res.error || "Failed to sync user data");
+        // The server verifies the token with Supabase and enforces Gmail-only.
+        const res = await signInWithGoogleAction(session.access_token);
+        if (!res.success) {
+          await supabase.auth.signOut().catch(() => {});
+          throw new Error(res.error);
         }
 
-        // Log the user into the local React context
-        login(res.data.id, res.data.name, res.data.email, res.data.role);
+        login(res.data.id, res.data.name, res.data.email, res.data.role, res.data.avatarUrl);
 
         // Redirect based on role
-        if (email === "jerickaradilla76@gmail.com" || res.data.role === "ADMIN") {
-          router.push("/admindashboard/tenant-monitoring");
+        if (res.data.role === "ADMIN") {
+          router.push("/admindashboard");
         } else if (res.data.role === "TENANT") {
           router.push("/tenantdashboard");
         } else {
@@ -69,7 +64,7 @@ function AuthCallbackPageContent() {
       } catch (err: any) {
         console.error("Auth Callback Error:", err);
         setError(err?.message || "An unexpected error occurred");
-        setTimeout(() => router.push("/public-view"), 4000);
+        setTimeout(() => router.push("/public-view"), 5000);
       }
     };
 

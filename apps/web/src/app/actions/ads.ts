@@ -182,46 +182,15 @@ export async function createTenantPromo(data: {
       },
     });
 
-    // ── Notify Admins ──
-    const admins = await prisma.user.findMany({
-      where: { role: "ADMIN" },
-      select: { id: true },
+    // ── Notify Admins (preferences + channels honoured) ──
+    const { notify } = await import("@/lib/notify");
+    await notify("AD_SUBMISSION_RECEIVED", {
+      title: "New Promo Submission",
+      message: `Merchant ${promo.tenant.shopName} submitted "${promo.title}" (${promo.category}) running ${new Date(
+        promo.startDate,
+      ).toLocaleDateString()} to ${new Date(promo.endDate).toLocaleDateString()}. It is queued for review.`,
+      link: "/admindashboard/ad-scheduler",
     });
-
-    if (admins.length > 0) {
-      await prisma.notification.createMany({
-        data: admins.map((admin: { id: string }) => ({
-          userId: admin.id,
-          type: "AD_SUBMISSION_RECEIVED",
-          title: "New Promo Submission",
-          message: `Merchant ${promo.tenant.shopName} has submitted a new campaign for review.`,
-        })),
-      });
-
-      // Gmail notification to Admin
-      try {
-        const { sendGmail } = await import("@/lib/gmail");
-        await sendGmail({
-          to: process.env.GMAIL_USER || "jerickaradilla76@gmail.com",
-          subject: `📢 NEW PROMO SUBMISSION: ${promo.tenant.shopName}`,
-          html: `
-            <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-              <h2 style="color: #6366f1;">New Targeted Campaign Request</h2>
-              <p>The merchant <strong>${promo.tenant.shopName}</strong> has submitted a new promotion for approval.</p>
-              <hr />
-              <p><strong>Campaign:</strong> ${promo.title}</p>
-              <p><strong>Category:</strong> ${promo.category}</p>
-              <p><strong>Visibility:</strong> ${new Date(promo.startDate).toLocaleDateString()} to ${new Date(promo.endDate).toLocaleDateString()}</p>
-              <hr />
-              <p>Please log in to the Ad Scheduler to review the media assets and approve this campaign.</p>
-              <a href="${process.env.NEXT_PUBLIC_APP_URL}/admindashboard/ad-scheduler" style="display: inline-block; padding: 10px 20px; background-color: #6366f1; color: white; text-decoration: none; border-radius: 5px;">Go to Scheduler</a>
-            </div>
-          `,
-        });
-      } catch (err) {
-        console.error("Failed to send Admin Gmail for promo update:", err);
-      }
-    }
 
     revalidatePath("/tenantdashboard/ad-promo-manager");
     revalidatePath("/admindashboard/ad-scheduler");
@@ -245,6 +214,7 @@ export async function updatePromoStatus(
           include: {
             user: {
               select: {
+                id: true,
                 email: true,
                 name: true,
               },
@@ -254,15 +224,36 @@ export async function updatePromoStatus(
       },
     });
 
-    // Notify Tenant of the decision
-    if (promo.tenant?.user?.email) {
-      const isApproved = status === "APPROVED";
-      try {
-        const { sendGmail } = await import("@/lib/gmail");
-        await sendGmail({
-          to: promo.tenant.user.email,
-          subject: `Campaign Update: Your Promo is ${status}`,
-          html: `
+    // ⚡ In-app alert for the decision, then the bespoke email only if the
+    // tenant has the EMAIL channel enabled for this alert.
+    const tenantUserId = promo.tenant?.user?.id;
+    const isApproved = status === "APPROVED";
+
+    if (tenantUserId) {
+      const { notify, resolveChannels } = await import("@/lib/notify");
+
+      await notify("AD_DECISION", {
+        recipients: [tenantUserId],
+        title: isApproved ? "Promo Approved" : "Promo Rejected",
+        message: isApproved
+          ? `"${promo.title}" was approved and is live or scheduled for its start date.`
+          : `"${promo.title}" did not meet the campaign guidelines. Check your campaign manager for details.`,
+        link: "/tenantdashboard/ad-promo-manager",
+        email: false,
+      });
+
+      const prefs = await resolveChannels("AD_DECISION", [tenantUserId]);
+      const wantsEmail =
+        prefs[tenantUserId]?.enabled &&
+        prefs[tenantUserId]?.channels.includes("EMAIL");
+
+      if (wantsEmail && promo.tenant?.user?.email) {
+        try {
+          const { sendGmail } = await import("@/lib/gmail");
+          await sendGmail({
+            to: promo.tenant.user.email,
+            subject: `Campaign Update: Your Promo is ${status}`,
+            html: `
             <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
               <h2 style="color: ${isApproved ? "#10b981" : "#be1e2d"};">Campaign ${status}</h2>
               <p>Hello ${promo.tenant.user.name || "Merchant"},</p>
@@ -274,9 +265,10 @@ export async function updatePromoStatus(
               <a href="${process.env.NEXT_PUBLIC_APP_URL}/tenantdashboard/ad-promo-manager" style="display: inline-block; padding: 10px 20px; background-color: #334155; color: white; text-decoration: none; border-radius: 5px;">Go to Campaign Manager</a>
             </div>
           `,
-        });
-      } catch (err) {
-        console.error("Failed to send promo status update email:", err);
+          });
+        } catch (err) {
+          console.error("Failed to send promo status update email:", err);
+        }
       }
     }
 

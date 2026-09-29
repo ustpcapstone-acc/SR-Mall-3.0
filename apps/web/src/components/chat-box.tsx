@@ -18,7 +18,30 @@ import {
 import { useAuth } from "@/app/providers";
 import { LoginModal } from "./login-modal";
 import { markMessageNotificationsAsReadAction } from "@/app/actions/notification";
+import { refreshChatUnread, setViewingChats } from "@/lib/chat-unread";
 import { getAllStorefrontsAction } from "@/app/actions/tenant";
+import {
+  subscribeToConversation,
+  subscribeToInbox,
+  type ChatRealtimeStatus,
+} from "@/lib/chat-realtime";
+import {
+  MESSAGE_PAGE_SIZE,
+  applyRealtimeDelete,
+  applyRealtimeMessage,
+  conversationIdsOf,
+  conversationKey,
+  isOptimistic,
+  markOptimisticFailed,
+  markOptimisticSending,
+  mergeFetchedMessages,
+  normalizeMessages,
+  prependOlderMessages,
+  replaceOptimistic,
+} from "@/lib/chat-messages";
+import { formatMessageTime, startsNewDay } from "@/lib/chat-time";
+import { ChatConfirmModal, ChatDaySeparator, UnsendButton } from "@/components/chat/chat-ui";
+import { toast } from "sonner";
 
 interface ChatBoxProps {
   isOpen: boolean;
@@ -29,6 +52,9 @@ interface ChatBoxProps {
   inquirySlotId?: string | null;
   initialMessage?: string | null;
 }
+
+/** A shop in the public chat; `id` (tenant id) identifies it exactly. */
+type ChatShop = { id?: string; name: string; logo: string | null };
 
 const DEFAULT_SHOPS = [
   "Velvet & Vine",
@@ -53,8 +79,8 @@ export const ChatBox = ({
   const [recipient, setRecipient] = useState<"admin" | "shop">(
     initialRecipient || "shop",
   );
-  const [availableShops, setAvailableShops] = useState<{ name: string; logo: string | null }[]>([]);
-  const [selectedShop, setSelectedShop] = useState<{ name: string; logo: string | null }>({
+  const [availableShops, setAvailableShops] = useState<ChatShop[]>([]);
+  const [selectedShop, setSelectedShop] = useState<ChatShop>({
     name: initialShopName || DEFAULT_SHOPS[0],
     logo: null,
   });
@@ -68,18 +94,28 @@ export const ChatBox = ({
   const [lightboxImageUrl, setLightboxImageUrl] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const isNearBottomRef = useRef(true);
+  /** Files of still-sending bubbles, so a failed image send can be retried. */
+  const pendingFilesRef = useRef<Map<string, File>>(new Map());
+  const loadingOlderRef = useRef(false);
 
   // Real DB Messages state
   const [dbMessages, setDbMessages] = useState<any[]>([]);
   const [isRecipientBlocking, setIsRecipientBlocking] = useState(false);
+  // Realtime subscription + pagination state
+  const [conversationIds, setConversationIds] = useState<string[]>([]);
+  const [realtimeStatus, setRealtimeStatus] =
+    useState<ChatRealtimeStatus>("connecting");
+  const [hasOlderMessages, setHasOlderMessages] = useState(true);
 
   // Fetch true shops from DB
   useEffect(() => {
     async function fetchShops() {
       const res = await getAllStorefrontsAction();
       if (res.success && res.data) {
-        const shops = res.data.map((s: any) => ({
+        const shops: ChatShop[] = res.data.map((s: any) => ({
+          id: s.id,
           name: (s.shop_name || "").trim(),
           logo: s.logo_url,
         }));
@@ -177,9 +213,15 @@ export const ChatBox = ({
     const el = e.currentTarget;
     const isAtBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 100;
     isNearBottomRef.current = isAtBottom;
+
+    // Scrolled to the top → ask for the previous page (once, guarded).
+    if (!isAtBottom && el.scrollTop < 80) {
+      void fetchOlderMessages();
+    }
   };
 
-  // Poll for messages
+  // Latest page: initial load, refresh after send, and fallback while realtime
+  // is unavailable. Never loads more than one page.
   const fetchMessages = useCallback(async () => {
     if (!isOpen || !user?.email || viewMode !== "chat") return;
     if (recipient === "shop" && !selectedShop?.name?.trim()) return;
@@ -190,29 +232,19 @@ export const ChatBox = ({
         user.email,
         recipient,
         selectedShop.name?.trim(),
+        { limit: MESSAGE_PAGE_SIZE },
+        recipient === "shop" ? selectedShop.id : undefined,
       );
 
-      setDbMessages((prev) => {
-        const hasOptimistic = prev.some((p) => String(p.id).startsWith("temp-"));
-        if (
-          !hasOptimistic &&
-          prev.length === history.length &&
-          prev[prev.length - 1]?.id === history[history.length - 1]?.id
-        ) {
-          return prev;
-        }
+      setDbMessages((prev) => mergeFetchedMessages(prev, history));
+      setHasOlderMessages(history.length >= MESSAGE_PAGE_SIZE);
 
-        const pendingOptimistic = prev.filter(
-          (p) =>
-            String(p.id).startsWith("temp-") &&
-            !history.some(
-              (h: any) =>
-                (h.content === p.content && h.sender?.email === p.sender?.email) ||
-                h.id === p.id,
-            ),
-        );
-        return [...history, ...pendingOptimistic];
-      });
+      // Remember which conversations are on screen (reference-stable unless
+      // the actual set changes, so realtime does not resubscribe per message).
+      const ids = conversationIdsOf(history);
+      setConversationIds((prev) =>
+        conversationKey(prev) === conversationKey(ids) ? prev : ids,
+      );
 
       if (isNearBottomRef.current) {
         requestAnimationFrame(scrollToBottom);
@@ -220,19 +252,157 @@ export const ChatBox = ({
     } catch (err) {
       console.error("Failed to fetch messages:", err);
     }
-  }, [isOpen, user?.email, recipient, selectedShop.name, viewMode]);
+  }, [isOpen, user?.email, recipient, selectedShop.name, selectedShop.id, viewMode]);
+
+  // Older page — requested only when the user scrolls to the top.
+  const fetchOlderMessages = useCallback(async () => {
+    if (loadingOlderRef.current || !hasOlderMessages) return;
+    if (!isOpen || !user?.email || viewMode !== "chat") return;
+    if (recipient === "shop" && !selectedShop?.name?.trim()) return;
+
+    const oldest = dbMessages.find((m) => !isOptimistic(m));
+    if (!oldest) return;
+
+    loadingOlderRef.current = true;
+    try {
+      const { getConversationHistory } = await import("@/app/actions/chat-queries");
+      const history = await getConversationHistory(
+        user.email,
+        recipient,
+        selectedShop.name?.trim(),
+        {
+          limit: MESSAGE_PAGE_SIZE,
+          before: new Date(oldest.createdAt).toISOString(),
+          beforeId: String(oldest.id),
+        },
+        recipient === "shop" ? selectedShop.id : undefined,
+      );
+
+      if (history.length < MESSAGE_PAGE_SIZE) setHasOlderMessages(false);
+
+      const container = messagesContainerRef.current;
+      const previousHeight = container?.scrollHeight ?? 0;
+      setDbMessages((prev) => prependOlderMessages(prev, history));
+      if (container) {
+        // Keep the reading position pinned while older messages go in above.
+        requestAnimationFrame(() => {
+          container.scrollTop += container.scrollHeight - previousHeight;
+        });
+      }
+    } catch (err) {
+      console.error("Failed to load older messages:", err);
+    } finally {
+      loadingOlderRef.current = false;
+    }
+  }, [
+    dbMessages,
+    hasOlderMessages,
+    isOpen,
+    user?.email,
+    recipient,
+    selectedShop.name,
+    viewMode,
+  ]);
 
   useEffect(() => {
     fetchMessages();
-    const interval = setInterval(fetchMessages, 3000);
-    return () => clearInterval(interval);
   }, [fetchMessages]);
+
+  // Switching channel/conversation → clear the previous thread and its
+  // subscription state so nothing bleeds across conversations.
+  useEffect(() => {
+    setDbMessages([]);
+    setConversationIds([]);
+    setHasOlderMessages(true);
+    setRealtimeStatus("connecting");
+  }, [isOpen, recipient, selectedShop.name]);
+
+  // Supabase Realtime: exactly one channel per conversation, removed when the
+  // conversation changes or the widget unmounts.
+  useEffect(() => {
+    if (!isOpen || viewMode !== "chat" || conversationIds.length === 0) return;
+
+    const unsubscribe = subscribeToConversation(conversationIds, {
+      onMessage: (row) => {
+        setDbMessages((prev) => applyRealtimeMessage(prev, row));
+        if (isNearBottomRef.current) requestAnimationFrame(scrollToBottom);
+      },
+      onDelete: (messageId) => {
+        setDbMessages((prev) => applyRealtimeDelete(prev, messageId));
+      },
+      onStatus: setRealtimeStatus,
+    });
+
+    return unsubscribe;
+  }, [isOpen, viewMode, conversationIds]);
+
+  // No conversation yet (nothing to subscribe to): watch the inbox so a
+  // first message from the other side shows up without waiting for the poll.
+  useEffect(() => {
+    if (!isOpen || viewMode !== "chat" || conversationIds.length > 0) return;
+
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const unsubscribe = subscribeToInbox(() => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => void fetchMessages(), 400);
+    });
+    return () => {
+      if (timer) clearTimeout(timer);
+      unsubscribe();
+    };
+  }, [isOpen, viewMode, conversationIds.length, fetchMessages]);
+
+  // Fallback only: polls while realtime is not connected (never when it is).
+  useEffect(() => {
+    if (!isOpen || viewMode !== "chat") return;
+    if (realtimeStatus === "subscribed") return;
+
+    const interval = setInterval(() => {
+      void fetchMessages();
+    }, 15000);
+    return () => clearInterval(interval);
+  }, [isOpen, viewMode, realtimeStatus, fetchMessages]);
 
   useEffect(() => {
     if (isOpen && user?.id) {
       markMessageNotificationsAsReadAction(user.id);
     }
   }, [isOpen, user?.id]);
+
+  // The open thread counts as read — including messages that arrive while open.
+  const lastMessageId = dbMessages[dbMessages.length - 1]?.id;
+  useEffect(() => {
+    if (!isOpen || viewMode !== "chat" || !user?.id || conversationIds.length === 0) return;
+    void import("@/app/actions/chat-queries")
+      .then(({ markConversationReadAction }) => markConversationReadAction(user.id, conversationIds))
+      .then(() => refreshChatUnread());
+  }, [isOpen, viewMode, user?.id, conversationIds, lastMessageId]);
+
+  // The thread on screen doesn't count as unread and doesn't pop a toast.
+  const viewingKey = isOpen && viewMode === "chat" ? conversationIds.join("|") : "";
+  useEffect(() => {
+    if (!viewingKey) return;
+    return setViewingChats(viewingKey.split("|"));
+  }, [viewingKey]);
+
+  const [unsendTarget, setUnsendTarget] = useState<any | null>(null);
+  const [isUnsending, setIsUnsending] = useState(false);
+  const confirmUnsend = async () => {
+    if (!unsendTarget || !user?.id) return;
+    setIsUnsending(true);
+    try {
+      const { deleteMessageAction } = await import("@/app/actions/chat-queries");
+      const res = await deleteMessageAction(unsendTarget.id, user.id);
+      if (res.success) {
+        setDbMessages((prev) => applyRealtimeDelete(prev, unsendTarget.id));
+        setUnsendTarget(null);
+      } else {
+        toast.error(res.error || "Couldn't unsend the message");
+      }
+    } finally {
+      setIsUnsending(false);
+    }
+  };
 
   // Check if active recipient has blocked messaging for this user
   useEffect(() => {
@@ -253,6 +423,9 @@ export const ChatBox = ({
         if (targetId) {
           const blocked = await checkBlockStatusAction(targetId, user.id);
           setIsRecipientBlocking(blocked);
+        } else if (recipient === "shop" && selectedShop.id) {
+          const { isBlockedByShopAction } = await import("@/app/actions/chat-queries");
+          setIsRecipientBlocking(await isBlockedByShopAction(selectedShop.id, user.id));
         } else {
           setIsRecipientBlocking(false);
         }
@@ -261,7 +434,7 @@ export const ChatBox = ({
       }
     }
     checkBlock();
-  }, [user?.id, viewMode, recipient]);
+  }, [user?.id, viewMode, recipient, selectedShop.id]);
 
   if (!isOpen) return null;
 
@@ -288,6 +461,68 @@ export const ChatBox = ({
     }
   };
 
+  // Persist an optimistic bubble. Never throws: a failure flips the bubble to
+  // "failed" so the message stays visible and can be retried.
+  const persistMessage = async (payload: {
+    tempId: string;
+    content: string;
+    file?: File | null;
+    preview?: string | null;
+    slotId?: string;
+  }) => {
+    if (!user?.email) return;
+
+    setIsUploading(true);
+    try {
+      let uploadedImageUrl: string | null = null;
+      if (payload.file) {
+        uploadedImageUrl = await uploadImageToCloudinary(payload.file);
+        if (!uploadedImageUrl) throw new Error("Image upload failed");
+      } else if (payload.preview && /^https?:\/\//i.test(payload.preview)) {
+        // Retry of a message whose image already reached the CDN.
+        uploadedImageUrl = payload.preview;
+      }
+
+      const { sendMessage } = await import("@/app/actions/chat");
+      const res: any = await sendMessage({
+        userId: user.email,
+        recipientType: recipient,
+        content: payload.content,
+        imageUrl: uploadedImageUrl || undefined,
+        shopName: selectedShop.name,
+        tenantId: recipient === "shop" ? selectedShop.id : undefined,
+        slotId: payload.slotId,
+      });
+
+      if (res && !res.success && res.error) {
+        toast.error(res.error);
+        setDbMessages((prev) => markOptimisticFailed(prev, payload.tempId));
+        return;
+      }
+
+      pendingFilesRef.current.delete(payload.tempId);
+      if (res?.message) {
+        // Swap temp-… for the real row (same id the realtime event carries).
+        setDbMessages((prev) =>
+          replaceOptimistic(prev, payload.tempId, res.message),
+        );
+      }
+      if (res?.conversationId) {
+        // Brand-new conversation: subscribe right away.
+        setConversationIds((prev) =>
+          prev.includes(res.conversationId)
+            ? prev
+            : [...prev, res.conversationId],
+        );
+      }
+    } catch (err) {
+      console.error("Failed to send message:", err);
+      setDbMessages((prev) => markOptimisticFailed(prev, payload.tempId));
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const handleSend = async (e: React.FormEvent, slotId?: string) => {
     e.preventDefault();
 
@@ -302,7 +537,7 @@ export const ChatBox = ({
     }
 
     if (isRecipientBlocking) {
-      alert("This recipient is currently not accepting incoming messages from you.");
+      toast.error("This recipient is currently not accepting messages from you.");
       return;
     }
 
@@ -314,52 +549,51 @@ export const ChatBox = ({
     setImagePreview(null);
 
     if (user?.email) {
-      // Instant Optimistic update with local preview
-      const tempId = `temp-${Date.now()}`;
-      setDbMessages((prev) => [
-        ...prev,
-        {
-          id: tempId,
-          content: textToSend,
-          imageUrl: previewToSend,
-          sender: { email: user.email, name: user.name, avatarUrl: user.avatarUrl },
-          createdAt: new Date(),
-        },
-      ]);
+      // Instant optimistic update with local preview
+      const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+      const contentToSend = textToSend || "📎 Image";
+
+      setDbMessages((prev) =>
+        normalizeMessages([
+          ...prev,
+          {
+            id: tempId,
+            content: contentToSend,
+            imageUrl: previewToSend,
+            senderId: user.id,
+            sender: { email: user.email, name: user.name, avatarUrl: user.avatarUrl },
+            createdAt: new Date(),
+            sending: true,
+          },
+        ]),
+      );
 
       isNearBottomRef.current = true;
       requestAnimationFrame(scrollToBottom);
 
-      setIsUploading(true);
+      if (fileToSend) pendingFilesRef.current.set(tempId, fileToSend);
 
-      try {
-        let uploadedImageUrl: string | null = null;
-        if (fileToSend) {
-          uploadedImageUrl = await uploadImageToCloudinary(fileToSend);
-        }
-
-        const { sendMessage } = await import("@/app/actions/chat");
-        const res = await sendMessage({
-          userId: user.email,
-          recipientType: recipient,
-          content: textToSend || "📎 Image",
-          imageUrl: uploadedImageUrl || undefined,
-          shopName: selectedShop.name,
-          slotId: slotId,
-        });
-
-        if (res && !res.success && res.error) {
-          alert(res.error);
-          setDbMessages((prev) => prev.filter((m) => m.id !== tempId));
-        } else {
-          fetchMessages();
-        }
-      } catch (err) {
-        console.error("Failed to send message:", err);
-      } finally {
-        setIsUploading(false);
-      }
+      await persistMessage({
+        tempId,
+        content: contentToSend,
+        file: fileToSend,
+        preview: previewToSend,
+        slotId,
+      });
     }
+  };
+
+  // Retry a failed bubble — its text and image are preserved.
+  const retryMessage = (message: any) => {
+    if (!message?.id || message.sending) return;
+    const file = pendingFilesRef.current.get(message.id) ?? null;
+    setDbMessages((prev) => markOptimisticSending(prev, message.id));
+    void persistMessage({
+      tempId: message.id,
+      content: message.content,
+      file,
+      preview: message.imageUrl ?? null,
+    });
   };
 
 
@@ -584,6 +818,7 @@ export const ChatBox = ({
 
             {/* Messages Area */}
             <div
+              ref={messagesContainerRef}
               onScroll={handleScroll}
               className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 custom-scrollbar bg-slate-50/50 dark:bg-black/20"
             >
@@ -597,7 +832,7 @@ export const ChatBox = ({
                 </div>
               </div>
 
-              {dbMessages.map((msg: any) => {
+              {dbMessages.map((msg: any, index: number) => {
                 const isUserSender =
                   (user?.id && msg.senderId === user.id) ||
                   (user?.email && msg.sender?.email?.toLowerCase() === user.email.toLowerCase());
@@ -608,12 +843,18 @@ export const ChatBox = ({
                 const isTemporary = String(msg.id).startsWith("temp-");
 
                 return (
+                  <React.Fragment key={msg.id}>
+                  {startsNewDay(dbMessages[index - 1]?.createdAt, msg.createdAt) && (
+                    <ChatDaySeparator date={msg.createdAt} />
+                  )}
                   <div
-                    key={msg.id}
                     className={`flex gap-2.5 ${
                       isUserSender ? "justify-end" : "justify-start"
-                    } items-end animate-fade-in group relative`}
+                    } items-end animate-fade-in group group/msg relative`}
                   >
+                    {isUserSender && !isTemporary && (
+                      <UnsendButton onClick={() => setUnsendTarget(msg)} />
+                    )}
                     {!isUserSender && (
                       <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-zinc-800 flex items-center justify-center overflow-hidden shrink-0 border border-slate-100 dark:border-white/5">
                         {senderAvatar ? (
@@ -656,10 +897,19 @@ export const ChatBox = ({
                         </div>
                       </div>
                       <div className="mt-1 px-2 text-[9px] font-bold uppercase tracking-widest text-slate-400">
-                        {new Date(msg.createdAt).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
+                        {isTemporary && msg.failed ? (
+                          <button
+                            type="button"
+                            onClick={() => retryMessage(msg)}
+                            className="text-red-500 hover:text-red-600 hover:underline"
+                          >
+                            Not sent · Tap to retry
+                          </button>
+                        ) : isTemporary && msg.sending ? (
+                          <span>Sending…</span>
+                        ) : (
+                          formatMessageTime(msg.createdAt)
+                        )}
                       </div>
                     </div>
                     {isUserSender && (
@@ -678,6 +928,7 @@ export const ChatBox = ({
                       </div>
                     )}
                   </div>
+                  </React.Fragment>
                 );
               })}
               <div ref={messagesEndRef} />
@@ -808,6 +1059,16 @@ export const ChatBox = ({
         </div>
       )}
 
+      {unsendTarget && (
+        <ChatConfirmModal
+          title="Unsend message?"
+          message="It will be removed for everyone in this conversation."
+          confirmLabel="Unsend"
+          busy={isUnsending}
+          onCancel={() => setUnsendTarget(null)}
+          onConfirm={confirmUnsend}
+        />
+      )}
       <LoginModal
         isOpen={isLoginModalOpen}
         onClose={() => setIsLoginModalOpen(false)}

@@ -111,7 +111,11 @@ export default function TenantDashboard() {
           setPaymentSchedule(scheduleRes.data);
         }
 
-        const result = await getApprovedReviewsAction(tId);
+        // No shop id → no reviews. Calling without one would return the
+        // general mall reviews and show them as this shop's.
+        const result = tId
+          ? await getApprovedReviewsAction(tId)
+          : { success: true as const, data: [] as any[] };
         if (result.success && result.data) {
           setLiveReviews(result.data);
           const total = result.data.reduce(

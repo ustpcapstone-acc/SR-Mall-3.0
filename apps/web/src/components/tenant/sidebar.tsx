@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/app/providers";
+import { useChatUnread } from "@/lib/chat-unread";
 import clsx from "clsx";
 
 const navItems = [
@@ -67,7 +68,8 @@ export const TenantSidebar = ({
   const pathname = usePathname();
   const [isMobile, setIsMobile] = useState(false);
 
-  const [unreadMessages, setUnreadMessages] = useState(0);
+  // Live unread chat count (same source as the bell's Messages tab).
+  const unreadMessages = useChatUnread(user?.id).total;
 
   useEffect(() => {
     const checkMobile = () => {
@@ -77,18 +79,6 @@ export const TenantSidebar = ({
     window.addEventListener("resize", checkMobile);
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
-
-  useEffect(() => {
-    if (!user) return;
-    const fetchCount = async () => {
-      const { getUnreadMessageCountAction } = await import("@/app/actions/notification");
-      const res = await getUnreadMessageCountAction(user.id);
-      if (res.success) setUnreadMessages(res.data || 0);
-    };
-    fetchCount();
-    const interval = setInterval(fetchCount, 30000);
-    return () => clearInterval(interval);
-  }, [user]);
 
   const handleLinkClick = () => {
     if (isMobile && onMobileClose) {

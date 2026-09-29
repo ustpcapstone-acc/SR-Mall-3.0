@@ -1,9 +1,11 @@
 "use server";
 
 import { prisma } from "@srmall/database";
+import { SHOP_CATEGORIES } from "@/lib/shop-categories";
+import bcrypt from "bcryptjs";
+import { safeUserSelect } from "@/lib/user-select";
 import { DigitalStorefront } from "@/types/storefront";
 import { revalidatePath } from "next/cache";
-import bcrypt from "bcryptjs";
 import { occupySlot } from "./space-slot";
 
 /**
@@ -93,6 +95,22 @@ export async function updateTenantProfileAction(
 ) {
   try {
     const updateTasks = [];
+
+    // The email follows the same rules as the other settings pages: Gmail only,
+    // and never for Google-only accounts (it's their Google identity).
+    if (data.email) {
+      const email = data.email.trim().toLowerCase();
+      const me = await prisma.user.findUnique({ where: { id: userId }, select: { email: true, password: true } });
+      if (me && email !== me.email) {
+        if (me.password === "GOOGLE_OAUTH" || me.password === "OAUTH_USER") {
+          return { success: false, error: "Your account signs in with Google, so its email can't be changed." };
+        }
+        if (!/^[^\s@]+@gmail\.com$/.test(email)) {
+          return { success: false, error: "Your email must be a Gmail address (@gmail.com)." };
+        }
+      }
+      data.email = email;
+    }
 
     // Update User details
     if (data.name || data.email) {
@@ -329,6 +347,10 @@ export async function getStorefrontByIdAction(id: string) {
         products: tenant.products as any,
         post_sales: tenant.postSales as any,
         category: (tenant as any).category,
+        ...(await prisma
+          .$queryRawUnsafe<any[]>(`SELECT "phone", "openingHours" FROM "Tenant" WHERE "id" = $1`, tenant.id)
+          .then((r) => ({ phone: r[0]?.phone ?? null, opening_hours: r[0]?.openingHours ?? null }))
+          .catch(() => ({}))),
       } as DigitalStorefront,
     };
   } catch (error: any) {
@@ -367,9 +389,15 @@ export async function registerTenantAction(data: {
   rentCost: number;
 }) {
   try {
+    // New accounts must use a Gmail address.
+    const email = (data.email || "").trim().toLowerCase();
+    if (!/^[^\s@]+@gmail\.com$/.test(email)) {
+      return { success: false, error: "Use the tenant's Gmail address (@gmail.com)." };
+    }
+
     // 1. Check if user already exists
     const existingUser = await prisma.user.findUnique({
-      where: { email: data.email },
+      where: { email },
     });
     if (existingUser) {
       return {
@@ -385,7 +413,7 @@ export async function registerTenantAction(data: {
     const result = await prisma.$transaction(async (tx: any) => {
       const newUser = await tx.user.create({
         data: {
-          email: data.email,
+          email,
           password: hashedPassword, // Store securely
           name: data.shopName,
           role: "TENANT",
@@ -486,44 +514,14 @@ export async function requestTenantAction(
       });
     }
 
-    const admins = await prisma.user.findMany({
-      where: { role: "ADMIN" },
-      select: { id: true, email: true },
+    // ⚡ Internal alert to every admin (their own preferences decide in-app
+    // vs email), then the transactional confirmation to the applicant.
+    const { notify } = await import("@/lib/notify");
+    await notify("NEW_TENANT_APPLICATION", {
+      title: "New Merchant Application",
+      message: `Digital registration received for "${data.shopName}". Review the brand profile and space requirements.`,
+      link: "/admindashboard/bookings?tab=merchant",
     });
-    if (admins.length > 0) {
-      // 1. Internal System Notifications
-      await prisma.notification.createMany({
-        data: admins.map((admin: any) => ({
-          userId: admin.id,
-          type: "AD_SUBMISSION_RECEIVED",
-          title: "New Merchant Application",
-          message: `Digital registration received for: ${data.shopName}. Review required.`,
-        })),
-      });
-
-      // 2. Admin Gmail Alert
-      try {
-        const { sendGmail } = await import("@/lib/gmail");
-        await sendGmail({
-          to: process.env.GMAIL_USER || "jerickaradilla76@gmail.com",
-          subject: "🚨 NEW MERCHANT PARTNERSHIP REQUEST",
-          html: `
-            <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-              <h2 style="color: #6366f1;">New Partnership Application</h2>
-              <p>A new brand is requesting a storefront partnership at SR Mall.</p>
-              <hr />
-              <p><strong>Shop Name:</strong> ${data.shopName}</p>
-              <p><strong>Owner/User ID:</strong> ${userId}</p>
-              <hr />
-              <p>Please log in to the admin dashboard to review the full brand profile and description.</p>
-              <a href="${process.env.NEXT_PUBLIC_APP_URL}/admindashboard/merchant-requests" style="display: inline-block; padding: 10px 20px; background-color: #6366f1; color: white; text-decoration: none; border-radius: 5px;">Review Request</a>
-            </div>
-          `,
-        });
-      } catch (err) {
-        console.error("Failed to send Admin Gmail for merchant request:", err);
-      }
-    }
 
     // 3. Applicant Confirmation Email (Reusing 'user' variable from earlier)
     if (user && user.email) {
@@ -561,7 +559,7 @@ export async function approveTenantAction(tenantId: string, unitId?: string) {
   try {
     const tenant = await prisma.tenant.findUnique({
       where: { id: tenantId },
-      include: { user: true },
+      include: { user: { select: safeUserSelect } },
     });
 
     if (!tenant) return { success: false, error: "Application not found" };
@@ -624,9 +622,14 @@ export async function approveTenantAction(tenantId: string, unitId?: string) {
 
 export async function getPendingTenantsAction() {
   try {
+    // Expiry sweeps run in the background after this response (throttled),
+    // so the admin never waits on auto-reject writes and emails.
+    const { scheduleSweeps } = await import("@/lib/sweeps");
+    scheduleSweeps();
+
     const pending = await prisma.tenant.findMany({
       where: { status: "PENDING" },
-      include: { user: true },
+      include: { user: { select: safeUserSelect } },
     });
     return { success: true, data: pending };
   } catch (error: any) {
@@ -639,7 +642,7 @@ export async function deleteTenantAction(tenantId: string) {
     // First get the tenant to find the associated user
     const tenant = await prisma.tenant.findUnique({
       where: { id: tenantId },
-      include: { user: true },
+      include: { user: { select: safeUserSelect } },
     });
 
     if (!tenant) {
@@ -693,7 +696,7 @@ export async function rejectTenantAction(tenantId: string) {
     const tenant = await prisma.tenant.update({
       where: { id: tenantId },
       data: { status: "REJECTED" },
-      include: { user: true },
+      include: { user: { select: safeUserSelect } },
     });
 
     // Gmail Notification to User
@@ -728,6 +731,55 @@ export async function rejectTenantAction(tenantId: string) {
       success: false,
       error: error.message || "Failed to reject application",
     };
+  }
+}
+
+/**
+ * Auto-reject rule: a Merchant Application still PENDING 72 hours (3 days)
+ * after submission is rejected automatically.
+ *
+ * - The countdown uses the submission timestamp (`createdAt`), so eligibility
+ *   is `createdAt <= now - 72h` — a record is never rejected before 72h.
+ * - Only `PENDING` rows are touched; Approved / Rejected / Cancelled /
+ *   completed records are never affected.
+ * - The flip is guarded with `updateMany({ status: "PENDING" })`, so a record
+ *   an admin approved or rejected between the scan and the write is left alone.
+ * - Rejection goes through the existing `rejectTenantAction`, the same path
+ *   the admin button uses, so the applicant gets the identical rejection email.
+ * - Once rejected the status stays REJECTED unless an admin changes it through
+ *   the existing authorised action.
+ */
+export async function processExpiredMerchantApplicationsAction() {
+  try {
+    const cutoff = new Date(Date.now() - 72 * 60 * 60 * 1000);
+
+    const expired = await prisma.tenant.findMany({
+      where: { status: "PENDING", createdAt: { lte: cutoff } },
+      select: { id: true },
+    });
+
+    let rejected = 0;
+    for (const { id } of expired) {
+      const flipped = await prisma.tenant.updateMany({
+        where: { id, status: "PENDING" },
+        data: { status: "REJECTED" },
+      });
+      if (flipped.count === 0) continue; // already decided by an admin
+
+      // Existing rejection flow: same email the admin button sends.
+      await rejectTenantAction(id);
+      rejected++;
+    }
+
+    if (rejected > 0) {
+      console.log(
+        `[AUTO-REJECT] ${rejected} merchant application(s) rejected after 72h.`,
+      );
+    }
+    return { success: true, rejected, scanned: expired.length };
+  } catch (error: any) {
+    console.error("[AUTO-REJECT_MERCHANT_ERROR]:", error);
+    return { success: false, rejected: 0, scanned: 0 };
   }
 }
 
@@ -1019,5 +1071,99 @@ export async function getPastTenantsAction() {
     return { success: true, data: pastTenants };
   } catch (error: any) {
     return { success: false, error: error.message };
+  }
+}
+
+// ─── Tenant: shop settings (Profile Settings → Shop) ─────────────────────────
+
+
+export async function getMyShopSettingsAction(userId: string) {
+  try {
+    const rows = await prisma.$queryRawUnsafe<any[]>(
+      `SELECT "id", "shopName", "description", "logoUrl", "category", "phone", "openingHours", "unitId", "status"
+         FROM "Tenant" WHERE "userId" = $1`,
+      userId,
+    );
+    const t = rows[0];
+    if (!t) return { success: false as const, error: "No shop is linked to this account." };
+    return {
+      success: true as const,
+      data: {
+        id: t.id as string,
+        shopName: (t.shopName as string) || "",
+        description: (t.description as string | null) || "",
+        logoUrl: (t.logoUrl as string | null) || "",
+        category: (t.category as string | null) || "Other",
+        phone: (t.phone as string | null) || "",
+        openingHours: (t.openingHours as string | null) || "",
+        unitId: (t.unitId as string) || "",
+        status: (t.status as string) || "ACTIVE",
+      },
+    };
+  } catch (error: any) {
+    console.error("[GET_SHOP_SETTINGS_ERROR]:", error);
+    return { success: false as const, error: "Couldn't load your shop settings." };
+  }
+}
+
+export type MyShopSettings = Extract<Awaited<ReturnType<typeof getMyShopSettingsAction>>, { success: true }>["data"];
+
+export async function updateMyShopSettingsAction(
+  userId: string,
+  data: { shopName: string; description?: string; category?: string; phone?: string; openingHours?: string },
+) {
+  try {
+    const shopName = (data.shopName || "").trim();
+    if (shopName.length < 2 || shopName.length > 80) {
+      return { success: false, error: "Shop name must be 2–80 characters." };
+    }
+    const category = (SHOP_CATEGORIES as readonly string[]).includes(data.category || "") ? data.category! : "Other";
+    const phone = (data.phone || "").trim();
+    if (phone && !/^[+0-9()\-\s]{7,20}$/.test(phone)) {
+      return { success: false, error: "Enter a valid shop phone number." };
+    }
+    const description = (data.description || "").trim().slice(0, 1000);
+    const openingHours = (data.openingHours || "").trim().slice(0, 120);
+
+    const updated = await prisma.$executeRawUnsafe(
+      `UPDATE "Tenant" SET "shopName" = $2, "description" = $3, "category" = $4, "phone" = $5, "openingHours" = $6, "updatedAt" = $7
+        WHERE "userId" = $1`,
+      userId,
+      shopName,
+      description || null,
+      category,
+      phone || null,
+      openingHours || null,
+      new Date(),
+    );
+    if (!updated) return { success: false, error: "No shop is linked to this account." };
+
+    revalidatePath("/tenantdashboard");
+    revalidatePath("/public-view");
+    return { success: true };
+  } catch (error: any) {
+    console.error("[UPDATE_SHOP_SETTINGS_ERROR]:", error);
+    return { success: false, error: "Couldn't save your shop settings." };
+  }
+}
+
+/** Upload a shop logo: updates the shop only (not the owner's personal avatar). */
+export async function uploadShopLogoAction(userId: string, formData: FormData) {
+  try {
+    const file = formData.get("file") as File | null;
+    if (!file) return { success: false, error: "No file provided." };
+    if (!file.type?.startsWith("image/")) return { success: false, error: "Please choose an image file." };
+    if (file.size > 5 * 1024 * 1024) return { success: false, error: "Images must be under 5 MB." };
+
+    const { getCloudStorageProvider } = await import("@/lib/cloud-storage");
+    const { url } = await getCloudStorageProvider().uploadFile(file, "tenant-logos");
+    await prisma.tenant.update({ where: { userId }, data: { logoUrl: url } });
+
+    revalidatePath("/tenantdashboard");
+    revalidatePath("/public-view");
+    return { success: true, url };
+  } catch (error: any) {
+    console.error("[UPLOAD_SHOP_LOGO_ERROR]:", error);
+    return { success: false, error: "Couldn't upload the logo." };
   }
 }

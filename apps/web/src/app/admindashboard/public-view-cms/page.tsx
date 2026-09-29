@@ -37,7 +37,16 @@ import {
   Globe,
   Calendar as CalendarIcon,
   Search,
+  Upload,
+  MapPin,
+  Phone,
 } from "lucide-react";
+import {
+  DEFAULT_THEME_COLOR,
+  HEX_COLOR_RE,
+  PUBLIC_CONFIG_CACHE_KEY,
+  mapEmbedSrc,
+} from "@/lib/theme";
 import clsx from "clsx";
 
 interface CarouselItem {
@@ -75,6 +84,18 @@ interface PublicViewConfig {
   featuredVideoUrl: string | null;
   contactTitle: string | null;
   contactDescription: string | null;
+  themeColor: string | null;
+  googleMapsEmbedUrl: string | null;
+  googleMapsApiKey: string | null;
+  footerDescription: string | null;
+  footerInstagram: string | null;
+  footerFacebook: string | null;
+  footerWebsite: string | null;
+  footerCopyrightText: string | null;
+  footerAddress: string | null;
+  footerPhone: string | null;
+  footerEmail: string | null;
+  footerOpeningHours?: string | null;
 }
 
 export default function PublicViewCMSPage() {
@@ -102,6 +123,18 @@ export default function PublicViewCMSPage() {
     featuredVideoUrl: "",
     contactTitle: "",
     contactDescription: "",
+    themeColor: "",
+    googleMapsEmbedUrl: "",
+    googleMapsApiKey: "",
+    footerDescription: "",
+    footerInstagram: "",
+    footerFacebook: "",
+    footerWebsite: "",
+    footerCopyrightText: "",
+    footerAddress: "",
+    footerPhone: "",
+    footerEmail: "",
+    footerOpeningHours: "",
   });
 
   const [carouselItems, setCarouselItems] = useState<CarouselItem[]>([]);
@@ -195,13 +228,13 @@ export default function PublicViewCMSPage() {
           getLostAndFoundItems(),
         ]);
 
-        if (configData) {
-          setConfig((prev) => ({
-            ...prev,
-            ...configData,
-            companyName: configData.companyName || "SR MALL",
-          }));
-        }
+        setConfig((prev) => {
+          const next = configData
+            ? { ...prev, ...configData, companyName: configData.companyName || "SR MALL" }
+            : prev;
+          setSavedConfig(next);
+          return next;
+        });
 
         setCarouselItems(carouselData || []);
         if (eventsData?.success) {
@@ -224,6 +257,24 @@ export default function PublicViewCMSPage() {
     fetchData();
   }, []);
 
+  // Last saved version of the config: drives the unsaved-changes bar.
+  const [savedConfig, setSavedConfig] = useState<PublicViewConfig | null>(null);
+  const isDirty = savedConfig !== null && JSON.stringify(config) !== JSON.stringify(savedConfig);
+  const configErrors = validateConfig(config);
+  const hasConfigErrors = Object.keys(configErrors).length > 0;
+  const previewColor = HEX_COLOR_RE.test(config.themeColor || "") ? config.themeColor! : DEFAULT_THEME_COLOR;
+
+  // Warn before leaving the page with unsaved edits.
+  useEffect(() => {
+    if (!isDirty) return;
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [isDirty]);
+
   const handleConfigChange = (
     field: keyof PublicViewConfig,
     value: string | number,
@@ -245,7 +296,7 @@ export default function PublicViewCMSPage() {
       const result = await storageProvider.uploadFile(file, "web-cms");
 
       handleConfigChange(field, result.url);
-      showToast("Asset uploaded and synchronized", "success");
+      showToast("Image uploaded. Save changes to publish it.", "success");
     } catch (error) {
       console.error("Upload error:", error);
       showToast("Failed to upload media asset", "error");
@@ -377,16 +428,31 @@ export default function PublicViewCMSPage() {
   };
 
   const handleSaveConfig = async () => {
+    if (hasConfigErrors) {
+      showToast("Fix the highlighted fields before saving", "error");
+      return;
+    }
     setIsSaving(true);
     try {
       await updatePublicViewConfigAction(config);
-      showToast("Global configuration synchronized!", "success");
+      setSavedConfig(config);
+      // Navbar on other public pages reads this cache; refresh it.
+      try {
+        sessionStorage.removeItem(PUBLIC_CONFIG_CACHE_KEY);
+      } catch {
+        /* storage unavailable */
+      }
+      showToast("Changes saved and published", "success");
     } catch (error) {
       console.error("Error saving config:", error);
-      showToast("Failed to save configuration", "error");
+      showToast("Couldn't save changes", "error");
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleDiscardConfig = () => {
+    if (savedConfig) setConfig(savedConfig);
   };
 
   const handleUpdateStatus = async (id: string, newStatus: string) => {
@@ -579,8 +645,9 @@ export default function PublicViewCMSPage() {
       id: "general",
       label: "General Settings",
       icon: Globe,
-      desc: "Naming & Contact",
+      desc: "Branding, contact, map & footer",
     },
+
     {
       id: "postsales",
       label: "Shop Sales Monitoring",
@@ -591,7 +658,7 @@ export default function PublicViewCMSPage() {
       id: "content",
       label: "About & Video",
       icon: Layers,
-      desc: "About & Video",
+      desc: "About section & featured video",
     },
     { id: "carousel", label: "Billboards", icon: Layout, desc: "Homepage Banners" },
     { id: "events", label: "Upcoming Events", icon: CalendarIcon, desc: "Approved Event Images" },
@@ -625,7 +692,7 @@ export default function PublicViewCMSPage() {
           </a>
           <button
             onClick={handleSaveConfig}
-            disabled={isSaving}
+            disabled={isSaving || !isDirty}
             className="flex items-center gap-2 px-8 py-4 bg-charcoal dark:bg-white text-white dark:text-charcoal font-black text-[10px] uppercase tracking-[0.2em] rounded-2xl shadow-xl shadow-charcoal/20 dark:shadow-white/10 hover:scale-[1.02] transition-all disabled:opacity-50 active:scale-95"
           >
             {isSaving ? (
@@ -633,7 +700,7 @@ export default function PublicViewCMSPage() {
             ) : (
               <Save size={16} />
             )}
-            Deploy Changes
+            {isDirty ? "Save changes" : "Saved"}
           </button>
         </div>
       </div>
@@ -641,7 +708,7 @@ export default function PublicViewCMSPage() {
       {/* Main Grid Layout */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-12">
         {/* Sidebar Navigation */}
-        <aside className="xl:col-span-3 space-y-2">
+        <aside className="xl:col-span-3 space-y-2 xl:sticky xl:top-24 xl:self-start">
           {navItems.map((item) => (
             <button
               key={item.id}
@@ -678,120 +745,345 @@ export default function PublicViewCMSPage() {
             </button>
           ))}
 
-          <div className="mt-12 p-6 bg-amber-500/5 border border-amber-500/20 rounded-3xl space-y-3">
-            <div className="flex items-center gap-2 text-amber-500">
-              <AlertTriangle size={18} />
-              <span className="font-black text-[10px] uppercase tracking-widest">
-                Global Warning
-              </span>
-            </div>
-            <p className="text-[10px] text-amber-600 dark:text-amber-400/80 font-bold leading-relaxed uppercase">
-              Changes deployed here reflect instantly on the public website.
-              Preview your changes before final synchronization.
-            </p>
-          </div>
         </aside>
 
         {/* Dynamic Workspace */}
         <main className="xl:col-span-9 animate-fade-in">
           {activeTab === "general" && (
-            <div className="space-y-10">
+            <div className="space-y-8">
               <SectionHeader
                 icon={Globe}
-                title="Identity & Connectivity"
-                sub="Define how the world sees and contacts your brand."
+                title="General Settings"
+                sub="Your mall's name, logo, contact details, map and footer."
               />
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {/* Logo Upload Panel */}
-                <div className="md:col-span-2 bg-white dark:bg-zinc-900/50 border border-slate-100 dark:border-white/5 p-8 rounded-[2.5rem] shadow-sm">
-                  <p className="text-[11px] font-black uppercase tracking-widest text-slate-400 mb-6">
-                    Brand Mark (Logo)
-                  </p>
-                  <div className="flex flex-col md:flex-row items-center gap-8">
-                    <div className="w-32 h-32 bg-slate-100 dark:bg-zinc-800 rounded-3xl border-2 border-dashed border-slate-300 dark:border-white/10 flex items-center justify-center overflow-hidden group relative">
+              {/* ── Branding ─────────────────────────────────────────────── */}
+              <SettingsCard
+                icon={ImageIcon}
+                tone="bg-primary/10 text-primary"
+                title="Branding"
+                sub="Shown in the public navbar and footer"
+              >
+                <div className="flex flex-col md:flex-row gap-8">
+                  <div className="flex items-start gap-5">
+                    <div className="w-28 h-28 shrink-0 bg-slate-50 dark:bg-zinc-800 rounded-3xl border-2 border-dashed border-slate-200 dark:border-white/10 flex items-center justify-center overflow-hidden group relative">
                       {config.logoUrl ? (
-                        <img
-                          src={config.logoUrl}
-                          className="w-full h-full object-contain p-4 transition-transform group-hover:scale-110"
-                        />
+                        <img src={config.logoUrl} alt="Mall logo" className="w-full h-full object-contain p-3" />
                       ) : (
-                        <ImageIcon size={32} className="text-slate-400" />
+                        <ImageIcon size={32} className="text-slate-300" />
                       )}
-                      <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity">
-                        <Plus size={24} className="text-white" />
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={(e) => handleImageUpload("logoUrl", e)}
-                        />
+                      <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center cursor-pointer transition-opacity text-white text-[10px] font-black uppercase tracking-widest gap-1">
+                        <Upload size={18} />
+                        Change
+                        <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload("logoUrl", e)} />
                       </label>
                     </div>
-                    <div className="flex-1 space-y-4">
-                      <input
-                        type="text"
-                        placeholder="Public Resource URL"
-                        value={config.logoUrl ?? ""}
-                        onChange={(e) =>
-                          handleConfigChange("logoUrl", e.target.value)
-                        }
-                        className="w-full bg-slate-50 dark:bg-zinc-800 border-none rounded-2xl p-4 text-sm font-bold placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-                      />
-                      <p className="text-[10px] items-center gap-2 flex text-slate-400 font-bold uppercase tracking-widest leading-none">
-                        <Sparkles size={12} className="text-primary" />{" "}
-                        Preferred Format: 512x512 Transparent PNG
-                      </p>
+                    <div className="space-y-3 pt-1">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Logo</p>
+                      <div className="flex flex-wrap gap-2">
+                        <label className="cursor-pointer inline-flex items-center gap-2 h-10 px-4 bg-primary text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-md shadow-primary/20 active:scale-95 transition-all">
+                          <Upload size={14} /> Upload
+                          <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload("logoUrl", e)} />
+                        </label>
+                        {config.logoUrl && (
+                          <button
+                            type="button"
+                            onClick={() => handleConfigChange("logoUrl", "")}
+                            className="inline-flex items-center gap-2 h-10 px-4 bg-red-500/10 text-red-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all"
+                          >
+                            <Trash2 size={14} /> Remove
+                          </button>
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-400">Square PNG or SVG, at least 512 × 512.</p>
                     </div>
+                  </div>
+
+                  <div className="flex-1 space-y-5 min-w-0">
+                    <Field label="Mall name" error={configErrors.companyName}>
+                      <input
+                        value={config.companyName ?? ""}
+                        onChange={(e) => handleConfigChange("companyName", e.target.value)}
+                        className="cms-input"
+                        placeholder="SR MALL"
+                      />
+                    </Field>
+                    <Field label="Logo image URL" hint="Filled in automatically when you upload." error={configErrors.logoUrl}>
+                      <input
+                        value={config.logoUrl ?? ""}
+                        onChange={(e) => handleConfigChange("logoUrl", e.target.value)}
+                        className="cms-input"
+                        placeholder="https://…"
+                      />
+                    </Field>
                   </div>
                 </div>
 
-                <InputGroup label="Entity Name" icon={Settings}>
-                  <input
-                    value={config.companyName ?? ""}
-                    onChange={(e) =>
-                      handleConfigChange("companyName", e.target.value)
-                    }
-                    className="cms-input"
-                    placeholder="SR MALL"
-                  />
-                </InputGroup>
+                {/* Theme colour */}
+                <div className="pt-6 border-t border-slate-100 dark:border-white/5 flex flex-col lg:flex-row lg:items-start gap-6">
+                  <div className="flex-1 space-y-3">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Theme colour</p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {THEME_PRESETS.map((preset) => {
+                        const selected = (config.themeColor || DEFAULT_THEME_COLOR).toUpperCase() === preset.hex;
+                        return (
+                          <button
+                            key={preset.hex}
+                            type="button"
+                            title={preset.name}
+                            aria-label={preset.name}
+                            aria-pressed={selected}
+                            onClick={() => handleConfigChange("themeColor", preset.hex)}
+                            className={clsx(
+                              "w-9 h-9 rounded-xl border-2 transition-transform hover:scale-110",
+                              selected ? "border-charcoal dark:border-white scale-110" : "border-white dark:border-zinc-800 shadow-sm",
+                            )}
+                            style={{ backgroundColor: preset.hex }}
+                          />
+                        );
+                      })}
+                      <div className="flex items-center gap-2 ml-1">
+                        <label
+                          className="relative w-9 h-9 rounded-xl border-2 border-dashed border-slate-300 dark:border-white/20 overflow-hidden cursor-pointer"
+                          title="Custom colour"
+                          style={{ backgroundColor: HEX_COLOR_RE.test(config.themeColor || "") ? config.themeColor! : undefined }}
+                        >
+                          <input
+                            type="color"
+                            value={HEX_COLOR_RE.test(config.themeColor || "") ? config.themeColor! : DEFAULT_THEME_COLOR}
+                            onChange={(e) => handleConfigChange("themeColor", e.target.value.toUpperCase())}
+                            className="absolute inset-0 opacity-0 cursor-pointer"
+                          />
+                        </label>
+                        <input
+                          value={config.themeColor ?? ""}
+                          onChange={(e) => handleConfigChange("themeColor", e.target.value)}
+                          className={clsx("cms-input !w-32 !py-2 font-mono uppercase", configErrors.themeColor && "!border-red-500")}
+                          placeholder={DEFAULT_THEME_COLOR}
+                          aria-label="Theme colour hex code"
+                        />
+                      </div>
+                    </div>
+                    {configErrors.themeColor && <FieldError message={configErrors.themeColor} />}
+                  </div>
 
-                <InputGroup label="Administrative Email" icon={Globe}>
-                  <input
-                    value={config.contactEmail ?? ""}
-                    onChange={(e) =>
-                      handleConfigChange("contactEmail", e.target.value)
-                    }
-                    className="cms-input"
-                    placeholder="jerickaradilla76@gmail.com"
-                  />
-                </InputGroup>
-
-                <InputGroup label="Connectivity Line" icon={Monitor}>
-                  <input
-                    value={config.contactPhone ?? ""}
-                    onChange={(e) =>
-                      handleConfigChange("contactPhone", e.target.value)
-                    }
-                    className="cms-input"
-                    placeholder="+63 900 000 0000"
-                  />
-                </InputGroup>
-
-                <div className="md:col-span-2">
-                  <InputGroup label="Global Headquarter Address" icon={Layers}>
-                    <textarea
-                      value={config.contactAddress ?? ""}
-                      onChange={(e) =>
-                        handleConfigChange("contactAddress", e.target.value)
-                      }
-                      className="cms-input min-h-[100px] resize-none"
-                      placeholder="Floor 4, SR Mall Complex..."
-                    />
-                  </InputGroup>
+                  <div className="lg:w-72 p-4 rounded-2xl bg-slate-50 dark:bg-zinc-800/60 border border-slate-100 dark:border-white/5 space-y-3">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
+                      <Eye size={12} /> Preview
+                    </p>
+                    <div
+                      className="py-2.5 rounded-xl text-center text-[10px] font-black uppercase tracking-widest text-white"
+                      style={{ backgroundColor: previewColor }}
+                    >
+                      Button
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span
+                        className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border"
+                        style={{ backgroundColor: `${previewColor}15`, color: previewColor, borderColor: `${previewColor}30` }}
+                      >
+                        Badge
+                      </span>
+                      <span className="text-xs font-black uppercase" style={{ color: previewColor }}>
+                        Link
+                      </span>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              </SettingsCard>
+
+              {/* ── Contact information ──────────────────────────────────── */}
+              <SettingsCard
+                icon={Phone}
+                tone="bg-emerald-500/10 text-emerald-600"
+                title="Contact information"
+                sub="Used on the location section, merchant applications, and as the footer fallback"
+              >
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <Field label="Email" error={configErrors.contactEmail}>
+                    <input
+                      type="email"
+                      value={config.contactEmail ?? ""}
+                      onChange={(e) => handleConfigChange("contactEmail", e.target.value)}
+                      className="cms-input"
+                      placeholder="hello@srmall.com"
+                    />
+                  </Field>
+                  <Field label="Phone">
+                    <input
+                      value={config.contactPhone ?? ""}
+                      onChange={(e) => handleConfigChange("contactPhone", e.target.value)}
+                      className="cms-input"
+                      placeholder="+63 900 000 0000"
+                    />
+                  </Field>
+                  <div className="md:col-span-2">
+                    <Field label="Address" hint="Also used to place the map when no embed URL is set.">
+                      <textarea
+                        value={config.contactAddress ?? ""}
+                        onChange={(e) => handleConfigChange("contactAddress", e.target.value)}
+                        className="cms-input min-h-[88px] resize-none"
+                        placeholder="Crossing Villanueva, Misamis Oriental, 9002, Philippines"
+                      />
+                    </Field>
+                  </div>
+                </div>
+              </SettingsCard>
+
+              {/* ── Google Maps ──────────────────────────────────────────── */}
+              <SettingsCard
+                icon={MapPin}
+                tone="bg-blue-500/10 text-blue-600"
+                title="Google Maps"
+                sub="The map on the public Location section"
+                badge={
+                  config.googleMapsEmbedUrl || config.googleMapsApiKey ? (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-500/10 text-blue-600 rounded-full text-[10px] font-black uppercase tracking-widest">
+                      <CheckCircle size={12} /> Connected
+                    </span>
+                  ) : undefined
+                }
+              >
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <Field
+                    label="Embed URL"
+                    hint="Google Maps › Share › Embed a map › copy the src link."
+                    error={configErrors.googleMapsEmbedUrl}
+                  >
+                    <input
+                      value={config.googleMapsEmbedUrl ?? ""}
+                      onChange={(e) => handleConfigChange("googleMapsEmbedUrl", e.target.value)}
+                      className="cms-input"
+                      placeholder="https://www.google.com/maps/embed?pb=…"
+                    />
+                  </Field>
+                  <Field
+                    label="API key (optional)"
+                    hint="Only needed without an embed URL. Restrict it to your domain in Google Cloud."
+                  >
+                    <input
+                      value={config.googleMapsApiKey ?? ""}
+                      onChange={(e) => handleConfigChange("googleMapsApiKey", e.target.value)}
+                      className="cms-input font-mono"
+                      placeholder="AIzaSy…"
+                    />
+                  </Field>
+                </div>
+                <div className="rounded-3xl overflow-hidden border border-slate-200 dark:border-white/10 aspect-video max-h-72 w-full bg-slate-100 dark:bg-zinc-800">
+                  <iframe
+                    src={mapEmbedSrc(config)}
+                    className="w-full h-full"
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                    allowFullScreen
+                    title="Map preview"
+                  />
+                </div>
+              </SettingsCard>
+
+              {/* ── Footer ───────────────────────────────────────────────── */}
+              <SettingsCard
+                icon={Layout}
+                tone="bg-violet-500/10 text-violet-600"
+                title="Footer"
+                sub="The bottom of every public page"
+              >
+                <Field label="Description">
+                  <textarea
+                    value={config.footerDescription ?? ""}
+                    onChange={(e) => handleConfigChange("footerDescription", e.target.value)}
+                    className="cms-input min-h-[88px] resize-none"
+                    placeholder="The ultimate destination for shopping, dining, and leisure…"
+                  />
+                </Field>
+
+                <div className="pt-6 border-t border-slate-100 dark:border-white/5 space-y-4">
+                  <div>
+                    <p className="text-[11px] font-black uppercase tracking-widest text-charcoal dark:text-white">Find us</p>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      Leave a field empty to use the matching Contact information value.
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                    <Field label="Address">
+                      <input
+                        value={config.footerAddress ?? ""}
+                        onChange={(e) => handleConfigChange("footerAddress", e.target.value)}
+                        className="cms-input"
+                        placeholder={config.contactAddress || "Jasaan, Misamis Oriental"}
+                      />
+                    </Field>
+                    <Field label="Phone">
+                      <input
+                        value={config.footerPhone ?? ""}
+                        onChange={(e) => handleConfigChange("footerPhone", e.target.value)}
+                        className="cms-input"
+                        placeholder={config.contactPhone || "(02) 8888-1234"}
+                      />
+                    </Field>
+                    <Field label="Email" error={configErrors.footerEmail}>
+                      <input
+                        type="email"
+                        value={config.footerEmail ?? ""}
+                        onChange={(e) => handleConfigChange("footerEmail", e.target.value)}
+                        className="cms-input"
+                        placeholder={config.contactEmail || "info@srmall.com"}
+                      />
+                    </Field>
+                  </div>
+                </div>
+
+                <div className="pt-6 border-t border-slate-100 dark:border-white/5 space-y-4">
+                  <p className="text-[11px] font-black uppercase tracking-widest text-charcoal dark:text-white">Social links</p>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                    <Field label="Instagram" error={configErrors.footerInstagram}>
+                      <input
+                        type="url"
+                        value={config.footerInstagram ?? ""}
+                        onChange={(e) => handleConfigChange("footerInstagram", e.target.value)}
+                        className="cms-input"
+                        placeholder="https://instagram.com/srmall"
+                      />
+                    </Field>
+                    <Field label="Facebook" error={configErrors.footerFacebook}>
+                      <input
+                        type="url"
+                        value={config.footerFacebook ?? ""}
+                        onChange={(e) => handleConfigChange("footerFacebook", e.target.value)}
+                        className="cms-input"
+                        placeholder="https://facebook.com/srmall"
+                      />
+                    </Field>
+                    <Field label="Website" error={configErrors.footerWebsite}>
+                      <input
+                        type="url"
+                        value={config.footerWebsite ?? ""}
+                        onChange={(e) => handleConfigChange("footerWebsite", e.target.value)}
+                        className="cms-input"
+                        placeholder="https://srmall.com"
+                      />
+                    </Field>
+                  </div>
+                </div>
+
+                <Field label="Opening hours" hint="Shown in the footer. Use one line per schedule.">
+                  <textarea
+                    value={config.footerOpeningHours ?? ""}
+                    onChange={(e) => handleConfigChange("footerOpeningHours", e.target.value)}
+                    className="cms-input min-h-[72px] resize-none"
+                    placeholder={`Mon–Sun: 10:00 AM – 9:00 PM\nHolidays: 10:00 AM – 8:00 PM`}
+                  />
+                </Field>
+
+                <Field label="Copyright text">
+                  <input
+                    value={config.footerCopyrightText ?? ""}
+                    onChange={(e) => handleConfigChange("footerCopyrightText", e.target.value)}
+                    className="cms-input"
+                    placeholder={`© ${new Date().getFullYear()} SR Mall. All rights reserved.`}
+                  />
+                </Field>
+              </SettingsCard>
             </div>
           )}
 
@@ -1273,8 +1565,8 @@ export default function PublicViewCMSPage() {
                           isSelected
                             ? "bg-white/20 text-white"
                             : isReport && count > 0
-                            ? "bg-amber-500 text-white animate-pulse"
-                            : "bg-slate-200 dark:bg-zinc-700 text-slate-600 dark:text-zinc-300"
+                              ? "bg-amber-500 text-white animate-pulse"
+                              : "bg-slate-200 dark:bg-zinc-700 text-slate-600 dark:text-zinc-300"
                         )}
                       >
                         {count}
@@ -1395,8 +1687,8 @@ export default function PublicViewCMSPage() {
                                   item.status === "CLAIMED"
                                     ? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800"
                                     : item.status === "PENDING"
-                                    ? "bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-800"
-                                    : "bg-slate-100 dark:bg-zinc-700 text-charcoal dark:text-white border-slate-200 dark:border-white/5"
+                                      ? "bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-800"
+                                      : "bg-slate-100 dark:bg-zinc-700 text-charcoal dark:text-white border-slate-200 dark:border-white/5"
                                 )}
                               >
                                 <option value="PENDING">Pending (Report)</option>
@@ -1430,6 +1722,35 @@ export default function PublicViewCMSPage() {
                       ))}
                   </div>
                 )}
+              </div>
+            </div>
+          )}
+          {isDirty && (
+            <div className="sticky bottom-4 z-30 mt-8 animate-fade-in-up">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 pl-6 bg-charcoal dark:bg-zinc-800 text-white rounded-2xl shadow-2xl shadow-black/20 border border-white/10">
+                <p className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest">
+                  <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                  {hasConfigErrors ? "Fix the highlighted fields to save" : "You have unsaved changes"}
+                </p>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleDiscardConfig}
+                    disabled={isSaving}
+                    className="h-10 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest text-white/70 hover:text-white hover:bg-white/10 transition-colors disabled:opacity-50"
+                  >
+                    Discard
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveConfig}
+                    disabled={isSaving || hasConfigErrors}
+                    className="h-10 px-5 flex items-center gap-2 rounded-xl bg-primary text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/30 hover:bg-primary-hover active:scale-95 transition-all disabled:opacity-50"
+                  >
+                    {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                    Save changes
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -1858,5 +2179,100 @@ function InputGroup({
       </div>
       {children}
     </div>
+  );
+}
+
+// ─── General settings helpers ────────────────────────────────────────────────
+
+const THEME_PRESETS = [
+  { name: "Crimson Red", hex: "#BE1E2D" },
+  { name: "Deep Ruby", hex: "#8B0000" },
+  { name: "Burgundy", hex: "#6B1D2F" },
+  { name: "Imperial Blue", hex: "#1A237E" },
+  { name: "Ocean Teal", hex: "#006064" },
+  { name: "Emerald Green", hex: "#1B5E20" },
+  { name: "Onyx Charcoal", hex: "#212121" },
+  { name: "Royal Purple", hex: "#4A148C" },
+  { name: "Amber Ochre", hex: "#BF360C" },
+];
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const URL_RE = /^https?:\/\/\S+$/i;
+
+function validateConfig(config: Record<string, any>) {
+  const errors: Record<string, string> = {};
+  const val = (k: string) => String(config[k] ?? "").trim();
+  if (!val("companyName")) errors.companyName = "Enter the mall name.";
+  if (val("logoUrl") && !URL_RE.test(val("logoUrl"))) errors.logoUrl = "Must start with http:// or https://";
+  if (val("themeColor") && !HEX_COLOR_RE.test(val("themeColor")))
+    errors.themeColor = "Use a 6-digit hex code, e.g. #BE1E2D";
+  for (const k of ["contactEmail", "footerEmail"])
+    if (val(k) && !EMAIL_RE.test(val(k))) errors[k] = "Enter a valid email address.";
+  for (const k of ["googleMapsEmbedUrl", "footerInstagram", "footerFacebook", "footerWebsite"])
+    if (val(k) && !URL_RE.test(val(k))) errors[k] = "Must start with https://";
+  return errors;
+}
+
+function FieldError({ message }: { message: string }) {
+  return (
+    <p className="flex items-center gap-1.5 text-[11px] font-bold text-red-600">
+      <AlertTriangle size={12} /> {message}
+    </p>
+  );
+}
+
+function Field({
+  label,
+  hint,
+  error,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  error?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className={clsx("space-y-2", error && "[&_.cms-input]:!border-red-500")}>
+      <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block">{label}</label>
+      {children}
+      {error ? <FieldError message={error} /> : hint ? <p className="text-xs text-slate-400">{hint}</p> : null}
+    </div>
+  );
+}
+
+function SettingsCard({
+  icon: Icon,
+  tone,
+  title,
+  sub,
+  badge,
+  children,
+}: {
+  icon: any;
+  tone: string;
+  title: string;
+  sub: string;
+  badge?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="bg-white dark:bg-zinc-900/50 border border-slate-100 dark:border-white/5 p-6 md:p-8 rounded-[2.5rem] shadow-sm space-y-6">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className={clsx("w-11 h-11 rounded-2xl flex items-center justify-center", tone)}>
+            <Icon size={20} />
+          </div>
+          <div>
+            <h3 className="text-lg font-black text-charcoal dark:text-white uppercase tracking-tight italic leading-none">
+              {title}
+            </h3>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mt-1.5">{sub}</p>
+          </div>
+        </div>
+        {badge}
+      </div>
+      {children}
+    </section>
   );
 }

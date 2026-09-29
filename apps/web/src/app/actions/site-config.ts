@@ -53,6 +53,11 @@ export async function updateSiteConfig(data: {
   defaultAdCta?: string;
 }) {
   try {
+    const current = await prisma.siteConfig.findUnique({
+      where: { id: "singleton" },
+      select: { isMaintenance: true },
+    });
+
     const config = await prisma.siteConfig.upsert({
       where: { id: "singleton" },
       update: data,
@@ -63,6 +68,25 @@ export async function updateSiteConfig(data: {
         ...data,
       },
     });
+
+    // 🛡️ Public storefront went offline (or came back) → tell everyone.
+    if (
+      typeof data.isMaintenance === "boolean" &&
+      current &&
+      current.isMaintenance !== data.isMaintenance
+    ) {
+      const { notify } = await import("@/lib/notify");
+      await notify("MAINTENANCE_MODE", {
+        roles: ["ADMIN", "TENANT"],
+        title: data.isMaintenance
+          ? "Maintenance Mode Enabled"
+          : "Maintenance Mode Disabled",
+        message: data.isMaintenance
+          ? "The public storefront has been taken offline for maintenance. Customers can no longer browse until it is re-enabled."
+          : "The public storefront is back online and customers can browse again.",
+        link: "/public-view",
+      });
+    }
 
     revalidatePath("/public-view");
     revalidatePath("/admindashboard/site-editor");

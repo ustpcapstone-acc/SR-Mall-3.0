@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@srmall/database";
+import { notify, resolveChannels } from "@/lib/notify";
 
 export async function GET(req: Request) {
   try {
@@ -56,15 +57,17 @@ export async function GET(req: Request) {
 
       const tenantId = invoice.tenant.user.id;
       const tenantEmail = invoice.tenant.user.email;
+      const isOverdue = diffDays < 0;
 
-      // 1. Create In-App Notification
-      await prisma.notification.create({
-        data: {
-          userId: tenantId,
-          type: "BILLING_REMINDER",
-          title: diffDays === -1 ? "Overdue Warning" : "Billing Reminder",
-          message: messageContent,
-        },
+      // 1. In-App Notification — governed by the tenant's own preferences.
+      //    Overdue uses the OVERDUE_RENT_PAYMENTS alert so the
+      //    "Fiscal Delinquency Tracking" toggle actually applies to it.
+      await notify(isOverdue ? "OVERDUE_RENT_PAYMENTS" : "BILLING_REMINDER", {
+        recipients: [tenantId],
+        title: isOverdue ? "Overdue Warning" : "Billing Reminder",
+        message: messageContent,
+        link: "/tenantdashboard/lease-payments",
+        email: false, // the bespoke email below is still sent, but gated below
       });
       notificationsSent++;
 
@@ -102,8 +105,16 @@ export async function GET(req: Request) {
         console.error("Failed to send automated chat:", err);
       }
 
-      // 3. Send Gmail
-      if (tenantEmail) {
+      // 3. Send Gmail — only for tenants who chose the EMAIL channel
+      const prefs = await resolveChannels(
+        isOverdue ? "OVERDUE_RENT_PAYMENTS" : "BILLING_REMINDER",
+        [tenantId],
+      );
+      const wantsEmail =
+        prefs[tenantId]?.enabled &&
+        prefs[tenantId]?.channels.includes("EMAIL");
+
+      if (tenantEmail && wantsEmail) {
         try {
           const { sendGmail } = await import("@/lib/gmail");
           await sendGmail({
@@ -132,6 +143,30 @@ export async function GET(req: Request) {
           console.error("Failed to send Gmail reminder:", err);
         }
       }
+    }
+
+    // 💰 One daily rollup for admins instead of one ping per overdue tenant
+    try {
+      const overdueCount = await prisma.invoice.count({
+        where: {
+          status: { not: "PAID" },
+          dueDate: { lt: today },
+        },
+      });
+
+      if (overdueCount > 0) {
+        await notify("OVERDUE_RENT_PAYMENTS", {
+          roles: ["ADMIN"],
+          title: "Daily Overdue Rent Rollup",
+          message: `${overdueCount} invoice${
+            overdueCount === 1 ? " is" : "s are"
+          } past their due date. Open Tenant Monitoring to chase payments.`,
+          link: "/admindashboard/tenant-monitoring",
+          dedupeHours: 20,
+        });
+      }
+    } catch (err) {
+      console.error("Failed to send overdue rollup:", err);
     }
 
     return NextResponse.json({

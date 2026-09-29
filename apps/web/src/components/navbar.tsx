@@ -15,6 +15,9 @@ import {
   Store,
 } from "lucide-react";
 import { getAllStorefrontsAction } from "@/app/actions/tenant";
+import { getPublicViewConfigAction } from "@/app/actions/cms";
+import { applyThemeColor, PUBLIC_CONFIG_CACHE_KEY } from "@/lib/theme";
+import { syncFavorites } from "@/lib/favorites";
 import { DigitalStorefront } from "@/types/storefront";
 import { useAuth } from "@/app/providers";
 import { LoginModal } from "./login-modal";
@@ -23,7 +26,54 @@ import NotificationDropdown from "./notification-dropdown";
 import { PublicThemeToggle } from "./theme-toggle";
 import clsx from "clsx";
 
-export const Navbar = () => {
+interface NavbarProps {
+  config?: {
+    logoUrl?: string | null;
+    companyName?: string | null;
+    [key: string]: any;
+  } | null;
+}
+
+export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
+  const [config, setConfig] = useState<any>(propConfig || null);
+
+  // Every public page gets the CMS logo, name and theme colour: from the
+  // page's prop, else the session cache, else a fetch (then cached).
+  useEffect(() => {
+    if (propConfig) {
+      setConfig(propConfig);
+      return;
+    }
+    let cached: any = null;
+    try {
+      cached = JSON.parse(sessionStorage.getItem(PUBLIC_CONFIG_CACHE_KEY) || "null");
+    } catch {
+      cached = null;
+    }
+    if (cached) {
+      setConfig(cached);
+      return;
+    }
+    let cancelled = false;
+    getPublicViewConfigAction()
+      .then((data) => {
+        if (cancelled || !data) return;
+        setConfig(data);
+        try {
+          sessionStorage.setItem(PUBLIC_CONFIG_CACHE_KEY, JSON.stringify(data));
+        } catch {
+          /* storage unavailable */
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [propConfig]);
+
+  useEffect(() => {
+    applyThemeColor(config?.themeColor);
+  }, [config?.themeColor]);
   const pathname = usePathname();
   const { isAuthenticated, user, logout } = useAuth();
   const [activeNav, setActiveNav] = useState<string>("");
@@ -53,6 +103,11 @@ export const Navbar = () => {
       else if (!hash) setActiveNav("");
     }
   }, [pathname]);
+
+  // Signed in → pull the account's favourites (and merge this browser's).
+  useEffect(() => {
+    if (user?.id) void syncFavorites(user.id);
+  }, [user?.id]);
 
   const loadFavorites = () => {
     if (typeof window !== "undefined") {
@@ -116,16 +171,16 @@ export const Navbar = () => {
             href="/"
             className="flex items-center gap-2 sm:gap-3 group shrink-0"
           >
-            <div className="relative w-9 h-9 sm:w-11 sm:h-11 bg-white rounded-lg sm:rounded-xl overflow-hidden shadow-md border-2 border-primary/10 group-hover:border-primary/40 transition-all duration-500">
+            <div className="relative w-9 h-9 sm:w-11 sm:h-11 bg-white rounded-lg sm:rounded-xl overflow-hidden shadow-md border-2 border-primary/10 group-hover:border-primary/40 transition-all duration-500 flex items-center justify-center">
               <img
-                src="/images/srmall-logo/sr_logo2.jpg"
-                alt="SR Logo"
+                src={config?.logoUrl || "/images/srmall-logo/sr_logo2.jpg"}
+                alt={config?.companyName || "SR Logo"}
                 className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
               />
             </div>
             <div className="flex flex-col">
               <span className="text-sm sm:text-xl font-black tracking-tighter text-charcoal dark:text-white leading-none">
-                SR MALL
+                {config?.companyName || "SR MALL"}
               </span>
               <span className="hidden xs:block text-[7px] sm:text-[9px] font-bold text-primary tracking-[0.2em] sm:tracking-[0.3em] uppercase leading-none mt-0.5">
                 Management

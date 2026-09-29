@@ -41,10 +41,32 @@ import {
   getPublicViewConfigAction,
   getPublicViewCarouselAction,
 } from "@/app/actions/cms";
+import { applyThemeColor, mapEmbedSrc, PUBLIC_CONFIG_CACHE_KEY } from "@/lib/theme";
 import SpaceDetailModal from "@/components/space-detail-modal";
+import { mergeSlotPatch, slotAccess, useLiveSlots } from "@/lib/slot-live";
+import { toast } from "sonner";
 import { ProductCard } from "@/components/product-card";
 import { ProductDetailModal } from "@/components/product-detail-modal";
 import clsx from "clsx";
+import { useChatUnread } from "@/lib/chat-unread";
+
+// Directory category buttons → keywords matched against the shop's category.
+const CATEGORY_KEYWORDS: Record<string, string[]> = {
+  food: ["food", "beverage", "dining", "restaurant", "cafe", "coffee", "drink"],
+  fashion: ["fashion", "apparel", "clothing", "wear"],
+  tech: ["electronic", "tech", "gadget", "digital"],
+  beauty: ["health", "wellness", "beauty", "cosmetic"],
+  services: ["service"],
+};
+
+function shopMatchesCategory(category: string | null | undefined, selected: string) {
+  if (selected === "All Categories") return true;
+  const c = (category || "").toLowerCase();
+  if (selected === "other") {
+    return !Object.values(CATEGORY_KEYWORDS).some((words) => words.some((w) => c.includes(w)));
+  }
+  return (CATEGORY_KEYWORDS[selected] || []).some((w) => c.includes(w));
+}
 
 export default function PublicDigitalConcierge() {
   const { isAuthenticated, user } = useAuth();
@@ -59,19 +81,8 @@ export default function PublicDigitalConcierge() {
   const [selectedCategory, setSelectedCategory] = useState("All Categories");
   const [shops, setShops] = useState<DigitalStorefront[]>(() => spaCache.get("public_shops") || []);
   const [loadingShops, setLoadingShops] = useState(() => !spaCache.has("public_shops"));
-  const [unreadMessages, setUnreadMessages] = useState(0);
-
-  useEffect(() => {
-    if (!user) return;
-    const fetchCount = async () => {
-      const { getUnreadMessageCountAction } = await import("@/app/actions/notification");
-      const res = await getUnreadMessageCountAction(user.id);
-      if (res.success) setUnreadMessages(res.data || 0);
-    };
-    fetchCount();
-    const interval = setInterval(fetchCount, 30000);
-    return () => clearInterval(interval);
-  }, [user]);
+  // Live unread chat count (same source as the bell's Messages tab).
+  const unreadMessages = useChatUnread(user?.id).total;
   const [slots, setSlots] = useState<AreaSlot[]>(() => spaCache.get("public_slots") || []);
   const [loadingSlots, setLoadingSlots] = useState(() => !spaCache.has("public_slots"));
   const [selectedSlot, setSelectedSlot] = useState<AreaSlot | null>(null);
@@ -88,7 +99,6 @@ export default function PublicDigitalConcierge() {
   );
 
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
-  const [isMapModalOpen, setIsMapModalOpen] = useState(false);
   const [ads, setAds] = useState<any[]>(() => spaCache.get("public_ads") || []);
   const [tenantPromos, setTenantPromos] = useState<any[]>(() => spaCache.get("public_promos") || []);
   const [carouselItems, setCarouselItems] = useState<any[]>(() => spaCache.get("public_carousel") || []);
@@ -157,6 +167,11 @@ export default function PublicDigitalConcierge() {
     return () =>
       document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, []);
+
+  // Apply theme color from CMS config to CSS variables
+  useEffect(() => {
+    applyThemeColor(config?.themeColor);
+  }, [config?.themeColor]);
 
   // Handle URL query parameters and global events to open ChatBox directly from notifications
   useEffect(() => {
@@ -236,6 +251,12 @@ export default function PublicDigitalConcierge() {
       const data = await getPublicViewConfigAction();
       setConfig(data);
       spaCache.set("public_config", data);
+      // Shared with the navbar on every other public page (logo, name, theme).
+      try {
+        sessionStorage.setItem(PUBLIC_CONFIG_CACHE_KEY, JSON.stringify(data));
+      } catch {
+        /* storage unavailable */
+      }
     } catch (e) {
       console.error(e);
     }
@@ -243,31 +264,13 @@ export default function PublicDigitalConcierge() {
 
   const fetchAds = async (isBackground = false) => {
     try {
-      console.log("🔍 Public view: Fetching active ads...");
-      const adsData = await getActiveMallAds();
-      const tenantPromosData = await getApprovedTenantPromos();
-
-      console.log("📊 Public view: Ads fetched:", adsData.length, "items");
-      console.log(
-        "📊 Public view: Tenant promos fetched:",
-        tenantPromosData.length,
-        "items",
-      );
-      console.log("📊 Public view: Ads data:", adsData);
-      console.log("📊 Public view: Tenant promos data:", tenantPromosData);
-
+      const [adsData, tenantPromosData] = await Promise.all([getActiveMallAds(), getApprovedTenantPromos()]);
       setAds(adsData);
       setTenantPromos(tenantPromosData);
       spaCache.set("public_ads", adsData);
       spaCache.set("public_promos", tenantPromosData);
-
-      console.log("📊 Public view: Setting ads state:", adsData);
-      console.log(
-        "📊 Public view: Setting tenantPromos state:",
-        tenantPromosData,
-      );
     } catch (error) {
-      console.error("❌ Public view: Error fetching ads:", error);
+      console.error("Public view: error fetching ads:", error);
     }
   };
 
@@ -279,12 +282,6 @@ export default function PublicDigitalConcierge() {
     } catch (error) {
       console.error("❌ Public view: Error fetching carousel:", error);
     }
-  };
-
-  // Force refresh function to manually trigger data fetch
-  const refreshAds = () => {
-    console.log("🔄 Public view: Manual refresh triggered");
-    fetchAds();
   };
 
   const fetchShops = async (isBackground = false) => {
@@ -319,15 +316,24 @@ export default function PublicDigitalConcierge() {
     setLoadingSlots(false);
   };
 
+  // Live: a unit someone just reserved flips to Pending here without a reload.
+  useLiveSlots(
+    (patch) =>
+      setSlots((prev) => {
+        const next = mergeSlotPatch(prev as any, patch) as any;
+        if (next !== prev) spaCache.set("public_slots", next);
+        return next;
+      }),
+    () => fetchSlots(true),
+  );
+
   const filteredShops = shops.filter((shop) => {
     const matchesSearch =
       shop.shop_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       shop.unit_id.toLowerCase().includes(searchQuery.toLowerCase()) ||
       shop.description?.toLowerCase().includes(searchQuery.toLowerCase());
 
-    const matchesCategory =
-      selectedCategory === "All Categories" ||
-      shop.description?.toLowerCase().includes(selectedCategory.toLowerCase());
+    const matchesCategory = shopMatchesCategory((shop as any).category, selectedCategory);
 
     return matchesSearch && matchesCategory;
   });
@@ -365,21 +371,9 @@ export default function PublicDigitalConcierge() {
     }
   };
 
-  const handleLoadMore = () => {
-    setIsLoadingMore(true);
-    setTimeout(() => {
-      setVisibleCount((prev) => prev + 3);
-      setIsLoadingMore(false);
-    }, 800);
-  };
+  const handleLoadMore = () => setVisibleCount((prev) => prev + 3);
 
-  const handleLoadMoreSlots = () => {
-    setIsLoadingMoreSlots(true);
-    setTimeout(() => {
-      setVisibleSlotsCount((prev) => prev + 4);
-      setIsLoadingMoreSlots(false);
-    }, 800);
-  };
+  const handleLoadMoreSlots = () => setVisibleSlotsCount((prev) => prev + 4);
 
   const visibleShopsArray = filteredShops.slice(0, visibleCount);
   const hasMore = visibleCount < filteredShops.length;
@@ -399,7 +393,7 @@ export default function PublicDigitalConcierge() {
         "overflow-x-hidden",
       )}
     >
-      <Navbar />
+      <Navbar config={config} />
 
       {/* High Impact Hero Carousel */}
       {/* High Impact Hero Carousel with Search */}
@@ -945,20 +939,13 @@ export default function PublicDigitalConcierge() {
             {/* Scroll Indication for Mobile */}
             <div className="lg:hidden absolute right-0 top-0 bottom-4 w-8 bg-gradient-to-l from-slate-100 dark:from-zinc-950 to-transparent pointer-events-none z-20"></div>
             {[
-              {
-                id: "All Categories",
-                label: "Everything",
-                icon: <ShoppingBag size={16} />,
-              },
-              { id: "Food", label: "Gastronomy", icon: <Coffee size={16} /> },
-              { id: "Tech", label: "Innovation", icon: <Zap size={16} /> },
-              { id: "Fashion", label: "Couture", icon: <Shirt size={16} /> },
-              {
-                id: "Dining",
-                label: "Experience",
-                icon: <Sparkles size={16} />,
-              },
-              { id: "Electronics", label: "Digital", icon: <Tag size={16} /> },
+              { id: "All Categories", label: "All", icon: <ShoppingBag size={16} /> },
+              { id: "food", label: "Food & Drinks", icon: <Coffee size={16} /> },
+              { id: "fashion", label: "Fashion", icon: <Shirt size={16} /> },
+              { id: "tech", label: "Electronics & Tech", icon: <Zap size={16} /> },
+              { id: "beauty", label: "Health & Beauty", icon: <Sparkles size={16} /> },
+              { id: "services", label: "Services", icon: <Tag size={16} /> },
+              { id: "other", label: "Other", icon: <ShoppingBag size={16} /> },
             ].map((cat) => (
               <button suppressHydrationWarning
                 key={cat.id}
@@ -1340,13 +1327,25 @@ export default function PublicDigitalConcierge() {
                   </p>
                 </div>
               ) : visibleSlotsArray.length > 0 ? (
-                visibleSlotsArray.map((slot, idx) => (
+                visibleSlotsArray.map((slot, idx) => {
+                  const access = slotAccess(slot as any, user?.id);
+                  return (
                   <div
                     key={slot.id}
-                    onClick={() => setSelectedSlot(slot)}
+                    onClick={() =>
+                      access.open
+                        ? setSelectedSlot(slot)
+                        : toast.info(
+                          slot.status === "RESERVED"
+                            ? `Unit ${slot.unit_id} is pending: another customer reserved it first. It's released automatically if it isn't confirmed within 24 hours.`
+                            : `Unit ${slot.unit_id} is already occupied.`,
+                        )
+                    }
+                    aria-disabled={!access.open}
                     className={clsx(
                       "w-[85%] sm:w-full",
-                      "shrink-0 snap-center group relative bg-white dark:bg-zinc-900 rounded-[2rem] border border-slate-100 dark:border-white/5 overflow-hidden transition-all duration-700 cursor-pointer shadow-sm hover:shadow-2xl hover:-translate-y-2 animate-fade-in-up",
+                      "shrink-0 snap-center group relative bg-white dark:bg-zinc-900 rounded-[2rem] border border-slate-100 dark:border-white/5 overflow-hidden transition-all duration-700 shadow-sm animate-fade-in-up",
+                      access.open ? "cursor-pointer hover:shadow-2xl hover:-translate-y-2" : "cursor-not-allowed opacity-75 grayscale-[35%]",
                     )}
                     style={{ animationDelay: `${idx * 100}ms` }}
                   >
@@ -1384,12 +1383,12 @@ export default function PublicDigitalConcierge() {
                             "backdrop-blur-xl px-4 py-2 rounded-full border text-[9px] font-black uppercase tracking-[0.2em] transition-all shadow-2xl",
                             slot.status === "AVAILABLE"
                               ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-400"
-                              : "bg-amber-500/20 border-amber-500/40 text-amber-400",
+                              : access.mine
+                                ? "bg-yellow-400/25 border-yellow-400/60 text-yellow-300"
+                                : "bg-amber-500/20 border-amber-500/40 text-amber-400",
                           )}
                         >
-                          {slot.status === "AVAILABLE"
-                            ? "Available Now"
-                            : "Reserved"}
+                          {slot.status === "AVAILABLE" ? "Available Now" : access.label}
                         </div>
                       </div>
 
@@ -1468,7 +1467,8 @@ export default function PublicDigitalConcierge() {
                       </div>
                     </div>
                   </div>
-                ))
+                  );
+                })
               ) : (
                 <div
                   className={clsx(
@@ -1599,7 +1599,7 @@ export default function PublicDigitalConcierge() {
       {/* Space Detail Modal */}
       {selectedSlot && (
         <SpaceDetailModal
-          slot={selectedSlot as any}
+          slot={(slots.find((s) => s.id === selectedSlot.id) || selectedSlot) as any}
           onClose={() => setSelectedSlot(null)}
           onLoginRequired={() => setIsLoginModalOpen(true)}
           onInquire={(unitId) => {
@@ -1743,14 +1743,20 @@ export default function PublicDigitalConcierge() {
                       "text-xs sm:text-sm text-slate-500 font-medium leading-relaxed",
                     )}
                   >
-                    Crossing Villanueva, Misamis Oriental, <br />
-                    9002, Philippines
+                    {config?.contactAddress || (
+                      <>
+                        Crossing Villanueva, Misamis Oriental, <br />
+                        9002, Philippines
+                      </>
+                    )}
                   </p>
                 </div>
               </div>
 
               <a
-                href="https://www.google.com/maps/place/Sophie+Red+Mall/@8.6403138,124.761748,17z/data=!4m6!3m5!1s0x32ffe583faa1a8b5:0x4465b912f19f4403!8m2!3d8.6401918!4d124.7642264!16s%2Fg%2F11r9ngrmtw?entry=ttu&g_ep=EgoyMDI2MDMxOC4xIKXMDSoASAFQAw%3D%3D"
+                href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
+                  config?.contactAddress || config?.footerAddress || "Sophie Red Mall Villanueva Misamis Oriental",
+                )}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className={clsx(
@@ -1801,7 +1807,7 @@ export default function PublicDigitalConcierge() {
               )}
             >
               <iframe
-                src="https://maps.google.com/maps?q=Sophie%20Red%20Mall%20Villanueva&t=&z=15&ie=UTF8&iwloc=&output=embed"
+                src={mapEmbedSrc(config)}
                 width="100%"
                 height="100%"
                 style={{ border: 0 }}
@@ -1934,7 +1940,7 @@ export default function PublicDigitalConcierge() {
 
 
 
-      <Footer />
+      <Footer config={config} />
     </div>
   );
 }

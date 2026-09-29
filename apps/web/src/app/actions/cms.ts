@@ -10,7 +10,18 @@ export async function getPublicViewConfigAction() {
     const config = await prisma.publicViewConfig.findFirst({
       orderBy: { createdAt: "desc" },
     });
-    return config;
+    if (!config) return null;
+    // This record is served to the public site: never ship the (unused)
+    // payment gateway credentials with it.
+    const { paymentGatewayApiKey, paymentGatewayProvider, ...publicConfig } = config;
+    // Newer column (raw SQL until the Prisma client is regenerated)
+    const extra = await prisma
+      .$queryRawUnsafe<{ footerOpeningHours: string | null }[]>(
+        `SELECT "footerOpeningHours" FROM "PublicViewConfig" WHERE "id" = $1`,
+        config.id,
+      )
+      .catch(() => []);
+    return { ...publicConfig, footerOpeningHours: extra[0]?.footerOpeningHours ?? null };
   } catch (error) {
     console.error("Error fetching public view config:", error);
     return null;
@@ -37,12 +48,45 @@ export async function updatePublicViewConfigAction(
     aboutImageUrl?: string | null;
     contactTitle?: string | null;
     contactDescription?: string | null;
+    themeColor?: string | null;
+    googleMapsEmbedUrl?: string | null;
+    googleMapsApiKey?: string | null;
+    paymentGatewayProvider?: string | null;
+    paymentGatewayApiKey?: string | null;
+    footerDescription?: string | null;
+    footerInstagram?: string | null;
+    footerFacebook?: string | null;
+    footerWebsite?: string | null;
+    footerCopyrightText?: string | null;
+    footerAddress?: string | null;
+    footerPhone?: string | null;
+    footerEmail?: string | null;
+    footerOpeningHours?: string | null;
   },
   adminId?: string,
 ) {
   try {
-    const existingConfig = await prisma.publicViewConfig.findFirst();
-    const { id, createdAt, updatedAt, ...updateData } = data as any;
+    // Same record the getter returns (newest), so a save always lands where it is read.
+    const existingConfig = await prisma.publicViewConfig.findFirst({
+      orderBy: { createdAt: "desc" },
+    });
+    const {
+      id,
+      createdAt,
+      updatedAt,
+      paymentGatewayApiKey,
+      paymentGatewayProvider,
+      footerOpeningHours,
+      ...updateData
+    } = data as any;
+    const saveOpeningHours = (configId: string) =>
+      footerOpeningHours === undefined
+        ? Promise.resolve()
+        : prisma.$executeRawUnsafe(
+            `UPDATE "PublicViewConfig" SET "footerOpeningHours" = $2 WHERE "id" = $1`,
+            configId,
+            String(footerOpeningHours || "").trim().slice(0, 200) || null,
+          );
 
     if (existingConfig) {
       const updatedConfig = await prisma.publicViewConfig.update({
@@ -52,6 +96,7 @@ export async function updatePublicViewConfigAction(
           updatedAt: new Date(),
         },
       });
+      await saveOpeningHours(updatedConfig.id);
       revalidatePath("/admindashboard/public-view-cms");
       revalidatePath("/public-view");
       return updatedConfig;
@@ -59,6 +104,7 @@ export async function updatePublicViewConfigAction(
       const newConfig = await prisma.publicViewConfig.create({
         data: updateData,
       });
+      await saveOpeningHours(newConfig.id);
       revalidatePath("/admindashboard/public-view-cms");
       revalidatePath("/public-view");
       return newConfig;

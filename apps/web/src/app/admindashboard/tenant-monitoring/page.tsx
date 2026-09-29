@@ -45,6 +45,7 @@ import {
   CreditCard as PaymentIcon,
 } from "lucide-react";
 import { RegisterTenantModal } from "@/components/admin/register-tenant-modal";
+import { RecordCashPaymentModal } from "@/components/admin/record-cash-payment-modal";
 import clsx from "clsx";
 import {
   getAllTenantsAction,
@@ -66,7 +67,6 @@ import {
   getAllInvoices,
   generateInvoice,
   updateInvoiceStatus,
-  recordManualPaymentAction,
 } from "@/app/actions/finance";
 
 interface Tenant {
@@ -139,26 +139,40 @@ const STATUS_CONFIG = {
 
 const PAYMENT_CONFIG = {
   "🟢 Cleared": {
+    label: "Cleared",
+    dot: "bg-emerald-500",
     bg: "bg-emerald-500/10",
     text: "text-emerald-600",
     border: "border-emerald-500/20",
   },
   "🟡 Pending Verification": {
+    label: "Verifying",
+    dot: "bg-amber-500",
     bg: "bg-amber-500/10",
     text: "text-amber-600",
     border: "border-amber-500/20",
   },
   "🔴 Overdue": {
+    label: "Overdue",
+    dot: "bg-red-500",
     bg: "bg-red-500/10",
     text: "text-red-600",
     border: "border-red-500/20",
   },
   PENDING: {
+    label: "Bill Pending",
+    dot: "bg-slate-400",
     bg: "bg-slate-500/10",
     text: "text-slate-600",
     border: "border-slate-500/20",
   },
 };
+
+const UNASSIGNED_UNIT = "PENDING_ASSIGNMENT";
+
+const TH_CLASS =
+  "px-4 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 whitespace-nowrap";
+const TH_SORT_CLASS = `${TH_CLASS} cursor-pointer hover:text-charcoal dark:hover:text-white transition-colors`;
 
 type Timeframe = "daily" | "weekly" | "monthly" | "yearly";
 
@@ -219,7 +233,12 @@ const getTimeframeDetails = (tf: Timeframe) => {
 export default function TenantMonitoring() {
   const [timeframe, setTimeframe] = useState<Timeframe>("monthly");
   const [tenants, setTenants] = useState<Tenant[]>([]);
+  // `loading` = first load only (full-page spinner). Background refreshes are
+  // silent, and modal buttons use `saving`, so a refresh never blanks the list
+  // or disables Save / Post Bill.
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const loadInFlightRef = useRef(false);
   const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const [toast, setToast] = useState<{
@@ -307,19 +326,25 @@ export default function TenantMonitoring() {
   const [isDeletingTenant, setIsDeletingTenant] = useState(false);
   const [generatingDoc, setGeneratingDoc] = useState<string | null>(null);
 
-  const loadTenants = async () => {
-    setLoading(true);
-    console.log("Loading tenants...");
+  const loadTenants = async (silent = true) => {
+    if (loadInFlightRef.current) return;
+    loadInFlightRef.current = true;
+    if (!silent) setLoading(true);
     try {
-      const [result, invoicesResult] = await Promise.all([
+      const [result, invoicesResult, slotsResult] = await Promise.all([
         getAllTenantsAction(),
         getAllInvoices(),
         getAreaSlots(),
       ]);
 
-      console.log("getAllTenantsAction result:", result);
+      // Every unit (not just AVAILABLE ones): a tenant's own unit is OCCUPIED.
+      const allSlots: any[] =
+        slotsResult.success && slotsResult.data ? slotsResult.data : [];
+      if (allSlots.length > 0) {
+        setAvailableSlots(allSlots.filter((s: any) => s.status === "AVAILABLE"));
+      }
+
       if (result.success && result.data) {
-        console.log("Tenants loaded:", result.data.length);
 
         const enhancedTenants: Tenant[] = result.data.map(
           (item: any, index: number) => {
@@ -377,11 +402,10 @@ export default function TenantMonitoring() {
               : "N/A";
 
             const slot =
-              (availableSlots.length > 0
-                ? availableSlots
-                : result.data?.slots
-              )?.find((s: any) => s.tenant_id === item.id) ||
-              availableSlots.find((s: any) => s.unit_id === item.unitId);
+              allSlots.find((s: any) => s.unit_id === item.unitId) ||
+              allSlots.find(
+                (s: any) => s.tenant_id === item.id || s.tenant_id === item.userId,
+              );
             const activeRentCost =
               slot?.base_rent ||
               tenantInvoices[0]?.amount ||
@@ -406,7 +430,6 @@ export default function TenantMonitoring() {
           },
         );
 
-        console.log("Enhanced tenants:", enhancedTenants);
         setTenants(enhancedTenants);
         setAllInvoices(invoicesResult);
 
@@ -419,7 +442,7 @@ export default function TenantMonitoring() {
             (tenant: Tenant) => tenant.status === "PENDING",
           ).length,
           overdue: enhancedTenants.filter(
-            (tenant: Tenant) => tenant.paymentStatus === "OVERDUE",
+            (tenant: Tenant) => tenant.paymentStatus === "🔴 Overdue",
           ).length,
           paidTenants: enhancedTenants.filter((tenant: Tenant) => {
             const tInvoices = invoicesResult.filter(
@@ -450,20 +473,29 @@ export default function TenantMonitoring() {
     } catch (error) {
       console.error("Error loading tenants:", error);
       setToast({ msg: "Error loading tenants", type: "error" });
+    } finally {
+      loadInFlightRef.current = false;
+      if (!silent) setLoading(false);
     }
-    setLoading(false);
   };
 
   useEffect(() => {
-    loadTenants();
-    loadAvailableSlots();
+    loadTenants(false);
 
-    // Pseudo-realtime polling every 20 seconds
+    // Quiet background refresh every 60s, skipped while the tab is hidden,
+    // plus an immediate refresh when the admin comes back to the tab.
     const interval = setInterval(() => {
-      loadTenants();
-    }, 20000);
+      if (!document.hidden) loadTenants();
+    }, 60000);
+    const onVisible = () => {
+      if (!document.hidden) loadTenants();
+    };
+    document.addEventListener("visibilitychange", onVisible);
 
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, []);
 
   const loadAvailableSlots = async () => {
@@ -479,26 +511,6 @@ export default function TenantMonitoring() {
     setToast({ msg: `✓ ${shopName} registered successfully`, type: "success" });
     loadTenants();
     setTimeout(() => setToast(null), 5000);
-  };
-
-  const handleDeleteTenant = async (tenantId: string) => {
-    if (!confirm("Are you sure you want to delete this tenant?")) return;
-
-    try {
-      const result = await deleteTenantAction(tenantId);
-      if (result.success) {
-        setToast({ msg: "Tenant deleted successfully", type: "success" });
-        setSelectedTenant(null);
-        loadTenants();
-      } else {
-        setToast({
-          msg: result.error || "Failed to delete tenant",
-          type: "error",
-        });
-      }
-    } catch (error) {
-      setToast({ msg: "Error deleting tenant", type: "error" });
-    }
   };
 
   const handleApproveTenant = async (tenantId: string) => {
@@ -546,7 +558,7 @@ export default function TenantMonitoring() {
 
   const handleSaveEdit = async () => {
     if (!editingTenant) return;
-    setLoading(true);
+    setSaving(true);
     try {
       const res = await adminUpdateTenantAction(editingTenant.id, editFormData);
       if (res.success) {
@@ -560,7 +572,7 @@ export default function TenantMonitoring() {
     } catch (e: any) {
       setToast({ msg: "Error: " + e.message, type: "error" });
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
@@ -687,6 +699,10 @@ export default function TenantMonitoring() {
     setIsBillModalOpen(true);
   };
 
+  // Record Cash Payment modal (components/admin/record-cash-payment-modal)
+  const [cashPaymentInvoice, setCashPaymentInvoice] = useState<any | null>(null);
+  const openCashPaymentModal = (invoice: any) => setCashPaymentInvoice(invoice);
+
   const handleSubmitBill = async () => {
     if (!selectedTenant) return;
 
@@ -701,7 +717,7 @@ export default function TenantMonitoring() {
       return;
     }
 
-    setLoading(true);
+    setSaving(true);
     setToast({ msg: "Posting monthly bill...", type: "success" });
 
     try {
@@ -723,7 +739,7 @@ export default function TenantMonitoring() {
     } catch (err: any) {
       setToast({ msg: "Error: " + err.message, type: "error" });
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
@@ -841,10 +857,11 @@ export default function TenantMonitoring() {
         t.shopName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         t.unitId?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         t.user?.email?.toLowerCase().includes(searchQuery.toLowerCase());
-      // "all" excludes PAST tenants — they need to be explicitly filtered via "PAST" option
+      // "all" excludes PAST tenants and REJECTED applicants — pick them
+      // explicitly from the status filter to see them.
       const matchesStatus =
         statusFilter === "all"
-          ? t.status !== "PAST"
+          ? t.status !== "PAST" && t.status !== "REJECTED"
           : t.status === statusFilter;
       const matchesPayment =
         paymentFilter === "all" || t.paymentStatus === paymentFilter;
@@ -1117,10 +1134,10 @@ export default function TenantMonitoring() {
                 </button>
                 <button
                   onClick={handleSaveEdit}
-                  disabled={loading}
+                  disabled={saving}
                   className="flex-[2] py-3.5 bg-primary text-white font-black text-xs uppercase tracking-widest rounded-xl shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
                 >
-                  {loading ? (
+                  {saving ? (
                     <RefreshCw size={16} className="animate-spin" />
                   ) : (
                     <>
@@ -1273,10 +1290,10 @@ export default function TenantMonitoring() {
                 </button>
                 <button
                   onClick={handleSubmitBill}
-                  disabled={loading}
+                  disabled={saving}
                   className="flex-[2] py-3.5 bg-[#BE1E2D] text-white font-black text-xs uppercase tracking-widest rounded-xl shadow-xl shadow-red-500/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
                 >
-                  {loading ? (
+                  {saving ? (
                     <RefreshCw size={16} className="animate-spin" />
                   ) : (
                     <>
@@ -1288,6 +1305,20 @@ export default function TenantMonitoring() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Record Cash Payment Modal */}
+      {cashPaymentInvoice && (
+        <RecordCashPaymentModal
+          invoice={cashPaymentInvoice}
+          tenantName={selectedTenant?.shopName}
+          onClose={() => setCashPaymentInvoice(null)}
+          onRecorded={() => {
+            setCashPaymentInvoice(null);
+            setToast({ msg: "Payment recorded!", type: "success" });
+            loadTenants();
+          }}
+        />
       )}
 
       {/* Tenant Documents Modal */}
@@ -1857,217 +1888,63 @@ export default function TenantMonitoring() {
         </div>
 
         {/* Control Bar */}
-        <div
-          className={clsx(
-            "flex",
-            "flex-wrap",
-            "gap-4",
-            "p-4",
-            "bg-white/40",
-            "dark:bg-white/5",
-            "border",
-            "border-slate-200",
-            "dark:border-white/10",
-            "rounded-3xl",
-            "backdrop-blur-xl",
-            "shadow-2xl",
-            "shadow-black/5",
-            "mb-6",
-          )}
-        >
-          {/* Search */}
-          <div
-            className={clsx(
-              "flex-1",
-              "min-w-[200px]",
-              "relative",
-              "flex",
-              "items-center",
-              "group",
-            )}
-          >
-            <Search
-              className={clsx(
-                "absolute",
-                "left-4",
-                "text-slate-400",
-                "group-focus-within:text-primary",
-                "transition-colors",
+        <div className="mb-6 p-4 md:p-5 bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-[2rem] shadow-sm space-y-4">
+          {/* Row 1 — search + view + export */}
+          <div className="flex flex-col md:flex-row md:items-center gap-3">
+            <div className="relative flex-1 min-w-0 group">
+              <Search
+                size={18}
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors pointer-events-none"
+              />
+              <input
+                type="text"
+                placeholder="Search by shop name, unit or email…"
+                aria-label="Search tenants"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full h-12 pl-11 pr-10 bg-slate-50 dark:bg-zinc-950/50 border border-slate-200 dark:border-white/5 rounded-2xl text-sm font-medium text-charcoal dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  aria-label="Clear search"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-lg text-slate-400 hover:text-charcoal dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-white/10 transition-colors"
+                >
+                  <X size={14} />
+                </button>
               )}
-              size={20}
-            />
-            <input
-              type="text"
-              placeholder="Search tenants, units, emails..."
-              className={clsx(
-                "w-full",
-                "pl-12",
-                "pr-6",
-                "py-3",
-                "bg-slate-50",
-                "dark:bg-zinc-950/50",
-                "border",
-                "border-slate-200",
-                "dark:border-white/5",
-                "rounded-2xl",
-                "text-charcoal",
-                "dark:text-white",
-                "font-medium",
-                "focus:outline-none",
-                "focus:border-primary",
-                "focus:ring-4",
-                "focus:ring-primary/10",
-                "transition-all",
-                "placeholder:text-slate-400",
-              )}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
+            </div>
 
-          {/* Status Filter */}
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className={clsx(
-              "px-4",
-              "py-3",
-              "bg-slate-50",
-              "dark:bg-zinc-950/50",
-              "border",
-              "border-slate-200",
-              "dark:border-white/5",
-              "rounded-2xl",
-              "text-charcoal",
-              "dark:text-white",
-              "font-medium",
-              "focus:outline-none",
-              "focus:border-primary",
-              "transition-all",
-            )}
-          >
-            <option value="all">All Active</option>
-            <option value="ACTIVE">Active</option>
-            <option value="PENDING">Pending</option>
-            <option value="INACTIVE">Inactive</option>
-            <option value="SUSPENDED">Suspended</option>
-            <option value="REJECTED">Rejected</option>
-            <option value="PAST">Past Tenants</option>
-          </select>
-
-          <select
-            value={paymentFilter}
-            onChange={(e) => setPaymentFilter(e.target.value)}
-            className={clsx(
-              "px-4",
-              "py-3",
-              "bg-slate-50",
-              "dark:bg-zinc-950/50",
-              "border",
-              "border-slate-200",
-              "dark:border-white/5",
-              "rounded-2xl",
-              "text-charcoal",
-              "dark:text-white",
-              "font-medium",
-              "focus:outline-none",
-              "focus:border-primary",
-              "transition-all",
-            )}
-          >
-            <option value="all">Filter: Payment Status (All)</option>
-            <option value="🟢 Cleared">🟢 Cleared</option>
-            <option value="🟡 Pending Verification">
-              🟡 Pending Verification
-            </option>
-            <option value="🔴 Overdue">🔴 Overdue</option>
-            <option value="PENDING">Awaiting Invoice</option>
-          </select>
-
-          {/* Timeframe Filter Dropdown */}
-          <div className="relative flex items-center">
-            <Calendar
-              className={clsx(
-                "absolute",
-                "left-4",
-                "text-slate-400",
-                "pointer-events-none",
-              )}
-              size={16}
-            />
-            <select
-              value={timeframe}
-              onChange={(e) => setTimeframe(e.target.value as Timeframe)}
-              aria-label="Select monitoring timeframe"
-              className={clsx(
-                "pl-11",
-                "pr-8",
-                "py-3",
-                "bg-slate-50",
-                "dark:bg-zinc-950/50",
-                "border",
-                "border-slate-200",
-                "dark:border-white/5",
-                "rounded-2xl",
-                "text-charcoal",
-                "dark:text-white",
-                "font-bold",
-                "text-xs",
-                "uppercase",
-                "tracking-wider",
-                "focus:outline-none",
-                "focus:border-primary",
-                "focus:ring-4",
-                "focus:ring-primary/10",
-                "transition-all",
-                "cursor-pointer",
-              )}
-            >
-              <option value="daily">📅 Daily (Today)</option>
-              <option value="weekly">📅 Weekly (7 Days)</option>
-              <option value="monthly">📅 Monthly (30 Days)</option>
-              <option value="yearly">📅 Yearly (Annual)</option>
-            </select>
-          </div>
-
-          {/* View Toggle */}
-          <div
-            className={clsx(
-              "flex",
-              "items-center",
-              "gap-2",
-              "p-2",
-              "bg-slate-50",
-              "dark:bg-zinc-950/50",
-              "border",
-              "border-slate-200",
-              "dark:border-white/5",
-              "rounded-2xl",
-            )}
-          >
-            <button
-              onClick={() => setViewMode("table")}
-              className={clsx(
-                "p-2 rounded-xl transition-all",
-                viewMode === "table"
-                  ? "bg-primary text-white"
-                  : "text-slate-400",
-              )}
-            >
-              <List size={20} />
-            </button>
-            <button
-              onClick={() => setViewMode("grid")}
-              className={clsx(
-                "p-2 rounded-xl transition-all",
-                viewMode === "grid"
-                  ? "bg-primary text-white"
-                  : "text-slate-400",
-              )}
-            >
-              <LayoutGrid size={20} />
-            </button>
-          </div>
+            <div className="flex items-center gap-3">
+              {/* View Toggle */}
+              <div
+                role="group"
+                aria-label="View mode"
+                className="flex items-center gap-1 h-12 p-1 bg-slate-50 dark:bg-zinc-950/50 border border-slate-200 dark:border-white/5 rounded-2xl"
+              >
+                {([
+                  { mode: "table", icon: List, label: "Table view" },
+                  { mode: "grid", icon: LayoutGrid, label: "Card view" },
+                ] as const).map(({ mode, icon: Icon, label }) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => setViewMode(mode)}
+                    aria-label={label}
+                    aria-pressed={viewMode === mode}
+                    title={label}
+                    className={clsx(
+                      "h-full aspect-square flex items-center justify-center rounded-xl transition-all",
+                      viewMode === mode
+                        ? "bg-primary text-white shadow-md shadow-primary/25"
+                        : "text-slate-400 hover:text-charcoal dark:hover:text-white",
+                    )}
+                  >
+                    <Icon size={18} />
+                  </button>
+                ))}
+              </div>
 
           {/* Export Dropdown */}
           <div className="relative z-30" ref={reportDropdownRef}>
@@ -2075,29 +1952,16 @@ export default function TenantMonitoring() {
               onClick={() => setIsReportDropdownOpen((prev) => !prev)}
               disabled={isExporting}
               className={clsx(
-                "flex",
-                "items-center",
-                "gap-2",
-                "px-5",
-                "py-3",
-                "bg-[#BE1E2D]/5",
-                "hover:bg-[#BE1E2D]/10",
-                "border",
-                "border-[#BE1E2D]/20",
-                "rounded-2xl",
-                "text-[#BE1E2D]",
-                "font-bold",
-                "transition-all",
-                "active:scale-95",
+                "flex items-center gap-2 h-12 px-5 bg-primary hover:bg-primary-hover text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-lg shadow-primary/25 transition-all active:scale-95 whitespace-nowrap",
                 isExporting && "opacity-50 cursor-not-allowed",
               )}
             >
               {isExporting ? (
-                <RefreshCw size={18} className="animate-spin" />
+                <RefreshCw size={16} className="animate-spin" />
               ) : (
-                <FileText size={18} />
+                <Download size={16} />
               )}
-              <span>{isExporting ? "Generating Report..." : "Download Report"}</span>
+              <span>{isExporting ? "Generating…" : "Download Report"}</span>
               <ChevronDown
                 size={16}
                 className={clsx(
@@ -2221,6 +2085,70 @@ export default function TenantMonitoring() {
               </div>
             )}
           </div>
+            </div>
+          </div>
+
+          {/* Row 2 — filters + result count */}
+          <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-slate-100 dark:border-white/5">
+            <FilterSelect
+              label="Status"
+              value={statusFilter}
+              onChange={setStatusFilter}
+              options={[
+                { value: "all", label: "All active" },
+                { value: "ACTIVE", label: "Active" },
+                { value: "PENDING", label: "Pending" },
+                { value: "INACTIVE", label: "Inactive" },
+                { value: "SUSPENDED", label: "Suspended" },
+                { value: "REJECTED", label: "Rejected" },
+                { value: "PAST", label: "Past tenants" },
+              ]}
+            />
+            <FilterSelect
+              label="Payment"
+              value={paymentFilter}
+              onChange={setPaymentFilter}
+              options={[
+                { value: "all", label: "All" },
+                { value: "🟢 Cleared", label: "Cleared" },
+                { value: "🟡 Pending Verification", label: "Verifying" },
+                { value: "🔴 Overdue", label: "Overdue" },
+                { value: "PENDING", label: "Bill pending" },
+              ]}
+            />
+            <FilterSelect
+              label="Period"
+              icon={<Calendar size={14} />}
+              value={timeframe}
+              onChange={(v) => setTimeframe(v as Timeframe)}
+              options={[
+                { value: "daily", label: "Today" },
+                { value: "weekly", label: "Last 7 days" },
+                { value: "monthly", label: "Last 30 days" },
+                { value: "yearly", label: "This year" },
+              ]}
+            />
+
+            {(searchQuery || statusFilter !== "all" || paymentFilter !== "all") && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchQuery("");
+                  setStatusFilter("all");
+                  setPaymentFilter("all");
+                }}
+                className="h-10 px-3 flex items-center gap-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-primary hover:bg-primary/10 transition-colors"
+              >
+                <X size={14} /> Clear filters
+              </button>
+            )}
+
+            <p className="ml-auto text-[10px] font-black uppercase tracking-widest text-slate-400">
+              Showing{" "}
+              <span className="text-charcoal dark:text-white">{filteredTenants.length}</span>{" "}
+              of {tenants.length} tenant{tenants.length === 1 ? "" : "s"}
+            </p>
+          </div>
         </div>
 
         {/* Loading State */}
@@ -2277,9 +2205,11 @@ export default function TenantMonitoring() {
         ) : (
           <>
             {/* Table View */}
-            {viewMode === "table" ? (
+            {viewMode === "table" && (
               <div
                 className={clsx(
+                  "hidden",
+                  "lg:block",
                   "bg-white",
                   "dark:bg-zinc-900",
                   "rounded-3xl",
@@ -2290,385 +2220,189 @@ export default function TenantMonitoring() {
                   "overflow-hidden",
                 )}
               >
-                <div className="overflow-x-auto">
-                  <table
-                    className={clsx("w-full", "text-left", "border-collapse")}
-                  >
-                    <thead>
-                      <tr
-                        className={clsx(
-                          "border-b",
-                          "border-slate-200",
-                          "dark:border-white/5",
-                          "bg-slate-50/50",
-                          "dark:bg-white/5",
-                        )}
-                      >
-                        <th
-                          className={clsx(
-                            "px-6",
-                            "py-4",
-                            "text-[10px]",
-                            "font-black",
-                            "uppercase",
-                            "tracking-widest",
-                            "text-slate-400",
-                            "cursor-pointer",
-                            "hover:text-charcoal",
-                            "dark:hover:text-white",
-                            "transition-colors",
-                          )}
-                          onClick={() => toggleSort("name")}
-                        >
-                          <div
-                            className={clsx("flex", "items-center", "gap-2")}
-                          >
-                            Tenant
-                            <ArrowUpDown
-                              size={12}
-                              className={
-                                sortBy === "name" ? "text-primary" : ""
-                              }
-                            />
-                          </div>
-                        </th>
-                        <th
-                          className={clsx(
-                            "px-6",
-                            "py-4",
-                            "text-[10px]",
-                            "font-black",
-                            "uppercase",
-                            "tracking-widest",
-                            "text-slate-400",
-                          )}
-                        >
-                          Unit
-                        </th>
-                        <th
-                          className={clsx(
-                            "px-6",
-                            "py-4",
-                            "text-[10px]",
-                            "font-black",
-                            "uppercase",
-                            "tracking-widest",
-                            "text-slate-400",
-                            "cursor-pointer",
-                            "hover:text-charcoal",
-                            "dark:hover:text-white",
-                            "transition-colors",
-                          )}
-                          onClick={() => toggleSort("status")}
-                        >
-                          <div
-                            className={clsx("flex", "items-center", "gap-2")}
-                          >
-                            Status
-                            <ArrowUpDown
-                              size={12}
-                              className={
-                                sortBy === "status" ? "text-primary" : ""
-                              }
-                            />
-                          </div>
-                        </th>
-                        <th
-                          className={clsx(
-                            "px-6",
-                            "py-4",
-                            "text-[10px]",
-                            "font-black",
-                            "uppercase",
-                            "tracking-widest",
-                            "text-slate-400",
-                          )}
-                        >
-                          Payment Status
-                        </th>
-                        <th
-                          className={clsx(
-                            "px-6",
-                            "py-4",
-                            "text-[10px]",
-                            "font-black",
-                            "uppercase",
-                            "tracking-widest",
-                            "text-slate-400",
-                          )}
-                        >
-                          Due Date
-                        </th>
-                        <th
-                          className={clsx(
-                            "px-6",
-                            "py-4",
-                            "text-[10px]",
-                            "font-black",
-                            "uppercase",
-                            "tracking-widest",
-                            "text-slate-400",
-                            "cursor-pointer",
-                            "hover:text-charcoal",
-                            "dark:hover:text-white",
-                            "transition-colors",
-                          )}
-                          onClick={() => toggleSort("rent")}
-                        >
-                          <div
-                            className={clsx("flex", "items-center", "gap-2")}
-                          >
-                            {tfDetails.rentColumnTitle}
-                            <ArrowUpDown
-                              size={12}
-                              className={
-                                sortBy === "rent" ? "text-primary" : ""
-                              }
-                            />
-                          </div>
-                        </th>
-                        <th
-                          className={clsx(
-                            "px-6",
-                            "py-4",
-                            "text-[10px]",
-                            "font-black",
-                            "uppercase",
-                            "tracking-widest",
-                            "text-slate-400",
-                          )}
-                        >
-                          Metrics
-                        </th>
-                        <th
-                          className={clsx(
-                            "px-6",
-                            "py-4",
-                            "text-[10px]",
-                            "font-black",
-                            "uppercase",
-                            "tracking-widest",
-                            "text-slate-400",
-                            "text-right",
-                          )}
-                        >
-                          Actions
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody
-                      className={clsx(
-                        "divide-y",
-                        "divide-slate-200",
-                        "dark:divide-white/5",
-                      )}
-                    >
-                      {filteredTenants.map((tenant) => {
-                        const statusConfig =
-                          STATUS_CONFIG[tenant.status] ||
-                          STATUS_CONFIG.INACTIVE;
-                        const paymentConfig =
-                          PAYMENT_CONFIG[
+                <table className="w-full table-fixed text-left border-collapse">
+                  <colgroup>
+                    <col />
+                    <col className="w-[13%]" />
+                    <col className="w-[13%]" />
+                    <col className="w-[17%]" />
+                    <col className="w-[14%]" />
+                    <col className="w-14" />
+                  </colgroup>
+                  <thead>
+                    <tr className="border-b border-slate-200 dark:border-white/5 bg-slate-50/50 dark:bg-white/5">
+                      <th className={TH_SORT_CLASS} onClick={() => toggleSort("name")}>
+                        <div className="flex items-center gap-2">
+                          Tenant
+                          <ArrowUpDown size={12} className={sortBy === "name" ? "text-primary" : ""} />
+                        </div>
+                      </th>
+                      <th className={TH_CLASS}>Unit</th>
+                      <th className={TH_SORT_CLASS} onClick={() => toggleSort("status")}>
+                        <div className="flex items-center gap-2">
+                          Status
+                          <ArrowUpDown size={12} className={sortBy === "status" ? "text-primary" : ""} />
+                        </div>
+                      </th>
+                      <th className={TH_CLASS}>Payment</th>
+                      <th className={TH_SORT_CLASS} onClick={() => toggleSort("rent")}>
+                        <div className="flex items-center gap-2">
+                          <span className="truncate">{tfDetails.rentColumnTitle}</span>
+                          <ArrowUpDown size={12} className={clsx("shrink-0", sortBy === "rent" ? "text-primary" : "")} />
+                        </div>
+                      </th>
+                      <th className={TH_CLASS}>
+                        <span className="sr-only">Actions</span>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-white/5">
+                    {filteredTenants.map((tenant) => {
+                      const statusConfig =
+                        STATUS_CONFIG[tenant.status] || STATUS_CONFIG.INACTIVE;
+                      const paymentConfig =
+                        PAYMENT_CONFIG[
                           tenant.paymentStatus as keyof typeof PAYMENT_CONFIG
-                          ] || PAYMENT_CONFIG["🟢 Cleared"];
+                        ] || PAYMENT_CONFIG["🟢 Cleared"];
+                      const isOverdue = tenant.paymentStatus === "🔴 Overdue";
+                      const isUnassigned =
+                        !tenant.unitId || tenant.unitId === UNASSIGNED_UNIT;
+                      const rating = tenant.metrics?.rating || 0;
 
-                        return (
-                          <tr
-                            key={tenant.id}
-                            onClick={() => setSelectedTenant(tenant)}
-                            className={clsx(
-                              "hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer",
-                              selectedTenant?.id === tenant.id
-                                ? "bg-primary/5 dark:bg-primary/10 border-l-4 border-primary"
-                                : "border-l-4 border-transparent",
-                            )}
-                          >
-                            <td className={clsx("px-6", "py-5")}>
-                              <div
-                                className={clsx(
-                                  "flex",
-                                  "items-center",
-                                  "gap-4",
+                      return (
+                        <tr
+                          key={tenant.id}
+                          onClick={() => setSelectedTenant(tenant)}
+                          className={clsx(
+                            "hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer",
+                            selectedTenant?.id === tenant.id
+                              ? "bg-primary/5 dark:bg-primary/10 border-l-4 border-primary"
+                              : "border-l-4 border-transparent",
+                          )}
+                        >
+                          {/* Tenant — name, email and rating; long text truncates */}
+                          <td className="px-4 py-4">
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div className="w-10 h-10 shrink-0 rounded-xl bg-slate-100 dark:bg-zinc-800 flex items-center justify-center text-slate-500 overflow-hidden">
+                                {tenant.logoUrl ? (
+                                  <img src={tenant.logoUrl} alt="" className="w-full h-full object-cover" />
+                                ) : (
+                                  <Store size={18} />
                                 )}
-                              >
-                                <div
-                                  className={clsx(
-                                    "w-12",
-                                    "h-12",
-                                    "rounded-xl",
-                                    "bg-slate-100",
-                                    "dark:bg-zinc-800",
-                                    "flex",
-                                    "items-center",
-                                    "justify-center",
-                                    "text-slate-500",
-                                    "overflow-hidden",
-                                  )}
+                              </div>
+                              <div className="min-w-0">
+                                <p
+                                  className="font-bold text-charcoal dark:text-white truncate"
+                                  title={tenant.shopName}
                                 >
-                                  {tenant.logoUrl ? (
-                                    <img
-                                      src={tenant.logoUrl}
-                                      alt=""
-                                      className={clsx(
-                                        "w-full",
-                                        "h-full",
-                                        "object-cover",
-                                      )}
-                                    />
-                                  ) : (
-                                    <Store size={20} />
-                                  )}
-                                </div>
-                                <div>
-                                  <p
-                                    className={clsx(
-                                      "font-bold",
-                                      "text-charcoal",
-                                      "dark:text-white",
-                                    )}
-                                  >
-                                    {tenant.shopName}
-                                  </p>
-                                  <p
-                                    className={clsx(
-                                      "text-[10px]",
-                                      "text-slate-400",
-                                    )}
-                                  >
+                                  {tenant.shopName}
+                                </p>
+                                <div className="flex items-center gap-2 text-[10px] text-slate-400 min-w-0">
+                                  <span className="truncate" title={tenant.user?.email}>
                                     {tenant.user?.email}
-                                  </p>
+                                  </span>
+                                  {rating > 0 && (
+                                    <span className="flex items-center gap-0.5 shrink-0 font-bold text-amber-500">
+                                      <Star size={10} className="fill-current" />
+                                      {rating.toFixed(1)}
+                                    </span>
+                                  )}
                                 </div>
                               </div>
-                            </td>
-                            <td className={clsx("px-6", "py-5")}>
+                            </div>
+                          </td>
+
+                          {/* Unit */}
+                          <td className="px-4 py-4">
+                            {isUnassigned ? (
+                              <span className="inline-flex px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider whitespace-nowrap bg-slate-100 dark:bg-white/5 text-slate-500 border border-slate-200 dark:border-white/10">
+                                Unassigned
+                              </span>
+                            ) : (
                               <span
-                                className={clsx(
-                                  "font-bold",
-                                  "text-charcoal",
-                                  "dark:text-white",
-                                )}
+                                className="block font-bold text-charcoal dark:text-white truncate"
+                                title={tenant.unitId}
                               >
                                 {tenant.unitId}
                               </span>
-                            </td>
-                            <td className={clsx("px-6", "py-5")}>
+                            )}
+                          </td>
+
+                          {/* Status */}
+                          <td className="px-4 py-4">
+                            <span
+                              className={clsx(
+                                "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border whitespace-nowrap",
+                                statusConfig.bg,
+                                statusConfig.text,
+                                statusConfig.border,
+                              )}
+                            >
+                              <span className={clsx("w-1.5 h-1.5 rounded-full shrink-0", statusConfig.color)} />
+                              {tenant.status}
+                            </span>
+                          </td>
+
+                          {/* Payment — status pill with the next due date under it */}
+                          <td className="px-4 py-4">
+                            <div className="flex flex-col items-start gap-1">
                               <span
                                 className={clsx(
-                                  "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest border",
-                                  statusConfig.bg,
-                                  statusConfig.text,
-                                  statusConfig.border,
-                                )}
-                              >
-                                <span
-                                  className={clsx(
-                                    "w-1.5 h-1.5 rounded-full",
-                                    statusConfig.color,
-                                  )}
-                                ></span>
-                                {tenant.status}
-                              </span>
-                            </td>
-                            <td className={clsx("px-6", "py-5")}>
-                              <span
-                                className={clsx(
-                                  "px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-wider border",
+                                  "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border whitespace-nowrap",
                                   paymentConfig.bg,
                                   paymentConfig.text,
                                   paymentConfig.border,
                                 )}
                               >
-                                {tenant.paymentStatus}
+                                <span className={clsx("w-1.5 h-1.5 rounded-full shrink-0", paymentConfig.dot)} />
+                                {paymentConfig.label}
                               </span>
-                            </td>
-                            <td className={clsx("px-6", "py-5")}>
-                              <div
-                                className={clsx(
-                                  "flex items-center gap-1.5 font-black text-[10px] uppercase tracking-[0.15em]",
-                                  tenant.paymentStatus === "🔴 Overdue"
-                                    ? "text-primary"
-                                    : "text-charcoal dark:text-white",
-                                )}
-                              >
-                                {tenant.nextDueDate !== "N/A" && (
+                              {tenant.nextDueDate !== "N/A" && (
+                                <span
+                                  className={clsx(
+                                    "flex items-center gap-1 text-[10px] font-bold whitespace-nowrap",
+                                    isOverdue ? "text-primary" : "text-slate-400",
+                                  )}
+                                >
                                   <Calendar size={10} className="shrink-0" />
-                                )}
-                                {tenant.nextDueDate}
-                              </div>
-                            </td>
-                            <td className={clsx("px-6", "py-5")}>
-                              <div className="flex flex-col">
-                                <span
-                                  className={clsx(
-                                    "font-black text-charcoal dark:text-white text-sm",
-                                  )}
-                                >
-                                  ₱{Math.round((tenant.rentCost || 0) * multiplier).toLocaleString()}
+                                  Due {tenant.nextDueDate}
                                 </span>
-                                {timeframe !== "monthly" && (
-                                  <span className="text-[9px] text-slate-400 font-medium">
-                                    Base: ₱{(tenant.rentCost || 0).toLocaleString()}/mo
-                                  </span>
-                                )}
-                              </div>
-                            </td>
-                            <td className={clsx("px-6", "py-5")}>
-                              <div
-                                className={clsx(
-                                  "flex",
-                                  "items-center",
-                                  "gap-4",
-                                  "text-xs",
-                                  "text-slate-500",
-                                )}
-                              >
-                                <span
-                                  className={clsx(
-                                    "flex",
-                                    "items-center",
-                                    "gap-1",
-                                  )}
-                                >
-                                  <TrendingUp size={12} />{" "}
-                                  {tenant.metrics?.clicks || 0}
+                              )}
+                            </div>
+                          </td>
+
+                          {/* Rent */}
+                          <td className="px-4 py-4">
+                            <div className="flex flex-col">
+                              <span className="font-black text-charcoal dark:text-white text-sm whitespace-nowrap">
+                                ₱{Math.round((tenant.rentCost || 0) * multiplier).toLocaleString()}
+                              </span>
+                              {timeframe !== "monthly" && (
+                                <span className="text-[9px] text-slate-400 font-medium whitespace-nowrap">
+                                  Base: ₱{(tenant.rentCost || 0).toLocaleString()}/mo
                                 </span>
-                                <span
-                                  className={clsx(
-                                    "flex",
-                                    "items-center",
-                                    "gap-1",
-                                  )}
-                                >
-                                  <Star size={12} className="text-amber-500" />{" "}
-                                  {(tenant.metrics?.rating || 0).toFixed(1)}
-                                </span>
-                              </div>
-                            </td>
-                            <td className={clsx("px-6", "py-5", "text-right")}>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSelectedTenant(tenant);
-                                }}
-                                className={clsx(
-                                  "p-2",
-                                  "hover:bg-slate-100",
-                                  "dark:hover:bg-white/10",
-                                  "rounded-lg",
-                                  "transition-colors",
-                                  "text-slate-400",
-                                  "hover:text-primary",
-                                )}
-                              >
-                                <MoreVertical size={18} />
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                              )}
+                            </div>
+                          </td>
+
+                          {/* Actions */}
+                          <td className="px-2 py-4 text-right">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedTenant(tenant);
+                              }}
+                              aria-label={`Open ${tenant.shopName}`}
+                              className="p-2 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors text-slate-400 hover:text-primary"
+                            >
+                              <MoreVertical size={18} />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
 
                 {filteredTenants.length === 0 && (
                   <div className={clsx("py-20", "text-center")}>
@@ -2682,10 +2416,12 @@ export default function TenantMonitoring() {
                   </div>
                 )}
               </div>
-            ) : (
-              /* Grid View */
-              <div
+            )}
+
+            {/* Grid View — also shown instead of the table below the lg breakpoint */}
+            <div
                 className={clsx(
+                  viewMode === "table" && "lg:hidden",
                   "grid",
                   "grid-cols-1",
                   "md:grid-cols-2",
@@ -2874,7 +2610,6 @@ export default function TenantMonitoring() {
                   );
                 })}
               </div>
-            )}
           </>
         )}
 
@@ -3642,7 +3377,10 @@ export default function TenantMonitoring() {
                                               });
                                             }
                                           } catch (e: any) {
-                                            alert(e.message);
+                                            setToast({
+                                              msg: "Error: " + e.message,
+                                              type: "error",
+                                            });
                                           }
                                         }}
                                         className="flex-1 px-3 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-[9px] font-black uppercase tracking-widest shadow-md shadow-emerald-500/20 transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-1.5"
@@ -3656,34 +3394,7 @@ export default function TenantMonitoring() {
                                   inv.status === "OVERDUE") && (
                                     <div className="mt-2 text-right">
                                       <button
-                                        onClick={async () => {
-                                          const refNo = window.prompt(
-                                            "Record Cash Payment\nEnter physical receipt/reference number:",
-                                          );
-                                          if (!refNo) return;
-
-                                          setToast({
-                                            msg: "Recording payment...",
-                                            type: "success",
-                                          });
-                                          const res =
-                                            await recordManualPaymentAction(
-                                              inv.id,
-                                              refNo,
-                                            );
-                                          if (res.success) {
-                                            setToast({
-                                              msg: "Payment physically recorded!",
-                                              type: "success",
-                                            });
-                                            loadTenants();
-                                          } else {
-                                            setToast({
-                                              msg: "Error: " + res.error,
-                                              type: "error",
-                                            });
-                                          }
-                                        }}
+                                        onClick={() => openCashPaymentModal(inv)}
                                         className="px-4 py-2 bg-[#BE1E2D] hover:bg-[#a01825] text-white rounded-lg text-[9px] font-black uppercase tracking-widest shadow-md shadow-red-500/20 transition-all hover:scale-105 active:scale-95 inline-flex items-center gap-1.5"
                                       >
                                         <PhilippinePeso size={12} /> Record Cash
@@ -3949,5 +3660,52 @@ export default function TenantMonitoring() {
         )}
       </div>
     </>
+  );
+}
+
+
+/** Labelled filter dropdown used in the Tenant Monitoring control bar. */
+function FilterSelect({
+  label,
+  value,
+  options,
+  onChange,
+  icon,
+}: {
+  label: string;
+  value: string;
+  options: { value: string; label: string }[];
+  onChange: (value: string) => void;
+  icon?: React.ReactNode;
+}) {
+  const active = value !== "all" && label !== "Period";
+  return (
+    <label
+      className={clsx(
+        "relative flex items-center gap-2 h-10 pl-3.5 pr-9 rounded-xl border cursor-pointer transition-colors",
+        active
+          ? "bg-primary/5 border-primary/30"
+          : "bg-slate-50 dark:bg-zinc-950/50 border-slate-200 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/15",
+      )}
+    >
+      {icon && <span className="text-slate-400">{icon}</span>}
+      <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{label}</span>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        aria-label={label}
+        className={clsx(
+          "appearance-none bg-transparent text-sm font-bold focus:outline-none cursor-pointer",
+          active ? "text-primary" : "text-charcoal dark:text-white",
+        )}
+      >
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+      <ChevronDown size={14} className="absolute right-3 text-slate-400 pointer-events-none" />
+    </label>
   );
 }
