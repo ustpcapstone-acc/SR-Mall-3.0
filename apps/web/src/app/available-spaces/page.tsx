@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { ChatBox } from "@/components/chat-box";
+import { ChatLauncher } from "@/components/chat-launcher";
 import {
   Search,
   SlidersHorizontal,
@@ -15,7 +16,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import Link from "next/link";
-import { getAreaSlots } from "@/app/actions/space-slot";
+import { getPublicAreaSlots } from "@/app/actions/space-slot";
 import { useAuth } from "@/app/providers";
 import clsx from "clsx";
 import { AreaSlot } from "@srmall/database";
@@ -42,7 +43,7 @@ export default function AvailableSpacesPage() {
 
   const fetchSlots = async (silent = false) => {
     if (!silent) setLoading(true);
-    const res = await getAreaSlots();
+    const res = await getPublicAreaSlots();
     if (res.success && res.data) {
       // Filter for Available and Reserved per user preference in public view
       setSlots(res.data.filter(s => s.status === "AVAILABLE" || s.status === "RESERVED"));
@@ -273,6 +274,8 @@ export default function AvailableSpacesPage() {
         isOpen={isLoginModalOpen}
         onClose={() => setIsLoginModalOpen(false)}
       />
+
+      <ChatLauncher hidden={isChatOpen} />
 
       <ChatBox
         isOpen={isChatOpen}

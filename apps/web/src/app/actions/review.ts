@@ -439,11 +439,62 @@ export async function getAllReviewsAction(adminUserId?: string) {
   }
 }
 
+/** Who a moderation decision affects: the review's author and the shop. */
+async function reviewParties(reviewId: string) {
+  const rows = await prisma.$queryRawUnsafe<
+    { userId: string; tenantUserId: string | null; shopName: string | null; reportedAt: Date | null }[]
+  >(
+    `SELECT r."userId", t."userId" AS "tenantUserId", t."shopName", r."reportedAt"
+       FROM "Review" r LEFT JOIN "Tenant" t ON t."id" = r."tenantId" WHERE r."id" = $1`,
+    reviewId,
+  );
+  return rows[0] ?? null;
+}
+
+/** Bell notices after the admin hides / restores / deletes a review or closes a report. */
+async function notifyReviewModeration(
+  parties: Awaited<ReturnType<typeof reviewParties>>,
+  outcome: "hidden" | "restored" | "deleted" | "report-dismissed",
+) {
+  if (!parties) return;
+  const { notify } = await import("@/lib/notify");
+  const shop = parties.shopName || "SR Mall";
+  const wasReported = Boolean(parties.reportedAt);
+
+  if (outcome !== "report-dismissed") {
+    await notify("REVIEW_MODERATION", {
+      recipients: [parties.userId],
+      title:
+        outcome === "restored" ? `Your review of ${shop} is visible again` : `Your review of ${shop} was removed`,
+      message:
+        outcome === "restored"
+          ? "The moderators checked your review and published it again."
+          : "The moderators removed your review because it didn't follow the community guidelines.",
+      link: "/tenant-directory",
+    });
+  }
+
+  if (parties.tenantUserId && (wasReported || outcome === "report-dismissed")) {
+    await notify("REVIEW_MODERATION", {
+      recipients: [parties.tenantUserId],
+      title: outcome === "report-dismissed" ? "Your report was reviewed" : "Your report was upheld",
+      message:
+        outcome === "report-dismissed"
+          ? "The mall office checked the review you reported and decided to keep it published."
+          : outcome === "restored"
+            ? "The mall office reviewed the report and kept the review published."
+            : "The mall office removed the review you reported.",
+      link: "/tenantdashboard/feedback-reviews",
+    });
+  }
+}
+
 /**
  * Admin: toggle spam flag on a review
  */
 export async function markReviewSpamAction(reviewId: string, isSpam: boolean) {
   try {
+    const parties = await reviewParties(reviewId);
     // Flagging hides the review; clearing the flag publishes it again. That
     // keeps every review in exactly one moderation bucket.
     await (prisma as any).review.update({
@@ -455,6 +506,7 @@ export async function markReviewSpamAction(reviewId: string, isSpam: boolean) {
       `UPDATE "Review" SET "reportedAt" = NULL, "reportReason" = NULL WHERE "id" = $1`,
       reviewId,
     );
+    await notifyReviewModeration(parties, isSpam ? "hidden" : "restored");
     revalidatePath("/public-view");
     revalidatePath("/admindashboard/user-management");
     return { success: true };
@@ -518,10 +570,12 @@ export async function approveReviewAction(reviewId: string) {
 
 export async function unpublishReviewAction(reviewId: string) {
   try {
+    const parties = await reviewParties(reviewId);
     await prisma.review.update({
       where: { id: reviewId },
       data: { isApproved: false },
     });
+    await notifyReviewModeration(parties, "hidden");
     revalidatePath("/public-view");
     return { success: true };
   } catch (error) {
@@ -532,7 +586,9 @@ export async function unpublishReviewAction(reviewId: string) {
 
 export async function deleteReviewAction(reviewId: string) {
   try {
+    const parties = await reviewParties(reviewId);
     await prisma.review.delete({ where: { id: reviewId } });
+    await notifyReviewModeration(parties, "deleted");
     revalidatePath("/public-view");
     revalidatePath("/admindashboard");
     return { success: true, message: "Review deleted successfully" };
@@ -748,10 +804,12 @@ export async function reportReviewAction(userId: string, reviewId: string, reaso
 export async function dismissReviewReportAction(adminUserId: string, reviewId: string) {
   try {
     if (!(await requireAdmin(adminUserId))) return { success: false, error: "Admin access required" };
+    const parties = await reviewParties(reviewId);
     await prisma.$executeRawUnsafe(
       `UPDATE "Review" SET "reportedAt" = NULL, "reportReason" = NULL WHERE "id" = $1`,
       reviewId,
     );
+    await notifyReviewModeration(parties, "report-dismissed");
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message };

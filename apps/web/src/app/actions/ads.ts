@@ -1,8 +1,21 @@
 "use server";
 
 import { prisma } from "@srmall/database";
+import { emailBaseUrl } from "@/utils/get-base-url";
 import { revalidatePath } from "next/cache";
 import { getCloudStorageProvider } from "@/lib/cloud-storage";
+
+const PRIORITY_RANK: Record<string, number> = { HIGH: 0, MEDIUM: 1, LOW: 2 };
+
+/** Default banner first, then High → Medium → Low, then newest start date. */
+function sortAds<T extends { isDefault?: boolean; priority?: string; startDate: Date | string }>(ads: T[]): T[] {
+  return [...ads].sort(
+    (a, b) =>
+      Number(!!b.isDefault) - Number(!!a.isDefault) ||
+      (PRIORITY_RANK[a.priority || "MEDIUM"] ?? 1) - (PRIORITY_RANK[b.priority || "MEDIUM"] ?? 1) ||
+      new Date(b.startDate).getTime() - new Date(a.startDate).getTime(),
+  );
+}
 
 // ─── CLOUD STORAGE UPLOAD ───────────────────────────────────────────────────────────────────────────────────────────────────
 
@@ -83,12 +96,11 @@ export async function createMallAd(data: {
 // Debug function to get all ads (Admin use)
 export async function getAllMallAds() {
   try {
-    return await (prisma as any).mallAd.findMany({
+    return sortAds(await (prisma as any).mallAd.findMany({
       where: {
         isGlobal: true,
       },
-      orderBy: [{ isDefault: "desc" }, { priority: "asc" }, { startDate: "desc" }],
-    });
+    }));
   } catch (error) {
     console.error("[GET_ALL_MALL_ADS_ERROR]:", error);
     return [];
@@ -98,7 +110,7 @@ export async function getAllMallAds() {
 export async function getActiveMallAds() {
   try {
     const now = new Date();
-    return await (prisma as any).mallAd.findMany({
+    return sortAds(await (prisma as any).mallAd.findMany({
       where: {
         OR: [
           { isDefault: true },
@@ -109,12 +121,7 @@ export async function getActiveMallAds() {
         ],
         isGlobal: true,
       },
-      orderBy: [
-        { isDefault: "desc" },
-        { priority: "asc" },
-        { startDate: "desc" },
-      ],
-    });
+    }));
   } catch (error) {
     console.error("[GET_ACTIVE_MALL_ADS_ERROR]:", error);
     return [];
@@ -125,7 +132,7 @@ export async function getActiveMallAds() {
 export async function getAllActiveMallAds() {
   try {
     const now = new Date();
-    return await (prisma as any).mallAd.findMany({
+    return sortAds(await (prisma as any).mallAd.findMany({
       where: {
         OR: [
           { isDefault: true },
@@ -135,8 +142,7 @@ export async function getAllActiveMallAds() {
           },
         ],
       },
-      orderBy: [{ isDefault: "desc" }, { priority: "asc" }, { startDate: "desc" }],
-    });
+    }));
   } catch (error) {
     console.error("[GET_ALL_ACTIVE_MALL_ADS_ERROR]:", error);
     return [];
@@ -204,8 +210,12 @@ export async function createTenantPromo(data: {
 export async function updatePromoStatus(
   promoId: string,
   status: "APPROVED" | "REJECTED",
+  reason?: string,
 ) {
   try {
+    const before = await (prisma as any).tenantPromo.findUnique({ where: { id: promoId }, select: { status: true } });
+    const takenDown = status === "REJECTED" && before?.status === "APPROVED";
+    const note = reason?.trim();
     const promo = await (prisma as any).tenantPromo.update({
       where: { id: promoId },
       data: { status },
@@ -234,10 +244,12 @@ export async function updatePromoStatus(
 
       await notify("AD_DECISION", {
         recipients: [tenantUserId],
-        title: isApproved ? "Promo Approved" : "Promo Rejected",
+        title: isApproved ? "Promo Approved" : takenDown ? "Promo Taken Down" : "Promo Rejected",
         message: isApproved
           ? `"${promo.title}" was approved and is live or scheduled for its start date.`
-          : `"${promo.title}" did not meet the campaign guidelines. Check your campaign manager for details.`,
+          : takenDown
+            ? `"${promo.title}" was removed from the site by the mall office.${note ? ` Reason: ${note}` : ""}`
+            : `"${promo.title}" wasn't approved.${note ? ` Reason: ${note}` : " It didn't meet the campaign guidelines."}`,
         link: "/tenantdashboard/ad-promo-manager",
         email: false,
       });
@@ -252,7 +264,7 @@ export async function updatePromoStatus(
           const { sendGmail } = await import("@/lib/gmail");
           await sendGmail({
             to: promo.tenant.user.email,
-            subject: `Campaign Update: Your Promo is ${status}`,
+            subject: `Campaign Update: Your Promo is ${takenDown ? "Taken Down" : status}`,
             html: `
             <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
               <h2 style="color: ${isApproved ? "#10b981" : "#be1e2d"};">Campaign ${status}</h2>
@@ -261,8 +273,9 @@ export async function updatePromoStatus(
               <hr />
               <p><strong>Status:</strong> ${status}</p>
               <hr />
-              <p>${isApproved ? "Your campaign is now live or scheduled for its start date. Good luck with your promotion!" : "Unfortunately, your campaign did not meet our guidelines at this time. Please check your dashboard for details."}</p>
-              <a href="${process.env.NEXT_PUBLIC_APP_URL}/tenantdashboard/ad-promo-manager" style="display: inline-block; padding: 10px 20px; background-color: #334155; color: white; text-decoration: none; border-radius: 5px;">Go to Campaign Manager</a>
+              <p>${isApproved ? "Your campaign is now live or scheduled for its start date. Good luck with your promotion!" : takenDown ? "Your campaign was removed from the site by the mall office." : "Unfortunately, your campaign did not meet our guidelines at this time."}</p>
+              ${note && !isApproved ? `<div style="background:#fef2f2;padding:12px 15px;border-radius:8px;border-left:4px solid #be1e2d;"><strong>Reason:</strong> ${note}</div>` : ""}
+              <a href="${emailBaseUrl()}/tenantdashboard/ad-promo-manager" style="display: inline-block; padding: 10px 20px; background-color: #334155; color: white; text-decoration: none; border-radius: 5px;">Go to Campaign Manager</a>
             </div>
           `,
           });
@@ -278,7 +291,21 @@ export async function updatePromoStatus(
     return { success: true };
   } catch (error) {
     console.error("[UPDATE_PROMO_STATUS_ERROR]:", error);
-    return { success: false };
+    return { success: false, error: "Couldn't update the promo" };
+  }
+}
+
+/** Approved tenant promos that haven't ended (live now or scheduled). */
+export async function getLivePromosAction() {
+  try {
+    return await (prisma as any).tenantPromo.findMany({
+      where: { status: "APPROVED", endDate: { gte: new Date() } },
+      include: { tenant: { select: { shopName: true, unitId: true } } },
+      orderBy: { startDate: "asc" },
+    });
+  } catch (error) {
+    console.error("[GET_LIVE_PROMOS_ERROR]:", error);
+    return [];
   }
 }
 
@@ -311,11 +338,17 @@ export async function getActivePromos(category?: string) {
   }
 }
 
-export async function deletePromo(id: string) {
+export async function deletePromo(id: string, userId?: string) {
   try {
     const promo = await (prisma.tenantPromo as any).findUnique({
       where: { id },
+      include: { tenant: { select: { userId: true } } },
     });
+    if (!promo) return { success: false, error: "This promotion no longer exists." };
+    // A tenant can only delete their own campaigns.
+    if (userId && promo.tenant?.userId !== userId) {
+      return { success: false, error: "You can only delete your own promotions." };
+    }
     if (promo?.storageKey) {
       const storage = getCloudStorageProvider();
       await storage.deleteFile(promo.storageKey);
@@ -323,9 +356,11 @@ export async function deletePromo(id: string) {
 
     await (prisma as any).tenantPromo.delete({ where: { id } });
     revalidatePath("/tenantdashboard/ad-promo-manager");
+    revalidatePath("/public-view");
     return { success: true };
   } catch (error) {
-    return { success: false };
+    console.error("[DELETE_PROMO_ERROR]:", error);
+    return { success: false, error: "Couldn't delete the promotion." };
   }
 }
 
@@ -492,6 +527,22 @@ export async function getApprovedTenantPromos() {
     });
   } catch (error) {
     console.error("[GET_APPROVED_TENANT_PROMOS_ERROR]:", error);
+    return [];
+  }
+}
+
+/** A shop's approved promos that are running now (shop page "Current promos"). */
+export async function getShopActivePromosAction(tenantId: string) {
+  try {
+    if (!tenantId) return [];
+    const now = new Date();
+    return await (prisma as any).tenantPromo.findMany({
+      where: { tenantId, status: "APPROVED", startDate: { lte: now }, endDate: { gte: now } },
+      select: { id: true, title: true, description: true, category: true, mediaType: true, promoImage: true, promoVideo: true, startDate: true, endDate: true },
+      orderBy: { startDate: "desc" },
+    });
+  } catch (error) {
+    console.error("[GET_SHOP_ACTIVE_PROMOS_ERROR]:", error);
     return [];
   }
 }

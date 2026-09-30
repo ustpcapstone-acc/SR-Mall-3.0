@@ -5,8 +5,7 @@ import {
   getAreaSlots,
   upsertAreaSlot,
   deleteAreaSlot,
-  approveReservationAction,
-  rejectReservationAction,
+  getReservedSlotsWithDetailsAction,
 } from "@/app/actions/space-slot";
 import {
   Plus,
@@ -46,6 +45,8 @@ import {
 import clsx from "clsx";
 import SpaceDetailModal from "@/components/space-detail-modal";
 import { toast } from "sonner";
+import { ReservationDecisionModal, type ReservationRow } from "@/components/admin/reservation-decision-modal";
+import { ChatConfirmModal } from "@/components/chat/chat-ui";
 
 // Define the slot type based on Prisma schema
 interface AreaSlot {
@@ -96,8 +97,6 @@ export default function SpaceManagerPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFloor, setSelectedFloor] = useState("ground");
   const [selectedCategory, setSelectedCategory] = useState("all");
-  const [isDragging, setIsDragging] = useState(false);
-  const [draggedSlot, setDraggedSlot] = useState<FloorPlanSlot | null>(null);
   const [showGrid, setShowGrid] = useState(true);
   const [zoomLevel, setZoomLevel] = useState(1);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -107,6 +106,21 @@ export default function SpaceManagerPage() {
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [newFeatureInput, setNewFeatureInput] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  /** Approve / release a reservation through the same modal as Bookings. */
+  const [decision, setDecision] = useState<{ row: ReservationRow; action: "approve" | "reject" } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<FloorPlanSlot | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const openDecision = async (slot: FloorPlanSlot, action: "approve" | "reject") => {
+    // Show the modal right away, then fill in who reserved it and the time left.
+    setDecision({ row: { unit_id: slot.unit_id, sqm_size: slot.sqm_size, base_rent: slot.base_rent, floor: slot.floor }, action });
+    const res = await getReservedSlotsWithDetailsAction();
+    const detail: any = res.success ? res.data?.find((d: any) => d.unit_id === slot.unit_id) : null;
+    if (detail) {
+      setDecision((cur) => (cur && cur.row.unit_id === slot.unit_id ? { ...cur, row: { ...cur.row, ...detail } } : cur));
+    }
+  };
 
   const handleAddFeature = () => {
     if (!newFeatureInput.trim() || !activeSlot) return;
@@ -170,11 +184,20 @@ export default function SpaceManagerPage() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!activeSlot?.unit_id) return;
+    const unitId = activeSlot?.unit_id?.trim();
+    if (!activeSlot || !unitId) {
+      toast.error("Unit ID is required");
+      return;
+    }
+    if (!activeSlot.sqm_size || activeSlot.sqm_size <= 0) {
+      toast.error("Enter the space size in square meters");
+      return;
+    }
 
+    setIsSaving(true);
     const result = await upsertAreaSlot({
       id: activeSlot.id,
-      unit_id: activeSlot.unit_id,
+      unit_id: unitId,
       status: activeSlot.status || "AVAILABLE",
       sqm_size: activeSlot.sqm_size || 0,
       base_rent: activeSlot.base_rent || 0,
@@ -188,60 +211,30 @@ export default function SpaceManagerPage() {
       height: activeSlot.height || 80,
     } as any);
 
+    setIsSaving(false);
     if (result.success) {
+      toast.success(activeSlot.id ? `Unit ${unitId} updated` : `Unit ${unitId} added`);
       setIsEditing(false);
       setActiveSlot(null);
       loadSlots();
+    } else {
+      toast.error(result.error || "Couldn't save the space");
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this space?")) return;
-    const result = await deleteAreaSlot(id);
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    const result = await deleteAreaSlot(deleteTarget.id);
+    setIsDeleting(false);
     if (result.success) {
+      toast.success(`Unit ${deleteTarget.unit_id} deleted`);
+      setDeleteTarget(null);
       loadSlots();
+    } else {
+      toast.error(result.error || "Couldn't delete the space");
+      setDeleteTarget(null);
     }
-  };
-
-  const handleDragStart = (slot: FloorPlanSlot) => {
-    setIsDragging(true);
-    setDraggedSlot(slot);
-  };
-
-  const handleDragEnd = () => {
-    setIsDragging(false);
-    setDraggedSlot(null);
-  };
-
-  const handleDrop = async (e: React.DragEvent, x: number, y: number) => {
-    e.preventDefault();
-    if (!draggedSlot) return;
-
-    const updatedSlots = slots.map((slot) =>
-      slot.id === draggedSlot.id ? { ...slot, x, y } : slot,
-    );
-    setSlots(updatedSlots);
-    const dragged = draggedSlot;
-    handleDragEnd();
-
-    await upsertAreaSlot({
-      id: dragged.id,
-      unit_id: dragged.unit_id,
-      status: dragged.status,
-      sqm_size: dragged.sqm_size,
-      base_rent: dragged.base_rent,
-      space_images: dragged.space_images,
-      floor: dragged.floor,
-      category: dragged.category,
-      x: x,
-      y: y,
-      width: dragged.width,
-      height: dragged.height,
-    } as any);
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -945,15 +938,9 @@ export default function SpaceManagerPage() {
                     return (
                       <div
                         key={slot.id}
-                        draggable
-                        onDragStart={() => handleDragStart(slot)}
-                        onDragEnd={handleDragEnd}
                         className={clsx(
-                          "absolute border-2 rounded-lg cursor-move transition-all hover:shadow-lg group",
+                          "absolute border-2 rounded-lg cursor-pointer transition-all hover:shadow-lg group",
                           getSlotColor(slot.status, slot.category || "retail"),
-                          isDragging &&
-                          draggedSlot?.id === slot.id &&
-                          "opacity-50",
                         )}
                         style={{
                           left: `${slot.x}px`,
@@ -961,8 +948,6 @@ export default function SpaceManagerPage() {
                           width: `${slot.width}px`,
                           height: `${slot.height}px`,
                         }}
-                        onDrop={(e) => handleDrop(e, slot.x || 0, slot.y || 0)}
-                        onDragOver={handleDragOver}
                       >
                         <div
                           className={clsx(
@@ -994,7 +979,9 @@ export default function SpaceManagerPage() {
                                   ? "bg-emerald-500 text-white"
                                   : slot.status === "OCCUPIED"
                                     ? "bg-blue-500 text-white"
-                                    : "bg-amber-500 text-white",
+                                    : slot.status === "RESERVED"
+                                      ? "bg-yellow-400 text-charcoal"
+                                      : "bg-amber-600 text-white",
                               )}
                             >
                               {slot.status}
@@ -1037,22 +1024,10 @@ export default function SpaceManagerPage() {
                           {slot.status === "RESERVED" && (
                             <>
                               <button
-                                onClick={async (e) => {
-                                  e.stopPropagation();
-                                  if (
-                                    confirm(
-                                      `Approve reservation for Unit ${slot.unit_id}?`,
-                                    )
-                                  ) {
-                                    const res = await approveReservationAction(
-                                      slot.unit_id,
-                                    );
-                                    if (res.success) {
-                                      toast.success("Reservation Approved");
-                                      loadSlots();
-                                    }
-                                  }
-                                }}
+                                onClick={(e) => {
+e.stopPropagation();
+void openDecision(slot, "approve");
+}}
                                 className={clsx(
                                   "p-2",
                                   "bg-emerald-500",
@@ -1066,22 +1041,10 @@ export default function SpaceManagerPage() {
                                 <CheckCircle2 size={14} />
                               </button>
                               <button
-                                onClick={async (e) => {
-                                  e.stopPropagation();
-                                  if (
-                                    confirm(
-                                      `Release reservation for Unit ${slot.unit_id}?`,
-                                    )
-                                  ) {
-                                    const res = await rejectReservationAction(
-                                      slot.unit_id,
-                                    );
-                                    if (res.success) {
-                                      toast.warning("Reservation Released");
-                                      loadSlots();
-                                    }
-                                  }
-                                }}
+                                onClick={(e) => {
+e.stopPropagation();
+void openDecision(slot, "reject");
+}}
                                 className={clsx(
                                   "p-2",
                                   "bg-red-500",
@@ -1128,7 +1091,7 @@ export default function SpaceManagerPage() {
                             <Edit3 size={14} className="text-white" />
                           </button>
                           <button
-                            onClick={() => handleDelete(slot.id)}
+                            onClick={() => setDeleteTarget(slot)}
                             className={clsx(
                               "p-2",
                               "bg-red-500/20",
@@ -1295,7 +1258,7 @@ export default function SpaceManagerPage() {
                             Edit
                           </button>
                           <button
-                            onClick={() => handleDelete(slot.id)}
+                            onClick={() => setDeleteTarget(slot)}
                             className={clsx(
                               "p-2",
                               "bg-red-500/20",
@@ -1579,21 +1542,9 @@ export default function SpaceManagerPage() {
                         >
                           {slot.status === "RESERVED" && (
                             <button
-                              onClick={async () => {
-                                if (
-                                  confirm(
-                                    `Approve reservation for Unit ${slot.unit_id}?`,
-                                  )
-                                ) {
-                                  const res = await approveReservationAction(
-                                    slot.unit_id,
-                                  );
-                                  if (res.success) {
-                                    toast.success("Reservation Approved");
-                                    loadSlots();
-                                  }
-                                }
-                              }}
+                              onClick={() => {
+void openDecision(slot, "approve");
+}}
                               className={clsx(
                                 "p-2",
                                 "bg-primary/20",
@@ -1640,7 +1591,7 @@ export default function SpaceManagerPage() {
                             <Edit3 size={18} />
                           </button>
                           <button
-                            onClick={() => handleDelete(slot.id)}
+                            onClick={() => setDeleteTarget(slot)}
                             className={clsx(
                               "p-2",
                               "hover:bg-red-500",
@@ -1881,169 +1832,8 @@ export default function SpaceManagerPage() {
                 </div>
               </div>
 
-              {/* Position & Size (for floor plan) */}
-              <div className="space-y-4">
-                <label
-                  className={clsx(
-                    "text-[10px]",
-                    "font-black",
-                    "text-slate-400",
-                    "uppercase",
-                    "tracking-[0.4em]",
-                  )}
-                >
-                  Floor Plan Position
-                </label>
-                <div className={clsx("grid", "grid-cols-4", "gap-4")}>
-                  <div>
-                    <label
-                      className={clsx(
-                        "text-[9px]",
-                        "text-slate-500",
-                        "uppercase",
-                      )}
-                    >
-                      X
-                    </label>
-                    <input
-                      type="number"
-                      className={clsx(
-                        "w-full",
-                        "p-3",
-                        "bg-slate-50",
-                        "dark:bg-zinc-900",
-                        "border",
-                        "border-slate-200",
-                        "dark:border-white/10",
-                        "rounded-lg",
-                        "text-charcoal",
-                        "dark:text-white",
-                        "focus:outline-none",
-                        "focus:border-primary",
-                        "transition-all",
-                      )}
-                      value={activeSlot?.x || 0}
-                      onChange={(e) =>
-                        setActiveSlot({
-                          ...activeSlot!,
-                          x: parseInt(e.target.value),
-                        })
-                      }
-                    />
-                  </div>
-                  <div>
-                    <label
-                      className={clsx(
-                        "text-[9px]",
-                        "text-slate-500",
-                        "uppercase",
-                      )}
-                    >
-                      Y
-                    </label>
-                    <input
-                      type="number"
-                      className={clsx(
-                        "w-full",
-                        "p-3",
-                        "bg-slate-50",
-                        "dark:bg-zinc-900",
-                        "border",
-                        "border-slate-200",
-                        "dark:border-white/10",
-                        "rounded-lg",
-                        "text-charcoal",
-                        "dark:text-white",
-                        "focus:outline-none",
-                        "focus:border-primary",
-                        "transition-all",
-                      )}
-                      value={activeSlot?.y || 0}
-                      onChange={(e) =>
-                        setActiveSlot({
-                          ...activeSlot!,
-                          y: parseInt(e.target.value),
-                        })
-                      }
-                    />
-                  </div>
-                  <div>
-                    <label
-                      className={clsx(
-                        "text-[9px]",
-                        "text-slate-500",
-                        "uppercase",
-                      )}
-                    >
-                      Width
-                    </label>
-                    <input
-                      type="number"
-                      className={clsx(
-                        "w-full",
-                        "p-3",
-                        "bg-slate-50",
-                        "dark:bg-zinc-900",
-                        "border",
-                        "border-slate-200",
-                        "dark:border-white/10",
-                        "rounded-lg",
-                        "text-charcoal",
-                        "dark:text-white",
-                        "focus:outline-none",
-                        "focus:border-primary",
-                        "transition-all",
-                      )}
-                      value={activeSlot?.width || 120}
-                      onChange={(e) =>
-                        setActiveSlot({
-                          ...activeSlot!,
-                          width: parseInt(e.target.value),
-                        })
-                      }
-                    />
-                  </div>
-                  <div>
-                    <label
-                      className={clsx(
-                        "text-[9px]",
-                        "text-slate-500",
-                        "uppercase",
-                      )}
-                    >
-                      Height
-                    </label>
-                    <input
-                      type="number"
-                      className={clsx(
-                        "w-full",
-                        "p-3",
-                        "bg-slate-50",
-                        "dark:bg-zinc-900",
-                        "border",
-                        "border-slate-200",
-                        "dark:border-white/10",
-                        "rounded-lg",
-                        "text-charcoal",
-                        "dark:text-white",
-                        "focus:outline-none",
-                        "focus:border-primary",
-                        "transition-all",
-                      )}
-                      value={activeSlot?.height || 80}
-                      onChange={(e) =>
-                        setActiveSlot({
-                          ...activeSlot!,
-                          height: parseInt(e.target.value),
-                        })
-                      }
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Physical Specs */}
-              <div className={clsx("grid", "grid-cols-2", "gap-4")}>
+              {/* Physical Specs (rent is private — it's set per tenant in Tenant Monitoring) */}
+              <div className="grid grid-cols-1 gap-4">
                 <div className="space-y-4">
                   <label
                     className={clsx(
@@ -2083,46 +1873,9 @@ export default function SpaceManagerPage() {
                     }
                     required
                   />
-                </div>
-                <div className="space-y-4">
-                  <label
-                    className={clsx(
-                      "text-[10px]",
-                      "font-black",
-                      "text-slate-400",
-                      "uppercase",
-                      "tracking-[0.4em]",
-                    )}
-                  >
-                    Monthly Rent
-                  </label>
-                  <input
-                    type="number"
-                    placeholder="0.00"
-                    className={clsx(
-                      "w-full",
-                      "p-4",
-                      "bg-slate-50",
-                      "dark:bg-zinc-900",
-                      "border",
-                      "border-slate-200",
-                      "dark:border-white/10",
-                      "rounded-xl",
-                      "text-charcoal",
-                      "dark:text-white",
-                      "focus:outline-none",
-                      "focus:border-primary",
-                      "transition-all",
-                    )}
-                    value={activeSlot?.base_rent || ""}
-                    onChange={(e) =>
-                      setActiveSlot({
-                        ...activeSlot!,
-                        base_rent: parseFloat(e.target.value),
-                      })
-                    }
-                    required
-                  />
+                  <p className="text-[11px] text-slate-400">
+                    Rent isn&apos;t shown here or to the public — it&apos;s set per tenant in Tenant Monitoring.
+                  </p>
                 </div>
               </div>
 
@@ -2143,11 +1896,14 @@ export default function SpaceManagerPage() {
                   className={clsx(
                     "grid",
                     "grid-cols-2",
-                    "sm:grid-cols-4",
+                    "sm:grid-cols-3",
                     "gap-3",
                   )}
                 >
-                  {["AVAILABLE", "OCCUPIED", "MAINTENANCE", "RESERVED"].map(
+                  {(activeSlot?.status === "RESERVED"
+                    ? ["AVAILABLE", "OCCUPIED", "MAINTENANCE", "RESERVED"]
+                    : ["AVAILABLE", "OCCUPIED", "MAINTENANCE"]
+                  ).map(
                     (status) => (
                       <button
                         key={status}
@@ -2432,9 +2188,11 @@ export default function SpaceManagerPage() {
                 </button>
                 <button
                   type="submit"
+                  disabled={isSaving}
                   className={clsx(
                     "flex-1",
                     "py-3",
+                    "disabled:opacity-60",
                     "bg-primary",
                     "hover:bg-primary-hover",
                     "text-white",
@@ -2448,12 +2206,36 @@ export default function SpaceManagerPage() {
                     "shadow-primary/30",
                   )}
                 >
-                  Save Changes
+                  {isSaving ? "Saving…" : "Save Changes"}
                 </button>
               </div>
             </form>
           </div>
         </div>
+      )}
+
+      {decision && (
+        <ReservationDecisionModal
+          reservation={decision.row}
+          action={decision.action}
+          onClose={() => setDecision(null)}
+          onDone={loadSlots}
+        />
+      )}
+
+      {deleteTarget && (
+        <ChatConfirmModal
+          title={`Delete Unit ${deleteTarget.unit_id}?`}
+          message={
+            deleteTarget.status === "OCCUPIED" || deleteTarget.status === "RESERVED"
+              ? `This space is ${deleteTarget.status.toLowerCase()} and can't be deleted yet.`
+              : "The space, its photos and features will be removed from the floor plan and Available Spaces. This can't be undone."
+          }
+          confirmLabel="Delete space"
+          busy={isDeleting}
+          onCancel={() => setDeleteTarget(null)}
+          onConfirm={confirmDelete}
+        />
       )}
 
       {/* Space Previews Modal via Eye Click */}

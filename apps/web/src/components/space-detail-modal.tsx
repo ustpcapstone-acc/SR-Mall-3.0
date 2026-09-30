@@ -254,12 +254,14 @@ export default function SpaceDetailModal({
                   <div className="flex items-center gap-3 text-slate-400 dark:text-white/40 mb-2 sm:mb-3 group-hover:text-emerald-500 transition-colors">
                     <CreditCard size={16} className="sm:w-4.5 sm:h-4.5" />
                     <span className="text-[8px] sm:text-[9px] uppercase font-black tracking-[0.2em]">
-                      Base Rent
+                      Rent
                     </span>
                   </div>
-                  <p className="text-2xl sm:text-3xl font-black text-charcoal dark:text-white tracking-tight">
-                    ₱{slot.base_rent.toLocaleString()}
+                  {/* Rent is private — quoted by the leasing team, never shown publicly. */}
+                  <p className="text-lg sm:text-xl font-black text-charcoal dark:text-white tracking-tight">
+                    On request
                   </p>
+                  <p className="text-[11px] text-slate-400 mt-1">Ask the leasing team for a quote.</p>
                 </div>
               </div>
             </div>
@@ -360,10 +362,8 @@ export default function SpaceDetailModal({
                 <dd className="font-bold text-charcoal dark:text-white">{slot.sqm_size} sqm</dd>
               </div>
               <div>
-                <dt className="text-[10px] font-black uppercase tracking-widest text-slate-400">Monthly rent</dt>
-                <dd className="font-bold text-charcoal dark:text-white">
-                  ₱{Number(slot.base_rent || 0).toLocaleString()}
-                </dd>
+                <dt className="text-[10px] font-black uppercase tracking-widest text-slate-400">Rent</dt>
+                <dd className="font-bold text-charcoal dark:text-white">On request</dd>
               </div>
             </dl>
 

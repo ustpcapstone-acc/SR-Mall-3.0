@@ -5,15 +5,14 @@ import {
   X,
   Send,
   Paperclip,
-  Smile,
-  Minimize2,
   MapPin,
   ArrowLeft,
   Search,
   Loader2,
   Ban,
-  Maximize2,
   ExternalLink,
+  Building2,
+  MessageCircle,
 } from "lucide-react";
 import { useAuth } from "@/app/providers";
 import { LoginModal } from "./login-modal";
@@ -42,6 +41,8 @@ import {
 import { formatMessageTime, startsNewDay } from "@/lib/chat-time";
 import { ChatConfirmModal, ChatDaySeparator, UnsendButton } from "@/components/chat/chat-ui";
 import { toast } from "sonner";
+import { timeAgo } from "@/components/notifications/notification-ui";
+import type { MyChatRow } from "@/app/actions/chat-queries";
 
 interface ChatBoxProps {
   isOpen: boolean;
@@ -56,13 +57,35 @@ interface ChatBoxProps {
 /** A shop in the public chat; `id` (tenant id) identifies it exactly. */
 type ChatShop = { id?: string; name: string; logo: string | null };
 
-const DEFAULT_SHOPS = [
-  "Velvet & Vine",
-  "Coffee Culture",
-  "Gadget Sphere",
-  "Prism Fitness",
-  "Modern Home",
-];
+/** Shop logo, falling back to initials when there is none or it fails to load. */
+function ShopAvatar({ name, logo, className = "w-12 h-12" }: { name: string; logo: string | null; className?: string }) {
+  const [broken, setBroken] = useState(false);
+  const initials = name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase() || "?";
+  return (
+    <div className={`${className} rounded-full overflow-hidden bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-sm border border-slate-100 dark:border-white/5 shrink-0`}>
+      {logo && !broken ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={logo} alt="" onError={() => setBroken(true)} className="w-full h-full object-cover" />
+      ) : (
+        initials
+      )}
+    </div>
+  );
+}
+
+function AdminAvatar({ className = "w-12 h-12" }: { className?: string }) {
+  return (
+    <div className={`${className} rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0`}>
+      <Building2 size={20} />
+    </div>
+  );
+}
 
 export const ChatBox = ({
   isOpen,
@@ -81,9 +104,13 @@ export const ChatBox = ({
   );
   const [availableShops, setAvailableShops] = useState<ChatShop[]>([]);
   const [selectedShop, setSelectedShop] = useState<ChatShop>({
-    name: initialShopName || DEFAULT_SHOPS[0],
+    name: initialShopName || "",
     logo: null,
   });
+  /** Recent chats for the list view (last message, time, unread). */
+  const [chatList, setChatList] = useState<MyChatRow[]>([]);
+  /** The open thread's first page has arrived (drives the loading spinner). */
+  const [threadLoaded, setThreadLoaded] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "chat">("list");
   const [searchQuery, setSearchQuery] = useState("");
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -128,7 +155,7 @@ export const ChatBox = ({
           setSelectedShop(match || { name: initialShopName.trim(), logo: null });
         } else if (shops.length > 0) {
           setSelectedShop((prev) => {
-            if (!prev || !prev.name || DEFAULT_SHOPS.includes(prev.name)) {
+            if (!prev || !prev.name) {
               return shops[0];
             }
             const match = shops.find(
@@ -238,6 +265,7 @@ export const ChatBox = ({
 
       setDbMessages((prev) => mergeFetchedMessages(prev, history));
       setHasOlderMessages(history.length >= MESSAGE_PAGE_SIZE);
+      setThreadLoaded(true);
 
       // Remember which conversations are on screen (reference-stable unless
       // the actual set changes, so realtime does not resubscribe per message).
@@ -251,6 +279,7 @@ export const ChatBox = ({
       }
     } catch (err) {
       console.error("Failed to fetch messages:", err);
+      setThreadLoaded(true);
     }
   }, [isOpen, user?.email, recipient, selectedShop.name, selectedShop.id, viewMode]);
 
@@ -315,7 +344,38 @@ export const ChatBox = ({
     setConversationIds([]);
     setHasOlderMessages(true);
     setRealtimeStatus("connecting");
+    setThreadLoaded(false);
   }, [isOpen, recipient, selectedShop.name]);
+
+  // Recent chats for the list: on open, whenever a message arrives, and on return from a thread.
+  const loadChatList = useCallback(async () => {
+    if (!user?.id) return;
+    const { getMyChatListAction } = await import("@/app/actions/chat-queries");
+    setChatList(await getMyChatListAction(user.id));
+  }, [user?.id]);
+  useEffect(() => {
+    if (!isOpen || viewMode !== "list" || !isAuthenticated) return;
+    void loadChatList();
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const unsubscribe = subscribeToInbox(() => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => void loadChatList(), 500);
+    });
+    return () => {
+      if (timer) clearTimeout(timer);
+      unsubscribe();
+    };
+  }, [isOpen, viewMode, isAuthenticated, loadChatList]);
+
+  // Esc closes the chat box (not while the image viewer is open).
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !lightboxImageUrl) onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [isOpen, lightboxImageUrl, onClose]);
 
   // Supabase Realtime: exactly one channel per conversation, removed when the
   // conversation changes or the widget unmounts.
@@ -604,184 +664,198 @@ export const ChatBox = ({
     <>
       <div className="fixed inset-x-0 bottom-0 sm:inset-auto sm:bottom-32 sm:right-10 z-[100] w-full h-[85vh] sm:w-[400px] sm:h-[600px] bg-white dark:bg-zinc-900 rounded-t-[2rem] sm:rounded-[2.5rem] shadow-2xl border-0 sm:border border-slate-100 dark:border-white/5 flex flex-col overflow-hidden animate-slide-up">
         {/* Header */}
-        <div className="p-6 bg-primary flex items-center justify-between text-white shadow-md z-10 transition-all">
-          <div className="flex items-center gap-3 sm:gap-4">
+        <div className="px-5 py-4 bg-primary flex items-center justify-between text-white shadow-md z-10">
+          <div className="flex items-center gap-3 min-w-0">
             {viewMode === "chat" && (
               <button
+                type="button"
                 onClick={() => setViewMode("list")}
-                className="p-1 hover:bg-white/20 rounded-full transition-colors active:scale-95 mr-1"
+                aria-label="Back to chats"
+                className="p-1.5 -ml-1 hover:bg-white/20 rounded-full transition-colors active:scale-95"
               >
                 <ArrowLeft size={20} />
               </button>
             )}
-            <div className="relative">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center overflow-hidden font-black text-lg sm:text-xl shadow-inner">
-                {viewMode === "list" && isAuthenticated && user?.avatarUrl ? (
-                  <img
-                    src={user.avatarUrl}
-                    alt="Profile"
-                    className="w-full h-full object-cover"
-                  />
-                ) : viewMode === "chat" && recipient === "shop" ? (
-                  selectedShop.logo ? (
-                    <img
-                      src={selectedShop.logo}
-                      alt="Shop"
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    selectedShop.name.substring(0, 1).toUpperCase()
-                  )
+            <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center overflow-hidden font-black text-lg shrink-0">
+              {viewMode === "chat" ? (
+                recipient === "admin" ? (
+                  <Building2 size={20} />
+                ) : selectedShop.logo ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={selectedShop.logo} alt="" className="w-full h-full object-cover" />
                 ) : (
-                  "S"
-                )}
-              </div>
-              <div className="absolute -bottom-1 -right-1 w-3 h-3 sm:w-4 sm:h-4 bg-green-400 rounded-full border-2 border-primary animate-pulse"></div>
+                  (selectedShop.name || "?").charAt(0).toUpperCase()
+                )
+              ) : isAuthenticated && user?.avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={user.avatarUrl} alt="" className="w-full h-full object-cover" />
+              ) : isAuthenticated ? (
+                (user?.name || user?.email || "?").charAt(0).toUpperCase()
+              ) : (
+                <MessageCircle size={20} />
+              )}
             </div>
-            <div className="flex flex-col">
-              <h3 className="font-bold text-xs sm:text-sm tracking-tight truncate max-w-[150px]">
-                {viewMode === "chat" && recipient === "shop"
-                  ? selectedShop.name
-                  : viewMode === "list" && isAuthenticated
-                    ? `Hi, ${user?.name?.split(" ")[0]}`
-                    : "Mall Messenger"}
+            <div className="flex flex-col min-w-0">
+              <h3 className="font-bold text-sm tracking-tight truncate max-w-[220px]">
+                {viewMode === "chat"
+                  ? recipient === "admin"
+                    ? "Mall Administration"
+                    : selectedShop.name
+                  : isAuthenticated
+                    ? `Hi, ${(user?.name || "there").split(" ")[0]} 👋`
+                    : "SR Mall Messages"}
               </h3>
-              <span className="text-[9px] sm:text-[10px] font-bold text-white/80 uppercase tracking-widest">
-                {viewMode === "chat" ? "Active Conversation" : "Live Connect"}
+              <span className="text-[10px] font-bold text-white/80 uppercase tracking-widest truncate">
+                {viewMode === "chat"
+                  ? recipient === "admin"
+                    ? "Replies within 12–24 hours"
+                    : "Shop chat"
+                  : isUserBlocked
+                    ? "Account suspended"
+                    : "Messages"}
               </span>
             </div>
           </div>
-          <div className="flex items-center gap-1">
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-white/20 rounded-full transition-colors active:scale-95"
-            >
-              <Minimize2 size={18} />
-            </button>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-white/20 rounded-full transition-colors active:scale-95"
-            >
-              <X size={18} />
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close chat"
+            title="Close (Esc)"
+            className="p-2 hover:bg-white/20 rounded-full transition-colors active:scale-95 shrink-0"
+          >
+            <X size={18} />
+          </button>
         </div>
 
         {viewMode === "list" ? (
           <div className="flex-1 overflow-y-auto bg-slate-50 dark:bg-black/20 custom-scrollbar">
             {isAuthenticated ? (
-              <div className="p-3 sm:p-4 space-y-2">
-                <div className="mx-2 mb-6 p-4 bg-white dark:bg-zinc-800 rounded-2xl border border-slate-100 dark:border-white/5 flex items-center gap-4 shadow-sm">
-                  <div className="w-12 h-12 rounded-xl overflow-hidden bg-primary/10 flex items-center justify-center shrink-0">
-                    {user?.avatarUrl ? (
-                      <img
-                        src={user.avatarUrl}
-                        alt={user.name}
-                        className="w-full h-full object-cover"
+              (() => {
+                const q = searchQuery.trim().toLowerCase();
+                const recentKeys = new Set(chatList.map((c) => c.key));
+                const recent = chatList.filter((c) => !q || c.name.toLowerCase().includes(q));
+                const adminMatches = !q || "mall administration admin booking support help space".includes(q);
+                const showAdminStarter = !recentKeys.has("admin") && adminMatches;
+                const otherShops = availableShops
+                  .filter((s) => !(s.id && recentKeys.has(s.id)))
+                  .filter((s) => !q || s.name.toLowerCase().includes(q))
+                  .sort((a, b) => a.name.localeCompare(b.name));
+                const openRow = (row: MyChatRow) => {
+                  if (row.kind === "admin") {
+                    setRecipient("admin");
+                  } else {
+                    setRecipient("shop");
+                    const match = availableShops.find((s) => s.id === row.key);
+                    setSelectedShop(match || { id: row.key, name: row.name, logo: row.logo });
+                  }
+                  setViewMode("chat");
+                };
+                return (
+                  <div className="p-3 sm:p-4 space-y-5">
+                    <div className="relative">
+                      <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                      <input
+                        suppressHydrationWarning
+                        type="text"
+                        placeholder="Search shops or admin…"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full bg-white dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl py-2.5 pl-9 pr-3 text-xs font-medium text-charcoal dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-primary shadow-sm transition-all focus:ring-2 focus:ring-primary/20"
                       />
-                    ) : (
-                      <span className="text-lg font-black text-primary">
-                        {user?.name?.substring(0, 1).toUpperCase()}
-                      </span>
+                    </div>
+
+                    {/* Recent chats (Mall Administration is always offered first) */}
+                    {(recent.length > 0 || showAdminStarter) && (
+                      <section className="space-y-2">
+                        <h4 className="px-1 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Recent chats</h4>
+                        {showAdminStarter && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setRecipient("admin");
+                              setViewMode("chat");
+                            }}
+                            className="w-full text-left flex items-center gap-3 p-3 bg-white dark:bg-zinc-800 rounded-2xl hover:shadow-md transition-all border border-slate-100 dark:border-white/5"
+                          >
+                            <AdminAvatar />
+                            <span className="flex-1 min-w-0">
+                              <span className="block font-bold text-sm text-charcoal dark:text-white">Mall Administration</span>
+                              <span className="block text-xs text-slate-500 truncate">Bookings, spaces & help</span>
+                            </span>
+                          </button>
+                        )}
+                        {recent.map((row) => {
+                          const unread = row.unread > 0;
+                          return (
+                            <button
+                              key={row.key}
+                              type="button"
+                              onClick={() => openRow(row)}
+                              className={`w-full text-left flex items-center gap-3 p-3 rounded-2xl hover:shadow-md transition-all border ${
+                                unread
+                                  ? "bg-primary/[0.05] border-primary/20"
+                                  : "bg-white dark:bg-zinc-800 border-slate-100 dark:border-white/5"
+                              }`}
+                            >
+                              {row.kind === "admin" ? <AdminAvatar /> : <ShopAvatar name={row.name} logo={row.logo} />}
+                              <span className="flex-1 min-w-0">
+                                <span className="flex items-center justify-between gap-2">
+                                  <span className={`text-sm text-charcoal dark:text-white truncate ${unread ? "font-black" : "font-bold"}`}>
+                                    {row.name}
+                                  </span>
+                                  <span className={`text-[10px] font-bold shrink-0 ${unread ? "text-primary" : "text-slate-400"}`}>
+                                    {timeAgo(row.lastAt)}
+                                  </span>
+                                </span>
+                                <span className="flex items-center justify-between gap-2 mt-0.5">
+                                  <span className={`text-xs truncate ${unread ? "text-charcoal dark:text-white font-semibold" : "text-slate-500"}`}>
+                                    {row.fromMe ? "You: " : ""}
+                                    {row.lastMessage || "Photo"}
+                                  </span>
+                                  {unread && (
+                                    <span className="min-w-[1.25rem] h-5 px-1.5 rounded-full bg-primary text-white text-[10px] font-black flex items-center justify-center shrink-0">
+                                      {row.unread > 9 ? "9+" : row.unread}
+                                    </span>
+                                  )}
+                                </span>
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </section>
+                    )}
+
+                    {/* Everyone else you can message */}
+                    {otherShops.length > 0 && (
+                      <section className="space-y-2">
+                        <h4 className="px-1 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">All shops</h4>
+                        {otherShops.map((shop) => (
+                          <button
+                            key={shop.id || shop.name}
+                            type="button"
+                            onClick={() => {
+                              setRecipient("shop");
+                              setSelectedShop(shop);
+                              setViewMode("chat");
+                            }}
+                            className="w-full text-left flex items-center gap-3 p-3 bg-white dark:bg-zinc-800 rounded-2xl hover:shadow-md transition-all border border-slate-100 dark:border-white/5"
+                          >
+                            <ShopAvatar name={shop.name} logo={shop.logo} />
+                            <span className="flex-1 min-w-0">
+                              <span className="block font-bold text-sm text-charcoal dark:text-white truncate">{shop.name}</span>
+                              <span className="block text-xs text-slate-400">Start a conversation</span>
+                            </span>
+                          </button>
+                        ))}
+                      </section>
+                    )}
+
+                    {recent.length === 0 && !showAdminStarter && otherShops.length === 0 && (
+                      <p className="py-10 text-center text-sm text-slate-400">No shops match “{searchQuery}”.</p>
                     )}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-charcoal dark:text-white truncate">
-                      {user?.name}
-                    </p>
-                    <p className="text-[10px] font-medium text-slate-400 truncate uppercase tracking-tight">
-                      {isUserBlocked ? (
-                        <span className="text-red-500 font-bold">Suspended Account</span>
-                      ) : (
-                        "Authenticated Customer"
-                      )}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="px-2 mb-4 mt-1 flex flex-col gap-3">
-                  <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                    Active Channels
-                  </h4>
-                  <div className="relative">
-                    <Search
-                      size={14}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-                    />
-                    <input
-                      suppressHydrationWarning
-                      type="text"
-                      placeholder="Search stores or admin..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full bg-white dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl py-2.5 pl-9 pr-3 text-xs font-medium text-charcoal dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-primary shadow-sm transition-all focus:ring-2 focus:ring-primary/20"
-                    />
-                  </div>
-                </div>
-
-                {/* Admin Channel */}
-                {(!searchQuery ||
-                  "mall administration booking support admin".includes(
-                    searchQuery.toLowerCase(),
-                  )) && (
-                  <div
-                    onClick={() => {
-                      setRecipient("admin");
-                      setViewMode("chat");
-                    }}
-                    className="flex items-center gap-4 p-4 bg-white dark:bg-zinc-800 rounded-xl hover:shadow-md cursor-pointer transition-all border border-slate-100 dark:border-white/5"
-                  >
-                    <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold">
-                      MA
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-bold text-sm text-charcoal dark:text-white">
-                        Mall Administration
-                      </h4>
-                      <p className="text-xs text-slate-500 font-medium">
-                        Booking & Support Inquiries
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Tenant Channels */}
-                {availableShops
-                  .filter((shop) =>
-                    shop.name.toLowerCase().includes(searchQuery.toLowerCase()),
-                  )
-                  .map((shop) => (
-                    <div
-                      key={shop.name}
-                      onClick={() => {
-                        setRecipient("shop");
-                        setSelectedShop(shop);
-                        setViewMode("chat");
-                      }}
-                      className="flex items-center gap-4 p-4 bg-white dark:bg-zinc-800 rounded-xl hover:shadow-md cursor-pointer transition-all border border-slate-100 dark:border-white/5"
-                    >
-                      <div className="w-12 h-12 rounded-full overflow-hidden bg-blue-500/10 text-blue-500 flex items-center justify-center font-bold border border-slate-100 dark:border-white/5">
-                        {shop.logo ? (
-                          <img
-                            src={shop.logo}
-                            alt="Logo"
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          shop.name.substring(0, 2).toUpperCase()
-                        )}
-                      </div>
-                      <div className="flex-1 overflow-hidden">
-                        <h4 className="font-bold text-sm text-charcoal dark:text-white truncate">
-                          {shop.name}
-                        </h4>
-                        <p className="text-xs text-slate-500 font-medium">
-                          Tenant Support
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-              </div>
+                );
+              })()
             ) : (
               <div className="h-full flex flex-col items-center justify-center p-6 text-center top-0 left-0 right-0 bottom-0 absolute bg-white/50 dark:bg-zinc-900/50 backdrop-blur-sm z-10 w-full">
                 <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
@@ -822,15 +896,29 @@ export const ChatBox = ({
               onScroll={handleScroll}
               className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 custom-scrollbar bg-slate-50/50 dark:bg-black/20"
             >
-              <div className="flex flex-col items-start animate-fade-in">
-                <div className="max-w-[85%] rounded-3xl px-5 py-3.5 shadow-sm text-sm font-medium leading-relaxed bg-white dark:bg-zinc-800 text-charcoal dark:text-slate-300 rounded-tl-sm border border-slate-100 dark:border-white/5">
-                  {isAuthenticated
-                    ? `Welcome back ${user?.name || ""}! How can we help you access ${
-                        recipient === "admin" ? "Mall Administration" : selectedShop.name
-                      }?`
-                    : `Welcome to SR Mall. Login to start a conversation with Mall Admin or Tenants.`}
+              {isAuthenticated && !threadLoaded && dbMessages.length === 0 ? (
+                <div className="h-full flex items-center justify-center py-16">
+                  <Loader2 size={22} className="animate-spin text-primary" />
                 </div>
-              </div>
+              ) : dbMessages.length === 0 ? (
+                <div className="flex flex-col items-center text-center py-12 px-6 gap-3 animate-fade-in">
+                  {recipient === "admin" ? (
+                    <AdminAvatar className="w-16 h-16" />
+                  ) : (
+                    <ShopAvatar name={selectedShop.name || "?"} logo={selectedShop.logo} className="w-16 h-16" />
+                  )}
+                  <p className="text-sm font-bold text-charcoal dark:text-white">
+                    {isAuthenticated
+                      ? `Say hi to ${recipient === "admin" ? "Mall Administration" : selectedShop.name} 👋`
+                      : "Sign in to start chatting"}
+                  </p>
+                  <p className="text-xs text-slate-400 max-w-[240px]">
+                    {recipient === "admin"
+                      ? "Ask about space bookings, events, lost & found or anything about the mall."
+                      : "Ask about products, prices, stock or opening hours."}
+                  </p>
+                </div>
+              ) : null}
 
               {dbMessages.map((msg: any, index: number) => {
                 const isUserSender =

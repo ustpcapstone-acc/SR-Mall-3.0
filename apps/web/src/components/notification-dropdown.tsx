@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import clsx from "clsx";
 import { Bell, CheckCheck, Settings, X } from "lucide-react";
 import { toast } from "sonner";
@@ -15,15 +15,17 @@ import {
 import { getNotificationRoute } from "@/lib/notification-routes";
 import { notificationSettingsHref, notificationsPageHref } from "@/lib/notification-types";
 import { useLiveNotifications } from "@/lib/notification-live";
-import { setChatNavigator } from "@/lib/chat-unread";
+import { applyTitle, openUnreadChat, setChatNavigator, useChatUnread } from "@/lib/chat-unread";
+import type { UnreadChat } from "@/app/actions/chat-queries";
 import { NotificationIcon, openChatFromRoute, timeAgo } from "@/components/notifications/notification-ui";
 
 const BELL_LIMIT = 10;
 
 /**
- * The bell in the admin, tenant and public navbars — system alerts only
- * (reservations, payments, reviews…). Chat messages are left out on purpose:
- * the Messages badges in the sidebars / chat launcher cover them.
+ * The bell in the admin, tenant and public navbars. One list, newest first:
+ *  - alerts (reservations, payments, reviews, applications…)
+ *  - unread chats, one row per contact ("Demo Shop · 2 new messages"), from the
+ *    live chat-unread store — the same count as the sidebar / launcher badges.
  */
 export default function NotificationDropdown({ className = "" }: { className?: string }) {
   const { user } = useAuth();
@@ -31,6 +33,8 @@ export default function NotificationDropdown({ className = "" }: { className?: s
   const [isOpen, setIsOpen] = useState(false);
   const [items, setItems] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const chats = useChatUnread(user?.id);
+  const pathname = usePathname();
 
   const load = useCallback(async () => {
     if (!user?.id) return;
@@ -63,6 +67,11 @@ export default function NotificationDropdown({ className = "" }: { className?: s
     setChatNavigator((href) => router.push(href));
     return () => setChatNavigator(null);
   }, [router]);
+  // Keep "(n)" in the browser tab title after page changes.
+  useEffect(() => {
+    const t = setTimeout(applyTitle, 50);
+    return () => clearTimeout(t);
+  }, [pathname, chats.total]);
 
   // Close on Escape
   useEffect(() => {
@@ -96,8 +105,18 @@ export default function NotificationDropdown({ className = "" }: { className?: s
     router.push(target);
   };
 
+  const openChat = (chat: UnreadChat) => {
+    setIsOpen(false);
+    openUnreadChat(chat);
+  };
+
   if (!user) return null;
-  const badge = unreadCount;
+  const badge = unreadCount + chats.total;
+  // Chats and alerts in one timeline, newest first.
+  const rows: ({ kind: "chat"; at: string; chat: UnreadChat } | { kind: "alert"; at: string; n: NotificationItem })[] = [
+    ...chats.items.map((chat) => ({ kind: "chat" as const, at: chat.lastAt, chat })),
+    ...items.map((n) => ({ kind: "alert" as const, at: n.createdAt, n })),
+  ].sort((a, b) => (a.at < b.at ? 1 : -1));
 
   return (
     <div className={`relative ${className}`}>
@@ -169,15 +188,40 @@ export default function NotificationDropdown({ className = "" }: { className?: s
             </div>
 
             <div className="max-h-[26rem] overflow-y-auto">
-              {items.length === 0 ? (
+              {rows.length === 0 ? (
                 <div className="px-6 py-12 text-center">
                   <Bell className="w-8 h-8 text-slate-300 mx-auto mb-3" />
                   <p className="text-sm font-bold text-charcoal dark:text-white">You&apos;re all caught up</p>
-                  <p className="text-xs text-slate-400 mt-1">New alerts will appear here.</p>
+                  <p className="text-xs text-slate-400 mt-1">New alerts and messages will appear here.</p>
                 </div>
               ) : (
                 <ul className="divide-y divide-slate-100 dark:divide-white/5">
-                  {items.map((n) => (
+                  {rows.map((row) =>
+                    row.kind === "chat" ? (
+                      <li key={`chat-${row.chat.key}`}>
+                        <button
+                          type="button"
+                          onClick={() => openChat(row.chat)}
+                          className="w-full text-left flex items-start gap-3 px-5 py-4 transition-colors bg-primary/[0.04] hover:bg-slate-50 dark:hover:bg-zinc-800/60"
+                        >
+                          <span className="mt-0.5">
+                            <NotificationIcon type="MESSAGE" size={16} />
+                          </span>
+                          <span className="flex-1 min-w-0">
+                            <span className="block text-sm font-bold text-charcoal dark:text-white truncate">
+                              {row.chat.name} · {row.chat.unread} new message{row.chat.unread === 1 ? "" : "s"}
+                            </span>
+                            <span className="block text-xs text-slate-500 line-clamp-2 mt-0.5">{row.chat.preview}</span>
+                            <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1.5">
+                              {timeAgo(row.chat.lastAt)} · Tap to reply
+                            </span>
+                          </span>
+                          <span className="mt-1.5 w-2 h-2 rounded-full bg-primary shrink-0" aria-label="Unread" />
+                        </button>
+                      </li>
+                    ) : (() => {
+                    const n = row.n;
+                    return (
                     <li key={n.id}>
                       <button
                         type="button"
@@ -202,7 +246,9 @@ export default function NotificationDropdown({ className = "" }: { className?: s
                         {!n.isRead && <span className="mt-1.5 w-2 h-2 rounded-full bg-primary shrink-0" aria-label="Unread" />}
                       </button>
                     </li>
-                  ))}
+                    );
+                    })(),
+                  )}
                 </ul>
               )}
             </div>

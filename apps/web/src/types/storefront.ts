@@ -22,6 +22,16 @@ export interface DigitalStorefront {
   rent_cost?: number; // Monthly rent cost
   avgRating?: number; // Average reputation score
   reviewCount?: number; // Total number of approved reviews
+  floor?: string | null; // Floor of the unit ("ground" | "first" | "second")
+  /** The approved promo running right now (shown on the directory card). */
+  activePromo?: {
+    id: string;
+    title: string;
+    mediaType: "IMAGE" | "VIDEO";
+    image: string | null;
+    video: string | null;
+    endDate: string;
+  } | null;
   createdAt?: Date;
   updatedAt?: Date;
 }

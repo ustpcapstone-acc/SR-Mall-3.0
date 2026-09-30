@@ -1,6 +1,7 @@
 "use server";
 
 import { prisma } from "@srmall/database";
+import { emailBaseUrl } from "@/utils/get-base-url";
 import { safeUserSelect } from "@/lib/user-select";
 import { revalidatePath } from "next/cache";
 
@@ -57,6 +58,15 @@ export async function submitInquiryAction(data: {
       link: "/admindashboard/bookings?tab=event",
     });
 
+    // Bell notice for the person who submitted it (the email below is the bespoke one).
+    await notify("EVENT_INQUIRY_UPDATE", {
+      recipients: [data.userId],
+      title: `Event inquiry received · ${data.eventType}`,
+      message: `We got your inquiry for ${new Date(data.eventDate).toLocaleDateString()} at ${data.eventTime}. The events team replies within 12–24 hours.`,
+      link: "/public-view?chat=open&recipient=admin",
+      email: false,
+    });
+
     // Transactional confirmation to the person who submitted the inquiry
     if (user && user.email) {
       try {
@@ -74,7 +84,7 @@ export async function submitInquiryAction(data: {
               <p><strong>Scheduled Time:</strong> ${data.eventTime}</p>
               <hr />
               <p>Our leasing and events team will review your request and get back to you within 12-24 hours. You can monitor the status of your inquiry in your account dashboard.</p>
-              <a href="${process.env.NEXT_PUBLIC_APP_URL}/public-view?recipient=admin" style="display: inline-block; padding: 10px 20px; background-color: #be1e2d; color: white; text-decoration: none; border-radius: 5px;">Open Messenger</a>
+              <a href="${emailBaseUrl()}/public-view?recipient=admin" style="display: inline-block; padding: 10px 20px; background-color: #be1e2d; color: white; text-decoration: none; border-radius: 5px;">Open Messenger</a>
             </div>
           `,
         });
@@ -168,6 +178,30 @@ export async function updateInquiryStatusAction(
       });
     }
 
+    // Bell notice for the customer (approved / declined / expired after 72h).
+    if (inquiry.user) {
+      const { notify } = await import("@/lib/notify");
+      const when = new Date(inquiry.eventDate).toLocaleDateString();
+      const expired = feedback === AUTO_REJECT_REASON;
+      await notify("EVENT_INQUIRY_UPDATE", {
+        recipients: [inquiry.user.id],
+        title:
+          status === "ACCEPTED"
+            ? `Event inquiry approved ✅ · ${inquiry.eventType}`
+            : expired
+              ? `Event inquiry expired · ${inquiry.eventType}`
+              : `Event inquiry declined · ${inquiry.eventType}`,
+        message:
+          status === "ACCEPTED"
+            ? `Your ${inquiry.eventType} on ${when} was approved. Our team will contact you to finalize the details.`
+            : expired
+              ? `Your ${inquiry.eventType} inquiry for ${when} wasn't reviewed within 3 days and was closed. You're welcome to submit a new one.`
+              : `Your ${inquiry.eventType} inquiry for ${when} was declined.${feedback ? ` Admin note: ${feedback}` : ""}`,
+        link: "/public-view?chat=open&recipient=admin",
+        email: false,
+      });
+    }
+
     // Gmail Notification to User about Approval/Rejection
     if (inquiry.user && inquiry.user.email) {
       try {
@@ -185,7 +219,7 @@ export async function updateInquiryStatusAction(
               ${feedback ? `<div style="background: #f8fafc; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid ${isApproved ? "#10b981" : "#be1e2d"};"><strong>Admin Feedback:</strong> ${feedback}</div>` : ""}
               <hr />
               <p>${isApproved ? "Our team will contact you shortly to finalize the details and logistics." : "If you have questions regarding this decision, please reach out to us via the mall messenger."}</p>
-              <a href="${process.env.NEXT_PUBLIC_APP_URL}/public-view?recipient=admin" style="display: inline-block; padding: 10px 20px; background-color: #334155; color: white; text-decoration: none; border-radius: 5px;">View Message Thread</a>
+              <a href="${emailBaseUrl()}/public-view?recipient=admin" style="display: inline-block; padding: 10px 20px; background-color: #334155; color: white; text-decoration: none; border-radius: 5px;">View Message Thread</a>
             </div>
           `,
         });
@@ -254,12 +288,24 @@ export async function processExpiredEventBookingsAction() {
   }
 }
 
+/**
+ * Start of today in Philippine time (UTC+8), as a UTC instant. An event stays
+ * "upcoming" through the whole of its event day, then drops off the site.
+ */
+function startOfTodayPH() {
+  const PH_OFFSET_MS = 8 * 60 * 60 * 1000;
+  const ph = new Date(Date.now() + PH_OFFSET_MS);
+  return new Date(Date.UTC(ph.getUTCFullYear(), ph.getUTCMonth(), ph.getUTCDate()) - PH_OFFSET_MS);
+}
+
+/** Public "Upcoming Events" slider: approved, has an image, and not over yet. */
 export async function getApprovedEventsWithImagesAction() {
   try {
     const events = await prisma.eventInquiry.findMany({
       where: {
         status: "ACCEPTED",
-        imageUrl: { not: null }
+        imageUrl: { not: null },
+        eventDate: { gte: startOfTodayPH() },
       },
       orderBy: {
         eventDate: "asc",
@@ -268,6 +314,32 @@ export async function getApprovedEventsWithImagesAction() {
     return { success: true, data: events };
   } catch (error) {
     console.error("Failed to get approved events:", error);
+    return { success: false, data: [] };
+  }
+}
+
+/**
+ * Admin CMS: every approved event — with or without an image (so one can be
+ * uploaded) — split into upcoming (shown publicly) and past (hidden).
+ */
+export async function getAdminEventsAction() {
+  try {
+    const cutoff = startOfTodayPH();
+    const events = await prisma.eventInquiry.findMany({
+      where: { status: "ACCEPTED" },
+      orderBy: { eventDate: "asc" },
+    });
+    return {
+      success: true,
+      data: events.map((ev) => ({
+        ...ev,
+        isPast: new Date(ev.eventDate) < cutoff,
+        // Shown on the public page only when upcoming and it has an image.
+        isPublic: new Date(ev.eventDate) >= cutoff && !!ev.imageUrl,
+      })),
+    };
+  } catch (error) {
+    console.error("Failed to get admin events:", error);
     return { success: false, data: [] };
   }
 }

@@ -6,6 +6,7 @@ import { Footer } from "@/components/footer";
 import { ProductCard } from "@/components/product-card";
 import { ProductDetailModal } from "@/components/product-detail-modal";
 import { ChatBox } from "@/components/chat-box";
+import { ChatLauncher } from "@/components/chat-launcher";
 import {
   Search,
   SlidersHorizontal,
@@ -379,6 +380,8 @@ export default function AllProductsPage() {
           setSelectedProduct(null);
         }}
       />
+
+      <ChatLauncher hidden={isChatOpen} />
 
       <ChatBox
         isOpen={isChatOpen}

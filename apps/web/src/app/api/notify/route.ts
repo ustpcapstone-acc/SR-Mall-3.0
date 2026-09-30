@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@srmall/database';
-import { getBaseUrl } from '@/utils/get-base-url';
+import { emailBaseUrl } from '@/utils/get-base-url';
 import { sendGmail } from '@/lib/gmail';
 
 // Email Template Generator
@@ -118,7 +118,8 @@ export async function POST(req: Request) {
     const payload: NotifyPayload = await req.json();
     const { type, email, data } = payload;
 
-    const appUrl = await getBaseUrl();
+    // Links in these emails open the live site (see EMAIL_BASE_URL).
+    const appUrl = emailBaseUrl();
     const tenantPortalUrl = `${appUrl}/tenantdashboard/lease-payments`;
 
     let options: any = { to: email };

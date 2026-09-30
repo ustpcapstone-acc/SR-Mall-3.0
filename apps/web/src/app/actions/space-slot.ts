@@ -1,6 +1,7 @@
 "use server";
 
 import { prisma } from "@srmall/database";
+import { emailBaseUrl } from "@/utils/get-base-url";
 import { revalidatePath } from "next/cache";
 import { notify } from "@/lib/notify";
 
@@ -84,10 +85,20 @@ export async function upsertAreaSlot(data: {
     revalidatePath("/public-view");
     revalidatePath("/available-spaces");
     return { success: true };
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error upserting area slot:", error);
+    if (error?.code === "P2002") {
+      return { success: false, error: `Unit ID "${data.unit_id}" is already used by another space.` };
+    }
     return { success: false, error: "Failed to save slot" };
   }
+}
+
+/** Slots for public pages: same data, but rent stays private (quoted by the leasing team). */
+export async function getPublicAreaSlots() {
+  const res = await getAreaSlots();
+  if (!res.success || !res.data) return res;
+  return { success: true, data: res.data.map((s) => ({ ...s, base_rent: 0 })) };
 }
 
 export async function getAvailableSlots() {
@@ -180,6 +191,15 @@ export async function reserveSlotAction(
       link: "/admindashboard/bookings?tab=reservation",
     });
 
+    // Bell notice for the person who reserved (the email below is the bespoke one).
+    await notify("RESERVATION_UPDATE", {
+      recipients: [userId],
+      title: `Reservation received · Unit ${unit_id}`,
+      message: `Unit ${unit_id} is held for you for 24 hours while the leasing team reviews your request.`,
+      link: "/available-spaces",
+      email: false,
+    });
+
     // 4. Notify User via Gmail
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -200,7 +220,7 @@ export async function reserveSlotAction(
               <hr />
               <p>Our leasing team has been notified. We will review your profile and contact you shortly to discuss the next steps in the merchant onboarding process.</p>
               <p>You can monitor your communications via the mall messenger.</p>
-              <a href="${process.env.NEXT_PUBLIC_APP_URL}/public-view?recipient=admin" style="display: inline-block; padding: 10px 20px; background-color: #be1e2d; color: white; text-decoration: none; border-radius: 5px;">Open Messenger</a>
+              <a href="${emailBaseUrl()}/public-view?recipient=admin" style="display: inline-block; padding: 10px 20px; background-color: #be1e2d; color: white; text-decoration: none; border-radius: 5px;">Open Messenger</a>
             </div>
           `,
         });
@@ -237,6 +257,14 @@ export async function approveReservationAction(unit_id: string) {
 
     // 3. Notify User
     if (slot?.tenant_id) {
+      await notify("RESERVATION_UPDATE", {
+        recipients: [slot.tenant_id],
+        title: `Reservation approved ✅ · Unit ${unit_id}`,
+        message: `Your reservation for Unit ${unit_id} was approved. The leasing team will contact you within 24 hours to arrange a site visit.`,
+        link: "/available-spaces",
+        email: false,
+      });
+
       const user = await prisma.user.findUnique({
         where: { id: slot.tenant_id },
         select: { email: true, name: true }
@@ -256,7 +284,7 @@ export async function approveReservationAction(unit_id: string) {
                 <hr />
                 <p>Next Steps: Our leasing representative will reach out to you within 24 hours to schedule a site visit and begin the contract initialization process.</p>
                 <p>You can now view more details about the mall's merchant guidelines in your dashboard.</p>
-                <a href="${process.env.NEXT_PUBLIC_APP_URL}/public-view" style="display: inline-block; padding: 10px 20px; background-color: #10b981; color: white; text-decoration: none; border-radius: 5px;">Return to Portal</a>
+                <a href="${emailBaseUrl()}/public-view" style="display: inline-block; padding: 10px 20px; background-color: #10b981; color: white; text-decoration: none; border-radius: 5px;">Return to Portal</a>
               </div>
             `,
           });
@@ -297,6 +325,16 @@ export async function rejectReservationAction(unit_id: string, feedback?: string
 
     // 3. Notify User
     if (slot?.tenant_id) {
+      await notify("RESERVATION_UPDATE", {
+        recipients: [slot.tenant_id],
+        title: `Reservation declined · Unit ${unit_id}`,
+        message: feedback?.trim()
+          ? `Your reservation for Unit ${unit_id} was declined. Admin note: ${feedback.trim()}`
+          : `Your reservation for Unit ${unit_id} was declined and the unit is available again. Feel free to reserve another space.`,
+        link: "/available-spaces",
+        email: false,
+      });
+
       const user = await prisma.user.findUnique({
         where: { id: slot.tenant_id },
         select: { email: true, name: true }
@@ -316,7 +354,7 @@ export async function rejectReservationAction(unit_id: string, feedback?: string
                 ${feedback ? `<div style="background: #fef2f2; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #be1e2d;"><strong>Admin Note:</strong> ${feedback}</div>` : ""}
                 <hr />
                 <p>If you have questions or wish to explore other units, please feel free to browse our available spaces or contact us via messenger.</p>
-                <a href="${process.env.NEXT_PUBLIC_APP_URL}/public-view" style="display: inline-block; padding: 10px 20px; background-color: #334155; color: white; text-decoration: none; border-radius: 5px;">Browse Other Spaces</a>
+                <a href="${emailBaseUrl()}/public-view" style="display: inline-block; padding: 10px 20px; background-color: #334155; color: white; text-decoration: none; border-radius: 5px;">Browse Other Spaces</a>
               </div>
             `,
           });
@@ -337,6 +375,17 @@ export async function rejectReservationAction(unit_id: string, feedback?: string
 
 export async function deleteAreaSlot(id: string) {
   try {
+    // A space someone is in (or has on hold) can't be deleted out from under them.
+    const slot = await prisma.areaSlot.findUnique({ where: { id }, select: { status: true, unit_id: true } });
+    if (!slot) return { success: false, error: "This space no longer exists." };
+    if (slot.status === "OCCUPIED" || slot.status === "RESERVED") {
+      return {
+        success: false,
+        error: `Unit ${slot.unit_id} is ${slot.status.toLowerCase()}. ${
+          slot.status === "RESERVED" ? "Approve or release the reservation" : "Move the tenant out"
+        } before deleting it.`,
+      };
+    }
     await prisma.areaSlot.delete({ where: { id } });
     revalidatePath("/admindashboard/space-manager");
     revalidatePath("/public-view");

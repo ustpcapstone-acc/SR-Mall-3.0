@@ -31,6 +31,7 @@ import { MerchantApplicationModal } from "@/components/merchant-application-moda
 import { createLostAndFoundItem, getLostAndFoundItems } from "@/app/actions/lost-and-found";
 import { uploadImageServerAction } from "@/app/actions/upload";
 import { ChatBox } from "@/components/chat-box";
+import { ChatLauncher } from "@/components/chat-launcher";
 
 export default function LostAndFoundPage() {
   const { isAuthenticated, user, logout } = useAuth();
@@ -601,6 +602,8 @@ export default function LostAndFoundPage() {
         isOpen={isMerchantModalOpen}
         onClose={() => setIsMerchantModalOpen(false)}
       />
+      <ChatLauncher hidden={isChatOpen} />
+
       <ChatBox
         isOpen={isChatOpen}
         onClose={() => setIsChatOpen(false)}

@@ -4,7 +4,7 @@
  *
  * `group` drives the filter tabs on the notifications page and matches the
  * groups in notification settings (MONEY / ACTION / SECURITY / INFO), plus
- * MESSAGE for chat alerts (kept out of the bell — chat has its own badges).
+ * MESSAGE for chat alerts (the bell shows chats from the live unread store).
  */
 export type NotificationTabGroup = "MONEY" | "ACTION" | "SECURITY" | "INFO" | "MESSAGE";
 export type NotificationIconKey = "money" | "check" | "calendar" | "alert" | "message" | "store" | "star" | "megaphone" | "settings" | "search" | "bell";
@@ -26,6 +26,7 @@ const T: Record<string, TypeInfo> = {
   PAYMENT_CONFIRMED: { label: "Payment", group: "MONEY", icon: "check", tone: "text-emerald-500", route: { ADMIN: "/admindashboard/tenant-monitoring", DEFAULT: "/tenantdashboard/lease-payments" } },
   OVERDUE_RENT_PAYMENTS: { label: "Overdue rent", group: "MONEY", icon: "alert", tone: "text-red-500", route: { ADMIN: "/admindashboard/tenant-monitoring", DEFAULT: "/tenantdashboard/lease-payments" } },
   BILLING_REMINDER: { label: "Bill reminder", group: "MONEY", icon: "money", tone: "text-amber-500", route: { ADMIN: "/admindashboard/tenant-monitoring", DEFAULT: "/tenantdashboard/lease-payments" } },
+  INVOICE_ISSUED: { label: "New invoice", group: "MONEY", icon: "money", tone: "text-blue-500", route: { ADMIN: "/admindashboard/tenant-monitoring", DEFAULT: "/tenantdashboard/lease-payments" } },
   EXPIRING_CONTRACTS: { label: "Lease", group: "MONEY", icon: "calendar", tone: "text-orange-500", route: { ADMIN: "/admindashboard/tenant-monitoring", DEFAULT: "/tenantdashboard/lease-payments" } },
 
   // Action required
@@ -36,6 +37,10 @@ const T: Record<string, TypeInfo> = {
   EVENT_BOOKING: { label: "Event booking", group: "ACTION", icon: "calendar", tone: "text-blue-500", route: { ADMIN: "/admindashboard/bookings?tab=event", DEFAULT: "/public-view#event-inquiry" } },
   SPACE_RESERVATION: { label: "Space reservation", group: "ACTION", icon: "calendar", tone: "text-emerald-500", route: { ADMIN: "/admindashboard/bookings?tab=reservation", TENANT: "/tenantdashboard", DEFAULT: "/available-spaces" } },
   RESERVATION_EXPIRING: { label: "Reservation expiring", group: "ACTION", icon: "alert", tone: "text-orange-500", route: { ADMIN: "/admindashboard/bookings?tab=reservation", DEFAULT: "/available-spaces" } },
+  RESERVATION_UPDATE: { label: "Reservation", group: "ACTION", icon: "calendar", tone: "text-emerald-500", route: { DEFAULT: "/available-spaces" } },
+  EVENT_INQUIRY_UPDATE: { label: "Event inquiry", group: "ACTION", icon: "calendar", tone: "text-blue-500", route: { DEFAULT: "/public-view" } },
+  MERCHANT_APPLICATION_UPDATE: { label: "Application", group: "ACTION", icon: "store", tone: "text-blue-500", route: { TENANT: "/tenantdashboard", DEFAULT: "/public-view" } },
+  LOST_AND_FOUND_REPORT: { label: "Lost & found", group: "ACTION", icon: "search", tone: "text-sky-500", route: { DEFAULT: "/admindashboard/public-view-cms" } },
   NEW_REVIEW: { label: "New review", group: "ACTION", icon: "star", tone: "text-amber-500", route: { ADMIN: "/admindashboard/user-management", TENANT: "/tenantdashboard/feedback-reviews", DEFAULT: "/tenant-directory" } },
   NEW_REVIEW_SUBMITTED: { label: "New review", group: "ACTION", icon: "star", tone: "text-amber-500", route: { ADMIN: "/admindashboard/user-management", TENANT: "/tenantdashboard/feedback-reviews", DEFAULT: "/tenant-directory" } },
 
@@ -48,6 +53,9 @@ const T: Record<string, TypeInfo> = {
   SYSTEM_HEALTH_REPORTS: { label: "Weekly digest", group: "INFO", icon: "settings", tone: "text-slate-500", route: { DEFAULT: "/admindashboard" } },
   REVIEW_REPLY: { label: "Shop reply", group: "INFO", icon: "star", tone: "text-amber-500", route: { DEFAULT: "/tenant-directory" } },
   LOST_AND_FOUND: { label: "Lost & found", group: "INFO", icon: "search", tone: "text-sky-500", route: { DEFAULT: "/lost-and-found" } },
+  LOST_AND_FOUND_UPDATE: { label: "Lost & found", group: "INFO", icon: "search", tone: "text-sky-500", route: { DEFAULT: "/lost-and-found" } },
+  REVIEW_MODERATION: { label: "Review update", group: "INFO", icon: "star", tone: "text-slate-500", route: { TENANT: "/tenantdashboard/feedback-reviews", DEFAULT: "/tenant-directory" } },
+  NEW_USER_SIGNUPS: { label: "New users", group: "INFO", icon: "bell", tone: "text-emerald-500", route: { DEFAULT: "/admindashboard/user-management" } },
 
   // Chat
   MESSAGE: { label: "Message", group: "MESSAGE", icon: "message", tone: "text-blue-500", route: { ADMIN: "/admindashboard/messenger-hub", TENANT: "/tenantdashboard/customer-messenger", DEFAULT: "/public-view?chat=open" } },

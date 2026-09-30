@@ -5,6 +5,7 @@ import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { ShopCard } from "@/components/shop-card";
 import { ChatBox } from "@/components/chat-box";
+import { ChatLauncher } from "@/components/chat-launcher";
 import {
   Search,
   SlidersHorizontal,
@@ -18,15 +19,15 @@ import {
   Store,
 } from "lucide-react";
 import Link from "next/link";
-import { getAllStorefrontsAction } from "@/app/actions/tenant";
+import { getDirectoryShopsAction } from "@/app/actions/tenant";
 import { useAuth } from "@/app/providers";
 import { spaCache } from "@/utils/cache";
 import clsx from "clsx";
 
 export default function TenantDirectoryPage() {
   const { isAuthenticated } = useAuth();
-  const [shops, setShops] = useState<any[]>(() => spaCache.get("public_shops") || []);
-  const [loading, setLoading] = useState(() => !spaCache.has("public_shops"));
+  const [shops, setShops] = useState<any[]>(() => spaCache.get("directory_shops") || []);
+  const [loading, setLoading] = useState(() => !spaCache.has("directory_shops"));
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All Categories");
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -37,6 +38,7 @@ export default function TenantDirectoryPage() {
 
   const categories = [
     "All Categories",
+    "On Promo",
     "Fashion",
     "Electronics",
     "Food",
@@ -45,16 +47,16 @@ export default function TenantDirectoryPage() {
   ];
 
   useEffect(() => {
-    const hasCache = spaCache.has("public_shops");
+    const hasCache = spaCache.has("directory_shops");
     fetchShops(hasCache);
   }, []);
 
   const fetchShops = async (isBackground = false) => {
     if (!isBackground) setLoading(true);
-    const res = await getAllStorefrontsAction();
+    const res = await getDirectoryShopsAction();
     if (res.success && res.data) {
       setShops(res.data);
-      spaCache.set("public_shops", res.data);
+      spaCache.set("directory_shops", res.data);
     }
     setLoading(false);
   };
@@ -67,6 +69,7 @@ export default function TenantDirectoryPage() {
 
     const matchesCategory =
       selectedCategory === "All Categories" ||
+      (selectedCategory === "On Promo" && !!shop.activePromo) ||
       (shop.description && shop.description.toLowerCase().includes(selectedCategory.toLowerCase()));
 
     return matchesSearch && matchesCategory;
@@ -257,7 +260,7 @@ export default function TenantDirectoryPage() {
                   Showing {filteredShops.length} stores
                 </p>
               </div>
-              <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6 lg:gap-8">
+              <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-8 lg:gap-10">
                 {filteredShops.map((shop, idx) => (
                   <ShopCard
                     key={`${shop.id}-${idx}`}
@@ -292,6 +295,8 @@ export default function TenantDirectoryPage() {
           )}
         </div>
       </section>
+
+      <ChatLauncher hidden={isChatOpen} />
 
       <ChatBox
         isOpen={isChatOpen}

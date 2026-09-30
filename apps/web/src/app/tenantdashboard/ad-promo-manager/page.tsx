@@ -29,6 +29,8 @@ import {
 } from "@/app/actions/ads";
 import { getCloudStorageProvider } from "@/lib/cloud-storage";
 import clsx from "clsx";
+import { phDayEnd, phDayStart } from "@/lib/ph-date";
+import { ChatConfirmModal } from "@/components/chat/chat-ui";
 
 const CATEGORIES = [
   "Fashion",
@@ -93,6 +95,8 @@ export default function AdPromoManager() {
   const [mediaType, setMediaType] = useState<"IMAGE" | "VIDEO">("IMAGE");
   const [storageKey, setStorageKey] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<any>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const showToast = (msg: string, type: "success" | "error") => {
     setToast({ msg, type });
@@ -169,6 +173,10 @@ export default function AdPromoManager() {
       (!promoImage && !promoVideo)
     )
       return;
+    if (endDate < startDate) {
+      showToast("The end date must be on or after the start date.", "error");
+      return;
+    }
     setIsSubmitting(true);
     try {
       const tenant = await getTenantByUserId(user.id);
@@ -181,8 +189,8 @@ export default function AdPromoManager() {
         title,
         description,
         category,
-        startDate: new Date(startDate),
-        endDate: new Date(endDate),
+        startDate: phDayStart(startDate),
+        endDate: phDayEnd(endDate),
         promoImage: mediaType === "IMAGE" ? promoImage : undefined,
         promoVideo: mediaType === "VIDEO" ? promoVideo : undefined,
         mediaType,
@@ -205,16 +213,18 @@ export default function AdPromoManager() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (
-      !window.confirm(
-        "Delete this promotion? The uploaded media will also be removed.",
-      )
-    )
-      return;
-    await deletePromo(id);
-    fetchPromos();
-    showToast("Promotion deleted.", "success");
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    const res = await deletePromo(deleteTarget.id, user?.id);
+    setIsDeleting(false);
+    setDeleteTarget(null);
+    if (res.success) {
+      fetchPromos();
+      showToast("Promotion deleted.", "success");
+    } else {
+      showToast(res.error || "Couldn't delete the promotion.", "error");
+    }
   };
 
   // Stats
@@ -591,7 +601,7 @@ export default function AdPromoManager() {
                             )}
                             <div className="flex-1" />
                             <button
-                              onClick={() => handleDelete(promo.id)}
+                              onClick={() => setDeleteTarget(promo)}
                               className="p-2 text-slate-300 hover:text-primary hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all"
                               title="Delete promotion"
                             >
@@ -608,6 +618,20 @@ export default function AdPromoManager() {
           </div>
         </div>
       </div>
+      {deleteTarget && (
+        <ChatConfirmModal
+          title="Delete this promotion?"
+          message={
+            deleteTarget.status === "APPROVED" && new Date(deleteTarget.endDate) >= new Date()
+              ? `"${deleteTarget.title}" is live — deleting it removes it from the mall website right away, along with its uploaded media. This can't be undone.`
+              : `"${deleteTarget.title}" and its uploaded media will be removed from your campaign history. This can't be undone.`
+          }
+          confirmLabel="Delete promotion"
+          busy={isDeleting}
+          onCancel={() => setDeleteTarget(null)}
+          onConfirm={confirmDelete}
+        />
+      )}
     </div>
   );
 }

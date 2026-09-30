@@ -4,6 +4,7 @@ import { prisma } from "@srmall/database";
 import bcrypt from "bcryptjs";
 import { getBaseUrl } from "@/utils/get-base-url";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { getCloudStorageProvider } from "@/lib/cloud-storage";
 
 // ─── Sign in with Google (Gmail only) ────────────────────────────────────────
@@ -67,6 +68,11 @@ export async function signInWithGoogleAction(accessToken: string) {
           role: "CUSTOMER",
         },
         include: { tenant: true },
+      });
+      const newName = user.name || email;
+      after(async () => {
+        const { notifyNewSignup } = await import("@/lib/notify-signups");
+        await notifyNewSignup(newName);
       });
     } else if (!user.avatarUrl && googleAvatar) {
       user = await prisma.user.update({
@@ -210,6 +216,10 @@ export async function signUpAction(data: {
         password: hashedPassword,
         role: data.role || "CUSTOMER", // Default to CUSTOMER for regular users
       },
+    });
+    after(async () => {
+      const { notifyNewSignup } = await import("@/lib/notify-signups");
+      await notifyNewSignup(fullName);
     });
 
     return {
@@ -359,6 +369,12 @@ export async function updateUserRoleAction(userId: string, newRole: string, acti
     if (user.role === "ADMIN" && newRole !== "ADMIN") {
       const guard = await adminLockoutGuard(userId, actingAdminId, "demote");
       if (guard) return { success: false, error: guard };
+    }
+
+    // Tenant leaving via a role change → history snapshot (before the unit is freed).
+    if (user.role === "TENANT" && newRole !== "TENANT" && user.tenant && user.tenant.status !== "PAST") {
+      const { recordTenantExit } = await import("@/lib/tenant-history");
+      await recordTenantExit(user.tenant.id, "ROLE_CHANGED", { endedById: actingAdminId });
     }
 
     await prisma.$transaction(async (tx: any) => {

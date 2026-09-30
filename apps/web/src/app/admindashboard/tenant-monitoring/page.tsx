@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { useAuth } from "@/app/providers";
 import {
   Search,
   Filter,
@@ -231,6 +232,7 @@ const getTimeframeDetails = (tf: Timeframe) => {
 };
 
 export default function TenantMonitoring() {
+  const { user: adminUser } = useAuth();
   const [timeframe, setTimeframe] = useState<Timeframe>("monthly");
   const [tenants, setTenants] = useState<Tenant[]>([]);
   // `loading` = first load only (full-page spinner). Background refreshes are
@@ -560,7 +562,7 @@ export default function TenantMonitoring() {
     if (!editingTenant) return;
     setSaving(true);
     try {
-      const res = await adminUpdateTenantAction(editingTenant.id, editFormData);
+      const res = await adminUpdateTenantAction(editingTenant.id, editFormData, adminUser?.id);
       if (res.success) {
         setToast({ msg: "Tenant updated successfully!", type: "success" });
         setIsEditModalOpen(false);
@@ -599,7 +601,7 @@ export default function TenantMonitoring() {
     if (!tenantToDelete) return;
     setIsDeletingTenant(true);
     try {
-      const result = await deleteTenantAction(tenantToDelete.id);
+      const result = await deleteTenantAction(tenantToDelete.id, adminUser?.id);
       if (result.success) {
         setToast({
           msg: `✓ ${tenantToDelete.shopName} deleted successfully`,
@@ -1596,7 +1598,8 @@ export default function TenantMonitoring() {
                   ?
                 </p>
                 <ul className="text-[11px] text-slate-600 dark:text-slate-400 mt-2 space-y-1 list-disc list-inside">
-                  <li>Tenant profile will be permanently deleted</li>
+                  <li>Tenant profile and its invoices will be permanently deleted</li>
+                  <li>A summary (unit, lease dates, payments) is kept in User Management → Tenant History</li>
                   <li>
                     Assigned Unit{" "}
                     <span className="font-bold text-charcoal dark:text-white">

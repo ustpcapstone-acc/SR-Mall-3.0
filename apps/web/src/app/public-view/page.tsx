@@ -33,7 +33,7 @@ import { useAuth } from "@/app/providers";
 import { spaCache } from "@/utils/cache";
 import { DigitalStorefront } from "@/types/storefront";
 import { getAllStorefrontsAction } from "@/app/actions/tenant";
-import { getAreaSlots } from "@/app/actions/space-slot";
+import { getPublicAreaSlots } from "@/app/actions/space-slot";
 
 import { AreaSlot } from "@srmall/database";
 import { getActiveMallAds, getApprovedTenantPromos } from "@/app/actions/ads";
@@ -73,7 +73,7 @@ export default function PublicDigitalConcierge() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
-  const [visibleCount, setVisibleCount] = useState(6);
+  const [visibleCount, setVisibleCount] = useState(5);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [visibleSlotsCount, setVisibleSlotsCount] = useState(4);
   const [isLoadingMoreSlots, setIsLoadingMoreSlots] = useState(false);
@@ -308,7 +308,7 @@ export default function PublicDigitalConcierge() {
 
   const fetchSlots = async (isBackground = false) => {
     if (!isBackground) setLoadingSlots(true);
-    const res = await getAreaSlots();
+    const res = await getPublicAreaSlots();
     if (res.success && res.data) {
       setSlots(res.data);
       spaCache.set("public_slots", res.data);
@@ -976,7 +976,7 @@ export default function PublicDigitalConcierge() {
             <div
               id="directory-carousel"
               className={clsx(
-                "flex sm:grid sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 overflow-x-auto sm:overflow-x-visible scroll-smooth no-scrollbar snap-x snap-mandatory gap-6 px-4 sm:px-0",
+                "flex sm:grid sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 overflow-x-auto sm:overflow-x-visible scroll-smooth no-scrollbar snap-x snap-mandatory gap-8 px-4 sm:px-0",
                 "cursor-grab active:cursor-grabbing pb-12",
               )}
             >
@@ -1025,41 +1025,29 @@ export default function PublicDigitalConcierge() {
                     </div>
                   ))}
 
-                  {/* View All Shops Card - Matched to ShopCard Design */}
+                  {/* View All Shops — same shape as ShopCard / slot card */}
                   <Link
                     href="/tenant-directory"
-                    className={clsx(
-                      "w-[85%] sm:w-full shrink-0 snap-center",
-                      "group relative bg-white dark:bg-zinc-950 rounded-[2.5rem] overflow-hidden shadow-[0_10px_40px_-10px_rgba(0,0,0,0.08)] hover:shadow-[0_40px_80px_-15px_rgba(190,30,45,0.25)] transition-all duration-700 border-2 border-slate-100 dark:border-white/5 hover:border-primary/20 cursor-pointer",
-                    )}
+                    className="w-[85%] sm:w-full shrink-0 snap-center group relative bg-white dark:bg-zinc-900 rounded-[2rem] border border-slate-100 dark:border-white/5 overflow-hidden transition-all duration-700 shadow-sm hover:shadow-2xl hover:-translate-y-2"
                   >
-                    {/* Top Media Area */}
-                    <div className="relative h-48 sm:h-64 md:h-72 overflow-hidden bg-slate-50 dark:bg-zinc-900 flex items-center justify-center">
-                      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-60 group-hover:opacity-100 transition-opacity" />
-                      <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-white dark:bg-zinc-800 text-primary flex items-center justify-center group-hover:scale-110 group-hover:bg-primary group-hover:text-white transition-all duration-500 shadow-xl z-10 border border-slate-100 dark:border-white/5">
-                        <ArrowRight size={32} />
+                    <div className="aspect-[4/3] sm:aspect-[16/10] relative overflow-hidden bg-gradient-to-br from-slate-50 to-slate-100 dark:from-zinc-900 dark:to-zinc-950 flex items-center justify-center">
+                      <div className="w-14 h-14 sm:w-20 sm:h-20 rounded-full bg-white dark:bg-zinc-800 text-primary flex items-center justify-center shadow-xl group-hover:bg-primary group-hover:text-white group-hover:scale-110 transition-all duration-500">
+                        <ArrowRight size={28} />
+                      </div>
+                      <div className="absolute bottom-3 sm:bottom-6 left-3 sm:left-8 right-3 sm:right-8">
+                        <h4 className="text-base sm:text-3xl font-black text-charcoal dark:text-white tracking-tighter uppercase leading-none">
+                          View All Shops
+                        </h4>
                       </div>
                     </div>
-
-                    {/* Bottom Info Area */}
-                    <div className="p-6 sm:p-10 relative">
-                      <div className="flex flex-col gap-2">
-                        <h3 className="text-3xl font-black text-charcoal dark:text-white tracking-tighter group-hover:text-primary transition-colors leading-none mb-3 uppercase">
-                          View All <br />
-                          Shops
-                        </h3>
-                        <div className="flex items-center gap-3">
-                          <div className="px-3 py-1 bg-primary/5 border border-primary/20 rounded-md flex items-center gap-2">
-                            <Tag size={12} className="text-primary" />
-                            <span className="text-[10px] font-black text-primary uppercase tracking-widest">
-                              Directory
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-1.5 text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                            <div className="w-1 h-1 rounded-full bg-slate-300"></div>
-                            Full Listing
-                          </div>
-                        </div>
+                    <div className="p-3 sm:p-8 flex items-center justify-between bg-white dark:bg-zinc-900/50">
+                      <div className="space-y-0.5 sm:space-y-1.5">
+                        <p className="text-[7px] sm:text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] sm:tracking-[0.3em]">Stores</p>
+                        <p className="text-lg sm:text-3xl font-black text-charcoal dark:text-white tracking-tighter">{shops.length}</p>
+                      </div>
+                      <div className="flex flex-col items-end gap-0.5 sm:gap-1 text-right">
+                        <span className="text-[7px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest">Directory</span>
+                        <span className="text-[8px] sm:text-xs font-black text-primary uppercase">Full Listing</span>
                       </div>
                     </div>
                   </Link>

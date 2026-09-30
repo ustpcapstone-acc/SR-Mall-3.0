@@ -13,7 +13,9 @@
  * action that triggered it.
  */
 import { prisma } from "@srmall/database";
-import { getBaseUrl } from "@/utils/get-base-url";
+import { getEmailBaseUrl } from "@/utils/get-base-url";
+import { buildNotificationEmail, buildNotificationText } from "./email-template";
+import { notificationSettingsHref } from "./notification-types";
 import {
   getNotificationMeta,
   type NotificationChannel,
@@ -31,6 +33,12 @@ export interface NotifyInput {
   link?: string;
   /** Email subject override (defaults to `title`). */
   subject?: string;
+  /** Email button text (default: chosen from the link, e.g. "Reply to message"). */
+  ctaLabel?: string;
+  /** Quoted block in the email, e.g. the chat message itself. */
+  quote?: { author: string; text: string };
+  /** Email body text when it should differ from the in-app message. */
+  emailMessage?: string;
   /** Set false when the caller sends its own bespoke email. Default: true. */
   email?: boolean;
   /**
@@ -145,33 +153,6 @@ async function resolveRecipients(
   return users.map((u) => u.id);
 }
 
-function buildEmailHtml(opts: {
-  title: string;
-  message: string;
-  link?: string;
-}) {
-  const cta = opts.link
-    ? `<div style="text-align:center;margin:28px 0;">
-         <a href="${opts.link}" style="display:inline-block;background:#BE1E2D;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;">Open Dashboard</a>
-       </div>`
-    : "";
-
-  return `<!DOCTYPE html>
-<html lang="en"><body style="margin:0;background:#f4f4f5;font-family:Inter,'Segoe UI',Tahoma,sans-serif;color:#3f3f46;">
-  <div style="max-width:600px;margin:40px auto;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 4px 6px -1px rgba(0,0,0,.1);">
-    <div style="background:#BE1E2D;padding:24px;text-align:center;color:#fff;font-size:24px;font-weight:600;">SR Mall</div>
-    <div style="padding:32px;">
-      <h2 style="margin-top:0;color:#18181b;font-size:20px;">${opts.title}</h2>
-      <p style="line-height:1.6;font-size:15px;">${opts.message}</p>
-      ${cta}
-    </div>
-    <div style="background:#f4f4f5;padding:20px;text-align:center;font-size:13px;color:#71717a;border-top:1px solid #e4e4e7;">
-      This is an automated message. <strong>Please do not reply to this email.</strong><br/>SR Mall Management Office
-    </div>
-  </div>
-</body></html>`;
-}
-
 /**
  * Dispatch a notification. Returns counts for logging/tests; never throws.
  */
@@ -235,30 +216,37 @@ export async function notify(
       if (emailUsers.length > 0) {
         const users = await prisma.user.findMany({
           where: { id: { in: emailUsers } },
-          select: { email: true },
+          select: { email: true, role: true },
         });
 
-        const baseUrl = await getBaseUrl();
+        // Links must open from any device later — use the public app URL.
+        const baseUrl = await getEmailBaseUrl();
         const link = input.link
           ? input.link.startsWith("http")
             ? input.link
-            : `${baseUrl}${input.link}`
+            : `${baseUrl}${input.link.startsWith("/") ? "" : "/"}${input.link}`
           : undefined;
-
-        const html = buildEmailHtml({
-          title: input.title,
-          message: input.message,
-          link,
-        });
+        const eyebrow = getNotificationMeta(type)?.label;
 
         const { sendGmail } = await import("./gmail");
         for (const user of users) {
           if (!user.email) continue;
+          const email = {
+            eyebrow,
+            title: input.title,
+            message: input.emailMessage ?? input.message,
+            quote: input.quote ?? null,
+            link,
+            ctaLabel: input.ctaLabel,
+            settingsUrl: `${baseUrl}${notificationSettingsHref(user.role)}`,
+            siteUrl: baseUrl,
+          };
           try {
             await sendGmail({
               to: user.email,
               subject: input.subject || input.title,
-              html,
+              html: buildNotificationEmail(email),
+              text: buildNotificationText(email),
             });
             emailed++;
           } catch (err) {

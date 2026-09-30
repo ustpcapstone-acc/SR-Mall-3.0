@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@srmall/database";
+import { emailBaseUrl } from "@/utils/get-base-url";
 import { notify, resolveChannels } from "@/lib/notify";
 
 export async function GET(req: Request) {
@@ -14,6 +15,8 @@ export async function GET(req: Request) {
     const pendingInvoices = await prisma.invoice.findMany({
       where: {
         status: "PENDING",
+        // Former tenants aren't chased by the daily reminders.
+        tenant: { status: "ACTIVE" },
       },
       include: {
         tenant: {
@@ -133,7 +136,7 @@ export async function GET(req: Request) {
                 <p><strong>Amount Due:</strong> ₱${invoice.amount}</p>
                 <p><strong>Due Date:</strong> ${dueDate.toLocaleDateString()}</p>
                 <div style="text-align: center; margin-top: 25px;">
-                  <a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/tenantdashboard/lease-payments" style="display: inline-block; padding: 12px 25px; background-color: #be1e2d; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;">Pay Now</a>
+                  <a href="${emailBaseUrl()}/tenantdashboard/lease-payments" style="display: inline-block; padding: 12px 25px; background-color: #be1e2d; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;">Pay Now</a>
                 </div>
               </div>
             `,
@@ -151,6 +154,7 @@ export async function GET(req: Request) {
         where: {
           status: { not: "PAID" },
           dueDate: { lt: today },
+          tenant: { status: "ACTIVE" },
         },
       });
 

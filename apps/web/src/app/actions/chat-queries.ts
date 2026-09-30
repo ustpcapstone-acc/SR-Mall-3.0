@@ -380,6 +380,56 @@ export async function getTenantConversations(userId: string) {
   }
 }
 
+export interface MyChatRow {
+  kind: "admin" | "shop";
+  /** Tenant id for shops (what the chat box opens), "admin" for the mall office. */
+  key: string;
+  name: string;
+  logo: string | null;
+  lastMessage: string;
+  lastAt: string;
+  /** The last message was sent by me ("You: …"). */
+  fromMe: boolean;
+  unread: number;
+}
+
+/**
+ * The customer chat box's "Recent chats": one row per shop plus one for the
+ * mall office, with the last message, time and unread count, newest first.
+ */
+export async function getMyChatListAction(userId: string): Promise<MyChatRow[]> {
+  if (!userId) return [];
+  try {
+    const list = await getTenantConversations(userId);
+    const rows = new Map<string, MyChatRow>();
+    for (const c of list as any[]) {
+      const partner = c.userId === userId ? c.target : c.user;
+      const last = c.messages?.[0];
+      if (!partner || !last) continue;
+      const isAdmin = String(partner.role || "").toUpperCase() === "ADMIN";
+      if (!isAdmin && !partner.tenant?.id) continue;
+      const row: MyChatRow = {
+        kind: isAdmin ? "admin" : "shop",
+        key: isAdmin ? "admin" : partner.tenant.id,
+        name: isAdmin ? "Mall Administration" : (partner.tenant.shopName || "").trim() || "Shop",
+        logo: isAdmin ? null : partner.tenant.logoUrl || null,
+        lastMessage: (last.content || "").trim() || (last.imageUrl ? "📷 Photo" : ""),
+        lastAt: new Date(last.createdAt).toISOString(),
+        fromMe: last.senderId === userId,
+        unread: c.unreadCount || 0,
+      };
+      // Several admin accounts → one "Mall Administration" row.
+      const prev = rows.get(row.key);
+      if (!prev) rows.set(row.key, row);
+      else rows.set(row.key, { ...(row.lastAt > prev.lastAt ? row : prev), unread: prev.unread + row.unread });
+    }
+    return [...rows.values()].sort((a, b) => (a.lastAt < b.lastAt ? 1 : -1));
+  } catch (error) {
+    console.error("[chat] my chat list failed:", error);
+    return [];
+  }
+}
+
 // Fetch conversations specifically for the Admin (deduplicated by partner user)
 export async function getAdminConversations(adminUserId?: string) {
   try {

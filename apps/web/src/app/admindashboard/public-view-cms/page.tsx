@@ -12,7 +12,7 @@ import {
   toggleCarouselItemAction,
 } from "@/app/actions/cms";
 import { getLostAndFoundItems, updateLostAndFoundItemStatus, createLostAndFoundItem } from "@/app/actions/lost-and-found";
-import { getApprovedEventsWithImagesAction, updateInquiryImageAction, deleteInquiryAction, updateEventInfoAction } from "@/app/actions/inquiry";
+import { getAdminEventsAction, updateInquiryImageAction, deleteInquiryAction, updateEventInfoAction } from "@/app/actions/inquiry";
 import { Info } from "lucide-react";
 import { getAllPostSalesAction, deleteAdminPostSaleAction, updateAdminPostSaleAction } from "@/app/actions/tenant";
 import {
@@ -224,7 +224,7 @@ export default function PublicViewCMSPage() {
         const [configData, carouselData, eventsData, lostFoundData] = await Promise.all([
           getPublicViewConfigAction(),
           getAllCarouselItemsAction(),
-          getApprovedEventsWithImagesAction(),
+          getAdminEventsAction(),
           getLostAndFoundItems(),
         ]);
 
@@ -347,7 +347,9 @@ export default function PublicViewCMSPage() {
       const updateResult = await updateInquiryImageAction(eventId, result.url, result.key);
       if (updateResult.success) {
         setApprovedEvents((prev) =>
-          prev.map((ev) => (ev.id === eventId ? { ...ev, imageUrl: result.url, storageKey: result.key } : ev))
+          prev.map((ev) =>
+            ev.id === eventId ? { ...ev, imageUrl: result.url, storageKey: result.key, isPublic: !ev.isPast } : ev,
+          )
         );
         showToast("Event image updated successfully", "success");
       } else {
@@ -1424,61 +1426,78 @@ export default function PublicViewCMSPage() {
               <SectionHeader
                 icon={CalendarIcon}
                 title="Upcoming Events"
-                sub="Manage images for approved upcoming events."
+                sub="Approved events show on the public page until their event day ends. Upload an image to publish one."
               />
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {approvedEvents.length === 0 ? (
-                  <div className="md:col-span-2 p-10 bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-3xl flex items-center justify-center text-slate-400 font-bold uppercase tracking-widest text-xs">
-                    No approved events found.
-                  </div>
-                ) : (
-                  approvedEvents.map((ev: any) => (
-                    <div
-                      key={ev.id}
-                      className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-[2.5rem] p-6 shadow-sm flex flex-col justify-between"
-                    >
-                      <div className="flex items-center justify-between mb-4">
+              {(() => {
+                const upcoming = approvedEvents.filter((ev: any) => !ev.isPast);
+                const past = approvedEvents.filter((ev: any) => ev.isPast);
+                const renderCard = (ev: any) => (
+                  <div
+                    key={ev.id}
+                    className={clsx(
+                      "bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-[2.5rem] p-6 shadow-sm flex flex-col justify-between",
+                      ev.isPast && "opacity-70",
+                    )}
+                  >
+                    <div className="flex items-center justify-between gap-2 mb-4">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-[10px] font-black uppercase tracking-widest border border-primary/20">
                           {ev.eventType}
                         </span>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-                            {new Date(ev.eventDate).toLocaleDateString()}
+                        {ev.isPast ? (
+                          <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-slate-100 dark:bg-white/5 text-slate-500">
+                            Ended · hidden
                           </span>
-                          <button
-                            onClick={() => openEventInfoModal(ev)}
-                            className="p-1.5 text-slate-400 hover:text-blue-500 hover:bg-blue-500/10 rounded-lg transition-colors"
-                            title="Edit Event Info"
-                          >
-                            <Info size={14} />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteEvent(ev.id)}
-                            className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
-                            title="Delete Event"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                      </div>
-                      <h3 className="text-xl font-black text-charcoal dark:text-white uppercase tracking-tight mb-6">
-                        {ev.eventName || ev.eventType}
-                      </h3>
-                      <div className="aspect-[16/9] w-full bg-slate-100 dark:bg-zinc-800 rounded-3xl overflow-hidden relative group">
-                        {ev.imageUrl ? (
-                          <img
-                            src={ev.imageUrl}
-                            className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                          />
+                        ) : ev.isPublic ? (
+                          <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-emerald-500/10 text-emerald-600">
+                            Live on site
+                          </span>
                         ) : (
-                          <div className="w-full h-full flex flex-col items-center justify-center text-slate-400">
-                            <ImageIcon size={32} className="mb-2" />
-                            <span className="text-[10px] font-black uppercase tracking-widest">
-                              No Image Provided
-                            </span>
-                          </div>
+                          <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-amber-500/10 text-amber-600">
+                            Needs image
+                          </span>
                         )}
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+                          {new Date(ev.eventDate).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" })}
+                          {ev.eventTime ? ` · ${ev.eventTime}` : ""}
+                        </span>
+                        <button
+                          onClick={() => openEventInfoModal(ev)}
+                          className="p-1.5 text-slate-400 hover:text-blue-500 hover:bg-blue-500/10 rounded-lg transition-colors"
+                          title="Edit Event Info"
+                        >
+                          <Info size={14} />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteEvent(ev.id)}
+                          className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
+                          title="Delete Event"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+                    <h3 className="text-xl font-black text-charcoal dark:text-white uppercase tracking-tight mb-6">
+                      {ev.eventName || ev.eventType}
+                    </h3>
+                    <div className="aspect-[16/9] w-full bg-slate-100 dark:bg-zinc-800 rounded-3xl overflow-hidden relative group">
+                      {ev.imageUrl ? (
+                        <img
+                          src={ev.imageUrl}
+                          className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex flex-col items-center justify-center text-slate-400">
+                          <ImageIcon size={32} className="mb-2" />
+                          <span className="text-[10px] font-black uppercase tracking-widest">
+                            No Image Provided
+                          </span>
+                        </div>
+                      )}
+                      {!ev.isPast && (
                         <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity backdrop-blur-sm">
                           <div className="flex flex-col items-center">
                             <Plus size={24} className="text-white mb-2" />
@@ -1493,11 +1512,35 @@ export default function PublicViewCMSPage() {
                             onChange={(e) => handleEventImageUpload(ev.id, e)}
                           />
                         </label>
-                      </div>
+                      )}
                     </div>
-                  ))
-                )}
-              </div>
+                  </div>
+                );
+                return (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      {upcoming.length === 0 ? (
+                        <div className="md:col-span-2 p-10 bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-3xl flex items-center justify-center text-slate-400 font-bold uppercase tracking-widest text-xs">
+                          No upcoming approved events.
+                        </div>
+                      ) : (
+                        upcoming.map(renderCard)
+                      )}
+                    </div>
+
+                    {past.length > 0 && (
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between gap-4">
+                          <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">
+                            Past events ({past.length}) · no longer shown on the public page
+                          </h4>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">{past.map(renderCard)}</div>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
             </div>
           )}
 

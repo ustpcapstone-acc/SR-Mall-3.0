@@ -30,7 +30,10 @@ import {
   deleteMallAd,
   updateMallAd,
   getAllMallAds,
+  getLivePromosAction,
 } from "@/app/actions/ads";
+import { formatPHDate, phDayEnd, phDayStart, toPHDateInput } from "@/lib/ph-date";
+import { ChatConfirmModal } from "@/components/chat/chat-ui";
 import { useAuth } from "@/app/providers";
 import clsx from "clsx";
 
@@ -55,6 +58,40 @@ const PRIORITY_CONFIG = {
   },
 };
 
+type AdStatus = "DEFAULT" | "LIVE" | "SCHEDULED" | "EXPIRED";
+
+/** Where a banner stands right now (drives the badges and the counts). */
+function adStatus(ad: any): AdStatus {
+  if (ad.isDefault) return "DEFAULT";
+  const now = Date.now();
+  if (new Date(ad.endDate).getTime() < now) return "EXPIRED";
+  if (new Date(ad.startDate).getTime() > now) return "SCHEDULED";
+  return "LIVE";
+}
+
+const STATUS_UI: Record<AdStatus, { label: string; badge: string; pill: string }> = {
+  DEFAULT: {
+    label: "Default · always shown",
+    badge: "bg-emerald-600/90 text-white",
+    pill: "bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-800/30",
+  },
+  LIVE: {
+    label: "Live now",
+    badge: "bg-emerald-500/90 text-white",
+    pill: "bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-800/30",
+  },
+  SCHEDULED: {
+    label: "Scheduled",
+    badge: "bg-blue-500/90 text-white",
+    pill: "bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-950/30 dark:border-blue-800/30",
+  },
+  EXPIRED: {
+    label: "Expired",
+    badge: "bg-zinc-600/90 text-white",
+    pill: "bg-slate-100 text-slate-500 border-slate-200 dark:bg-white/5 dark:border-white/10",
+  },
+};
+
 const EMPTY_FORM = {
   title: "",
   description: "",
@@ -71,6 +108,14 @@ export default function AdScheduler() {
   const { user } = useAuth();
   const [mallAds, setMallAds] = useState<any[]>([]);
   const [pendingPromos, setPendingPromos] = useState<any[]>([]);
+  const [livePromos, setLivePromos] = useState<any[]>([]);
+  const [promoTab, setPromoTab] = useState<"pending" | "live">("pending");
+  /** Reject a pending promo or take down a live one (with an optional reason). */
+  const [promoAction, setPromoAction] = useState<{ promo: any; kind: "reject" | "takedown" } | null>(null);
+  const [promoReason, setPromoReason] = useState("");
+  const [promoBusy, setPromoBusy] = useState(false);
+  const [deleteAdTarget, setDeleteAdTarget] = useState<any>(null);
+  const [deletingAd, setDeletingAd] = useState(false);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<{
     msg: string;
@@ -99,12 +144,14 @@ export default function AdScheduler() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [globalAds, approvals] = await Promise.all([
+      const [globalAds, approvals, live] = await Promise.all([
         getAllMallAds(),
         getPendingPromos(),
+        getLivePromosAction(),
       ]);
       setMallAds(globalAds);
       setPendingPromos(approvals);
+      setLivePromos(live);
     } catch (error) {
       showToast("Failed to fetch ad data", "error");
     } finally {
@@ -153,6 +200,11 @@ export default function AdScheduler() {
         setPublishing(false);
         return;
       }
+      if (formData.endDate < formData.startDate) {
+        showToast("The end date must be on or after the start date", "error");
+        setPublishing(false);
+        return;
+      }
 
       const res = await createMallAd({
         title: formData.title,
@@ -160,8 +212,8 @@ export default function AdScheduler() {
         imageUrl: formData.imageUrl,
         linkUrl: formData.linkUrl || "/public-view",
         priority: formData.priority,
-        startDate: new Date(formData.startDate),
-        endDate: new Date(formData.endDate),
+        startDate: phDayStart(formData.startDate),
+        endDate: phDayEnd(formData.endDate),
         adminId: user.id,
         storageKey: formData.storageKey || null,
       });
@@ -192,8 +244,8 @@ export default function AdScheduler() {
       imageUrl: ad.imageUrl,
       linkUrl: ad.linkUrl || "/public-view",
       priority: ad.priority,
-      startDate: new Date(ad.startDate).toISOString().split("T")[0],
-      endDate: new Date(ad.endDate).toISOString().split("T")[0],
+      startDate: toPHDateInput(ad.startDate),
+      endDate: toPHDateInput(ad.endDate),
       isCloudStored: !!ad.storageKey,
       storageKey: ad.storageKey || "",
     });
@@ -212,14 +264,19 @@ export default function AdScheduler() {
       }
 
       const isDefaultAd = !!editingAd.isDefault;
+      if (!isDefaultAd && formData.endDate < formData.startDate) {
+        showToast("The end date must be on or after the start date", "error");
+        setPublishing(false);
+        return;
+      }
       const res = await updateMallAd(editingAd.id, {
         title: formData.title,
         description: formData.description,
         imageUrl: formData.imageUrl,
         linkUrl: formData.linkUrl || "/public-view",
         priority: formData.priority,
-        startDate: new Date(formData.startDate),
-        endDate: isDefaultAd ? new Date("2099-12-31T23:59:59.000Z") : new Date(formData.endDate),
+        startDate: phDayStart(formData.startDate),
+        endDate: isDefaultAd ? new Date("2099-12-31T23:59:59.000Z") : phDayEnd(formData.endDate),
         storageKey: formData.storageKey || null,
       });
 
@@ -242,32 +299,50 @@ export default function AdScheduler() {
     }
   };
 
-  const handleDeleteAd = async (adId: string) => {
-    if (!confirm("Delete this ad? This cannot be undone.")) return;
+  const confirmDeleteAd = async () => {
+    if (!deleteAdTarget) return;
+    setDeletingAd(true);
     try {
-      const res = await deleteMallAd(adId);
+      const res = await deleteMallAd(deleteAdTarget.id);
       if (res.success) {
-        showToast("Ad deleted", "success");
+        showToast("Banner deleted", "success");
         fetchData();
       } else {
-        showToast("Failed: " + (res.error || "Unknown error"), "error");
+        showToast(res.error || "Couldn't delete the banner", "error");
       }
     } catch (error: any) {
       showToast("Error: " + error.message, "error");
+    } finally {
+      setDeletingAd(false);
+      setDeleteAdTarget(null);
     }
   };
 
-  const handlePromoStatus = async (
-    id: string,
-    status: "APPROVED" | "REJECTED",
-  ) => {
-    const res = await updatePromoStatus(id, status);
+  const approvePromo = async (promo: any) => {
+    const res = await updatePromoStatus(promo.id, "APPROVED");
     if (res.success) {
       showToast(
-        status === "APPROVED" ? "Promo approved & live!" : "Promo rejected",
-        status === "APPROVED" ? "success" : "error",
+        new Date(promo.startDate).getTime() > Date.now() ? "Promo approved — it goes live on its start date" : "Promo approved & live!",
+        "success",
       );
       fetchData();
+    } else {
+      showToast(res.error || "Couldn't approve the promo", "error");
+    }
+  };
+
+  const confirmPromoAction = async () => {
+    if (!promoAction) return;
+    setPromoBusy(true);
+    const res = await updatePromoStatus(promoAction.promo.id, "REJECTED", promoReason);
+    setPromoBusy(false);
+    if (res.success) {
+      showToast(promoAction.kind === "takedown" ? "Promo taken down" : "Promo rejected", "success");
+      setPromoAction(null);
+      setPromoReason("");
+      fetchData();
+    } else {
+      showToast(res.error || "Couldn't update the promo", "error");
     }
   };
 
@@ -548,17 +623,17 @@ export default function AdScheduler() {
           {[
             {
               label: "Live Banners",
-              value: mallAds.length,
+              value: mallAds.filter((a) => ["DEFAULT", "LIVE"].includes(adStatus(a))).length,
               icon: <Eye size={18} />,
               color: "text-primary",
               bg: "bg-primary/10",
             },
             {
-              label: "High Priority",
-              value: mallAds.filter((a) => a.priority === "HIGH").length,
-              icon: <ShieldAlert size={18} />,
-              color: "text-red-600",
-              bg: "bg-red-500/10",
+              label: "Scheduled",
+              value: mallAds.filter((a) => adStatus(a) === "SCHEDULED").length,
+              icon: <Calendar size={18} />,
+              color: "text-blue-600",
+              bg: "bg-blue-500/10",
             },
             {
               label: "Awaiting Review",
@@ -568,8 +643,8 @@ export default function AdScheduler() {
               bg: "bg-amber-500/10",
             },
             {
-              label: "Total Campaigns",
-              value: mallAds.length + pendingPromos.length,
+              label: "Live Tenant Promos",
+              value: livePromos.filter((p) => new Date(p.startDate).getTime() <= Date.now()).length,
               icon: <BarChart3 size={18} />,
               color: "text-emerald-600",
               bg: "bg-emerald-500/10",
@@ -662,7 +737,8 @@ export default function AdScheduler() {
                     PRIORITY_CONFIG[
                       ad.priority as keyof typeof PRIORITY_CONFIG
                     ] || PRIORITY_CONFIG.MEDIUM;
-                  const isExpired = !ad.isDefault && new Date(ad.endDate) < new Date();
+                  const status = adStatus(ad);
+                  const ui = STATUS_UI[status];
                   return (
                     <div
                       key={ad.id}
@@ -704,15 +780,10 @@ export default function AdScheduler() {
                           {ad.priority}
                         </div>
                         {/* Status Badges */}
-                        {ad.isDefault ? (
-                          <div className="absolute top-3 right-3 flex items-center gap-1.5 px-2.5 py-1 bg-emerald-600/90 backdrop-blur-md rounded-full text-[9px] font-black text-white uppercase tracking-widest shadow-md">
-                            <ShieldCheck size={11} /> Default
-                          </div>
-                        ) : isExpired ? (
-                          <div className="absolute top-3 right-3 px-2 py-1 bg-red-500/80 backdrop-blur-md rounded-full text-[9px] font-black text-white uppercase tracking-widest">
-                            Expired
-                          </div>
-                        ) : null}
+                        <div className={clsx("absolute top-3 right-3 flex items-center gap-1.5 px-2.5 py-1 backdrop-blur-md rounded-full text-[9px] font-black uppercase tracking-widest shadow-md", ui.badge)}>
+                          {status === "DEFAULT" && <ShieldCheck size={11} />}
+                          {status === "DEFAULT" ? "Default" : ui.label}
+                        </div>
                         {/* Action Buttons */}
                         <div className="absolute bottom-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button
@@ -724,7 +795,7 @@ export default function AdScheduler() {
                           </button>
                           {!ad.isDefault && (
                             <button
-                              onClick={() => handleDeleteAd(ad.id)}
+                              onClick={() => setDeleteAdTarget(ad)}
                               className="p-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors shadow-lg"
                               title="Delete"
                             >
@@ -752,24 +823,20 @@ export default function AdScheduler() {
                           <span
                             className={clsx(
                               "flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest border",
-                              ad.isDefault
-                                ? "bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-800/30"
-                                : isExpired
-                                  ? "bg-red-50 text-red-500 border-red-200 dark:bg-red-900/10 dark:border-red-900/30"
-                                  : "bg-primary/5 text-primary border-primary/20",
+                              ui.pill,
                             )}
                           >
-                            {ad.isDefault
-                              ? "Permanent Default"
-                              : isExpired
-                                ? "Expired"
-                                : "Live in Hero"}
+                            {ui.label}
                           </span>
                           <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
                             <Clock size={10} />{" "}
-                            {ad.isDefault
-                              ? "Always Active"
-                              : new Date(ad.endDate).toLocaleDateString()}
+                            {status === "DEFAULT"
+                              ? "Always active"
+                              : status === "SCHEDULED"
+                                ? `Starts ${formatPHDate(ad.startDate)}`
+                                : status === "EXPIRED"
+                                  ? `Ended ${formatPHDate(ad.endDate)}`
+                                  : `Until ${formatPHDate(ad.endDate)}`}
                           </span>
                         </div>
                       </div>
@@ -795,11 +862,31 @@ export default function AdScheduler() {
                 </p>
               </div>
             </div>
-            {pendingPromos.length > 0 && (
-              <span className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/10 text-amber-600 border border-amber-500/20 rounded-full text-[10px] font-black uppercase tracking-widest animate-pulse">
-                <Clock size={10} /> {pendingPromos.length} Pending
-              </span>
-            )}
+            <div className="flex gap-1 p-1 bg-slate-100 dark:bg-zinc-800 rounded-xl">
+              {(
+                [
+                  { key: "pending", label: "Pending review", count: pendingPromos.length },
+                  { key: "live", label: "Live & scheduled", count: livePromos.length },
+                ] as const
+              ).map((t) => (
+                <button
+                  key={t.key}
+                  type="button"
+                  onClick={() => setPromoTab(t.key)}
+                  className={clsx(
+                    "px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-1.5",
+                    promoTab === t.key ? "bg-white dark:bg-zinc-900 text-charcoal dark:text-white shadow-sm" : "text-slate-400 hover:text-charcoal dark:hover:text-white",
+                  )}
+                >
+                  {t.label}
+                  {t.count > 0 && (
+                    <span className={clsx("px-1.5 rounded-full", t.key === "pending" ? "bg-amber-500/15 text-amber-600" : "bg-emerald-500/15 text-emerald-600")}>
+                      {t.count}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="p-6 space-y-4">
@@ -818,6 +905,64 @@ export default function AdScheduler() {
                   </div>
                 ))}
               </div>
+            ) : promoTab === "live" ? (
+              livePromos.length === 0 ? (
+                <div className="py-16 text-center">
+                  <Megaphone size={40} className="mx-auto text-slate-300 dark:text-zinc-700 mb-3" />
+                  <h4 className="font-bold text-charcoal dark:text-white mb-1">No live tenant promos</h4>
+                  <p className="text-xs text-slate-400 font-medium">Approved promos show here until they end.</p>
+                </div>
+              ) : (
+                livePromos.map((promo) => {
+                  const scheduled = new Date(promo.startDate).getTime() > Date.now();
+                  return (
+                    <div
+                      key={promo.id}
+                      className="bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-white/5 rounded-2xl p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-5"
+                    >
+                      <div className="flex items-center gap-5 flex-1 min-w-0">
+                        <div className="w-40 h-24 rounded-2xl bg-slate-200 dark:bg-zinc-800 overflow-hidden shrink-0 border border-slate-200 dark:border-white/5">
+                          {promo.promoVideo ? (
+                            <video src={promo.promoVideo} className="w-full h-full object-cover" autoPlay muted loop />
+                          ) : (
+                            <img src={promo.promoImage} alt={promo.title} className="w-full h-full object-cover" />
+                          )}
+                        </div>
+                        <div className="space-y-2 min-w-0">
+                          <h4 className="font-bold text-charcoal dark:text-white text-base truncate">{promo.title}</h4>
+                          <p className="text-xs font-bold text-primary uppercase tracking-widest flex items-center gap-1.5">
+                            <Tag size={10} /> {promo.category} • {promo.tenant?.shopName || "Tenant"}
+                          </p>
+                          <div className="flex flex-wrap items-center gap-3">
+                            <div className="px-3 py-1.5 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-lg text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                              <Calendar size={10} /> {formatPHDate(promo.startDate)} — {formatPHDate(promo.endDate)}
+                            </div>
+                            <span
+                              className={clsx(
+                                "px-3 py-1.5 rounded-lg border text-[10px] font-bold uppercase tracking-widest",
+                                scheduled
+                                  ? "bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-950/30 dark:border-blue-800/30"
+                                  : "bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-800/30",
+                              )}
+                            >
+                              {scheduled ? "Scheduled" : "Live now"}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setPromoReason("");
+                          setPromoAction({ promo, kind: "takedown" });
+                        }}
+                        className="px-5 py-2.5 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-red-500 hover:text-white hover:border-transparent transition-all shrink-0 self-end md:self-auto"
+                      >
+                        Take down
+                      </button>
+                    </div>
+                  );
+                })
+              )
             ) : pendingPromos.length === 0 ? (
               <div className="py-16 text-center">
                 <CheckCircle
@@ -832,7 +977,9 @@ export default function AdScheduler() {
                 </p>
               </div>
             ) : (
-              pendingPromos.map((promo) => (
+              pendingPromos.map((promo) => {
+                const ended = new Date(promo.endDate).getTime() < Date.now();
+                return (
                 <div
                   key={promo.id}
                   className="group bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-white/5 rounded-2xl p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-5 hover:border-primary/30 transition-all"
@@ -866,35 +1013,103 @@ export default function AdScheduler() {
                       <div className="flex flex-wrap items-center gap-3">
                         <div className="px-3 py-1.5 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-lg text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
                           <Calendar size={10} />{" "}
-                          {new Date(promo.startDate).toLocaleDateString()} —{" "}
-                          {new Date(promo.endDate).toLocaleDateString()}
+                          {formatPHDate(promo.startDate)} — {formatPHDate(promo.endDate)}
                         </div>
-                        <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-600 border border-amber-200 dark:border-amber-900/30 text-[10px] font-bold uppercase tracking-widest animate-pulse">
-                          <Clock size={10} /> Awaiting Review
-                        </span>
+                        {ended ? (
+                          <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-white/5 text-slate-500 border border-slate-200 dark:border-white/10 text-[10px] font-bold uppercase tracking-widest">
+                            Ended — can&apos;t go live
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-600 border border-amber-200 dark:border-amber-900/30 text-[10px] font-bold uppercase tracking-widest animate-pulse">
+                            <Clock size={10} /> Awaiting Review
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-3 shrink-0 self-end md:self-auto">
                     <button
-                      onClick={() => handlePromoStatus(promo.id, "REJECTED")}
+                      onClick={() => {
+                        setPromoReason(ended ? "The campaign dates have already passed." : "");
+                        setPromoAction({ promo, kind: "reject" });
+                      }}
                       className="px-5 py-2.5 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-red-500 hover:text-white hover:border-transparent transition-all"
                     >
                       Reject
                     </button>
-                    <button
-                      onClick={() => handlePromoStatus(promo.id, "APPROVED")}
-                      className="px-5 py-2.5 bg-primary text-white rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-primary-hover hover:scale-105 shadow-lg shadow-primary/20 transition-all"
-                    >
-                      Approve
-                    </button>
+                    {!ended && (
+                      <button
+                        onClick={() => approvePromo(promo)}
+                        className="px-5 py-2.5 bg-primary text-white rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-primary-hover hover:scale-105 shadow-lg shadow-primary/20 transition-all"
+                      >
+                        Approve
+                      </button>
+                    )}
                   </div>
                 </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>
       </div>
+
+      {deleteAdTarget && (
+        <ChatConfirmModal
+          title="Delete this banner?"
+          message={`"${deleteAdTarget.title}" will be removed from the homepage carousel and its media deleted. This can't be undone.`}
+          confirmLabel="Delete banner"
+          busy={deletingAd}
+          onCancel={() => setDeleteAdTarget(null)}
+          onConfirm={confirmDeleteAd}
+        />
+      )}
+
+      {promoAction && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => !promoBusy && setPromoAction(null)} />
+          <div className="relative w-full max-w-md bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-white/10 p-6 space-y-4 animate-fade-in-up">
+            <div>
+              <h3 className="text-lg font-black text-charcoal dark:text-white">
+                {promoAction.kind === "takedown" ? "Take down this promo?" : "Reject this promo?"}
+              </h3>
+              <p className="text-sm text-slate-500 mt-1">
+                &ldquo;{promoAction.promo.title}&rdquo; by {promoAction.promo.tenant?.shopName || "the tenant"}
+                {promoAction.kind === "takedown" ? " will be removed from the site right away." : " won't be published."} The tenant is notified.
+              </p>
+            </div>
+            <label className="block space-y-1.5">
+              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Reason (optional, sent to the tenant)</span>
+              <textarea
+                value={promoReason}
+                onChange={(e) => setPromoReason(e.target.value)}
+                rows={3}
+                maxLength={300}
+                placeholder="e.g. The image is low quality — please upload a clearer version."
+                className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-800 text-charcoal dark:text-white rounded-xl border border-slate-200 dark:border-white/5 focus:border-primary outline-none text-sm resize-none"
+              />
+            </label>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                disabled={promoBusy}
+                onClick={() => setPromoAction(null)}
+                className="flex-1 py-3 text-xs font-bold text-slate-500 bg-slate-100 dark:bg-zinc-800 rounded-xl uppercase tracking-widest hover:bg-slate-200 dark:hover:bg-zinc-700 transition-all disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={promoBusy}
+                onClick={confirmPromoAction}
+                className="flex-1 py-3 text-xs font-bold text-white bg-red-500 rounded-xl uppercase tracking-widest hover:bg-red-600 transition-all disabled:opacity-50"
+              >
+                {promoBusy ? "Saving…" : promoAction.kind === "takedown" ? "Take down" : "Reject"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ─── CREATE MODAL ─── */}
       {isModalOpen && (

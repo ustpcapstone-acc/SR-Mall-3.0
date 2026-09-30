@@ -83,7 +83,16 @@ export async function notifyChatMessage(opts: {
     const message = `New message from ${opts.senderName}: "${opts.excerpt}"`;
     const withEmail = recipientIds.filter((id) => emailIds.has(id));
     const inAppOnly = recipientIds.filter((id) => !emailIds.has(id));
-    const base = { title: "New Message", message, subject: opts.subject, link };
+    const base = {
+      title: `New message from ${opts.senderName}`,
+      message,
+      // Email: "💬 Demo Shop sent you a message" + the message quoted, "Reply to message" button.
+      subject: `💬 ${opts.senderName} sent you a message`,
+      emailMessage: `You have a new message on SR Mall. Open the chat to read the whole conversation and reply.`,
+      quote: { author: opts.senderName, text: opts.excerpt },
+      ctaLabel: "Reply to message",
+      link,
+    };
     await Promise.all([
       withEmail.length ? notify("MESSAGE", { ...base, recipients: withEmail }) : null,
       inAppOnly.length ? notify("MESSAGE", { ...base, recipients: inAppOnly, email: false }) : null,

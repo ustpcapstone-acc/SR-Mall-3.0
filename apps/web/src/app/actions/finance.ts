@@ -236,6 +236,18 @@ export async function generateInvoice(data: {
       },
     });
 
+    // Bell notice for the tenant (the "bill posted" email is sent below).
+    if (invoice?.tenant?.userId) {
+      const peso = `₱${Number(data.amount).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`;
+      await notify("INVOICE_ISSUED", {
+        recipients: [invoice.tenant.userId],
+        title: `New bill · ${data.month}`,
+        message: `${invoiceNumber} for ${peso} is due ${new Date(data.dueDate).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" })}.`,
+        link: "/tenantdashboard/lease-payments",
+        email: false,
+      });
+    }
+
     // Notify Tenant of Bill Posted
     if (invoice?.tenant?.user?.email) {
       const appUrl = await getBaseUrl();

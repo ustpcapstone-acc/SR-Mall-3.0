@@ -22,6 +22,9 @@ import { getStorefrontByIdAction } from "@/app/actions/tenant";
 import { useAuth } from "@/app/providers";
 import { spaCache } from "@/utils/cache";
 import { ChatBox } from "@/components/chat-box";
+import { ChatLauncher } from "@/components/chat-launcher";
+import { ShopPromos } from "@/components/shop-promos";
+import NotificationDropdown from "@/components/notification-dropdown";
 import { FeedbackSection } from "@/components/feedback-section";
 import { LoginModal } from "@/components/login-modal";
 import { ProductDetailModal } from "@/components/product-detail-modal";
@@ -348,23 +351,8 @@ export default function ShopProfilePage() {
           </div>
         </div>
 
-        <button
-          className={clsx(
-            "w-9",
-            "h-9",
-            "sm:w-10",
-            "sm:h-10",
-            "rounded-xl",
-            "bg-slate-50",
-            "dark:bg-zinc-900",
-            "flex",
-            "items-center",
-            "justify-center",
-            "text-slate-400",
-          )}
-        >
-          <AlertTriangle size={18} />
-        </button>
+        {/* Signed-in shoppers keep their bell (alerts + new messages) on shop pages too. */}
+        {isAuthenticated ? <NotificationDropdown /> : <div className="w-9 h-9 sm:w-10 sm:h-10" aria-hidden />}
       </nav>
 
       <div
@@ -804,6 +792,9 @@ export default function ShopProfilePage() {
         </div>
       </div>
 
+      {/* Approved promos running now (video plays here) */}
+      {shop?.id && <ShopPromos tenantId={shop.id} />}
+
       {/* Featured Products Section: The Lookbook */}
       {shop?.products && shop.products.length > 0 && (
         <div
@@ -1108,6 +1099,8 @@ export default function ShopProfilePage() {
 
       {/* Tenant-Specific Feedback Section */}
       <FeedbackSection isAuthenticated={isAuthenticated} tenantId={shop.id} />
+
+      <ChatLauncher hidden={isChatOpen} />
 
       {shop && (
         <ChatBox

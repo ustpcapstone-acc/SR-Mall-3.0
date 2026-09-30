@@ -1,12 +1,14 @@
 "use server";
 
 import { prisma } from "@srmall/database";
+import { emailBaseUrl } from "@/utils/get-base-url";
 import { SHOP_CATEGORIES } from "@/lib/shop-categories";
 import bcrypt from "bcryptjs";
 import { safeUserSelect } from "@/lib/user-select";
 import { DigitalStorefront } from "@/types/storefront";
 import { revalidatePath } from "next/cache";
 import { occupySlot } from "./space-slot";
+import { recordTenantExit } from "@/lib/tenant-history";
 
 /**
  * Updates or creates a tenant's digital storefront profile.
@@ -233,12 +235,98 @@ export async function deactivateTenantTerminalAction(userId: string) {
   }
 }
 
+/** Rating (approved reviews) and floor (from the unit) for directory cards. */
+async function storefrontExtras(tenants: { id: string; unitId: string | null }[]) {
+  const ids = tenants.map((t) => t.id);
+  const units = tenants.map((t) => t.unitId).filter((u): u is string => !!u && u !== "PENDING_ASSIGNMENT");
+  const now = new Date();
+  const [ratings, slots, promos] = await Promise.all([
+    ids.length
+      ? prisma.review.groupBy({
+          by: ["tenantId"],
+          where: { tenantId: { in: ids }, isApproved: true },
+          _avg: { rating: true },
+          _count: { _all: true },
+        })
+      : Promise.resolve([] as any[]),
+    units.length
+      ? prisma.areaSlot.findMany({ where: { unit_id: { in: units } }, select: { unit_id: true, floor: true } })
+      : Promise.resolve([] as { unit_id: string; floor: string }[]),
+    // The promo the admin approved that is running right now (newest per shop).
+    ids.length
+      ? prisma.tenantPromo.findMany({
+          where: { tenantId: { in: ids }, status: "APPROVED", startDate: { lte: now }, endDate: { gte: now } },
+          select: { id: true, tenantId: true, title: true, mediaType: true, promoImage: true, promoVideo: true, endDate: true },
+          orderBy: { startDate: "desc" },
+        })
+      : Promise.resolve([] as any[]),
+  ]);
+  const ratingBy = new Map(ratings.map((r: any) => [r.tenantId, { avg: r._avg.rating || 0, count: r._count._all }]));
+  const floorBy = new Map(slots.map((s) => [s.unit_id, s.floor]));
+  const promoBy = new Map<string, any>();
+  for (const p of promos as any[]) if (!promoBy.has(p.tenantId)) promoBy.set(p.tenantId, p);
+  return (t: { id: string; unitId: string | null }) => {
+    const p = promoBy.get(t.id);
+    return {
+      avgRating: ratingBy.get(t.id)?.avg ?? 0,
+      reviewCount: ratingBy.get(t.id)?.count ?? 0,
+      floor: (t.unitId && floorBy.get(t.unitId)) || null,
+      activePromo: p
+        ? {
+            id: p.id,
+            title: p.title,
+            mediaType: p.mediaType === "VIDEO" && p.promoVideo ? ("VIDEO" as const) : ("IMAGE" as const),
+            image: p.promoImage || null,
+            video: p.promoVideo || null,
+            endDate: new Date(p.endDate).toISOString(),
+          }
+        : null,
+    };
+  };
+}
+
+/**
+ * Directory cards only: no product lists or sales posts (they can be large),
+ * just what the card shows.
+ */
+export async function getDirectoryShopsAction() {
+  try {
+    const tenants = await prisma.tenant.findMany({
+      where: { status: "ACTIVE" },
+      orderBy: { shopName: "asc" },
+      select: { id: true, shopName: true, unitId: true, isOpen: true, description: true, logoUrl: true, galleryUrls: true, category: true },
+    });
+    const extras = await storefrontExtras(tenants);
+    return {
+      success: true,
+      data: tenants.map(
+        (t) =>
+          ({
+            id: t.id,
+            shop_name: t.shopName,
+            unit_id: t.unitId,
+            is_open: t.isOpen,
+            description: t.description,
+            logo_url: t.logoUrl,
+            gallery_urls: t.galleryUrls,
+            category: t.category ?? undefined,
+            ...extras(t),
+          }) as DigitalStorefront,
+      ),
+    };
+  } catch (error: any) {
+    console.error("[GET_DIRECTORY_SHOPS_ERROR]:", error);
+    return { success: false, error: error.message || "Failed to fetch directory" };
+  }
+}
+
 export async function getAllStorefrontsAction() {
   try {
     const tenants = await prisma.tenant.findMany({
       where: { status: "ACTIVE" },
       orderBy: { shopName: "asc" },
     });
+    const extras = await storefrontExtras(tenants);
 
     return {
       success: true,
@@ -255,6 +343,7 @@ export async function getAllStorefrontsAction() {
             products: t.products as any,
             post_sales: t.postSales as any,
             category: t.category,
+            ...extras(t),
           }) as DigitalStorefront,
       ),
     };
@@ -522,6 +611,13 @@ export async function requestTenantAction(
       message: `Digital registration received for "${data.shopName}". Review the brand profile and space requirements.`,
       link: "/admindashboard/bookings?tab=merchant",
     });
+    await notify("MERCHANT_APPLICATION_UPDATE", {
+      recipients: [userId],
+      title: `Application received · ${data.shopName}`,
+      message: "Your merchant application is under review. We'll let you know here as soon as the mall office decides.",
+      link: "/public-view",
+      email: false,
+    });
 
     // 3. Applicant Confirmation Email (Reusing 'user' variable from earlier)
     if (user && user.email) {
@@ -586,6 +682,15 @@ export async function approveTenantAction(tenantId: string, unitId?: string) {
     revalidatePath("/admindashboard/space-manager");
     revalidatePath("/public-view");
 
+    const { notify } = await import("@/lib/notify");
+    await notify("MERCHANT_APPLICATION_UPDATE", {
+      recipients: [tenant.userId],
+      title: `Welcome to SR Mall 🎉 · ${tenant.shopName}`,
+      message: `Your application was approved${unitId && unitId !== "PENDING_ASSIGNMENT" ? ` for Unit ${unitId}` : ""}. Your tenant dashboard is ready — set up your storefront to go live.`,
+      link: "/tenantdashboard",
+      email: false,
+    });
+
     // Gmail Notification to User
     if (tenant.user && tenant.user.email) {
       try {
@@ -603,7 +708,7 @@ export async function approveTenantAction(tenantId: string, unitId?: string) {
               ${unitId ? `<p><strong>Assigned Unit:</strong> ${unitId}</p>` : ""}
               <hr />
               <p>You can now access your Merchant Command Center to manage your digital storefront, upload products, and monitor your business analytics.</p>
-              <a href="${process.env.NEXT_PUBLIC_APP_URL}/tenantdashboard" style="display: inline-block; padding: 10px 20px; background-color: #10b981; color: white; text-decoration: none; border-radius: 5px;">Go to Dashboard</a>
+              <a href="${emailBaseUrl()}/tenantdashboard" style="display: inline-block; padding: 10px 20px; background-color: #10b981; color: white; text-decoration: none; border-radius: 5px;">Go to Dashboard</a>
               <p style="margin-top: 20px; font-size: 12px; color: #666;">If you have any questions, our management team is here to support you.</p>
             </div>
           `,
@@ -637,7 +742,7 @@ export async function getPendingTenantsAction() {
   }
 }
 
-export async function deleteTenantAction(tenantId: string) {
+export async function deleteTenantAction(tenantId: string, adminUserId?: string) {
   try {
     // First get the tenant to find the associated user
     const tenant = await prisma.tenant.findUnique({
@@ -647,6 +752,12 @@ export async function deleteTenantAction(tenantId: string) {
 
     if (!tenant) {
       return { success: false, error: "Tenant not found" };
+    }
+
+    // Keep a permanent history record before the tenant (and invoices) are deleted.
+    // A tenant already marked PAST was recorded when that happened.
+    if (tenant.status !== "PAST" && tenant.status !== "PENDING" && tenant.status !== "REJECTED") {
+      await recordTenantExit(tenantId, "REMOVED", { endedById: adminUserId });
     }
 
     // Free up the unit if they had one
@@ -697,6 +808,15 @@ export async function rejectTenantAction(tenantId: string) {
       where: { id: tenantId },
       data: { status: "REJECTED" },
       include: { user: { select: safeUserSelect } },
+    });
+
+    const { notify } = await import("@/lib/notify");
+    await notify("MERCHANT_APPLICATION_UPDATE", {
+      recipients: [tenant.userId],
+      title: `Application declined · ${tenant.shopName}`,
+      message: "We're unable to approve your merchant application at this time. Message the mall office if you'd like to discuss it.",
+      link: "/public-view?chat=open&recipient=admin",
+      email: false,
     });
 
     // Gmail Notification to User
@@ -910,6 +1030,7 @@ export async function adminUpdateTenantAction(
     description?: string;
     rentCost?: number;
   },
+  adminUserId?: string,
 ) {
   try {
     const currentTenant = await prisma.tenant.findUnique({
@@ -917,6 +1038,10 @@ export async function adminUpdateTenantAction(
     });
 
     if (!currentTenant) return { success: false, error: "Tenant not found" };
+
+    if (data.status === "PAST" && currentTenant.status !== "PAST") {
+      await recordTenantExit(tenantId, "MARKED_PAST", { endedById: adminUserId });
+    }
 
     const targetUnitId = data.unitId || currentTenant.unitId;
 
@@ -1058,18 +1183,28 @@ export async function updateAdminPostSaleAction(tenantId: string, saleId: string
   }
 }
 
+/**
+ * Tenant History for the admin: every snapshot saved when a tenant left
+ * (see lib/tenant-history.ts), newest first.
+ */
 export async function getPastTenantsAction() {
   try {
-    const pastTenants = await prisma.tenant.findMany({
-      where: { status: "PAST" },
-      include: {
-        user: { select: { name: true, email: true, avatarUrl: true } },
-        invoices: true,
-      },
-      orderBy: { updatedAt: "desc" },
-    });
-    return { success: true, data: pastTenants };
+    const rows = await prisma.$queryRawUnsafe<any[]>(
+      `SELECT * FROM "TenantHistory" ORDER BY "endedAt" DESC LIMIT 500`,
+    );
+    return {
+      success: true,
+      data: rows.map((r) => ({
+        ...r,
+        leaseStart: new Date(r.leaseStart).toISOString(),
+        endedAt: new Date(r.endedAt).toISOString(),
+        totalPaid: Number(r.totalPaid) || 0,
+        outstanding: Number(r.outstanding) || 0,
+        avgRating: Number(r.avgRating) || 0,
+      })),
+    };
   } catch (error: any) {
+    console.error("[GET_TENANT_HISTORY_ERROR]:", error);
     return { success: false, error: error.message };
   }
 }
