@@ -4,6 +4,7 @@ export interface StoreProduct {
   description: string;
   price: string;
   image_url: string;
+  category?: string; // Food | Fashion | Electronics | Living | Beauty
 }
 
 export interface DigitalStorefront {

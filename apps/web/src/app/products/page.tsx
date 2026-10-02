@@ -74,16 +74,15 @@ export default function AllProductsPage() {
       product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       product.shopName.toLowerCase().includes(searchQuery.toLowerCase());
 
+    // Tenant-chosen category wins; older items without one fall back to the description.
     const matchesCategory =
       selectedCategory === "All Categories" ||
-      (product.category &&
-        product.category
-          .toLowerCase()
-          .includes(selectedCategory.toLowerCase())) ||
-      (product.description &&
-        product.description
-          .toLowerCase()
-          .includes(selectedCategory.toLowerCase()));
+      (product.category
+        ? product.category.toLowerCase() === selectedCategory.toLowerCase()
+        : !!product.description &&
+          product.description
+            .toLowerCase()
+            .includes(selectedCategory.toLowerCase()));
 
     return matchesSearch && matchesCategory;
   });

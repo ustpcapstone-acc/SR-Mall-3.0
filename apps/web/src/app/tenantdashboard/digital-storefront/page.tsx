@@ -47,7 +47,20 @@ const STORE_CATEGORIES = [
   "Others",
 ];
 
-const getSafeUrl = (url: string | null | undefined, index: number) => {
+// Matches the filter buttons on the public /products page.
+const PRODUCT_CATEGORIES = ["Food", "Fashion", "Electronics", "Living", "Beauty"];
+
+// Sensible default for a new item, based on the store's own category.
+const defaultProductCategory = (storeCategory?: string | null) =>
+  ({
+    Fashion: "Fashion",
+    Electronics: "Electronics",
+    "Food & Dining": "Food",
+    "Health & Beauty": "Beauty",
+    "Home & Lifestyle": "Living",
+  })[storeCategory || ""] || "";
+
+const getSafeUrl =(url: string | null | undefined, index: number) => {
   if (!url || url.startsWith("blob:") || url.includes("placeholder")) {
     if (index === 0) return "/images/logo/logoshop.jpg";
     return PLACEHOLDERS[(index - 1) % PLACEHOLDERS.length];
@@ -184,6 +197,7 @@ export default function DigitalStorefrontPage() {
       description: "",
       price: "",
       image_url: "",
+      category: defaultProductCategory(profile.category),
     };
     setProfile((prev) => ({
       ...prev,
@@ -694,7 +708,7 @@ export default function DigitalStorefrontPage() {
 
                       {/* Fields */}
                       <div className="flex-1 space-y-3">
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                           <div>
                             <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">
                               Product Name
@@ -722,6 +736,23 @@ export default function DigitalStorefrontPage() {
                               placeholder="₱ 0.00"
                               className="w-full px-3 py-2.5 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-black text-primary focus:outline-none focus:border-primary transition-all"
                             />
+                          </div>
+                          <div className="col-span-2 sm:col-span-1">
+                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1 mb-1">
+                              <ShoppingBag size={9} /> Category
+                            </label>
+                            <select
+                              value={product.category || ""}
+                              onChange={(e) =>
+                                updateProduct(index, "category", e.target.value)
+                              }
+                              className={`w-full px-3 py-2.5 bg-white dark:bg-zinc-900 border rounded-xl text-xs font-bold focus:outline-none focus:border-primary transition-all cursor-pointer ${product.category ? "border-slate-200 dark:border-white/10 text-charcoal dark:text-white" : "border-amber-300 dark:border-amber-500/40 text-slate-400"}`}
+                            >
+                              <option value="">Select category</option>
+                              {PRODUCT_CATEGORIES.map((cat) => (
+                                <option key={cat} value={cat}>{cat}</option>
+                              ))}
+                            </select>
                           </div>
                         </div>
                         <div>
