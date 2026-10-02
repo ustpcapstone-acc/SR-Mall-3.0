@@ -422,3 +422,41 @@ model TenantHistory {
   @@index([endedAt])
   @@index([tenantId])
 }
+
+/// Tenant complaint ticket (see migration 20261001000100_complaints).
+/// Read/written with raw SQL in apps/web/src/app/actions/complaint.ts.
+model Complaint {
+  id                   String    @id
+  tenantId             String
+  userId               String
+  category             String
+  subject              String
+  details              String
+  priority             String    @default("NORMAL")
+  status               String    @default("NEW")
+  photos               String[]  @default([])
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @default(now())
+  resolvedAt           DateTime?
+  lastTenantActivityAt DateTime  @default(now())
+  lastAdminActivityAt  DateTime?
+  tenantReadAt         DateTime  @default(now())
+  adminReadAt          DateTime?
+
+  @@index([tenantId])
+  @@index([status])
+}
+
+model ComplaintComment {
+  id          String   @id
+  complaintId String
+  authorId    String?
+  authorRole  String
+  authorName  String
+  message     String
+  photoUrl    String?
+  isInternal  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([complaintId])
+}

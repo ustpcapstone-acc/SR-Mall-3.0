@@ -10,11 +10,13 @@ import {
   Presentation,
   Palette,
   Receipt,
+  ClipboardList,
 } from "lucide-react";
 import clsx from "clsx";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/app/providers";
 import { useChatUnread } from "@/lib/chat-unread";
+import { useComplaintUnread } from "@/lib/complaint-unread";
 
 const navItems = [
   { href: "/admindashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -28,6 +30,11 @@ const navItems = [
     href: "/admindashboard/messenger-hub",
     label: "Messages",
     icon: MessageSquare,
+  },
+  {
+    href: "/admindashboard/complaints",
+    label: "Complaints",
+    icon: ClipboardList,
   },
   {
     href: "/admindashboard/tenant-monitoring",
@@ -56,6 +63,8 @@ export const AdminSidebar = () => {
   const { user } = useAuth();
   // Live unread chat count (same source as the bell's Messages tab).
   const unreadMessages = useChatUnread(user?.id).total;
+  // Open complaints with tenant activity no admin has opened yet.
+  const unreadComplaints = useComplaintUnread(user?.id);
 
   return (
     <aside
@@ -127,11 +136,14 @@ export const AdminSidebar = () => {
               <span className="tracking-tight uppercase text-[10px] sm:text-xs flex-1">
                 {item.label}
               </span>
-              {item.icon === MessageSquare && unreadMessages > 0 && (
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[9px] font-black text-white mr-2 shadow-md">
-                  {unreadMessages > 9 ? "9+" : unreadMessages}
-                </span>
-              )}
+              {(() => {
+                const badge = item.icon === MessageSquare ? unreadMessages : item.icon === ClipboardList ? unreadComplaints : 0;
+                return badge > 0 ? (
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[9px] font-black text-white mr-2 shadow-md">
+                    {badge > 9 ? "9+" : badge}
+                  </span>
+                ) : null;
+              })()}
               {isActive && (
                 <div className="absolute right-4 w-1.5 h-1.5 bg-primary rounded-full animate-pulse" />
               )}

@@ -41,6 +41,8 @@ const T: Record<string, TypeInfo> = {
   EVENT_INQUIRY_UPDATE: { label: "Event inquiry", group: "ACTION", icon: "calendar", tone: "text-blue-500", route: { DEFAULT: "/public-view" } },
   MERCHANT_APPLICATION_UPDATE: { label: "Application", group: "ACTION", icon: "store", tone: "text-blue-500", route: { TENANT: "/tenantdashboard", DEFAULT: "/public-view" } },
   LOST_AND_FOUND_REPORT: { label: "Lost & found", group: "ACTION", icon: "search", tone: "text-sky-500", route: { DEFAULT: "/admindashboard/public-view-cms" } },
+  COMPLAINT_ACTIVITY: { label: "Complaint", group: "ACTION", icon: "alert", tone: "text-orange-500", route: { ADMIN: "/admindashboard/complaints", DEFAULT: "/tenantdashboard/complaints" } },
+  COMPLAINT_UPDATE: { label: "Complaint", group: "ACTION", icon: "alert", tone: "text-orange-500", route: { ADMIN: "/admindashboard/complaints", DEFAULT: "/tenantdashboard/complaints" } },
   NEW_REVIEW: { label: "New review", group: "ACTION", icon: "star", tone: "text-amber-500", route: { ADMIN: "/admindashboard/user-management", TENANT: "/tenantdashboard/feedback-reviews", DEFAULT: "/tenant-directory" } },
   NEW_REVIEW_SUBMITTED: { label: "New review", group: "ACTION", icon: "star", tone: "text-amber-500", route: { ADMIN: "/admindashboard/user-management", TENANT: "/tenantdashboard/feedback-reviews", DEFAULT: "/tenant-directory" } },
 

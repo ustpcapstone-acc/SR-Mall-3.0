@@ -9,11 +9,13 @@ import {
   MessageSquare,
   Receipt,
   Star,
+  ClipboardList,
   X,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/app/providers";
 import { useChatUnread } from "@/lib/chat-unread";
+import { useComplaintUnread } from "@/lib/complaint-unread";
 import clsx from "clsx";
 
 const navItems = [
@@ -53,6 +55,12 @@ const navItems = [
     icon: Star,
     mobileLabel: "Stars",
   },
+  {
+    href: "/tenantdashboard/complaints",
+    label: "Complaints",
+    icon: ClipboardList,
+    mobileLabel: "Complaints",
+  },
 ];
 
 interface TenantSidebarProps {
@@ -70,6 +78,8 @@ export const TenantSidebar = ({
 
   // Live unread chat count (same source as the bell's Messages tab).
   const unreadMessages = useChatUnread(user?.id).total;
+  // Complaints with an admin reply / status change the tenant hasn't opened.
+  const unreadComplaints = useComplaintUnread(user?.id);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -163,11 +173,14 @@ export const TenantSidebar = ({
                 >
                   {isMobile ? item.mobileLabel : item.label}
                 </span>
-                {item.icon === MessageSquare && unreadMessages > 0 && (
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[9px] font-black text-white mr-4 lg:mr-5 shadow-md">
-                    {unreadMessages > 9 ? "9+" : unreadMessages}
-                  </span>
-                )}
+                {(() => {
+                  const badge = item.icon === MessageSquare ? unreadMessages : item.icon === ClipboardList ? unreadComplaints : 0;
+                  return badge > 0 ? (
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[9px] font-black text-white mr-4 lg:mr-5 shadow-md">
+                      {badge > 9 ? "9+" : badge}
+                    </span>
+                  ) : null;
+                })()}
                 {isActive && (
                   <div
                     className={clsx(

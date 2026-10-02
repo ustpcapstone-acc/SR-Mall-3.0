@@ -245,6 +245,26 @@ export const NOTIFICATION_CATALOG: NotificationTypeMeta[] = [
   },
 
   {
+    type: "COMPLAINT_ACTIVITY",
+    label: "Tenant Complaints",
+    description: "A tenant filed a complaint or replied to one.",
+    group: "ACTION",
+    audience: ["ADMIN"],
+    defaultEnabled: true,
+    defaultChannels: ["IN_APP", "EMAIL"],
+    link: { ADMIN: "/admindashboard/complaints" },
+  },
+  {
+    type: "COMPLAINT_UPDATE",
+    label: "Your Complaints",
+    description: "The admin replied to or updated a complaint you filed.",
+    group: "ACTION",
+    audience: ["TENANT"],
+    defaultEnabled: true,
+    defaultChannels: ["IN_APP", "EMAIL"],
+    link: { TENANT: "/tenantdashboard/complaints" },
+  },
+  {
     type: "NEW_REVIEW",
     label: "New Review",
     description: "A customer rated your shop.",
