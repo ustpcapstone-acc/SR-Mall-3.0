@@ -304,18 +304,27 @@ export async function getTenantPaymentScheduleAction(userId: string) {
     const baseRent = slot?.base_rent || 0;
     const invoices = tenant.invoices || [];
 
+    // Real payment dates (newer column; raw SQL until the client is regenerated).
+    const paidAtRows = await prisma
+      .$queryRawUnsafe<{ id: string; paidAt: Date }[]>(
+        `SELECT "id", "paidAt" FROM "Invoice" WHERE "tenantId" = $1 AND "paidAt" IS NOT NULL`,
+        tenant.id,
+      )
+      .catch(() => [] as { id: string; paidAt: Date }[]);
+    const paidAtById = new Map(paidAtRows.map((r) => [r.id, r.paidAt]));
+    const paidDate = (inv: any) => paidAtById.get(inv.id) || inv.updatedAt || inv.createdAt;
+
     // Separate paid invoices and unpaid invoices
     const paidInvoices = invoices
       .filter((inv: any) => inv.status === "PAID")
       .sort(
         (a: any, b: any) =>
-          new Date(b.updatedAt || b.createdAt).getTime() -
-          new Date(a.updatedAt || a.createdAt).getTime(),
+          new Date(paidDate(b)).getTime() - new Date(paidDate(a)).getTime(),
       );
 
     const lastPaidInvoice = paidInvoices[0] || null;
     const lastPaymentDate = lastPaidInvoice
-      ? lastPaidInvoice.updatedAt || lastPaidInvoice.createdAt
+      ? paidDate(lastPaidInvoice)
       : null;
 
     // Unpaid invoices sorted by dueDate ascending (earliest due first)

@@ -154,8 +154,8 @@ function percentChange(current: number, previous: number) {
  * five round trips; here every query runs in parallel on the server.
  *
  * Money timing: an invoice counts as *billed* in the month it was created and
- * as *collected* in the month it was marked PAID (its `updatedAt`), since the
- * schema has no separate paid-at column.
+ * as *collected* in the month it was paid (`paidAt`, set by a DB trigger when
+ * the status becomes PAID; older rows fall back to `updatedAt`).
  */
 export async function getAdminDashboardAction(adminUserId?: string) {
   try {
@@ -177,6 +177,7 @@ export async function getAdminDashboardAction(adminUserId?: string) {
       newUsersThisMonth,
       unreadMessages,
       activity,
+      paidAtRows,
     ] = await Promise.all([
       prisma.invoice.findMany({
         select: {
@@ -239,7 +240,14 @@ export async function getAdminDashboardAction(adminUserId?: string) {
             )
         : Promise.resolve(0),
       getRecentActivity(6),
+      // Newer column (raw SQL until the Prisma client is regenerated)
+      prisma
+        .$queryRawUnsafe<{ id: string; paidAt: Date }[]>(
+          `SELECT "id", "paidAt" FROM "Invoice" WHERE "paidAt" IS NOT NULL`,
+        )
+        .catch(() => [] as { id: string; paidAt: Date }[]),
     ]);
+    const paidAtById = new Map(paidAtRows.map((r) => [r.id, new Date(r.paidAt)]));
 
     // ── Money ────────────────────────────────────────────────────────────────
     const thisMonth = monthKey(now);
@@ -247,6 +255,19 @@ export async function getAdminDashboardAction(adminUserId?: string) {
 
     let collectedThisMonth = 0;
     let collectedLastMonth = 0;
+    // Same point last month (e.g. Oct 3 → Sep 1–3), so early-month trends
+    // compare like with like instead of a few days against a whole month.
+    let collectedLastMonthToDate = 0;
+    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const daysInLastMonth = new Date(now.getFullYear(), now.getMonth(), 0).getDate();
+    const lastMonthCutoff = new Date(
+      lastMonthStart.getFullYear(),
+      lastMonthStart.getMonth(),
+      Math.min(now.getDate(), daysInLastMonth),
+      now.getHours(),
+      now.getMinutes(),
+      now.getSeconds(),
+    );
     let billedThisMonth = 0;
     let outstanding = 0;
     let overdueAmount = 0;
@@ -281,11 +302,15 @@ export async function getAdminDashboardAction(adminUserId?: string) {
       if (createdKey === thisMonth) billedThisMonth += amount;
 
       if (inv.status === "PAID") {
-        const paidKey = monthKey(new Date(inv.updatedAt));
+        const paidAt = paidAtById.get(inv.id) ?? new Date(inv.updatedAt);
+        const paidKey = monthKey(paidAt);
         const paidBucket = bucketByKey.get(paidKey);
         if (paidBucket) paidBucket.collected += amount;
         if (paidKey === thisMonth) collectedThisMonth += amount;
-        if (paidKey === lastMonth) collectedLastMonth += amount;
+        if (paidKey === lastMonth) {
+          collectedLastMonth += amount;
+          if (paidAt <= lastMonthCutoff) collectedLastMonthToDate += amount;
+        }
         continue;
       }
 
@@ -369,7 +394,8 @@ export async function getAdminDashboardAction(adminUserId?: string) {
         kpis: {
           collectedThisMonth,
           collectedLastMonth,
-          collectedChange: percentChange(collectedThisMonth, collectedLastMonth),
+          collectedLastMonthToDate,
+          collectedChange: percentChange(collectedThisMonth, collectedLastMonthToDate),
           billedThisMonth,
           outstanding,
           overdueAmount,

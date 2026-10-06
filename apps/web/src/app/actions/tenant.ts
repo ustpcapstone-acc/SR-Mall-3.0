@@ -935,6 +935,14 @@ export async function getTenantReportDataAction(filter?: {
     });
 
     const slots = await prisma.areaSlot.findMany();
+    // Real payment dates (newer column; raw SQL until the client is regenerated).
+    const paidAtRows = await prisma
+      .$queryRawUnsafe<{ id: string; paidAt: Date }[]>(
+        `SELECT "id", "paidAt" FROM "Invoice" WHERE "paidAt" IS NOT NULL`,
+      )
+      .catch(() => [] as { id: string; paidAt: Date }[]);
+    const paidAtById = new Map(paidAtRows.map((r) => [r.id, r.paidAt]));
+    const paidDate = (inv: any) => paidAtById.get(inv.id) || inv.updatedAt || inv.createdAt;
 
     const data: any[] = tenants.map((t: any) => {
       const slot = slots.find((s: any) => s.unit_id === t.unitId);
@@ -958,12 +966,11 @@ export async function getTenantReportDataAction(filter?: {
         0,
       );
 
-      const lastPaidInvoice = relevantInvoices.find(
-        (inv: any) => inv.status === "PAID",
-      );
-      const lastPaymentDate = lastPaidInvoice
-        ? lastPaidInvoice.createdAt
-        : null;
+      // Most recently *paid* invoice (not the most recently created one).
+      const lastPaidInvoice = relevantInvoices
+        .filter((inv: any) => inv.status === "PAID")
+        .sort((a: any, b: any) => new Date(paidDate(b)).getTime() - new Date(paidDate(a)).getTime())[0];
+      const lastPaymentDate = lastPaidInvoice ? paidDate(lastPaidInvoice) : null;
       const lastReceiptNo = relevantInvoices[0] ? relevantInvoices[0].invoiceNumber : null;
 
       // Find the earliest due date among unpaid invoices

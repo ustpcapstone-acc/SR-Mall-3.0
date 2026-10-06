@@ -220,8 +220,8 @@ export default function AdminDashboard() {
           icon={<Wallet size={18} />}
           tone="emerald"
           trend={
-            kpis.collectedLastMonth > 0 || kpis.collectedThisMonth > 0
-              ? { value: kpis.collectedChange, label: "vs last month" }
+            kpis.collectedLastMonthToDate > 0 || kpis.collectedThisMonth > 0
+              ? { value: kpis.collectedChange, label: "vs same day last month" }
               : undefined
           }
           sub={`Billed ${pesoCompact.format(kpis.billedThisMonth)}`}
