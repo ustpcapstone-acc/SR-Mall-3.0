@@ -139,7 +139,7 @@ export const NOTIFICATION_CATALOG: NotificationTypeMeta[] = [
     audience: ["ADMIN"],
     defaultEnabled: true,
     defaultChannels: ["IN_APP", "EMAIL"],
-    link: { ADMIN: "/admindashboard/bookings?tab=merchant" },
+    link: { ADMIN: "/admindashboard/merchant-requests" },
   },
   {
     type: "AD_SUBMISSION_RECEIVED",

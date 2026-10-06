@@ -28,13 +28,8 @@ import {
   Save,
   MoreVertical,
   ArrowRight,
-  Handshake,
   Monitor,
 } from "lucide-react";
-import {
-  approveTenantAction,
-  rejectTenantAction,
-} from "@/app/actions/tenant";
 import {
   upsertAreaSlot,
 } from "@/app/actions/space-slot";
@@ -42,6 +37,7 @@ import {
   updateInquiryStatusAction,
 } from "@/app/actions/inquiry";
 import { getBookingsDataAction } from "@/app/actions/bookings";
+import { useLiveSlots } from "@/lib/slot-live";
 import { DashboardSkeleton } from "@/components/dashboard-skeleton";
 import { toast } from "sonner";
 import { ReservationDecisionModal } from "@/components/admin/reservation-decision-modal";
@@ -70,8 +66,8 @@ const MONTHS = [
 
 export default function MasterBookingsPage() {
   const [activeTab, setActiveTab] = useState<
-    "merchant" | "event" | "reservation"
-  >("merchant");
+    "event" | "reservation"
+  >("event");
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
 
@@ -80,22 +76,11 @@ export default function MasterBookingsPage() {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const tab = params.get("tab");
-      if (tab === "reservation" || tab === "event" || tab === "merchant") {
+      if (tab === "reservation" || tab === "event") {
         setActiveTab(tab);
       }
     }
   }, []);
-
-  // Merchant Requests State
-  const [merchantRequests, setMerchantRequests] = useState<any[]>([]);
-  const [availableSlots, setAvailableSlots] = useState<any[]>([]);
-  const [isApprovingMerchant, setIsApprovingMerchant] = useState<string | null>(
-    null,
-  );
-  const [selectedUnits, setSelectedUnits] = useState<Record<string, string>>(
-    {},
-  );
-  const [openSelectId, setOpenSelectId] = useState<string | null>(null);
 
   // Event Inquiries State
   const [eventInquiries, setEventInquiries] = useState<any[]>([]);
@@ -124,15 +109,9 @@ export default function MasterBookingsPage() {
 
     try {
       // One request for all tabs (see getBookingsDataAction).
-      const { tenants, slots, inquiries, reservedDetailed } =
+      const { slots, inquiries, reservedDetailed } =
         await getBookingsDataAction();
 
-      if (tenants.success) setMerchantRequests(tenants.data || []);
-      if (slots.success) {
-        setAvailableSlots(
-          slots.data?.filter((s: any) => s.status === "AVAILABLE") || [],
-        );
-      }
       if (reservedDetailed.success && reservedDetailed.data) {
         setReservedSlots(reservedDetailed.data);
       } else if (slots.success) {
@@ -153,40 +132,12 @@ export default function MasterBookingsPage() {
     loadData();
   }, []);
 
-  // --- Merchant Handlers ---
-  const handleApproveMerchant = async (tenantId: string) => {
-    const unitId = selectedUnits[tenantId];
-    if (
-      !unitId &&
-      !confirm(
-        "Strategic Warning: No Physical Unit is assigned. Approve anyway?",
-      )
-    )
-      return;
-
-    try {
-      setIsApprovingMerchant(tenantId);
-      const res = await approveTenantAction(tenantId, unitId);
-      if (res.success) {
-        toast.success("Merchant Partnership Synchronized");
-        loadData(true);
-      } else {
-        toast.error("Integration Failed", { description: res.error });
-      }
-    } finally {
-      setIsApprovingMerchant(null);
-    }
-  };
-
-  const handleRejectMerchant = async (tenantId: string) => {
-    if (confirm("Terminate this application strategy?")) {
-      const res = await rejectTenantAction(tenantId);
-      if (res.success) {
-        toast.warning("Application Rejected");
-        loadData(true);
-      }
-    }
-  };
+  // New / changed reservations show up without a reload: any unit status
+  // change (Supabase Realtime), tab focus and a 30s fallback refresh quietly.
+  useLiveSlots(
+    () => loadData(true),
+    () => loadData(true),
+  );
 
   // --- Event Handlers ---
   const handleEventActionClick = (
@@ -275,12 +226,6 @@ export default function MasterBookingsPage() {
 
   const tabs = [
     {
-      id: "merchant",
-      label: "Merchant Applications",
-      icon: Handshake,
-      count: merchantRequests.length,
-    },
-    {
       id: "event",
       label: "Event Bookings",
       icon: CalendarIcon,
@@ -364,169 +309,6 @@ export default function MasterBookingsPage() {
 
       {/* Dynamic Content Area */}
       <main className="animate-fade-in group">
-        {activeTab === "merchant" && (
-          <div className="space-y-8">
-            <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-[2.5rem] shadow-sm">
-              <div className="custom-scrollbar w-full">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-slate-50/50 dark:bg-white/5">
-                      <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 dark:border-white/5">
-                        Applicant Identity
-                      </th>
-                      <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 dark:border-white/5">
-                        Operational Concept
-                      </th>
-                      <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 dark:border-white/5">
-                        Strategic Unit
-                      </th>
-                      <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 dark:border-white/5 text-right">
-                        Approval Protocol
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-white/5">
-                    {merchantRequests.length === 0 ? (
-                      <tr>
-                        <td
-                          colSpan={4}
-                          className="p-32 text-center text-slate-400 font-bold uppercase tracking-widest text-xs"
-                        >
-                          No Pending Applications
-                        </td>
-                      </tr>
-                    ) : (
-                      merchantRequests.map((req) => (
-                        <tr
-                          key={req.id}
-                          className="hover:bg-slate-50/80 dark:hover:bg-white/[0.02] transition-colors group/row"
-                        >
-                          <td className="px-8 py-8">
-                            <div className="flex items-center gap-4 min-w-0">
-                              <div className="shrink-0 w-14 h-14 bg-primary/10 rounded-[1.25rem] flex items-center justify-center text-primary group-hover/row:scale-110 transition-transform">
-                                <User size={24} />
-                              </div>
-                              <div className="min-w-0 flex-1">
-                                <p className="font-black text-charcoal dark:text-white uppercase tracking-tight italic truncate">
-                                  {req.user?.name}
-                                </p>
-                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5 truncate">
-                                  {req.user?.email}
-                                </p>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-8 py-8 max-w-sm">
-                            <div className="space-y-1">
-                              <span className="inline-block px-2 py-0.5 bg-slate-100 dark:bg-white/10 rounded text-[9px] font-black text-slate-500 uppercase mb-2">
-                                Retail Partnership
-                              </span>
-                              <h4 className="text-sm font-black text-charcoal dark:text-white uppercase tracking-tight">
-                                {req.shopName}
-                              </h4>
-                              <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed italic break-all">
-                                "{req.description}"
-                              </p>
-                            </div>
-                          </td>
-                          <td className="px-8 py-8">
-                              <div className="relative">
-                                <button
-                                  type="button"
-                                  onClick={() => setOpenSelectId(openSelectId === req.id ? null : req.id)}
-                                  className="bg-slate-100 dark:bg-zinc-800 border-none rounded-2xl px-5 py-3 text-xs font-black text-charcoal dark:text-white flex items-center justify-between gap-2 min-w-[220px] transition-all hover:bg-slate-200 dark:hover:bg-zinc-700 outline-none"
-                                >
-                                  <span>
-                                    {selectedUnits[req.id]
-                                      ? `UNIT ${selectedUnits[req.id]}`
-                                      : "PENDING ASSIGNMENT"}
-                                  </span>
-                                  <ChevronDown size={14} className="text-slate-400 dark:text-slate-500" />
-                                </button>
-
-                                {openSelectId === req.id && (
-                                  <>
-                                    <div
-                                      className="fixed inset-0 z-40"
-                                      onClick={() => setOpenSelectId(null)}
-                                    />
-                                    <div className="absolute left-0 bottom-full mb-2 w-full bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 rounded-2xl shadow-xl z-50 py-2 max-h-60 overflow-y-auto custom-scrollbar animate-fade-in">
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          setSelectedUnits({
-                                            ...selectedUnits,
-                                            [req.id]: "",
-                                          });
-                                          setOpenSelectId(null);
-                                        }}
-                                        className={clsx(
-                                          "w-full text-left px-5 py-3 text-xs font-black transition-all hover:bg-slate-100 dark:hover:bg-zinc-800",
-                                          !selectedUnits[req.id]
-                                            ? "text-primary"
-                                            : "text-slate-500 dark:text-zinc-300"
-                                        )}
-                                      >
-                                        PENDING ASSIGNMENT
-                                      </button>
-                                      {availableSlots.map((slot: any) => (
-                                        <button
-                                          key={slot.id}
-                                          type="button"
-                                          onClick={() => {
-                                            setSelectedUnits({
-                                              ...selectedUnits,
-                                              [req.id]: slot.unit_id,
-                                            });
-                                            setOpenSelectId(null);
-                                          }}
-                                          className={clsx(
-                                            "w-full text-left px-5 py-3 text-xs font-black transition-all hover:bg-slate-100 dark:hover:bg-zinc-800",
-                                            selectedUnits[req.id] === slot.unit_id
-                                              ? "text-primary"
-                                              : "text-slate-800 dark:text-zinc-100"
-                                          )}
-                                        >
-                                          {slot.unit_id} — {slot.sqm_size}m²
-                                        </button>
-                                      ))}
-                                    </div>
-                                  </>
-                                )}
-                              </div>
-                          </td>
-                          <td className="px-8 py-8 text-right">
-                            <div className="flex justify-end gap-3 opacity-0 group-hover/row:opacity-100 transition-all duration-300">
-                              <button
-                                onClick={() => handleApproveMerchant(req.id)}
-                                disabled={isApprovingMerchant === req.id}
-                                className="px-6 py-3 bg-primary text-white font-black text-[10px] uppercase tracking-widest rounded-xl shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
-                              >
-                                {isApprovingMerchant === req.id ? (
-                                  <Loader2 size={12} className="animate-spin" />
-                                ) : (
-                                  <CheckCircle2 size={12} />
-                                )}
-                                Sync Approve
-                              </button>
-                              <button
-                                onClick={() => handleRejectMerchant(req.id)}
-                                className="px-6 py-3 text-red-500 font-black text-[10px] uppercase tracking-widest rounded-xl hover:bg-red-500/10 active:scale-95 transition-all"
-                              >
-                                Reject
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        )}
-
         {activeTab === "event" && (
           <div className="grid grid-cols-1 xl:grid-cols-5 gap-10">
             {/* Inquiry List */}

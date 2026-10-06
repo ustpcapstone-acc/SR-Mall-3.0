@@ -30,7 +30,7 @@ const T: Record<string, TypeInfo> = {
   EXPIRING_CONTRACTS: { label: "Lease", group: "MONEY", icon: "calendar", tone: "text-orange-500", route: { ADMIN: "/admindashboard/tenant-monitoring", DEFAULT: "/tenantdashboard/lease-payments" } },
 
   // Action required
-  NEW_TENANT_APPLICATION: { label: "Merchant application", group: "ACTION", icon: "store", tone: "text-blue-500", route: { ADMIN: "/admindashboard/bookings?tab=merchant", TENANT: "/tenantdashboard", DEFAULT: "/profile" } },
+  NEW_TENANT_APPLICATION: { label: "Merchant application", group: "ACTION", icon: "store", tone: "text-blue-500", route: { ADMIN: "/admindashboard/merchant-requests", TENANT: "/tenantdashboard", DEFAULT: "/profile" } },
   AD_SUBMISSION_RECEIVED: { label: "Promo submitted", group: "ACTION", icon: "megaphone", tone: "text-purple-500", route: { ADMIN: "/admindashboard/ad-scheduler", DEFAULT: "/tenantdashboard/ad-promo-manager" } },
   AD_DECISION: { label: "Promo decision", group: "ACTION", icon: "megaphone", tone: "text-purple-500", route: { ADMIN: "/admindashboard/ad-scheduler", DEFAULT: "/tenantdashboard/ad-promo-manager" } },
   NEW_BOOKING_INQUIRY: { label: "Event inquiry", group: "ACTION", icon: "calendar", tone: "text-blue-500", route: { ADMIN: "/admindashboard/bookings?tab=event", DEFAULT: "/public-view#event-inquiry" } },

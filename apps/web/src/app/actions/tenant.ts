@@ -609,7 +609,7 @@ export async function requestTenantAction(
     await notify("NEW_TENANT_APPLICATION", {
       title: "New Merchant Application",
       message: `Digital registration received for "${data.shopName}". Review the brand profile and space requirements.`,
-      link: "/admindashboard/bookings?tab=merchant",
+      link: "/admindashboard/merchant-requests",
     });
     await notify("MERCHANT_APPLICATION_UPDATE", {
       recipients: [userId],

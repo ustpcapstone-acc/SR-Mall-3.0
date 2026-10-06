@@ -613,7 +613,7 @@ function AttentionList({ attention }: { attention: AdminDashboardData["attention
       icon: <Handshake size={16} />,
       label: "Merchant applications",
       detail: "Waiting for approval",
-      href: "/admindashboard/bookings?tab=merchant",
+      href: "/admindashboard/merchant-requests",
     },
     {
       key: "reservations",
