@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Tag, ArrowRight, ArrowLeft } from "lucide-react";
 import clsx from "clsx";
 import Link from "next/link";
+import { isSaleActive } from "@/lib/post-sales";
 
 interface ShopSale {
   id: string;
@@ -23,7 +24,8 @@ export const ShopSalesSlider = ({ shops }: { shops: any[] }) => {
 
   useEffect(() => {
     const allSales = shops.flatMap(shop => 
-      (shop.post_sales || []).map((post: any) => ({
+      // Only sales that haven't ended yet (see lib/post-sales).
+      (shop.post_sales || []).filter((post: any) => isSaleActive(post)).map((post: any) => ({
         id: post.id,
         title: post.title,
         date: new Date(post.date || new Date()).toLocaleDateString("en-US", {

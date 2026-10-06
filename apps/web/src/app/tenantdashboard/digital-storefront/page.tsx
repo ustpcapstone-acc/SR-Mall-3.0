@@ -24,6 +24,7 @@ import {
   getStorefrontAction,
 } from "@/app/actions/tenant";
 import { useAuth } from "@/app/providers";
+import { DEFAULT_SALE_DAYS, formatSaleDate, isSaleActive, phToday, saleEndDateInput, saleEndsAt } from "@/lib/post-sales";
 import { ShopCard } from "@/components/shop-card";
 
 const PLACEHOLDERS = [
@@ -241,7 +242,7 @@ export default function DigitalStorefrontPage() {
 
   const addPostSale = () => {
     const id = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 11);
-    const p = { id, title: "", image_url: "", date: new Date().toISOString() };
+    const p = { id, title: "", image_url: "", date: new Date().toISOString(), ends_at: phToday(DEFAULT_SALE_DAYS) };
     setProfile(prev => ({ ...prev, post_sales: [...(prev.post_sales || []), p] }));
   };
 
@@ -881,6 +882,23 @@ export default function DigitalStorefrontPage() {
                             placeholder="e.g. 50% OFF Summer Sale!"
                             className="w-full px-3 py-2.5 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-bold text-charcoal dark:text-white focus:outline-none focus:border-primary transition-all"
                           />
+                        </div>
+                        <div>
+                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">
+                            Ends on
+                          </label>
+                          <input
+                            type="date"
+                            value={saleEndDateInput(post)}
+                            min={phToday()}
+                            onChange={(e) => updatePostSale(index, "ends_at", e.target.value)}
+                            className="w-full px-3 py-2.5 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-bold text-charcoal dark:text-white focus:outline-none focus:border-primary transition-all"
+                          />
+                          <p className={`text-[10px] font-medium mt-1 ${isSaleActive(post) ? "text-slate-400" : "text-amber-500"}`}>
+                            {isSaleActive(post)
+                              ? `Shown on the public page until ${formatSaleDate(saleEndsAt(post))}`
+                              : "Ended · no longer shown on the public page. Pick a new date to show it again."}
+                          </p>
                         </div>
                       </div>
                     </div>

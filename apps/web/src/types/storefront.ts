@@ -19,7 +19,7 @@ export interface DigitalStorefront {
   phone?: string | null; // Shop contact number (Profile Settings → Shop)
   opening_hours?: string | null; // e.g. "Mon–Sun 10:00 AM – 9:00 PM"
   products?: StoreProduct[]; // JSON array of products for the storefront
-  post_sales?: {id: string; title: string; image_url: string; date: string}[]; // JSON array for Shop Sales posts
+  post_sales?: {id: string; title: string; image_url: string; date: string; ends_at?: string}[]; // JSON array for Shop Sales posts (ends_at: YYYY-MM-DD, PH time)
   rent_cost?: number; // Monthly rent cost
   avgRating?: number; // Average reputation score
   reviewCount?: number; // Total number of approved reviews

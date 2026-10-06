@@ -48,6 +48,7 @@ import {
   mapEmbedSrc,
 } from "@/lib/theme";
 import clsx from "clsx";
+import { formatSaleDate, isSaleActive, saleEndsAt } from "@/lib/post-sales";
 
 interface CarouselItem {
   id: string;
@@ -153,6 +154,11 @@ export default function PublicViewCMSPage() {
 
   const [approvedEvents, setApprovedEvents] = useState<any[]>([]);
   const [allPostSales, setAllPostSales] = useState<any[]>([]);
+  // Running sales vs. ended ones (no longer on the public page) — see lib/post-sales.
+  const activePostSales = allPostSales.filter((s: any) => isSaleActive(s));
+  const pastPostSales = allPostSales
+    .filter((s: any) => !isSaleActive(s))
+    .sort((x: any, y: any) => saleEndsAt(y).getTime() - saleEndsAt(x).getTime());
   const [lostAndFoundItems, setLostAndFoundItems] = useState<any[]>([]);
   const [lfFilter, setLfFilter] = useState("ALL");
 
@@ -1098,20 +1104,20 @@ export default function PublicViewCMSPage() {
               />
 
               <div className="bg-white dark:bg-zinc-900/50 border border-slate-100 dark:border-white/5 rounded-[2.5rem] p-6 shadow-sm">
-                {allPostSales.length === 0 ? (
+                {activePostSales.length === 0 ? (
                   <div className="py-20 text-center">
                     <Monitor size={48} className="mx-auto text-slate-300 mb-4" />
                     <h3 className="text-xl font-black text-slate-400 uppercase tracking-widest">
                       No Active Posts
                     </h3>
                     <p className="text-slate-500 mt-2 font-medium">
-                      Tenants haven't posted any sales yet.
+                      {allPostSales.length === 0 ? "Tenants haven't posted any sales yet." : "No sales are running right now."}
                     </p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {allPostSales.map((sale: any) => (
-                      <div key={sale.id} className="group relative bg-slate-50 dark:bg-zinc-800/50 rounded-3xl border border-slate-200 dark:border-white/10 overflow-hidden flex flex-col">
+                    {activePostSales.map((sale: any) => (
+                      <div key={sale.id} className={`group relative bg-slate-50 dark:bg-zinc-800/50 rounded-3xl border border-slate-200 dark:border-white/10 overflow-hidden flex flex-col ${isSaleActive(sale) ? "" : "opacity-70"}`}>
                         <div className="aspect-video relative overflow-hidden bg-black/5">
                           {sale.image_url && (sale.image_url.startsWith("data:video") || sale.image_url.match(/\.(mp4|webm|ogg)$/i)) ? (
                             <video src={sale.image_url} className="w-full h-full object-cover" autoPlay muted loop />
@@ -1141,7 +1147,11 @@ export default function PublicViewCMSPage() {
                           <h4 className="font-black text-charcoal dark:text-white uppercase tracking-tight text-sm mb-2">{sale.title}</h4>
                           <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-200 dark:border-white/10">
                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                              {new Date(sale.date || new Date()).toLocaleDateString()}
+                              {formatSaleDate(new Date(sale.date || new Date()))}
+                              {" · "}
+                              <span className={isSaleActive(sale) ? "text-emerald-500" : "text-amber-500"}>
+                                {isSaleActive(sale) ? "Ends" : "Ended"} {formatSaleDate(saleEndsAt(sale))}
+                              </span>
                             </span>
                             <button
                               onClick={() => handleDeletePostSale(sale.tenantId, sale.id)}
@@ -1157,6 +1167,68 @@ export default function PublicViewCMSPage() {
                   </div>
                 )}
               </div>
+
+              {pastPostSales.length > 0 && (
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-sm font-black text-charcoal dark:text-white uppercase tracking-tight">
+                      Past Shop Sales <span className="text-slate-400 font-bold normal-case tracking-normal">· no longer shown on the public page</span>
+                    </h3>
+                  </div>
+                  <div className="bg-white dark:bg-zinc-900/50 border border-slate-100 dark:border-white/5 rounded-[2.5rem] p-6 shadow-sm">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {pastPostSales.map((sale: any) => (
+                      <div key={sale.id} className={`group relative bg-slate-50 dark:bg-zinc-800/50 rounded-3xl border border-slate-200 dark:border-white/10 overflow-hidden flex flex-col ${isSaleActive(sale) ? "" : "opacity-70"}`}>
+                        <div className="aspect-video relative overflow-hidden bg-black/5">
+                          {sale.image_url && (sale.image_url.startsWith("data:video") || sale.image_url.match(/\.(mp4|webm|ogg)$/i)) ? (
+                            <video src={sale.image_url} className="w-full h-full object-cover" autoPlay muted loop />
+                          ) : sale.image_url ? (
+                            <img src={sale.image_url} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full bg-slate-200 dark:bg-zinc-800 flex items-center justify-center">
+                              <ImageIcon size={32} className="text-slate-400" />
+                            </div>
+                          )}
+                          <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest text-white border border-white/10">
+                            {sale.shopName}
+                          </div>
+
+                          {/* Admin Media Update */}
+                          <label className="absolute top-3 right-3 p-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl text-white cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white/30">
+                            <ImageIcon size={14} />
+                            <input
+                              type="file"
+                              accept="image/*,video/*"
+                              className="hidden"
+                              onChange={(e) => handleUpdatePostSaleImage(sale.tenantId, sale.id, sale.title, e)}
+                            />
+                          </label>
+                        </div>
+                        <div className="p-5 flex-1 flex flex-col justify-between">
+                          <h4 className="font-black text-charcoal dark:text-white uppercase tracking-tight text-sm mb-2">{sale.title}</h4>
+                          <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-200 dark:border-white/10">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                              {formatSaleDate(new Date(sale.date || new Date()))}
+                              {" · "}
+                              <span className={isSaleActive(sale) ? "text-emerald-500" : "text-amber-500"}>
+                                {isSaleActive(sale) ? "Ends" : "Ended"} {formatSaleDate(saleEndsAt(sale))}
+                              </span>
+                            </span>
+                            <button
+                              onClick={() => handleDeletePostSale(sale.tenantId, sale.id)}
+                              className="w-8 h-8 flex items-center justify-center bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500 hover:text-white transition-colors"
+                              title="Delete Post"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
