@@ -30,3 +30,6 @@ dist/
 .DS_Store
 
 .vercel
+
+# local database backups
+db-backups/
