@@ -15,6 +15,7 @@ import {
   MessageCircle,
 } from "lucide-react";
 import { useAuth } from "@/app/providers";
+import { ChatAvatar, ChatImage, bubblePadding } from "@/components/chat/chat-media";
 import { LoginModal } from "./login-modal";
 import { markMessageNotificationsAsReadAction } from "@/app/actions/notification";
 import { refreshChatUnread, setViewingChats } from "@/lib/chat-unread";
@@ -924,10 +925,19 @@ export const ChatBox = ({
                 const isUserSender =
                   (user?.id && msg.senderId === user.id) ||
                   (user?.email && msg.sender?.email?.toLowerCase() === user.email.toLowerCase());
-                const senderAvatar = isUserSender ? user?.avatarUrl : msg.sender?.avatarUrl;
+                // Shop chats show the shop's logo and name (as in the header),
+                // not the owner's personal account.
+                const isShopChat = recipient !== "admin" && Boolean(selectedShop?.name);
+                const senderAvatar = isUserSender
+                  ? user?.avatarUrl
+                  : isShopChat
+                    ? selectedShop.logo || msg.sender?.avatarUrl
+                    : msg.sender?.avatarUrl;
                 const senderName = isUserSender
                   ? user?.name
-                  : msg.sender?.name || msg.sender?.email;
+                  : isShopChat
+                    ? selectedShop.name
+                    : msg.sender?.name || msg.sender?.email || "SR Mall Admin";
                 const isTemporary = String(msg.id).startsWith("temp-");
 
                 return (
@@ -943,42 +953,19 @@ export const ChatBox = ({
                     {isUserSender && !isTemporary && (
                       <UnsendButton onClick={() => setUnsendTarget(msg)} />
                     )}
-                    {!isUserSender && (
-                      <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-zinc-800 flex items-center justify-center overflow-hidden shrink-0 border border-slate-100 dark:border-white/5">
-                        {senderAvatar ? (
-                          <img
-                            src={senderAvatar}
-                            alt="Sender"
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <span className="text-[10px] font-bold text-slate-500 uppercase">
-                            {(
-                              senderName ||
-                              (recipient === "admin" ? "AD" : selectedShop.name)
-                            ).substring(0, 2).toUpperCase()}
-                          </span>
-                        )}
-                      </div>
-                    )}
+                    {!isUserSender && <ChatAvatar src={senderAvatar} name={senderName} />}
                     <div className={`flex flex-col ${isUserSender ? "items-end" : "items-start"}`}>
                       <div className="relative group/bubble">
                         <div
-                          className={`max-w-[240px] sm:max-w-[280px] rounded-3xl px-4 py-2.5 shadow-sm text-sm font-medium leading-relaxed ${
+                          className={`max-w-[240px] sm:max-w-[280px] rounded-2xl ${msg.imageUrl && !msg.content?.trim() ? "p-1" : "px-4 py-2.5"} shadow-sm text-sm font-medium leading-relaxed ${
                             isUserSender
                               ? "bg-primary text-white rounded-tr-sm"
                               : "bg-white dark:bg-zinc-800 text-charcoal dark:text-slate-300 rounded-tl-sm border border-slate-100 dark:border-white/5"
                           }`}
                         >
                           {msg.imageUrl && (
-                            <div className="mb-2 relative rounded-xl overflow-hidden cursor-pointer group/img">
-                              <img
-                                src={msg.imageUrl}
-                                alt="Attachment"
-                                onClick={() => setLightboxImageUrl(msg.imageUrl)}
-                                className="rounded-xl max-w-full max-h-48 object-cover border border-white/10 hover:opacity-95 transition-opacity"
-                                loading="lazy"
-                              />
+                            <div className={msg.content ? "mb-2" : ""}>
+                              <ChatImage url={msg.imageUrl} onOpen={setLightboxImageUrl} />
                             </div>
                           )}
                           {msg.content && <span>{msg.content}</span>}

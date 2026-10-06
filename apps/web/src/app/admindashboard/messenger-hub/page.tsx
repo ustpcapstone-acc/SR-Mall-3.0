@@ -24,6 +24,7 @@ import {
 } from "@/app/actions/chat-queries";
 import { refreshChatUnread, setViewingChats } from "@/lib/chat-unread";
 import { useAuth } from "@/app/providers";
+import { ChatAvatar, ChatImage, bubblePadding } from "@/components/chat/chat-media";
 import {
   subscribeToConversation,
   subscribeToInbox,
@@ -830,48 +831,20 @@ function MessengerHubContent() {
                         {msg.senderId === user?.id && !isTemporary && (
                           <UnsendButton onClick={() => setUnsendTarget(msg)} />
                         )}
-                        {!isFromAdmin && (
-                          <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-zinc-800 flex items-center justify-center overflow-hidden shrink-0 border border-slate-100 dark:border-white/5">
-                            {senderAvatar ? (
-                              <img
-                                src={senderAvatar}
-                                alt="Sender"
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <span className="text-[10px] font-bold text-slate-500 uppercase">
-                                {(senderName || "?").substring(0, 2).toUpperCase()}
-                              </span>
-                            )}
-                          </div>
-                        )}
+                        {!isFromAdmin && <ChatAvatar src={senderAvatar} name={senderName} />}
 
                         <div className={`flex flex-col ${isFromAdmin ? "items-end" : "items-start"}`}>
                           <div className="relative group/bubble">
                             <div
-                              className={`max-w-[280px] sm:max-w-[400px] lg:max-w-[500px] px-5 py-3 shadow-sm rounded-2xl relative ${
+                              className={`max-w-[280px] sm:max-w-[400px] lg:max-w-[500px] ${bubblePadding(msg)} shadow-sm rounded-2xl relative ${
                                 isFromAdmin
                                   ? "bg-primary text-white rounded-tr-sm"
                                   : "bg-white dark:bg-zinc-800 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 rounded-tl-sm"
                               }`}
                             >
                               {msg.imageUrl && (
-                                <div className="mb-2 relative rounded-xl overflow-hidden group/img cursor-pointer">
-                                  <img
-                                    src={msg.imageUrl}
-                                    alt="Attachment"
-                                    onClick={() => setLightboxImageUrl(msg.imageUrl)}
-                                    className="rounded-xl max-w-full max-h-64 object-cover border border-white/10 hover:opacity-95 transition-opacity"
-                                    loading="lazy"
-                                  />
-                                  <button
-                                    type="button"
-                                    onClick={() => setLightboxImageUrl(msg.imageUrl)}
-                                    className="absolute bottom-2 right-2 p-1.5 bg-black/60 hover:bg-black/80 text-white rounded-lg opacity-0 group-hover/img:opacity-100 transition-opacity"
-                                    title="View Full Size"
-                                  >
-                                    <Maximize2 size={12} />
-                                  </button>
+                                <div className={msg.content ? "mb-2" : ""}>
+                                  <ChatImage url={msg.imageUrl} onOpen={setLightboxImageUrl} />
                                 </div>
                               )}
 

@@ -17,6 +17,7 @@ import {
   Maximize2,
 } from "lucide-react";
 import { useAuth } from "@/app/providers";
+import { ChatAvatar, ChatImage, bubblePadding } from "@/components/chat/chat-media";
 import { refreshChatUnread, setViewingChats } from "@/lib/chat-unread";
 import clsx from "clsx";
 import {
@@ -804,23 +805,7 @@ export default function CustomerMessenger() {
                               {isMyMsg && !isTemporary && (
                                 <UnsendButton onClick={() => setUnsendTarget(msg)} />
                               )}
-                              {!isMyMsg && (
-                                <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-zinc-800 flex items-center justify-center overflow-hidden shrink-0 border border-slate-100 dark:border-white/5">
-                                  {senderAvatar ? (
-                                    <img
-                                      src={senderAvatar}
-                                      alt="Sender"
-                                      className="w-full h-full object-cover"
-                                    />
-                                  ) : (
-                                    <span className="text-[10px] font-bold text-slate-500 uppercase">
-                                      {(senderName || "?")
-                                        .substring(0, 2)
-                                        .toUpperCase()}
-                                    </span>
-                                  )}
-                                </div>
-                              )}
+                              {!isMyMsg && <ChatAvatar src={senderAvatar} name={senderName} />}
                               <div
                                 className={clsx(
                                   "flex flex-col",
@@ -830,28 +815,16 @@ export default function CustomerMessenger() {
                                 <div className="relative group/bubble">
                                   <div
                                     className={clsx(
-                                      "max-w-[280px] sm:max-w-[400px] lg:max-w-[500px] border rounded-2xl px-4 py-2.5 lg:px-5 lg:py-3 shadow-sm",
+                                      "max-w-[280px] sm:max-w-[400px] lg:max-w-[500px] border rounded-2xl shadow-sm",
+                                      bubblePadding(msg),
                                       isMyMsg
                                         ? "bg-primary text-white border-primary rounded-tr-sm"
                                         : "bg-white dark:bg-zinc-800 border-slate-200 dark:border-white/10 rounded-tl-sm text-slate-600 dark:text-slate-300"
                                     )}
                                   >
                                     {msg.imageUrl && (
-                                      <div className="mb-2 relative rounded-xl overflow-hidden group/img cursor-pointer">
-                                        <img
-                                          src={msg.imageUrl}
-                                          alt="Attachment"
-                                          onClick={() => setLightboxImageUrl(msg.imageUrl)}
-                                          className="rounded-xl max-w-full max-h-64 object-cover border border-white/10 hover:opacity-95 transition-opacity"
-                                          loading="lazy"
-                                        />
-                                        <button
-                                          type="button"
-                                          onClick={() => setLightboxImageUrl(msg.imageUrl)}
-                                          className="absolute bottom-2 right-2 p-1.5 bg-black/60 hover:bg-black/80 text-white rounded-lg opacity-0 group-hover/img:opacity-100 transition-opacity"
-                                        >
-                                          <Maximize2 size={12} />
-                                        </button>
+                                      <div className={msg.content ? "mb-2" : ""}>
+                                        <ChatImage url={msg.imageUrl} onOpen={setLightboxImageUrl} />
                                       </div>
                                     )}
                                     {msg.content && (
