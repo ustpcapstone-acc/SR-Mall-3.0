@@ -12,7 +12,6 @@ import {
   X,
   Heart,
   ShoppingBag,
-  Store,
 } from "lucide-react";
 import { getAllStorefrontsAction } from "@/app/actions/tenant";
 import { getPublicViewConfigAction } from "@/app/actions/cms";
@@ -21,7 +20,6 @@ import { syncFavorites } from "@/lib/favorites";
 import { DigitalStorefront } from "@/types/storefront";
 import { useAuth } from "@/app/providers";
 import { LoginModal } from "./login-modal";
-import { MerchantApplicationModal } from "./merchant-application-modal";
 import NotificationDropdown from "./notification-dropdown";
 import { PublicThemeToggle } from "./theme-toggle";
 import clsx from "clsx";
@@ -80,7 +78,6 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isMerchantModalOpen, setIsMerchantModalOpen] = useState(false);
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
   const [allShops, setAllShops] = useState<DigitalStorefront[]>([]);
 
@@ -468,33 +465,6 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
                             <User size={16} className="text-primary" /> My Profile
                           </Link>
 
-                          {(user?.role === "CUSTOMER" ||
-                            user?.role === "USER") && (
-                              <button
-                                suppressHydrationWarning
-                                onClick={() => {
-                                  setIsMerchantModalOpen(true);
-                                  setIsProfileOpen(false);
-                                }}
-                                className={clsx(
-                                  "w-full",
-                                  "flex",
-                                  "items-center",
-                                  "gap-3",
-                                  "px-6",
-                                  "py-3",
-                                  "text-xs",
-                                  "font-black",
-                                  "text-primary",
-                                  "hover:bg-primary/5",
-                                  "transition-colors",
-                                  "uppercase",
-                                  "tracking-widest",
-                                )}
-                              >
-                                <Store size={16} /> Become a Partner
-                              </button>
-                            )}
                         </div>
 
                         <div className="p-2 border-t border-slate-100 dark:border-white/5">
@@ -644,20 +614,6 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
                 </Link>
               )}
 
-            {isAuthenticated &&
-              (user?.role === "CUSTOMER" || user?.role === "USER") && (
-                <button
-                  onClick={() => {
-                    setIsMerchantModalOpen(true);
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className="flex items-center justify-between w-full py-4 border-b border-slate-100 dark:border-white/5 text-base font-bold text-primary text-left"
-                >
-                  Become a Partner
-                  <Store size={16} className="text-primary/60" />
-                </button>
-              )}
-
             {isAuthenticated && (
               <button
                 onClick={() => {
@@ -687,11 +643,6 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
       )}
 
       <LoginModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} />
-
-      <MerchantApplicationModal
-        isOpen={isMerchantModalOpen}
-        onClose={() => setIsMerchantModalOpen(false)}
-      />
     </>
   );
 };
