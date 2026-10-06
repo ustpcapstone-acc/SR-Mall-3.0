@@ -34,6 +34,7 @@ import {
   RefreshCw,
   ArrowUpDown,
   ChevronDown,
+  Check,
   LayoutGrid,
   List,
   PhilippinePeso,
@@ -2099,12 +2100,12 @@ export default function TenantMonitoring() {
               onChange={setStatusFilter}
               options={[
                 { value: "all", label: "All active" },
-                { value: "ACTIVE", label: "Active" },
-                { value: "PENDING", label: "Pending" },
-                { value: "INACTIVE", label: "Inactive" },
-                { value: "SUSPENDED", label: "Suspended" },
-                { value: "REJECTED", label: "Rejected" },
-                { value: "PAST", label: "Past tenants" },
+                { value: "ACTIVE", label: "Active", dot: "bg-emerald-500" },
+                { value: "PENDING", label: "Pending", dot: "bg-amber-500" },
+                { value: "INACTIVE", label: "Inactive", dot: "bg-slate-400" },
+                { value: "SUSPENDED", label: "Suspended", dot: "bg-orange-500" },
+                { value: "REJECTED", label: "Rejected", dot: "bg-red-500" },
+                { value: "PAST", label: "Past tenants", dot: "bg-zinc-500" },
               ]}
             />
             <FilterSelect
@@ -2113,10 +2114,10 @@ export default function TenantMonitoring() {
               onChange={setPaymentFilter}
               options={[
                 { value: "all", label: "All" },
-                { value: "🟢 Cleared", label: "Cleared" },
-                { value: "🟡 Pending Verification", label: "Verifying" },
-                { value: "🔴 Overdue", label: "Overdue" },
-                { value: "PENDING", label: "Bill pending" },
+                { value: "🟢 Cleared", label: "Cleared", dot: "bg-emerald-500" },
+                { value: "🟡 Pending Verification", label: "Verifying", dot: "bg-amber-500" },
+                { value: "🔴 Overdue", label: "Overdue", dot: "bg-red-500" },
+                { value: "PENDING", label: "Bill pending", dot: "bg-sky-500" },
               ]}
             />
             <FilterSelect
@@ -3667,7 +3668,13 @@ export default function TenantMonitoring() {
 }
 
 
-/** Labelled filter dropdown used in the Tenant Monitoring control bar. */
+type FilterOption = { value: string; label: string; /** Tailwind bg class for the colour dot */ dot?: string };
+
+/**
+ * Labelled filter dropdown used in the Tenant Monitoring control bar.
+ * A custom menu instead of a native <select>, so the open list follows the
+ * app's light/dark theme (native option lists render white in dark mode).
+ */
 function FilterSelect({
   label,
   value,
@@ -3677,38 +3684,112 @@ function FilterSelect({
 }: {
   label: string;
   value: string;
-  options: { value: string; label: string }[];
+  options: FilterOption[];
   onChange: (value: string) => void;
   icon?: React.ReactNode;
 }) {
+  const [open, setOpen] = useState(false);
+  const [highlight, setHighlight] = useState(0);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
   const active = value !== "all" && label !== "Period";
+  const selected = options.find((o) => o.value === value) ?? options[0];
+  const listId = `filter-${label.toLowerCase()}-list`;
+
+  useEffect(() => {
+    if (!open) return;
+    setHighlight(Math.max(0, options.findIndex((o) => o.value === value)));
+    const onDown = (e: MouseEvent) => {
+      if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (open) listRef.current?.children[highlight]?.scrollIntoView({ block: "nearest" });
+  }, [open, highlight]);
+
+  const choose = (v: string) => {
+    onChange(v);
+    setOpen(false);
+  };
+
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Escape") return setOpen(false);
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      if (!open) return setOpen(true);
+      const step = e.key === "ArrowDown" ? 1 : -1;
+      setHighlight((h) => (h + step + options.length) % options.length);
+    }
+    if ((e.key === "Enter" || e.key === " ") && open) {
+      e.preventDefault();
+      choose(options[highlight].value);
+    }
+  };
+
   return (
-    <label
-      className={clsx(
-        "relative flex items-center gap-2 h-10 pl-3.5 pr-9 rounded-xl border cursor-pointer transition-colors",
-        active
-          ? "bg-primary/5 border-primary/30"
-          : "bg-slate-50 dark:bg-zinc-950/50 border-slate-200 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/15",
-      )}
-    >
-      {icon && <span className="text-slate-400">{icon}</span>}
-      <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{label}</span>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        aria-label={label}
+    <div ref={rootRef} className="relative" onKeyDown={onKeyDown}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-controls={listId}
+        aria-label={`${label}: ${selected?.label}`}
         className={clsx(
-          "appearance-none bg-transparent text-sm font-bold focus:outline-none cursor-pointer",
-          active ? "text-primary" : "text-charcoal dark:text-white",
+          "flex items-center gap-2 h-10 pl-3.5 pr-3 rounded-xl border transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+          active
+            ? "bg-primary/10 border-primary/30 dark:bg-primary/15"
+            : "bg-white dark:bg-zinc-900 border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20",
+          open && "border-primary/40 ring-2 ring-primary/15",
         )}
       >
-        {options.map((o) => (
-          <option key={o.value} value={o.value}>
-            {o.label}
-          </option>
-        ))}
-      </select>
-      <ChevronDown size={14} className="absolute right-3 text-slate-400 pointer-events-none" />
-    </label>
+        {icon && <span className={active ? "text-primary" : "text-slate-400"}>{icon}</span>}
+        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{label}</span>
+        <span className="h-4 w-px bg-slate-200 dark:bg-white/10" />
+        {selected?.dot && <span className={clsx("w-2 h-2 rounded-full shrink-0", selected.dot)} />}
+        <span className={clsx("text-sm font-bold whitespace-nowrap", active ? "text-primary" : "text-charcoal dark:text-white")}>
+          {selected?.label}
+        </span>
+        <ChevronDown
+          size={14}
+          className={clsx("ml-0.5 transition-transform duration-200", open && "rotate-180", active ? "text-primary" : "text-slate-400")}
+        />
+      </button>
+
+      {open && (
+        <ul
+          ref={listRef}
+          id={listId}
+          role="listbox"
+          aria-label={label}
+          className="absolute left-0 top-full mt-2 z-50 min-w-full w-max max-w-[16rem] max-h-72 overflow-y-auto p-1.5 rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-zinc-900 shadow-xl shadow-black/10 dark:shadow-black/50 animate-fade-in"
+        >
+          {options.map((o, i) => {
+            const isSelected = o.value === value;
+            return (
+              <li
+                key={o.value}
+                role="option"
+                aria-selected={isSelected}
+                onMouseEnter={() => setHighlight(i)}
+                onClick={() => choose(o.value)}
+                className={clsx(
+                  "flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm cursor-pointer select-none transition-colors",
+                  isSelected ? "font-black text-primary" : "font-semibold text-charcoal dark:text-slate-200",
+                  i === highlight && (isSelected ? "bg-primary/10" : "bg-slate-100 dark:bg-white/5"),
+                )}
+              >
+                <span className={clsx("w-2 h-2 rounded-full shrink-0", o.dot ?? "bg-transparent border border-slate-300 dark:border-white/20")} />
+                <span className="flex-1 whitespace-nowrap">{o.label}</span>
+                <Check size={14} className={clsx("shrink-0", isSelected ? "text-primary" : "invisible")} />
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
   );
 }

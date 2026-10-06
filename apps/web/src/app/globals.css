@@ -24,6 +24,17 @@
 }
 
 @layer base {
+  /* Native controls (dropdown option lists, date pickers, scrollbars) follow
+     the app theme — otherwise <select> menus open white in dark mode. */
+  html.dark {
+    color-scheme: dark;
+  }
+  html.dark option,
+  html.dark optgroup {
+    background-color: #18181b; /* zinc-900 */
+    color: #f8fafc;
+  }
+
   :root {
     --color-primary: var(--crimson-rgb);
     --color-primary-hover: var(--crimson-hover-rgb);
