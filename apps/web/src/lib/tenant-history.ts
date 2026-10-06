@@ -8,13 +8,65 @@
  */
 import { prisma } from "@srmall/database";
 
-export type TenantExitReason = "REMOVED" | "ROLE_CHANGED" | "MARKED_PAST";
+export type TenantExitReason = "REMOVED" | "ROLE_CHANGED" | "MARKED_PAST" | "RESERVATION_REJECTED";
 
 export const TENANT_EXIT_REASONS: Record<TenantExitReason, string> = {
   REMOVED: "Removed by admin",
   ROLE_CHANGED: "Changed to customer",
   MARKED_PAST: "Marked as past tenant",
+  RESERVATION_REJECTED: "Reservation rejected",
 };
+
+/**
+ * Snapshot when the admin rejects a unit reservation. The person reserving is
+ * often a customer with no Tenant record yet, so the row is keyed by their
+ * Tenant id when they have one, otherwise by their user id. "Lease start" is
+ * when the reservation was made; "ended" is when it was rejected.
+ */
+export async function recordRejectedReservation(opts: {
+  userId: string;
+  unitId: string;
+  floor?: string | null;
+  category?: string | null;
+  reservedAt: Date;
+  feedback?: string | null;
+  endedById?: string | null;
+}) {
+  try {
+    const [user, admin] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id: opts.userId },
+        select: { name: true, email: true, tenant: { select: { id: true, shopName: true, category: true, logoUrl: true } } },
+      }),
+      opts.endedById ? prisma.user.findUnique({ where: { id: opts.endedById }, select: { name: true, email: true } }) : null,
+    ]);
+    if (!user) return;
+
+    await prisma.$executeRawUnsafe(
+      `INSERT INTO "TenantHistory" ("id","tenantId","userId","shopName","ownerName","ownerEmail","unitId","floor","category","logoUrl",
+                                    "leaseStart","endedAt","reason","note","endedById","endedByName")
+       VALUES (gen_random_uuid()::text,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)`,
+      user.tenant?.id ?? opts.userId,
+      opts.userId,
+      user.tenant?.shopName || user.name || user.email,
+      user.name ?? null,
+      user.email ?? null,
+      opts.unitId,
+      opts.floor ?? null,
+      user.tenant?.category ?? opts.category ?? null,
+      user.tenant?.logoUrl ?? null,
+      opts.reservedAt,
+      new Date(),
+      "RESERVATION_REJECTED",
+      opts.feedback?.trim() || null,
+      opts.endedById ?? null,
+      admin ? admin.name || admin.email : null,
+    );
+  } catch (error) {
+    // History must never block the action that triggered it.
+    console.error("[tenant-history] reservation snapshot failed:", error);
+  }
+}
 
 export async function recordTenantExit(
   tenantId: string,

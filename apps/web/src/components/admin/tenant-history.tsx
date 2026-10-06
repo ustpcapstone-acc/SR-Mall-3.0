@@ -30,6 +30,7 @@ const REASONS: Record<string, { label: string; cls: string }> = {
   REMOVED: { label: "Removed by admin", cls: "bg-red-50 text-red-600 border-red-100 dark:bg-red-900/20 dark:border-red-800/30" },
   ROLE_CHANGED: { label: "Changed to customer", cls: "bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-900/20 dark:border-blue-800/30" },
   MARKED_PAST: { label: "Marked as past tenant", cls: "bg-slate-100 text-slate-600 border-slate-200 dark:bg-white/5 dark:border-white/10 dark:text-slate-300" },
+  RESERVATION_REJECTED: { label: "Reservation rejected", cls: "bg-amber-50 text-amber-700 border-amber-100 dark:bg-amber-900/20 dark:border-amber-800/30 dark:text-amber-400" },
 };
 const FLOORS: Record<string, string> = { ground: "Ground Floor", first: "First Floor", second: "Second Floor" };
 

@@ -401,11 +401,11 @@ export async function getAllReviewsAction(adminUserId?: string) {
   try {
     // The session lives in localStorage, so there is no auth cookie to read;
     // the caller passes the signed-in admin's id and we check the role in the DB.
-    if (!(await requireAdmin(adminUserId))) {
-      return { success: false, error: "Admin access required" };
-    }
-
-    const reviews = await (prisma as any).review.findMany({
+    // Admin check, the reviews and their reply/report fields in parallel:
+    // one database round trip of waiting instead of three in a row.
+    const [isAdmin, reviews, extraRows] = await Promise.all([
+      requireAdmin(adminUserId),
+      (prisma as any).review.findMany({
       include: {
         user: {
           select: {
@@ -420,9 +420,18 @@ export async function getAllReviewsAction(adminUserId?: string) {
         tenant: { select: { id: true, shopName: true } },
       },
       orderBy: { createdAt: "desc" },
-    });
-
-    const extras = await reviewExtras(reviews.map((r: any) => r.id));
+      }),
+      prisma
+        .$queryRawUnsafe<any[]>(`SELECT "id", "reply", "repliedAt", "reportedAt", "reportReason" FROM "Review"`)
+        .catch((error) => {
+          console.error("[reviews] extras lookup failed:", error);
+          return [] as any[];
+        }),
+    ]);
+    if (!isAdmin) {
+      return { success: false, error: "Admin access required" };
+    }
+    const extras = new Map<string, any>(extraRows.map((r: any) => [r.id, r]));
     return {
       success: true,
       data: reviews.map((r: any) => ({

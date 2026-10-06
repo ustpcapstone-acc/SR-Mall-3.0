@@ -303,12 +303,12 @@ export async function approveReservationAction(unit_id: string) {
   }
 }
 
-export async function rejectReservationAction(unit_id: string, feedback?: string) {
+export async function rejectReservationAction(unit_id: string, feedback?: string, adminUserId?: string) {
   try {
     // 1. Fetch current slot to find the reserving user
     const slot = await prisma.areaSlot.findUnique({
       where: { unit_id },
-      select: { tenant_id: true }
+      select: { tenant_id: true, floor: true, category: true, updatedAt: true }
     });
 
     // 2. RESERVED → AVAILABLE, only if it is still reserved
@@ -321,6 +321,20 @@ export async function rejectReservationAction(unit_id: string, feedback?: string
     });
     if (released.count === 0) {
       return { success: false, error: `Unit ${unit_id} is no longer reserved. It may have expired or been handled already.` };
+    }
+
+    // Keep a record in User Manager → Tenant History.
+    if (slot?.tenant_id) {
+      const { recordRejectedReservation } = await import("@/lib/tenant-history");
+      await recordRejectedReservation({
+        userId: slot.tenant_id,
+        unitId: unit_id,
+        floor: slot.floor,
+        category: slot.category,
+        reservedAt: slot.updatedAt,
+        feedback,
+        endedById: adminUserId,
+      });
     }
 
     // 3. Notify User

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import clsx from "clsx";
 import { AlertTriangle, CheckCircle2, Clock, Loader2, Mail, MapPin, Ruler, Wallet, X, XCircle } from "lucide-react";
 import { approveReservationAction, rejectReservationAction } from "@/app/actions/space-slot";
+import { useAuth } from "@/app/providers";
 
 export interface ReservationRow {
   unit_id: string;
@@ -32,6 +33,7 @@ export function ReservationDecisionModal({
   /** Called after the server accepted or refused (so the list can refresh). */
   onDone: () => void;
 }) {
+  const { user } = useAuth();
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -49,7 +51,7 @@ export function ReservationDecisionModal({
     try {
       const res = approve
         ? await approveReservationAction(r.unit_id)
-        : await rejectReservationAction(r.unit_id, reason.trim() || undefined);
+        : await rejectReservationAction(r.unit_id, reason.trim() || undefined, user?.id);
       if (res.success) {
         onDone();
         onClose();

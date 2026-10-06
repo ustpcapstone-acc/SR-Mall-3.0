@@ -1,5 +1,6 @@
 "use client";
 
+import { spaCache } from "@/utils/cache";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
 import { toast } from "sonner";
@@ -87,7 +88,10 @@ export function ReviewsModeration({
   /** Reviews waiting on the admin (needs review + flagged) — for the tab badge. */
   onAttentionCount?: (count: number) => void;
 }) {
-  const [reviews, setReviews] = useState<ReviewRow[] | null>(null);
+  // Last loaded list (kept across tab switches) shows instantly; a fresh copy
+  // loads quietly in the background.
+  const cacheKey = `admin-reviews:${adminId ?? ""}`;
+  const [reviews, setReviews] = useState<ReviewRow[] | null>(() => (adminId ? spaCache.get(cacheKey, 30 * 60 * 1000) : null));
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [bucket, setBucket] = useState<Bucket | null>(null);
@@ -105,7 +109,9 @@ export function ReviewsModeration({
       try {
         const res = await getAllReviewsAction(adminId);
         if (res.success) {
-          setReviews((res.data || []) as ReviewRow[]);
+          const rows = (res.data || []) as ReviewRow[];
+          setReviews(rows);
+          spaCache.set(cacheKey, rows);
           setError(null);
         } else {
           setError(res.error || "Failed to load reviews");
@@ -116,7 +122,7 @@ export function ReviewsModeration({
         setRefreshing(false);
       }
     },
-    [adminId],
+    [adminId, cacheKey],
   );
 
   useEffect(() => {
