@@ -135,8 +135,10 @@ export async function getRecentActivity(limit = 10) {
 // ─── Admin dashboard ─────────────────────────────────────────────────────────
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-const RESERVATION_WINDOW_MS = 24 * 60 * 60 * 1000;
-const RESERVATION_URGENT_MS = 6 * 60 * 60 * 1000;
+import {
+  RESERVATION_HOLD_MS as RESERVATION_WINDOW_MS,
+  RESERVATION_URGENT_MS,
+} from "@/lib/reservation-window";
 const LEASE_LOOKAHEAD_DAYS = 60;
 
 function monthKey(date: Date) {

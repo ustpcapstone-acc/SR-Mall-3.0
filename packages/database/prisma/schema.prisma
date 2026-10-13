@@ -462,3 +462,25 @@ model ComplaintComment {
 
   @@index([complaintId])
 }
+
+/// One row per space reservation request: the business permit the applicant
+/// uploaded and the admin's decision + comment (migration 20261013000100).
+/// Read/written with raw SQL in apps/web/src/app/actions/space-slot.ts.
+model SpaceReservation {
+  id           String    @id
+  unitId       String
+  userId       String
+  permitUrl    String?
+  permitName   String?
+  permitType   String?
+  permitSize   Int?
+  permitKey    String?
+  status       String    @default("PENDING")
+  adminComment String?
+  decidedById  String?
+  decidedAt    DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@index([unitId, status])
+  @@index([userId])
+}

@@ -2,8 +2,23 @@
 
 import { useEffect, useState } from "react";
 import clsx from "clsx";
-import { AlertTriangle, CheckCircle2, Clock, Loader2, Mail, MapPin, Ruler, Wallet, X, XCircle } from "lucide-react";
-import { approveReservationAction, rejectReservationAction } from "@/app/actions/space-slot";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Clock,
+  Download,
+  ExternalLink,
+  Eye,
+  FileText,
+  Loader2,
+  Mail,
+  MapPin,
+  Ruler,
+  Wallet,
+  X,
+  XCircle,
+} from "lucide-react";
+import { approveReservationAction, getPermitLinkAction, rejectReservationAction } from "@/app/actions/space-slot";
 import { useAuth } from "@/app/providers";
 
 export interface ReservationRow {
@@ -15,11 +30,21 @@ export interface ReservationRow {
   remainingFormatted?: string | null;
   isUrgent?: boolean;
   reservingUser?: { name?: string | null; email?: string | null; avatarUrl?: string | null } | null;
+  /** Business permit the applicant uploaded with the reservation. */
+  permit?: { url: string; name: string; type: string; size: number; uploadedAt: string } | null;
 }
 
+export type ReservationModalMode = "details" | "approve" | "reject";
+
+const COMMENT_MAX = 1000;
+const fileSize = (n: number) => (n >= 1024 * 1024 ? `${(n / (1024 * 1024)).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`);
+const isImage = (p: { type?: string; url: string }) => (p.type || "").startsWith("image/") || /\.(png|jpe?g)(\?|$)/i.test(p.url);
+
 /**
- * Approve / reject a space reservation (admin Bookings → Space Reservations).
- * Replaces the browser confirm() popups with a summary of who reserved what.
+ * Space reservation (admin Bookings → Space Reservations): "See details"
+ * shows who reserved what and their business permit; Approve / Reject add a
+ * comment for the applicant (required for reject) that goes into their email
+ * and notification.
  */
 export function ReservationDecisionModal({
   reservation: r,
@@ -28,16 +53,20 @@ export function ReservationDecisionModal({
   onDone,
 }: {
   reservation: ReservationRow;
-  action: "approve" | "reject";
+  action: ReservationModalMode;
   onClose: () => void;
   /** Called after the server accepted or refused (so the list can refresh). */
   onDone: () => void;
 }) {
   const { user } = useAuth();
+  const [mode, setMode] = useState<ReservationModalMode>(action);
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const approve = action === "approve";
+  const approve = mode === "approve";
+  const details = mode === "details";
+
+  useEffect(() => setMode(action), [action]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && !busy && onClose();
@@ -46,12 +75,16 @@ export function ReservationDecisionModal({
   }, [busy, onClose]);
 
   const submit = async () => {
+    if (mode === "reject" && !reason.trim()) {
+      setError("Please write a comment so the applicant knows why.");
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
       const res = approve
-        ? await approveReservationAction(r.unit_id)
-        : await rejectReservationAction(r.unit_id, reason.trim() || undefined, user?.id);
+        ? await approveReservationAction(r.unit_id, reason.trim() || undefined, user?.id)
+        : await rejectReservationAction(r.unit_id, reason.trim(), user?.id);
       if (res.success) {
         onDone();
         onClose();
@@ -67,6 +100,49 @@ export function ReservationDecisionModal({
   };
 
   const name = r.reservingUser?.name || "Registered customer";
+  const permit = r.permit || null;
+
+  // Permits are private: preview / View / Download use a short-lived signed link.
+  const [preview, setPreview] = useState<string | null>(null);
+  const [opening, setOpening] = useState<"view" | "download" | null>(null);
+  useEffect(() => {
+    setPreview(null);
+    if (!permit || !isImage(permit)) return;
+    let alive = true;
+    getPermitLinkAction(user?.id, r.unit_id).then((res) => alive && res.success && setPreview(res.url));
+    return () => {
+      alive = false;
+    };
+  }, [permit?.url, r.unit_id, user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const openPermit = async (how: "view" | "download") => {
+    // Open the tab first (synchronously) so pop-up blockers allow it.
+    const tab = how === "view" ? window.open("about:blank", "_blank") : null;
+    setOpening(how);
+    try {
+      const res = await getPermitLinkAction(user?.id, r.unit_id);
+      if (!res.success) {
+        tab?.close();
+        setError(res.error);
+        return;
+      }
+      if (tab) tab.location.href = res.url;
+      else {
+        const a = document.createElement("a");
+        a.href = res.url;
+        a.download = permit?.name || "business-permit";
+        a.rel = "noreferrer";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }
+    } catch {
+      tab?.close();
+      setError("Couldn't open the business permit. Try again.");
+    } finally {
+      setOpening(null);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-[250] flex items-center justify-center p-4">
@@ -75,17 +151,22 @@ export function ReservationDecisionModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="reservation-decision-title"
-        className="relative w-full max-w-lg bg-white dark:bg-zinc-950 rounded-[2rem] shadow-2xl overflow-hidden animate-fade-in-up"
+        className="relative w-full max-w-lg max-h-[92vh] overflow-y-auto bg-white dark:bg-zinc-950 rounded-[2rem] shadow-2xl animate-fade-in-up"
       >
-        <div className={clsx("p-7 text-white relative", approve ? "bg-emerald-600" : "bg-[#BE1E2D]")}>
+        <div
+          className={clsx(
+            "p-7 text-white relative",
+            details ? "bg-charcoal dark:bg-zinc-900" : approve ? "bg-emerald-600" : "bg-[#BE1E2D]",
+          )}
+        >
           <div className="flex items-center gap-4">
             <span className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center">
-              {approve ? <CheckCircle2 size={24} /> : <XCircle size={24} />}
+              {details ? <Eye size={24} /> : approve ? <CheckCircle2 size={24} /> : <XCircle size={24} />}
             </span>
             <div>
               <p className="text-[10px] font-black uppercase tracking-widest text-white/70">Space reservation</p>
               <h2 id="reservation-decision-title" className="text-xl font-black uppercase tracking-tight">
-                {approve ? "Approve" : "Reject"} Unit {r.unit_id}?
+                {details ? `Unit ${r.unit_id} details` : `${approve ? "Approve" : "Reject"} Unit ${r.unit_id}?`}
               </h2>
             </div>
           </div>
@@ -143,33 +224,96 @@ export function ReservationDecisionModal({
             </p>
           )}
 
-          {/* What happens */}
-          <p className="text-sm text-slate-600 dark:text-slate-300">
-            {approve ? (
-              <>
-                Unit {r.unit_id} becomes <strong>Occupied</strong> and {name} gets an approval email. The leasing team should then
-                schedule the site visit and contract.
-              </>
+          {/* Business permit */}
+          <div className="space-y-2">
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Business permit</p>
+            {permit ? (
+              <div className="rounded-2xl border border-slate-100 dark:border-white/5 overflow-hidden">
+                {isImage(permit) ? (
+                  <button type="button" onClick={() => openPermit("view")} className="block w-full bg-slate-50 dark:bg-zinc-900">
+                    {preview ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={preview} alt="Business permit" className="w-full max-h-64 object-contain" />
+                    ) : (
+                      <span className="flex items-center justify-center py-10"><Loader2 size={20} className="animate-spin text-slate-300" /></span>
+                    )}
+                  </button>
+                ) : (
+                  <div className="flex items-center justify-center gap-2 py-6 bg-slate-50 dark:bg-zinc-900 text-slate-500">
+                    <FileText size={28} className="text-primary" />
+                    <span className="text-xs font-bold">PDF document</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-3 p-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-bold text-charcoal dark:text-white truncate">{permit.name}</p>
+                    <p className="text-[10px] text-slate-500">
+                      {permit.size ? `${fileSize(permit.size)} · ` : ""}uploaded{" "}
+                      {new Date(permit.uploadedAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => openPermit("view")}
+                    disabled={!!opening}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 dark:border-white/10 text-[10px] font-black uppercase tracking-widest text-charcoal dark:text-white hover:border-primary hover:text-primary disabled:opacity-50"
+                  >
+                    {opening === "view" ? <Loader2 size={12} className="animate-spin" /> : <ExternalLink size={12} />} View
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => openPermit("download")}
+                    disabled={!!opening}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-primary text-white text-[10px] font-black uppercase tracking-widest hover:bg-primary/90 disabled:opacity-50"
+                  >
+                    {opening === "download" ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />} Download
+                  </button>
+                </div>
+              </div>
             ) : (
-              <>
-                Unit {r.unit_id} goes back to <strong>Available</strong> for other customers, and {name} is notified by email.
-              </>
+              <p className="text-xs text-slate-500 p-3 rounded-xl border border-dashed border-slate-200 dark:border-white/10">
+                No permit uploaded (this reservation was made before permits were required).
+              </p>
             )}
-          </p>
+          </div>
 
-          {!approve && (
+          {/* What happens */}
+          {!details && (
+            <p className="text-sm text-slate-600 dark:text-slate-300">
+              {approve ? (
+                <>
+                  Unit {r.unit_id} becomes <strong>Occupied</strong> and {name} gets an approval email and notification. The leasing team should then
+                  schedule the site visit and contract.
+                </>
+              ) : (
+                <>
+                  Unit {r.unit_id} goes back to <strong>Available</strong> for other customers, and {name} is notified by email and in the app.
+                </>
+              )}
+            </p>
+          )}
+
+          {!details && (
             <div className="space-y-1.5">
-              <label htmlFor="reject-reason" className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                Reason for the customer (optional)
+              <label htmlFor="reservation-comment" className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                Comment to the applicant {approve ? "(optional)" : <span className="text-primary">(required)</span>}
               </label>
               <textarea
-                id="reject-reason"
+                id="reservation-comment"
                 value={reason}
-                onChange={(e) => setReason(e.target.value.slice(0, 500))}
+                onChange={(e) => setReason(e.target.value.slice(0, COMMENT_MAX))}
                 rows={3}
-                placeholder="e.g. The unit is being reserved for an existing tenant's expansion."
+                placeholder={
+                  approve
+                    ? "e.g. Please visit the admin office on Monday at 9 AM to sign the contract."
+                    : "e.g. The business permit has expired. Please reserve again with a valid permit."
+                }
                 className="w-full p-3 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-zinc-900 text-sm text-charcoal dark:text-white focus:outline-none focus:border-primary resize-none"
               />
+              <p className="flex justify-between text-[10px] text-slate-400">
+                <span>Sent to {name} by email and notification.</span>
+                <span>{reason.length}/{COMMENT_MAX}</span>
+              </p>
             </div>
           )}
 
@@ -179,28 +323,54 @@ export function ReservationDecisionModal({
             </div>
           )}
 
-          <div className="flex gap-3 pt-1">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={busy}
-              className="flex-1 py-3.5 rounded-xl bg-slate-100 dark:bg-zinc-900 text-slate-600 dark:text-slate-300 text-xs font-bold uppercase tracking-widest hover:bg-slate-200 disabled:opacity-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={submit}
-              disabled={busy}
-              className={clsx(
-                "flex-[2] py-3.5 rounded-xl text-white text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg disabled:opacity-60",
-                approve ? "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20" : "bg-[#BE1E2D] hover:bg-[#a01825] shadow-red-500/20",
-              )}
-            >
-              {busy ? <Loader2 size={16} className="animate-spin" /> : approve ? <CheckCircle2 size={16} /> : <XCircle size={16} />}
-              {approve ? "Approve reservation" : "Reject & release unit"}
-            </button>
-          </div>
+          {details ? (
+            <div className="flex gap-3 pt-1">
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 py-3.5 rounded-xl bg-slate-100 dark:bg-zinc-900 text-slate-600 dark:text-slate-300 text-xs font-bold uppercase tracking-widest hover:bg-slate-200"
+              >
+                Close
+              </button>
+              <button
+                type="button"
+                onClick={() => { setError(null); setMode("reject"); }}
+                className="flex-1 py-3.5 rounded-xl border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:text-red-500 hover:border-red-500/30 text-xs font-black uppercase tracking-widest flex items-center justify-center gap-1.5"
+              >
+                <XCircle size={15} /> Reject
+              </button>
+              <button
+                type="button"
+                onClick={() => { setError(null); setMode("approve"); }}
+                className="flex-1 py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black uppercase tracking-widest flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-500/20"
+              >
+                <CheckCircle2 size={15} /> Approve
+              </button>
+            </div>
+          ) : (
+            <div className="flex gap-3 pt-1">
+              <button
+                type="button"
+                onClick={onClose}
+                disabled={busy}
+                className="flex-1 py-3.5 rounded-xl bg-slate-100 dark:bg-zinc-900 text-slate-600 dark:text-slate-300 text-xs font-bold uppercase tracking-widest hover:bg-slate-200 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={submit}
+                disabled={busy || (!approve && !reason.trim())}
+                className={clsx(
+                  "flex-[2] py-3.5 rounded-xl text-white text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg disabled:opacity-60",
+                  approve ? "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20" : "bg-[#BE1E2D] hover:bg-[#a01825] shadow-red-500/20",
+                )}
+              >
+                {busy ? <Loader2 size={16} className="animate-spin" /> : approve ? <CheckCircle2 size={16} /> : <XCircle size={16} />}
+                {approve ? "Approve reservation" : "Reject & release unit"}
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

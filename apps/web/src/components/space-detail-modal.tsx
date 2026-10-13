@@ -16,11 +16,23 @@ import {
   AlertTriangle,
   CheckCircle2,
   Loader2,
+  FileText,
+  UploadCloud,
 } from "lucide-react";
 import { useAuth } from "@/app/providers";
 import { reserveSlotAction } from "@/app/actions/space-slot";
 import { toast } from "sonner";
 import { announceSlotChange } from "@/lib/slot-live";
+import {
+  PERMIT_FOLDER,
+  PERMIT_MAX_BYTES,
+  PERMIT_TYPES,
+  RESERVATION_HOLD_LABEL,
+} from "@/lib/reservation-window";
+
+type Permit = { url: string; name: string; type: string; size: number; key?: string };
+
+const fileSize = (n: number) => (n >= 1024 * 1024 ? `${(n / (1024 * 1024)).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`);
 
 interface SpaceDetailModalProps {
   slot: AreaSlot;
@@ -41,12 +53,19 @@ export default function SpaceDetailModal({
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [agreed, setAgreed] = useState(false);
   const [confirmError, setConfirmError] = useState<string | null>(null);
+  // Business permit (required) and the "in process" screen after submitting
+  const [permit, setPermit] = useState<Permit | null>(null);
+  const [uploadingPermit, setUploadingPermit] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
   // Live status: flips to RESERVED/OCCUPIED if someone else got the unit first
   const [status, setStatus] = useState<string>(slot.status);
   // Follow live updates from the page (someone else reserved it while open)
   useEffect(() => setStatus(slot.status), [slot.status]);
   const { isAuthenticated, user } = useAuth();
   const router = useRouter();
+  // This person's own reservation, waiting for the admin's review
+  const isMyReservation =
+    status === "RESERVED" && !!user?.id && ((slot as any).tenant_id === user.id || submitted);
 
   // Images are now a native array in PostgreSQL
   const images: string[] = Array.isArray(slot.space_images)
@@ -90,26 +109,57 @@ export default function SpaceDetailModal({
     }
     setAgreed(false);
     setConfirmError(null);
+    setPermit(null);
+    setSubmitted(false);
     setConfirmOpen(true);
+  };
+
+  const uploadPermit = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!PERMIT_TYPES.includes(file.type)) {
+      setConfirmError("Please upload a PDF, JPG or PNG file.");
+      return;
+    }
+    if (file.size > PERMIT_MAX_BYTES) {
+      setConfirmError("The file must be 10 MB or smaller.");
+      return;
+    }
+    setConfirmError(null);
+    setUploadingPermit(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("folder", PERMIT_FOLDER);
+      const res = await fetch("/api/upload", { method: "POST", body: fd });
+      const data = await res.json();
+      if (!res.ok || !data.url) throw new Error(data.error || "Upload failed");
+      setPermit({ url: data.url, name: file.name, type: file.type, size: file.size, key: data.key });
+    } catch (err: any) {
+      setConfirmError(`Couldn't upload the file: ${err?.message || "please try again"}`);
+    } finally {
+      setUploadingPermit(false);
+    }
   };
 
   // Step 2: the customer confirmed → submit
   const submitReservation = async () => {
-    if (!user || !agreed) return;
+    if (!user || !agreed || !permit) return;
     setIsReserving(true);
     setConfirmError(null);
     try {
-      const res: any = await reserveSlotAction(slot.unit_id, user.id, user.name || "Customer");
+      const res: any = await reserveSlotAction(slot.unit_id, user.id, user.name || "Customer", permit);
       if (res.success) {
         setStatus("RESERVED");
         // Update this tab's lists right away (other tabs get it via realtime)
         announceSlotChange({ id: slot.id, status: "RESERVED", tenant_id: user.id });
-        setConfirmOpen(false);
-        toast.success(`Unit ${slot.unit_id} reserved`, {
-          description: "It's held for you for 24 hours. The leasing team will contact you to confirm.",
+        // Show the "in process" screen instead of closing straight away.
+        setSubmitted(true);
+        toast.success(`Unit ${slot.unit_id} reserved · in process`, {
+          description: `Your business permit is being reviewed (up to ${RESERVATION_HOLD_LABEL}). You'll get an email and a notification with the decision.`,
           duration: 7000,
         });
-        onClose();
       } else {
         if (res.code === "UNAVAILABLE" && res.status) {
           setStatus(res.status);
@@ -312,11 +362,12 @@ export default function SpaceDetailModal({
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm font-black text-charcoal dark:text-white uppercase tracking-widest">
-                    Verification Pending
+                    {isMyReservation ? "In process" : "Verification Pending"}
                   </p>
-                  <p className="text-[10px] text-slate-500 font-medium max-w-[200px] leading-relaxed italic mx-auto">
-                    This elite unit is currently under review for a new merchant
-                    partnership.
+                  <p className="text-[10px] text-slate-500 font-medium max-w-[220px] leading-relaxed italic mx-auto">
+                    {isMyReservation
+                      ? `Business permit submitted. The admin is reviewing your documents (up to ${RESERVATION_HOLD_LABEL}).`
+                      : "This elite unit is currently under review for a new merchant partnership."}
                   </p>
                 </div>
               </div>
@@ -339,8 +390,41 @@ export default function SpaceDetailModal({
             role="dialog"
             aria-modal="true"
             aria-labelledby="reserve-title"
-            className="relative w-full max-w-md bg-white dark:bg-zinc-950 rounded-[2rem] shadow-2xl p-7 space-y-5 animate-in zoom-in-95 duration-200"
+            className="relative w-full max-w-md max-h-[92vh] overflow-y-auto bg-white dark:bg-zinc-950 rounded-[2rem] shadow-2xl p-7 space-y-5 animate-in zoom-in-95 duration-200"
           >
+            {submitted ? (
+              <div className="space-y-5 text-center py-2">
+                <div className="w-14 h-14 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto">
+                  <Clock size={26} />
+                </div>
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-amber-500">In process</p>
+                  <h2 className="mt-1 text-xl font-black text-charcoal dark:text-white">Unit {slot.unit_id} is held for you</h2>
+                </div>
+                <p className="text-sm text-slate-600 dark:text-slate-300">
+                  Your business permit was submitted. The admin reviews your documents before approving, which usually takes up to{" "}
+                  <strong>{RESERVATION_HOLD_LABEL}</strong>. You&apos;ll get an email and a notification with the decision and the admin&apos;s comment.
+                </p>
+                {permit && (
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-zinc-900 border border-slate-100 dark:border-white/5 text-left">
+                    <FileText size={18} className="text-primary shrink-0" />
+                    <span className="text-xs font-bold text-charcoal dark:text-white truncate flex-1">{permit.name}</span>
+                    <CheckCircle2 size={16} className="text-emerald-500 shrink-0" />
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setConfirmOpen(false);
+                    onClose();
+                  }}
+                  className="w-full py-3.5 rounded-xl bg-primary hover:bg-primary-hover text-white text-xs font-black uppercase tracking-widest"
+                >
+                  Done
+                </button>
+              </div>
+            ) : (
+            <>
             <div>
               <p className="text-[10px] font-black uppercase tracking-widest text-primary">Confirm reservation</p>
               <h2 id="reserve-title" className="mt-1 text-xl font-black text-charcoal dark:text-white">
@@ -371,7 +455,7 @@ export default function SpaceDetailModal({
               <li className="flex gap-2">
                 <Clock size={16} className="shrink-0 mt-0.5 text-amber-500" />
                 <span>
-                  The unit is held for you for <strong>24 hours</strong>, then released automatically if it isn&apos;t confirmed.
+                  The unit is held for you while the admin reviews your business permit (up to <strong>{RESERVATION_HOLD_LABEL}</strong>), then released automatically if no decision is made.
                 </span>
               </li>
               <li className="flex gap-2">
@@ -383,6 +467,43 @@ export default function SpaceDetailModal({
                 <span>You can have one active reservation at a time.</span>
               </li>
             </ul>
+
+            <div className="space-y-2">
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                Business permit <span className="text-primary">*</span>
+              </p>
+              {permit ? (
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20">
+                  <FileText size={18} className="text-emerald-600 shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-bold text-charcoal dark:text-white truncate">{permit.name}</p>
+                    <p className="text-[10px] text-slate-500">{fileSize(permit.size)} · uploaded</p>
+                  </div>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-primary cursor-pointer hover:underline">
+                    Replace
+                    <input type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" hidden onChange={uploadPermit} />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setPermit(null)}
+                    className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-red-500"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <label
+                  className={`flex items-center gap-3 p-4 rounded-xl border-2 border-dashed border-slate-200 dark:border-white/10 hover:border-primary cursor-pointer transition-colors ${uploadingPermit ? "opacity-60 pointer-events-none" : ""}`}
+                >
+                  {uploadingPermit ? <Loader2 size={20} className="animate-spin text-primary shrink-0" /> : <UploadCloud size={20} className="text-primary shrink-0" />}
+                  <div>
+                    <p className="text-xs font-bold text-charcoal dark:text-white">{uploadingPermit ? "Uploading…" : "Upload your business permit"}</p>
+                    <p className="text-[10px] text-slate-500">PDF, JPG or PNG · up to 10 MB · required</p>
+                  </div>
+                  <input type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" hidden onChange={uploadPermit} />
+                </label>
+              )}
+            </div>
 
             <label className="flex items-start gap-3 cursor-pointer select-none">
               <input
@@ -417,13 +538,15 @@ export default function SpaceDetailModal({
               <button
                 type="button"
                 onClick={submitReservation}
-                disabled={!agreed || isReserving || status !== "AVAILABLE"}
+                disabled={!agreed || !permit || uploadingPermit || isReserving || status !== "AVAILABLE"}
                 className="flex-1 py-3.5 rounded-xl bg-primary hover:bg-primary-hover text-white text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 {isReserving && <Loader2 size={14} className="animate-spin" />}
                 {isReserving ? "Reserving…" : "Confirm reservation"}
               </button>
             </div>
+            </>
+            )}
           </div>
         </div>
       )}

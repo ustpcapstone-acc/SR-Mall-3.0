@@ -1325,7 +1325,7 @@ export default function PublicDigitalConcierge() {
                         ? setSelectedSlot(slot)
                         : toast.info(
                           slot.status === "RESERVED"
-                            ? `Unit ${slot.unit_id} is pending: another customer reserved it first. It's released automatically if it isn't confirmed within 24 hours.`
+                            ? `Unit ${slot.unit_id} is pending: another customer reserved it first. It's released automatically if it isn't confirmed within 2 days.`
                             : `Unit ${slot.unit_id} is already occupied.`,
                         )
                     }

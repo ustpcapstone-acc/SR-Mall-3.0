@@ -29,6 +29,7 @@ import {
   MoreVertical,
   ArrowRight,
   Monitor,
+  FileText,
 } from "lucide-react";
 import {
   upsertAreaSlot,
@@ -178,13 +179,14 @@ export default function MasterBookingsPage() {
   // Approve / reject open a decision modal (components/admin/reservation-decision-modal)
   const [reservationDecision, setReservationDecision] = useState<{
     reservation: any;
-    action: "approve" | "reject";
+    action: "details" | "approve" | "reject";
   } | null>(null);
   const handleApproveReservation = (unitId: string) => {
     const reservation = reservedSlots.find((r: any) => r.unit_id === unitId) || { unit_id: unitId };
     setReservationDecision({ reservation, action: "approve" });
   };
   const handleRejectReservation = (slot: any) => setReservationDecision({ reservation: slot, action: "reject" });
+  const handleReservationDetails = (slot: any) => setReservationDecision({ reservation: slot, action: "details" });
 
   // --- Calendar Logic ---
   const pendingEvents = eventInquiries.filter((i) => i.status === "PENDING");
@@ -523,7 +525,7 @@ export default function MasterBookingsPage() {
                         Reserving Customer
                       </th>
                       <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 dark:border-white/5">
-                        24h Review Window
+                        2-Day Review Window
                       </th>
                       <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 dark:border-white/5 text-right">
                         Decision Protocol
@@ -545,7 +547,7 @@ export default function MasterBookingsPage() {
                               No Pending Space Reservations
                             </p>
                             <p className="text-xs text-slate-400 font-medium">
-                              All commercial units are currently available or occupied. New reservations will appear here with a 24-hour review timer.
+                              All commercial units are currently available or occupied. New reservations will appear here with a 2-day review timer.
                             </p>
                           </div>
                         </td>
@@ -626,13 +628,20 @@ export default function MasterBookingsPage() {
                               <p className="text-[10px] text-slate-400 font-medium">
                                 {res.isUrgent
                                   ? "Auto-rejects in < 6h if unreviewed"
-                                  : "Auto-rejection after 24h of inactivity"}
+                                  : "Auto-rejection after 2 days without a decision"}
                               </p>
                             </div>
                           </td>
 
                           <td className="px-8 py-6 text-right">
                             <div className="flex justify-end items-center gap-2.5">
+                              <button
+                                onClick={() => handleReservationDetails(res)}
+                                className="px-5 py-2.5 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-white/10 text-slate-500 hover:text-primary hover:border-primary/30 rounded-xl font-black text-xs uppercase tracking-widest hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5"
+                                title="See details and business permit"
+                              >
+                                <FileText size={15} /> See details
+                              </button>
                               <button
                                 onClick={() => handleApproveReservation(res.unit_id)}
                                 className="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-black text-xs uppercase tracking-widest rounded-xl shadow-lg shadow-emerald-500/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5"

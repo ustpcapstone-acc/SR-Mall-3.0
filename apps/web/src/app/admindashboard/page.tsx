@@ -623,7 +623,7 @@ function AttentionList({ attention }: { attention: AdminDashboardData["attention
       detail:
         attention.urgentReservations > 0
           ? `${attention.urgentReservations} expire within 6 hours`
-          : "Released automatically after 24 hours",
+          : "Released automatically after 2 days",
       urgent: attention.urgentReservations > 0,
       href: "/admindashboard/bookings?tab=reservation",
     },

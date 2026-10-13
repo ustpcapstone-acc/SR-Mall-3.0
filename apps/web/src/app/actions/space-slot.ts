@@ -5,6 +5,93 @@ import { emailBaseUrl } from "@/utils/get-base-url";
 import { revalidatePath } from "next/cache";
 import { notify } from "@/lib/notify";
 
+import {
+  PERMIT_MAX_BYTES,
+  PERMIT_TYPES,
+  RESERVATION_HOLD_LABEL,
+  RESERVATION_HOLD_MS,
+  RESERVATION_URGENT_MS,
+  RESERVATION_WARNING_MS,
+} from "@/lib/reservation-window";
+
+/** Text from the admin / applicant going into an HTML email. */
+const escapeHtml = (v: string) =>
+  v.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
+
+/** Close the open (PENDING) reservation request for a unit with the admin's decision. */
+async function closeReservationRequest(
+  unitId: string,
+  userId: string | null | undefined,
+  status: "APPROVED" | "REJECTED" | "EXPIRED",
+  comment?: string | null,
+  decidedById?: string | null,
+) {
+  if (!userId) return;
+  await prisma
+    .$executeRawUnsafe(
+      `UPDATE "SpaceReservation" SET "status" = $3, "adminComment" = $4, "decidedById" = $5, "decidedAt" = NOW()
+        WHERE "unitId" = $1 AND "userId" = $2 AND "status" = 'PENDING'`,
+      unitId,
+      userId,
+      status,
+      comment?.trim() || null,
+      decidedById ?? null,
+    )
+    .catch((e) => console.error("[reservation] close request failed:", e));
+}
+
+export type PermitUpload = { url: string; name: string; type: string; size: number; key?: string };
+
+const PERMIT_KEY_RE = /^cloudinary:(raw|image):business-permits\/[\w\-./]+$|^local:business-permits\/[\w\-.]+$/;
+
+/**
+ * Admin only: a short-lived link to a reservation's business permit.
+ * Cloudinary blocks public PDF delivery, and permits are personal documents,
+ * so the browser gets a signed download link that expires in 5 minutes.
+ */
+export async function getPermitLinkAction(adminUserId: string | undefined, unitId: string) {
+  try {
+    if (!adminUserId) return { success: false as const, error: "Admin access required" };
+    const admin = await prisma.user.findUnique({ where: { id: adminUserId }, select: { role: true } });
+    if (admin?.role !== "ADMIN") return { success: false as const, error: "Admin access required" };
+
+    const rows = await prisma.$queryRawUnsafe<{ permitUrl: string | null; permitKey: string | null }[]>(
+      `SELECT "permitUrl","permitKey" FROM "SpaceReservation" WHERE "unitId" = $1 AND "permitUrl" IS NOT NULL
+        ORDER BY ("status" = 'PENDING') DESC, "createdAt" DESC LIMIT 1`,
+      unitId,
+    );
+    const row = rows[0];
+    if (!row?.permitUrl) return { success: false as const, error: "No business permit on file." };
+
+    const key = row.permitKey || "";
+    if (!key.startsWith("cloudinary:")) return { success: true as const, url: row.permitUrl };
+
+    const [, resourceType, ...rest] = key.split(":");
+    const cloud = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || process.env.CLOUDINARY_CLOUD_NAME;
+    const apiKey = process.env.CLOUDINARY_API_KEY;
+    const secret = process.env.CLOUDINARY_API_SECRET;
+    if (!cloud || !apiKey || !secret) return { success: true as const, url: row.permitUrl };
+
+    const now = Math.floor(Date.now() / 1000);
+    const params: Record<string, string> = {
+      public_id: rest.join(":"),
+      timestamp: String(now),
+      expires_at: String(now + 300),
+      type: "upload",
+    };
+    const toSign = Object.keys(params).sort().map((k) => `${k}=${params[k]}`).join("&");
+    const { createHash } = await import("crypto");
+    const signature = createHash("sha1").update(toSign + secret).digest("hex");
+    const url =
+      `https://api.cloudinary.com/v1_1/${cloud}/${resourceType}/download?` +
+      new URLSearchParams({ ...params, api_key: apiKey, signature }).toString();
+    return { success: true as const, url };
+  } catch (error) {
+    console.error("[reservation] permit link failed:", error);
+    return { success: false as const, error: "Couldn't open the business permit." };
+  }
+}
+
 export async function getAreaSlots() {
   try {
     const slots = await prisma.areaSlot.findMany({
@@ -133,8 +220,22 @@ export async function reserveSlotAction(
   unit_id: string,
   userId: string,
   userName: string,
+  permit?: PermitUpload,
 ) {
   try {
+    // The business permit is required (the admin checks it before approving).
+    const permitOk =
+      !!permit &&
+      typeof permit.url === "string" &&
+      (/^https:\/\//i.test(permit.url) || permit.url.startsWith("/uploads/")) &&
+      PERMIT_TYPES.includes(permit.type) &&
+      Number(permit.size) > 0 &&
+      Number(permit.size) <= PERMIT_MAX_BYTES &&
+      (!permit.key || PERMIT_KEY_RE.test(permit.key));
+    if (!permitOk) {
+      return { success: false, error: "Please upload your business permit (PDF, JPG or PNG, up to 10 MB)." };
+    }
+
     // Who is reserving (from the database, not the caller-supplied name)
     const reserver = await prisma.user.findUnique({
       where: { id: userId },
@@ -146,8 +247,8 @@ export async function reserveSlotAction(
     }
     userName = reserver.name || reserver.email.split("@")[0] || userName;
 
-    // One active reservation per customer (within the 24h hold window)
-    const holdCutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    // One active reservation per customer (within the hold window)
+    const holdCutoff = new Date(Date.now() - RESERVATION_HOLD_MS);
     const existing = await prisma.areaSlot.findFirst({
       where: { tenant_id: userId, status: "RESERVED", updatedAt: { gt: holdCutoff } },
       select: { unit_id: true },
@@ -183,19 +284,32 @@ export async function reserveSlotAction(
       };
     }
 
+    // Keep the request + business permit for the admin's review.
+    await prisma.$executeRawUnsafe(
+      `INSERT INTO "SpaceReservation" ("id","unitId","userId","permitUrl","permitName","permitType","permitSize","permitKey","status","createdAt")
+       VALUES (gen_random_uuid()::text, $1, $2, $3, $4, $5, $6, $7, 'PENDING', NOW())`,
+      unit_id,
+      userId,
+      permit!.url,
+      String(permit!.name || "business-permit").slice(0, 200),
+      permit!.type,
+      Math.round(Number(permit!.size)),
+      permit!.key || null,
+    );
+
     // 2+3. Notify admins through notify() (preferences + channels honoured)
     await notify("SPACE_RESERVATION", {
       roles: ["ADMIN"],
       title: "New Space Reservation",
-      message: `User ${userName} placed a reservation request for Unit ${unit_id}. The unit status is now RESERVED.`,
+      message: `User ${userName} placed a reservation request for Unit ${unit_id} and submitted a business permit for review. The unit status is now RESERVED.`,
       link: "/admindashboard/bookings?tab=reservation",
     });
 
     // Bell notice for the person who reserved (the email below is the bespoke one).
     await notify("RESERVATION_UPDATE", {
       recipients: [userId],
-      title: `Reservation received · Unit ${unit_id}`,
-      message: `Unit ${unit_id} is held for you for 24 hours while the leasing team reviews your request.`,
+      title: `Reservation in process · Unit ${unit_id}`,
+      message: `Your business permit was submitted. Unit ${unit_id} is held for you while the admin reviews your documents (up to ${RESERVATION_HOLD_LABEL}).`,
       link: "/available-spaces",
       email: false,
     });
@@ -218,7 +332,7 @@ export async function reserveSlotAction(
               <p>Hello ${user.name || "Valued Merchant"},</p>
               <p>Thank you for your interest in SR Mall. We have successfully registered your reservation request for <strong>Unit ${unit_id}</strong>.</p>
               <hr />
-              <p>Our leasing team has been notified. We will review your profile and contact you shortly to discuss the next steps in the merchant onboarding process.</p>
+              <p><strong>Status: In process.</strong> Your business permit was submitted and the admin is reviewing your documents. This usually takes up to ${RESERVATION_HOLD_LABEL}. You'll get an email and a notification with the decision.</p>
               <p>You can monitor your communications via the mall messenger.</p>
               <a href="${emailBaseUrl()}/public-view?recipient=admin" style="display: inline-block; padding: 10px 20px; background-color: #be1e2d; color: white; text-decoration: none; border-radius: 5px;">Open Messenger</a>
             </div>
@@ -238,7 +352,7 @@ export async function reserveSlotAction(
   }
 }
 
-export async function approveReservationAction(unit_id: string) {
+export async function approveReservationAction(unit_id: string, comment?: string, adminUserId?: string) {
   try {
     // 1. Fetch current slot to find the reserving user
     const slot = await prisma.areaSlot.findUnique({
@@ -254,13 +368,17 @@ export async function approveReservationAction(unit_id: string) {
     if (approved.count === 0) {
       return { success: false, error: `Unit ${unit_id} is no longer reserved. It may have expired or been handled already.` };
     }
+    const note = (comment || "").trim().slice(0, 1000);
+    await closeReservationRequest(unit_id, slot?.tenant_id, "APPROVED", note, adminUserId);
 
     // 3. Notify User
     if (slot?.tenant_id) {
       await notify("RESERVATION_UPDATE", {
         recipients: [slot.tenant_id],
         title: `Reservation approved ✅ · Unit ${unit_id}`,
-        message: `Your reservation for Unit ${unit_id} was approved. The leasing team will contact you within 24 hours to arrange a site visit.`,
+        message: note
+          ? `Your reservation for Unit ${unit_id} was approved. Admin note: ${note}`
+          : `Your reservation for Unit ${unit_id} was approved. The leasing team will contact you within 24 hours to arrange a site visit.`,
         link: "/available-spaces",
         email: false,
       });
@@ -281,6 +399,7 @@ export async function approveReservationAction(unit_id: string) {
                 <h2 style="color: #10b981;">Reservation Approved</h2>
                 <p>Hello ${user.name || "Valued Merchant"},</p>
                 <p>We are pleased to inform you that your strategic reservation for <strong>Unit ${unit_id}</strong> has been <strong>APPROVED</strong> by the mall administration.</p>
+                ${note ? `<div style="background: #ecfdf5; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #10b981;"><strong>Admin Note:</strong> ${escapeHtml(note)}</div>` : ""}
                 <hr />
                 <p>Next Steps: Our leasing representative will reach out to you within 24 hours to schedule a site visit and begin the contract initialization process.</p>
                 <p>You can now view more details about the mall's merchant guidelines in your dashboard.</p>
@@ -305,6 +424,10 @@ export async function approveReservationAction(unit_id: string) {
 
 export async function rejectReservationAction(unit_id: string, feedback?: string, adminUserId?: string) {
   try {
+    // The applicant always gets a reason.
+    feedback = (feedback || "").trim().slice(0, 1000);
+    if (!feedback) return { success: false, error: "Please write a comment so the applicant knows why." };
+
     // 1. Fetch current slot to find the reserving user
     const slot = await prisma.areaSlot.findUnique({
       where: { unit_id },
@@ -322,6 +445,8 @@ export async function rejectReservationAction(unit_id: string, feedback?: string
     if (released.count === 0) {
       return { success: false, error: `Unit ${unit_id} is no longer reserved. It may have expired or been handled already.` };
     }
+
+    await closeReservationRequest(unit_id, slot?.tenant_id, "REJECTED", feedback, adminUserId);
 
     // Keep a record in User Manager → Tenant History.
     if (slot?.tenant_id) {
@@ -365,7 +490,7 @@ export async function rejectReservationAction(unit_id: string, feedback?: string
                 <h2 style="color: #be1e2d;">Reservation Released</h2>
                 <p>Hello ${user.name || "Valued Merchant"},</p>
                 <p>Regarding your reservation for <strong>Unit ${unit_id}</strong>, we wish to inform you that the reservation has been released and the unit is now available for other applicants.</p>
-                ${feedback ? `<div style="background: #fef2f2; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #be1e2d;"><strong>Admin Note:</strong> ${feedback}</div>` : ""}
+                ${feedback ? `<div style="background: #fef2f2; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #be1e2d;"><strong>Admin Note:</strong> ${escapeHtml(feedback)}</div>` : ""}
                 <hr />
                 <p>If you have questions or wish to explore other units, please feel free to browse our available spaces or contact us via messenger.</p>
                 <a href="${emailBaseUrl()}/public-view" style="display: inline-block; padding: 10px 20px; background-color: #334155; color: white; text-decoration: none; border-radius: 5px;">Browse Other Spaces</a>
@@ -412,7 +537,7 @@ export async function deleteAreaSlot(id: string) {
 
 /**
  * Scans reserved commercial space slots.
- * Automatically rejects reservations unreviewed after 24 hours.
+ * Automatically rejects reservations unreviewed after the hold window (2 days).
  * Sends an urgent pre-deadline reminder email to admin if <= 6 hours remaining.
  */
 export async function processExpiredReservationsAction() {
@@ -422,26 +547,27 @@ export async function processExpiredReservationsAction() {
     });
 
     const now = Date.now();
-    const twentyFourHoursMs = 24 * 60 * 60 * 1000;
-    const eighteenHoursMs = 18 * 60 * 60 * 1000;
+    const twentyFourHoursMs = RESERVATION_HOLD_MS; // hold window (name kept from the 24h version)
+    const eighteenHoursMs = RESERVATION_HOLD_MS - RESERVATION_URGENT_MS;
 
     for (const slot of reservedSlots) {
       const reservationTime = new Date(slot.updatedAt).getTime();
       const ageMs = now - reservationTime;
 
-      // 1. Check if expired (>24 hours) -> Auto-Reject
+      // 1. Check if expired (past the hold window) -> Auto-Reject
       if (ageMs >= twentyFourHoursMs) {
         await prisma.areaSlot.update({
           where: { unit_id: slot.unit_id },
           data: { status: "AVAILABLE", tenant_id: null },
         });
+        await closeReservationRequest(slot.unit_id, slot.tenant_id, "EXPIRED", "Not reviewed within the review window.");
 
         // 🚨 Notify the reserver — in-app + email, gated by their own prefs
         if (slot.tenant_id) {
           await notify("SPACE_RESERVATION", {
             recipients: [slot.tenant_id],
             title: "Reservation Automatically Released",
-            message: `Your reservation for Unit ${slot.unit_id} was automatically released after 24 hours without confirmation. The unit is back in the available pool — submit a new reservation anytime or speak to the leasing desk.`,
+            message: `Your reservation for Unit ${slot.unit_id} was automatically released after ${RESERVATION_HOLD_LABEL} without a decision. The unit is back in the available pool — submit a new reservation anytime or speak to the leasing desk.`,
             link: "/available-spaces",
           });
         }
@@ -449,8 +575,8 @@ export async function processExpiredReservationsAction() {
         // Notify admins of the auto-rejection
         await notify("SPACE_RESERVATION", {
           roles: ["ADMIN"],
-          title: "Reservation Auto-Rejected (24h Window)",
-          message: `Reservation for Unit ${slot.unit_id} was automatically rejected and returned to available inventory due to a 24-hour timeout.`,
+          title: `Reservation Auto-Rejected (${RESERVATION_HOLD_LABEL} Window)`,
+          message: `Reservation for Unit ${slot.unit_id} was automatically rejected and returned to available inventory because it wasn't reviewed within ${RESERVATION_HOLD_LABEL}.`,
           link: "/admindashboard/bookings?tab=reservation",
         });
       }
@@ -471,13 +597,13 @@ export async function processExpiredReservationsAction() {
           const unitLabel = `Unit ${slot.unit_id}`;
           const window = `${hoursLeft} hour${hoursLeft === 1 ? "" : "s"}`;
 
-          // Admins: review before the 24h window closes
+          // Admins: review before the window closes
           await notify("RESERVATION_EXPIRING", {
             roles: ["ADMIN"],
             title: `⚠️ URGENT: ${unitLabel} Reservation Expiring`,
             message: `Space reservation for ${unitLabel} will be automatically rejected in ${window} if no action is taken.`,
             link: "/admindashboard/bookings?tab=reservation",
-            dedupeHours: 24,
+            dedupeHours: 48,
           });
 
           // The reserving customer: act now or lose the unit
@@ -487,7 +613,7 @@ export async function processExpiredReservationsAction() {
               title: `⚠️ Your ${unitLabel} Reservation Is Expiring`,
               message: `Your reservation for ${unitLabel} expires in ${window} unless it is confirmed. After that it returns to the available pool.`,
               link: "/available-spaces",
-              dedupeHours: 24,
+              dedupeHours: 48,
             });
           }
         }
@@ -514,15 +640,30 @@ export async function getReservedSlotsWithDetailsAction() {
     const { scheduleSweeps } = await import("@/lib/sweeps");
     scheduleSweeps();
 
-    // 2. Query remaining active RESERVED slots. Ones already past the 24h
+    // 2. Query remaining active RESERVED slots. Ones already past the hold
     // window are hidden here; the background sweep releases them.
     const slots = await prisma.areaSlot.findMany({
       where: {
         status: "RESERVED",
-        updatedAt: { gt: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+        updatedAt: { gt: new Date(Date.now() - RESERVATION_HOLD_MS) },
       },
       orderBy: { updatedAt: "asc" },
     });
+
+    // Business permit of each open request (latest per unit + person).
+    const requests = slots.length
+      ? await prisma
+          .$queryRawUnsafe<
+            { unitId: string; userId: string; permitUrl: string | null; permitName: string | null; permitType: string | null; permitSize: number | null; createdAt: Date }[]
+          >(
+            `SELECT DISTINCT ON ("unitId", "userId") "unitId","userId","permitUrl","permitName","permitType","permitSize","createdAt"
+               FROM "SpaceReservation" WHERE "status" = 'PENDING' AND "unitId" = ANY($1::text[])
+              ORDER BY "unitId", "userId", "createdAt" DESC`,
+            slots.map((s) => s.unit_id),
+          )
+          .catch(() => [])
+      : [];
+    const requestOf = new Map(requests.map((r) => [`${r.unitId}::${r.userId}`, r]));
 
     const userIds = slots.map((s) => s.tenant_id).filter(Boolean) as string[];
     const users = await prisma.user.findMany({
@@ -532,9 +673,10 @@ export async function getReservedSlotsWithDetailsAction() {
     const userMap = new Map(users.map((u) => [u.id, u]));
 
     const now = Date.now();
-    const twentyFourHoursMs = 24 * 60 * 60 * 1000;
+    const twentyFourHoursMs = RESERVATION_HOLD_MS; // hold window
 
     const detailedSlots = slots.map((slot) => {
+      const req = slot.tenant_id ? requestOf.get(`${slot.unit_id}::${slot.tenant_id}`) : undefined;
       const reservedAt = new Date(slot.updatedAt);
       const elapsedMs = now - reservedAt.getTime();
       const remainingMs = Math.max(0, twentyFourHoursMs - elapsedMs);
@@ -547,9 +689,21 @@ export async function getReservedSlotsWithDetailsAction() {
         reservedAt: reservedAt.toISOString(),
         hoursRemaining,
         minutesRemaining,
-        remainingFormatted: `${hoursRemaining}h ${minutesRemaining}m`,
-        isUrgent: hoursRemaining < 6,
-        isWarning: hoursRemaining >= 6 && hoursRemaining < 12,
+        remainingFormatted:
+          hoursRemaining >= 24
+            ? `${Math.floor(hoursRemaining / 24)}d ${hoursRemaining % 24}h`
+            : `${hoursRemaining}h ${minutesRemaining}m`,
+        isUrgent: remainingMs < RESERVATION_URGENT_MS,
+        isWarning: remainingMs >= RESERVATION_URGENT_MS && remainingMs < RESERVATION_WARNING_MS,
+        permit: req?.permitUrl
+          ? {
+              url: req.permitUrl,
+              name: req.permitName || "business-permit",
+              type: req.permitType || "",
+              size: Number(req.permitSize || 0),
+              uploadedAt: new Date(req.createdAt).toISOString(),
+            }
+          : null,
       };
     });
 

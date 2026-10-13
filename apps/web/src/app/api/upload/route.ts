@@ -3,6 +3,7 @@ import { writeFile, mkdir } from "fs/promises";
 import { existsSync } from "fs";
 import { join } from "path";
 import { validateImageFile } from "@/lib/cloud-storage";
+import { PERMIT_FOLDER, PERMIT_MAX_BYTES, PERMIT_TYPES } from "@/lib/reservation-window";
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,9 +16,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
-    const validation = validateImageFile(file);
-    if (!validation.valid) {
-      return NextResponse.json({ error: validation.error }, { status: 400 });
+    // Business permits (space reservations): PDF / JPG / PNG up to 10 MB.
+    const isPermit = folder === PERMIT_FOLDER;
+    if (isPermit) {
+      if (!PERMIT_TYPES.includes(file.type)) {
+        return NextResponse.json({ error: "Please upload a PDF, JPG or PNG file." }, { status: 400 });
+      }
+      if (file.size > PERMIT_MAX_BYTES) {
+        return NextResponse.json({ error: "The file must be 10 MB or smaller." }, { status: 400 });
+      }
+    } else {
+      const validation = validateImageFile(file);
+      if (!validation.valid) {
+        return NextResponse.json({ error: validation.error }, { status: 400 });
+      }
     }
 
     // ─── CLOUDINARY SERVER-SIDE UPLOAD ──────────────────────────────────────
@@ -33,7 +45,8 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const resourceType = file.type.startsWith("video/") ? "video" : "image";
+      // PDFs go up as "raw" files: Cloudinary blocks PDF delivery as images by default.
+      const resourceType = file.type.startsWith("video/") ? "video" : file.type === "application/pdf" ? "raw" : "image";
       const timestamp = Math.round(new Date().getTime() / 1000);
 
       // Lexicographically sort params: folder, timestamp
