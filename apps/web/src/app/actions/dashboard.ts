@@ -7,11 +7,33 @@ export async function getRecentActivity(limit = 10) {
     const activities: any[] = [];
     const queryTake = Math.max(10, Math.ceil(limit / 2));
 
+    // The four sources load in parallel (one round trip of waiting, not four).
+    const [inquiries, invoices, promos, reviews] = await Promise.all([
+      prisma.eventInquiry.findMany({
+        orderBy: { createdAt: "desc" },
+        take: queryTake,
+      }),
+      prisma.invoice.findMany({
+        orderBy: { createdAt: "desc" },
+        take: queryTake,
+        include: { tenant: { select: { shopName: true } } },
+      }),
+      prisma.tenantPromo.findMany({
+        orderBy: { createdAt: "desc" },
+        take: queryTake,
+        include: { tenant: { select: { shopName: true } } },
+      }),
+      prisma.review.findMany({
+        orderBy: { createdAt: "desc" },
+        take: queryTake,
+        include: {
+          user: { select: { name: true } },
+          tenant: { select: { shopName: true } },
+        },
+      }),
+    ]);
+
     // 1. Recent Event Inquiries
-    const inquiries = await prisma.eventInquiry.findMany({
-      orderBy: { createdAt: "desc" },
-      take: queryTake,
-    });
 
     inquiries.forEach((inquiry: any) => {
       activities.push({
@@ -27,11 +49,6 @@ export async function getRecentActivity(limit = 10) {
     });
 
     // 2. Recent Invoices (Payments)
-    const invoices = await prisma.invoice.findMany({
-      orderBy: { createdAt: "desc" },
-      take: queryTake,
-      include: { tenant: { select: { shopName: true } } },
-    });
 
     invoices.forEach((inv: any) => {
       activities.push({
@@ -47,11 +64,6 @@ export async function getRecentActivity(limit = 10) {
     });
 
     // 3. Recent Promos (Ads)
-    const promos = await prisma.tenantPromo.findMany({
-      orderBy: { createdAt: "desc" },
-      take: queryTake,
-      include: { tenant: { select: { shopName: true } } },
-    });
 
     promos.forEach((promo: any) => {
       activities.push({
@@ -67,14 +79,6 @@ export async function getRecentActivity(limit = 10) {
     });
 
     // 4. Recent Reviews
-    const reviews = await prisma.review.findMany({
-      orderBy: { createdAt: "desc" },
-      take: queryTake,
-      include: {
-        user: { select: { name: true } },
-        tenant: { select: { shopName: true } },
-      },
-    });
 
     reviews.forEach((review: any) => {
       activities.push({
@@ -170,13 +174,7 @@ export async function getAdminDashboardAction(adminUserId?: string) {
       tenants,
       slots,
       reservations,
-      pendingApplications,
-      pendingInquiries,
-      pendingPromos,
-      flaggedReviews,
-      totalUsers,
-      customerUsers,
-      newUsersThisMonth,
+      countRows,
       unreadMessages,
       activity,
       paidAtRows,
@@ -219,15 +217,27 @@ export async function getAdminDashboardAction(adminUserId?: string) {
         where: { status: "RESERVED", updatedAt: { gt: reservationCutoff } },
         select: { updatedAt: true },
       }),
-      prisma.tenant.count({ where: { status: "PENDING" } }),
-      prisma.eventInquiry.count({ where: { status: "PENDING" } }),
-      prisma.tenantPromo.count({ where: { status: "PENDING" } }),
-      prisma.review.count({ where: { isSpam: true } }),
-      prisma.user.count(),
-      prisma.user.count({ where: { role: "CUSTOMER" } }),
-      prisma.user.count({
-        where: { createdAt: { gte: new Date(now.getFullYear(), now.getMonth(), 1) } },
-      }),
+      // Seven counts in one query (the connection pool is small on Vercel).
+      prisma.$queryRawUnsafe<
+        {
+          pendingApplications: number;
+          pendingInquiries: number;
+          pendingPromos: number;
+          flaggedReviews: number;
+          totalUsers: number;
+          customerUsers: number;
+          newUsersThisMonth: number;
+        }[]
+      >(
+        `SELECT (SELECT COUNT(*)::int FROM "Tenant" WHERE "status" = 'PENDING') AS "pendingApplications",
+                (SELECT COUNT(*)::int FROM "EventInquiry" WHERE "status" = 'PENDING') AS "pendingInquiries",
+                (SELECT COUNT(*)::int FROM "TenantPromo" WHERE "status" = 'PENDING') AS "pendingPromos",
+                (SELECT COUNT(*)::int FROM "Review" WHERE "isSpam" = true) AS "flaggedReviews",
+                (SELECT COUNT(*)::int FROM "User") AS "totalUsers",
+                (SELECT COUNT(*)::int FROM "User" WHERE "role" = 'CUSTOMER') AS "customerUsers",
+                (SELECT COUNT(*)::int FROM "User" WHERE "createdAt" >= $1) AS "newUsersThisMonth"`,
+        new Date(now.getFullYear(), now.getMonth(), 1),
+      ),
       adminUserId
         ? prisma.user
             .findMany({ where: { role: "ADMIN" }, select: { id: true } })
@@ -250,6 +260,15 @@ export async function getAdminDashboardAction(adminUserId?: string) {
         .catch(() => [] as { id: string; paidAt: Date }[]),
     ]);
     const paidAtById = new Map(paidAtRows.map((r) => [r.id, new Date(r.paidAt)]));
+    const {
+      pendingApplications,
+      pendingInquiries,
+      pendingPromos,
+      flaggedReviews,
+      totalUsers,
+      customerUsers,
+      newUsersThisMonth,
+    } = countRows[0];
 
     // ── Money ────────────────────────────────────────────────────────────────
     const thisMonth = monthKey(now);
