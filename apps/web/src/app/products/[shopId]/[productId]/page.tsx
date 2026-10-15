@@ -28,7 +28,7 @@ import { LoginModal } from "@/components/login-modal";
 import { useAuth } from "@/app/providers";
 import { getProductPageAction } from "@/app/actions/tenant";
 import { sendProductInquiryAction } from "@/app/actions/product-inquiry";
-import { availabilityLabel, isOutOfStock, productHref, stockCount } from "@/lib/products";
+import { availabilityLabel, isOutOfStock, productHref } from "@/lib/products";
 
 type PageData = Extract<Awaited<ReturnType<typeof getProductPageAction>>, { success: true }>["data"];
 
@@ -87,7 +87,6 @@ export default function ProductPage() {
   const p = data?.product;
   const shop = data?.shop;
   const out = p ? isOutOfStock(p) : false;
-  const count = p ? stockCount(p) : null;
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-black">
@@ -168,12 +167,6 @@ export default function ProductPage() {
                   <dd className={clsx("font-black flex items-center gap-1.5", out ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400")}>
                     <Package size={15} /> {availabilityLabel(p)}
                   </dd>
-                  {count !== null && !out && (
-                    <>
-                      <dt className="text-slate-400 font-bold">Stock</dt>
-                      <dd className="font-bold text-charcoal dark:text-white">{count} {count === 1 ? "piece" : "pieces"}</dd>
-                    </>
-                  )}
                   <dt className="text-slate-400 font-bold">Sold by</dt>
                   <dd className="font-bold text-charcoal dark:text-white truncate">{shop.name}</dd>
                   <dt className="text-slate-400 font-bold">Location</dt>
