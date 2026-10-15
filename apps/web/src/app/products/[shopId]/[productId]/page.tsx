@@ -185,12 +185,6 @@ export default function ProductPage() {
                     {inquiring ? <Loader2 size={16} className="animate-spin" /> : <MessageCircle size={16} />}
                     {out ? "Ask about restock" : "Inquire availability"}
                   </button>
-                  <Link
-                    href={`/shop/${shop.id}`}
-                    className="flex-1 inline-flex items-center justify-center gap-2 py-4 rounded-2xl border border-slate-200 dark:border-white/10 text-charcoal dark:text-white text-xs font-black uppercase tracking-widest hover:border-primary hover:text-primary"
-                  >
-                    <Store size={16} /> Visit shop
-                  </Link>
                 </div>
               </div>
             </section>
