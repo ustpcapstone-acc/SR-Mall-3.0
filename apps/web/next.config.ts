@@ -38,9 +38,17 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // The workspace database package is TypeScript source: compile it into the
+  // app bundle (needed for the Cloudflare build). Prisma stays external.
+  transpilePackages: ["@srmall/database"],
+  // `pg` loads its Cloudflare socket helper conditionally, so file tracing
+  // misses it — include it explicitly for the Cloudflare (OpenNext) bundle.
+  outputFileTracingIncludes: {
+    "/**": ["../../node_modules/pg-cloudflare/**/*"],
+  },
   serverExternalPackages: [
     "@prisma/client",
-    "@srmall/database",
+    ".prisma/client",
     "jspdf",
     "jspdf-autotable",
   ],

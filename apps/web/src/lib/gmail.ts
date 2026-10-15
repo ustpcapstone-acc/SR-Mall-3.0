@@ -1,10 +1,13 @@
-import { google } from 'googleapis';
-import nodemailer from 'nodemailer';
-
 /**
- * Gmail Service Utility
- * Supports both standard Nodemailer (App Password) 
- * and Gmail API (OAuth2) with Refresh Token.
+ * Email sending (the name is historical — every email goes through here).
+ *
+ *  0. Resend HTTP API when RESEND_API_KEY is set. Used on Cloudflare Workers,
+ *     which can't open SMTP connections.
+ *  1. Gmail API (OAuth2) with a refresh token.
+ *  2. Nodemailer with a Gmail App Password (the current local / Vercel setup).
+ *
+ * nodemailer / googleapis are imported lazily so the Workers bundle never
+ * loads them unless Gmail is actually used.
  */
 
 export async function sendGmail(options: {
@@ -16,6 +19,23 @@ export async function sendGmail(options: {
 }) {
   const { to, cc, subject, text, html } = options;
 
+  // ─── Option 0: Resend (HTTP — works on Cloudflare Workers) ───
+  const resendKey = process.env.RESEND_API_KEY;
+  if (resendKey) {
+    const from = process.env.RESEND_FROM || "SR Mall <onboarding@resend.dev>";
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${resendKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ from, to: [to], ...(cc ? { cc: [cc] } : {}), subject, ...(html ? { html } : {}), ...(text ? { text } : {}) }),
+    });
+    if (!res.ok) {
+      const detail = await res.text().catch(() => "");
+      console.error("[RESEND_ERROR]:", res.status, detail);
+      throw new Error(`Resend failed (${res.status})`);
+    }
+    return { success: true, method: "Resend" };
+  }
+
   // ─── Option 1: Gmail API (OAuth2) ───
   // Preferred for security and long-term background usage
   const clientId = process.env.GMAIL_CLIENT_ID;
@@ -25,6 +45,8 @@ export async function sendGmail(options: {
 
   if (clientId && clientSecret && refreshToken && user) {
     try {
+      const { google } = await import("googleapis");
+      const nodemailer = (await import("nodemailer")).default;
       const OAuth2 = google.auth.OAuth2;
       const oauth2Client = new OAuth2(
         clientId,
@@ -76,6 +98,7 @@ export async function sendGmail(options: {
   const appPassword = process.env.GMAIL_APP_PASSWORD;
   if (user && appPassword) {
     try {
+      const nodemailer = (await import("nodemailer")).default;
       const transporter = nodemailer.createTransport({
         service: 'gmail',
         auth: {
