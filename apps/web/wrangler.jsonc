@@ -10,6 +10,16 @@
     "binding": "ASSETS"
   },
   "observability": { "enabled": true },
+  // Run the server code next to the Supabase database (AWS Singapore), so the
+  // many small database queries per page stay inside Singapore instead of
+  // crossing the Pacific from whichever data center received the visitor.
+  "placement": { "mode": "targeted", "region": "aws:ap-southeast-1" },
+  // Cloudflare's pooled, always-warm connection to the Supabase database
+  // (packages/database uses it on Workers instead of opening a new connection
+  // for every request).
+  "hyperdrive": [
+    { "binding": "HYPERDRIVE", "id": "5229a2c4d007439e97db51afa5130f84" }
+  ],
   // Same daily jobs as vercel.json (UTC); handled in worker.ts.
   "triggers": {
     "crons": ["0 0 * * *", "0 1 * * *", "0 2 * * *"]

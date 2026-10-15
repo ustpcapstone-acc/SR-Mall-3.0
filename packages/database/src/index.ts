@@ -33,7 +33,7 @@ function nodeClient(): PrismaClient {
 const CF_CONTEXT = Symbol.for("__cloudflare-context__");
 const perRequest = new WeakMap<object, PrismaClient>();
 
-function workerClient(ctx: object): PrismaClient {
+function workerClient(ctx: object, env: any): PrismaClient {
   let client = perRequest.get(ctx);
   if (!client) {
     // Loaded lazily so Node builds never pull in the adapter.
@@ -41,7 +41,9 @@ function workerClient(ctx: object): PrismaClient {
     const { Pool } = require("pg");
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { PrismaPg } = require("@prisma/adapter-pg");
-    const pool = new Pool({ connectionString: databaseUrl(), max: 5 });
+    // Hyperdrive (pooled, warm connection) when bound; otherwise DATABASE_URL.
+    const connectionString = env?.HYPERDRIVE?.connectionString || databaseUrl();
+    const pool = new Pool({ connectionString, max: 5 });
     client = new PrismaClient({ adapter: new PrismaPg(pool), log: logLevels() });
     perRequest.set(ctx, client);
   }
@@ -50,7 +52,7 @@ function workerClient(ctx: object): PrismaClient {
 
 function currentClient(): PrismaClient {
   const cf = (globalThis as any)[CF_CONTEXT];
-  return cf?.ctx ? workerClient(cf.ctx) : nodeClient();
+  return cf?.ctx ? workerClient(cf.ctx, cf.env) : nodeClient();
 }
 
 /**
