@@ -4,7 +4,8 @@ import React, { useState, useEffect } from "react";
 import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { ProductCard } from "@/components/product-card";
-import { ProductDetailModal } from "@/components/product-detail-modal";
+import { productHref } from "@/lib/products";
+import { useRouter } from "next/navigation";
 import { ChatBox } from "@/components/chat-box";
 import { ChatLauncher } from "@/components/chat-launcher";
 import {
@@ -30,7 +31,11 @@ export default function AllProductsPage() {
   const [loading, setLoading] = useState(() => !spaCache.has("products"));
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All Categories");
-  const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
+  const router = useRouter();
+  // Products open their own page (/products/[shopId]/[productId]).
+  const setSelectedProduct = (p: any) => {
+    if (p?.shopId && p?.id) router.push(productHref(p.shopId, p.id));
+  };
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [chatInitialShopName, setChatInitialShopName] = useState<string | null>(
     null,
@@ -370,15 +375,6 @@ export default function AllProductsPage() {
       </section>
 
       {/* Modals */}
-      <ProductDetailModal
-        product={selectedProduct}
-        onClose={() => setSelectedProduct(null)}
-        onInquire={(shopName) => {
-          setChatInitialShopName(shopName);
-          setIsChatOpen(true);
-          setSelectedProduct(null);
-        }}
-      />
 
       <ChatLauncher hidden={isChatOpen} />
 

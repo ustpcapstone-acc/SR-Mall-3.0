@@ -17,6 +17,7 @@ import {
   Plus,
   Tag,
   ImageIcon,
+  Package,
 } from "lucide-react";
 import { DigitalStorefront, StoreProduct } from "@/types/storefront";
 import {
@@ -24,6 +25,7 @@ import {
   getStorefrontAction,
 } from "@/app/actions/tenant";
 import { useAuth } from "@/app/providers";
+import { PRODUCT_STATUS_OPTIONS, availabilityLabel, isOutOfStock } from "@/lib/products";
 import { DEFAULT_SALE_DAYS, formatSaleDate, isSaleActive, phToday, saleEndDateInput, saleEndsAt } from "@/lib/post-sales";
 import { ShopCard } from "@/components/shop-card";
 
@@ -209,7 +211,7 @@ export default function DigitalStorefrontPage() {
   const updateProduct = (
     i: number,
     field: keyof StoreProduct,
-    value: string,
+    value: StoreProduct[keyof StoreProduct],
   ) => {
     setProfile((prev) => {
       const updated = [...(prev.products || [])];
@@ -738,7 +740,28 @@ export default function DigitalStorefrontPage() {
                               className="w-full px-3 py-2.5 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-black text-primary focus:outline-none focus:border-primary transition-all"
                             />
                           </div>
-                          <div className="col-span-2 sm:col-span-1">
+                          <div>
+                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1 mb-1">
+                              <Package size={9} /> Stock
+                            </label>
+                            <input
+                              type="number"
+                              min={0}
+                              step={1}
+                              inputMode="numeric"
+                              value={product.stock ?? ""}
+                              onChange={(e) =>
+                                updateProduct(
+                                  index,
+                                  "stock",
+                                  e.target.value === "" ? null : Math.max(0, Math.floor(Number(e.target.value) || 0)),
+                                )
+                              }
+                              placeholder="e.g. 25"
+                              className="w-full px-3 py-2.5 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-bold text-charcoal dark:text-white focus:outline-none focus:border-primary transition-all"
+                            />
+                          </div>
+                          <div>
                             <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1 mb-1">
                               <ShoppingBag size={9} /> Category
                             </label>
@@ -754,6 +777,35 @@ export default function DigitalStorefrontPage() {
                                 <option key={cat} value={cat}>{cat}</option>
                               ))}
                             </select>
+                          </div>
+                          <div className="col-span-2 sm:col-span-2">
+                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1 mb-1">
+                              <Eye size={9} /> Status
+                            </label>
+                            <select
+                              value={product.status || "AVAILABLE"}
+                              onChange={(e) =>
+                                updateProduct(index, "status", e.target.value as StoreProduct["status"])
+                              }
+                              className={`w-full px-3 py-2.5 bg-white dark:bg-zinc-900 border rounded-xl text-xs font-bold focus:outline-none focus:border-primary transition-all cursor-pointer ${
+                                product.status === "HIDDEN"
+                                  ? "border-slate-300 dark:border-white/20 text-slate-500"
+                                  : isOutOfStock(product)
+                                    ? "border-amber-300 dark:border-amber-500/40 text-amber-600 dark:text-amber-400"
+                                    : "border-emerald-300 dark:border-emerald-500/30 text-emerald-600 dark:text-emerald-400"
+                              }`}
+                            >
+                              {PRODUCT_STATUS_OPTIONS.map((o) => (
+                                <option key={o.value} value={o.value}>{o.label}</option>
+                              ))}
+                            </select>
+                            <p className="text-[10px] text-slate-400 font-medium mt-1">
+                              {product.status === "HIDDEN"
+                                ? "Not shown in the Store Catalog or product pages."
+                                : isOutOfStock(product)
+                                  ? "Shown with an “Out of stock” label."
+                                  : `Shown in the Store Catalog · ${availabilityLabel(product)}`}
+                            </p>
                           </div>
                         </div>
                         <div>

@@ -3,6 +3,7 @@
 import React from "react";
 import { ShoppingBag, ArrowRight } from "lucide-react";
 import clsx from "clsx";
+import { isOutOfStock } from "@/lib/products";
 
 interface ProductCardProps {
   product: {
@@ -12,6 +13,8 @@ interface ProductCardProps {
     image_url?: string;
     shopName: string;
     description?: string;
+    stock?: number | null;
+    status?: string;
   };
   onClick: (product: any) => void;
   className?: string;
@@ -54,6 +57,13 @@ export const ProductCard = ({
       {/* Overlays */}
       <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent opacity-60 group-hover:opacity-80 transition-opacity duration-700 z-10" />
       <div className="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity duration-700 z-11" />
+
+      {/* Out of stock */}
+      {isOutOfStock(product) && (
+        <div className="absolute top-3 right-3 z-20 bg-black/70 backdrop-blur-md px-2.5 py-1.5 rounded-xl text-[9px] font-black text-white uppercase tracking-[0.15em]">
+          Out of stock
+        </div>
+      )}
 
       {/* Shop Label */}
       <div className="absolute top-3 left-3 z-20">

@@ -46,7 +46,8 @@ import SpaceDetailModal from "@/components/space-detail-modal";
 import { mergeSlotPatch, slotAccess, useLiveSlots } from "@/lib/slot-live";
 import { toast } from "sonner";
 import { ProductCard } from "@/components/product-card";
-import { ProductDetailModal } from "@/components/product-detail-modal";
+import { productHref } from "@/lib/products";
+import { useRouter } from "next/navigation";
 import clsx from "clsx";
 import { useChatUnread } from "@/lib/chat-unread";
 
@@ -102,7 +103,11 @@ export default function PublicDigitalConcierge() {
   const [ads, setAds] = useState<any[]>(() => spaCache.get("public_ads") || []);
   const [tenantPromos, setTenantPromos] = useState<any[]>(() => spaCache.get("public_promos") || []);
   const [carouselItems, setCarouselItems] = useState<any[]>(() => spaCache.get("public_carousel") || []);
-  const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
+  const router = useRouter();
+  // Products open their own page (/products/[shopId]/[productId]).
+  const setSelectedProduct = (p: any) => {
+    if (p?.shopId && p?.id) router.push(productHref(p.shopId, p.id));
+  };
   const [allFeaturedProducts, setAllFeaturedProducts] = useState<any[]>(() => spaCache.get("public_featured_products") || []);
   const productsCarouselRef = useRef<HTMLDivElement>(null);
   const [activeProductIdx, setActiveProductIdx] = useState(0);
@@ -534,17 +539,6 @@ export default function PublicDigitalConcierge() {
         </section>
       )}
 
-      {/* Product Detail Modal */}
-      <ProductDetailModal
-        product={selectedProduct}
-        onClose={() => setSelectedProduct(null)}
-        onInquire={(shopName) => {
-          setChatInitialShopName(shopName);
-          setChatRecipient("shop");
-          setIsChatOpen(true);
-          setSelectedProduct(null);
-        }}
-      />
       <section
         className={clsx(
           "py-12",

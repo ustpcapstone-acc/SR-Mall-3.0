@@ -1,9 +1,15 @@
+export type ProductStatus = "AVAILABLE" | "OUT_OF_STOCK" | "HIDDEN";
+
 export interface StoreProduct {
   id: string;
   name: string;
   description: string;
   price: string;
   image_url: string;
+  /** Units the shop has on hand (blank = not tracked). */
+  stock?: number | null;
+  /** AVAILABLE (default), OUT_OF_STOCK, or HIDDEN (not shown in the Store Catalog). */
+  status?: ProductStatus;
   category?: string; // Food | Fashion | Electronics | Living | Beauty
 }
 

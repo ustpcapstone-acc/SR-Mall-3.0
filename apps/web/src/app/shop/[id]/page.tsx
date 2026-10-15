@@ -1,5 +1,6 @@
 "use client";
 
+import { isOutOfStock, productHref } from "@/lib/products";
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
@@ -27,7 +28,6 @@ import { ShopPromos } from "@/components/shop-promos";
 import NotificationDropdown from "@/components/notification-dropdown";
 import { FeedbackSection } from "@/components/feedback-section";
 import { LoginModal } from "@/components/login-modal";
-import { ProductDetailModal } from "@/components/product-detail-modal";
 import clsx from "clsx";
 
 // Premium Placeholders for Broken/Blob URLs
@@ -65,7 +65,11 @@ export default function ShopProfilePage() {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [productSearch, setProductSearch] = useState("");
-  const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
+  // Products open their own page (/products/[shopId]/[productId]).
+  const setSelectedProduct = (p: any) => {
+    const shopId = p?.shopId || (params.id as string);
+    if (shopId && p?.id) router.push(productHref(shopId, p.id));
+  };
 
   useEffect(() => {
     async function loadShop() {
@@ -984,6 +988,11 @@ export default function ShopProfilePage() {
                       "dark:bg-zinc-800",
                     )}
                   >
+                    {isOutOfStock(product) && (
+                      <span className="absolute top-3 right-3 z-10 px-2.5 py-1.5 rounded-xl bg-black/70 text-white text-[9px] font-black uppercase tracking-[0.15em]">
+                        Out of stock
+                      </span>
+                    )}
                     {product.image_url ? (
                       <img
                         src={getSafeUrl(product.image_url, 0)}
@@ -1117,14 +1126,6 @@ export default function ShopProfilePage() {
         onClose={() => setIsLoginModalOpen(false)}
       />
 
-      <ProductDetailModal
-        product={selectedProduct}
-        onClose={() => setSelectedProduct(null)}
-        onInquire={(shopName) => {
-          setIsChatOpen(true);
-          setSelectedProduct(null);
-        }}
-      />
     </div>
   );
 }

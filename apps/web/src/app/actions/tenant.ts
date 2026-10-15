@@ -1,5 +1,6 @@
 "use server";
 
+import { isListed } from "@/lib/products";
 import { prisma } from "@srmall/database";
 import { emailBaseUrl } from "@/utils/get-base-url";
 import { SHOP_CATEGORIES } from "@/lib/shop-categories";
@@ -27,6 +28,21 @@ export async function updateStorefrontAction(
       return {
         success: false,
         error: "User context not found. Please log in again.",
+      };
+    }
+
+    // Clean product stock / status (whole number ≥ 0 or blank; known status).
+    if (Array.isArray(profile.products)) {
+      profile = {
+        ...profile,
+        products: profile.products.map((p: any) => {
+          const n = p?.stock === "" || p?.stock == null ? null : Math.floor(Number(p.stock));
+          return {
+            ...p,
+            stock: n !== null && Number.isFinite(n) && n >= 0 ? Math.min(n, 1_000_000) : null,
+            status: ["AVAILABLE", "OUT_OF_STOCK", "HIDDEN"].includes(p?.status) ? p.status : "AVAILABLE",
+          };
+        }),
       };
     }
 
@@ -320,6 +336,11 @@ export async function getDirectoryShopsAction() {
   }
 }
 
+/** Public view of a shop's products: hidden ones removed. */
+function publicProducts(products: unknown): any {
+  return (Array.isArray(products) ? products : []).filter((p: any) => p && isListed(p));
+}
+
 export async function getAllStorefrontsAction() {
   try {
     const tenants = await prisma.tenant.findMany({
@@ -340,7 +361,8 @@ export async function getAllStorefrontsAction() {
             description: t.description,
             logo_url: t.logoUrl,
             gallery_urls: t.galleryUrls,
-            products: t.products as any,
+            // Products hidden by the shop never reach public pages.
+            products: publicProducts(t.products),
             post_sales: t.postSales as any,
             category: t.category,
             ...extras(t),
@@ -433,7 +455,7 @@ export async function getStorefrontByIdAction(id: string) {
         description: tenant.description,
         logo_url: tenant.logoUrl,
         gallery_urls: tenant.galleryUrls,
-        products: tenant.products as any,
+        products: publicProducts(tenant.products),
         post_sales: tenant.postSales as any,
         category: (tenant as any).category,
         ...(await prisma
@@ -1307,5 +1329,54 @@ export async function uploadShopLogoAction(userId: string, formData: FormData) {
   } catch (error: any) {
     console.error("[UPLOAD_SHOP_LOGO_ERROR]:", error);
     return { success: false, error: "Couldn't upload the logo." };
+  }
+}
+
+/**
+ * Product page (/products/[shopId]/[productId]): the product, the shop's
+ * public profile and more items from the same shop. Hidden products and
+ * inactive shops are not shown.
+ */
+export async function getProductPageAction(shopId: string, productId: string) {
+  try {
+    const t = await prisma.tenant.findUnique({ where: { id: shopId } });
+    if (!t || t.status !== "ACTIVE") return { success: false as const, error: "Shop not found" };
+    const listed = publicProducts(t.products) as any[];
+    const product = listed.find((p) => p.id === productId);
+    if (!product) return { success: false as const, error: "Product not found" };
+
+    const [extras, more] = await Promise.all([
+      storefrontExtras([t]).then((fn) => fn(t)),
+      prisma
+        .$queryRawUnsafe<any[]>(`SELECT "phone", "openingHours" FROM "Tenant" WHERE "id" = $1`, t.id)
+        .catch(() => [] as any[]),
+    ]);
+
+    return {
+      success: true as const,
+      data: {
+        product,
+        shop: {
+          id: t.id,
+          name: t.shopName,
+          logoUrl: t.logoUrl,
+          unitId: t.unitId,
+          floor: extras.floor,
+          category: t.category,
+          isOpen: t.isOpen,
+          description: t.description,
+          phone: more[0]?.phone ?? null,
+          openingHours: more[0]?.openingHours ?? null,
+          avgRating: extras.avgRating,
+          reviewCount: extras.reviewCount,
+          productCount: listed.length,
+          joinedAt: t.createdAt.toISOString(),
+        },
+        moreFromShop: listed.filter((p) => p.id !== productId).slice(0, 8),
+      },
+    };
+  } catch (error: any) {
+    console.error("[GET_PRODUCT_PAGE_ERROR]:", error);
+    return { success: false as const, error: "Couldn't load this product." };
   }
 }
