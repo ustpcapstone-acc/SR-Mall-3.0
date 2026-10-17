@@ -26,6 +26,9 @@ import {
   Shirt,
   Coffee,
   PhilippinePeso,
+  Play,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
 import Link from "next/link";
 import { LoginModal } from "@/components/login-modal";
@@ -100,6 +103,27 @@ export default function PublicDigitalConcierge() {
   );
 
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
+  // Featured Campaign preview: autoplays muted (browser rule); the viewer can unmute.
+  const campaignVideoRef = useRef<HTMLVideoElement>(null);
+  const [campaignMuted, setCampaignMuted] = useState(true);
+  useEffect(() => {
+    // Opening the full video silences the preview so two sounds never overlap.
+    if (isVideoModalOpen && campaignVideoRef.current) {
+      campaignVideoRef.current.muted = true;
+      setCampaignMuted(true);
+    }
+  }, [isVideoModalOpen]);
+  const toggleCampaignSound = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const v = campaignVideoRef.current;
+    if (!v) return;
+    v.muted = !v.muted;
+    if (!v.muted) {
+      if (v.volume === 0) v.volume = 1;
+      void v.play().catch(() => {});
+    }
+    setCampaignMuted(v.muted);
+  };
   const [ads, setAds] = useState<any[]>(() => spaCache.get("public_ads") || []);
   const [tenantPromos, setTenantPromos] = useState<any[]>(() => spaCache.get("public_promos") || []);
   const [carouselItems, setCarouselItems] = useState<any[]>(() => spaCache.get("public_carousel") || []);
@@ -539,227 +563,129 @@ export default function PublicDigitalConcierge() {
         </section>
       )}
 
-      <section
-        className={clsx(
-          "py-12",
-          "sm:py-16",
-          "lg:py-24",
-          "bg-slate-200",
-          "dark:bg-zinc-950",
-          "relative",
-          "overflow-hidden",
-          "border-y",
-          "border-slate-300",
-          "dark:border-white/5",
-        )}
-      >
-        <div
-          className={clsx(
-            "absolute",
-            "inset-0",
-            "bg-primary/5",
-            "dark:bg-[#BE1E2D]/5",
-          )}
-        ></div>
-        <div
-          className={clsx(
-            "max-w-7xl",
-            "mx-auto",
-            "px-4",
-            "relative",
-            "z-10",
-            "flex",
-            "flex-col",
-            "md:flex-row",
-            "items-center",
-            "gap-8",
-            "sm:gap-12",
-            "lg:gap-16",
-          )}
-        >
-          <div className={clsx("w-full", "md:w-1/2", "space-y-6")}>
-            <span
-              className={clsx(
-                "text-xs",
-                "uppercase",
-                "tracking-[0.2em]",
-                "text-primary",
-                "dark:text-[#BE1E2D]",
-                "font-black",
-                "bg-primary/10",
-                "dark:bg-[#BE1E2D]/10",
-                "px-4",
-                "py-1.5",
-                "rounded-full",
-                "inline-block",
-                "border",
-                "border-primary/20",
-                "dark:border-[#BE1E2D]/20",
-                "shadow-sm",
-              )}
-            >
-              {config?.videoBadge || "Featured Campaign"}
+      <section className="relative overflow-hidden py-14 sm:py-20 lg:py-28 bg-slate-100 dark:bg-zinc-950 border-y border-slate-200 dark:border-white/5">
+        {/* Soft brand glow */}
+        <div aria-hidden className="pointer-events-none absolute inset-0">
+          <div className="absolute -top-32 left-[-10%] w-[36rem] h-[36rem] rounded-full bg-primary/10 dark:bg-[#BE1E2D]/10 blur-3xl" />
+          <div className="absolute -bottom-40 right-[-5%] w-[30rem] h-[30rem] rounded-full bg-primary/5 dark:bg-[#BE1E2D]/10 blur-3xl" />
+        </div>
+
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-12 items-center gap-10 lg:gap-14">
+          {/* Copy */}
+          <div className="lg:col-span-5 space-y-6 sm:space-y-7">
+            <span className="inline-flex items-center gap-2 pl-2 pr-3.5 py-1.5 rounded-full bg-white/70 dark:bg-white/5 border border-slate-200 dark:border-white/10 shadow-sm backdrop-blur">
+              <span className="relative flex w-2 h-2">
+                <span className="absolute inset-0 rounded-full bg-primary dark:bg-[#BE1E2D] opacity-60 animate-ping" />
+                <span className="relative w-2 h-2 rounded-full bg-primary dark:bg-[#BE1E2D]" />
+              </span>
+              <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-[0.25em] text-primary dark:text-[#E04B57]">
+                {config?.videoBadge || "Featured Campaign"}
+              </span>
             </span>
-            <h2
-              className={clsx(
-                "text-2xl sm:text-3xl md:text-4xl lg:text-5xl",
-                "font-black",
-                "text-charcoal",
-                "dark:text-white",
-                "tracking-tight",
-                "leading-tight",
-                "drop-shadow-lg",
-              )}
-            >
+
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-black text-charcoal dark:text-white tracking-tight leading-[1.05]">
               {config?.videoTitle || "Elevate Your Lifestyle."}
             </h2>
-            <p
-              className={clsx(
-                "text-slate-600",
-                "dark:text-slate-400",
-                "font-medium",
-                "text-base",
-                "sm:text-lg",
-                "leading-relaxed",
-                "max-w-lg",
-              )}
-            >
+            <span aria-hidden className="block w-16 h-1 rounded-full bg-primary dark:bg-[#BE1E2D]" />
+
+            <p className="text-slate-600 dark:text-slate-400 font-medium text-base sm:text-lg leading-relaxed max-w-xl">
               {config?.videoDescription ||
                 "Watch our latest visual showcase highlighting the premier shopping and dining experiences waiting for you at SR Mall. Immerse yourself in the extraordinary."}
             </p>
-            <button suppressHydrationWarning
-              onClick={() => setIsVideoModalOpen(true)}
-              className={clsx(
-                "px-6",
-                "sm:px-8",
-                "py-3",
-                "sm:py-4",
-                "bg-primary",
-                "dark:bg-[#BE1E2D]",
-                "text-white",
-                "font-bold",
-                "rounded-xl",
-                "hover:bg-primary/90",
-                "dark:hover:bg-[#9E1B26]",
-                "transition-all",
-                "shadow-xl",
-                "shadow-primary/30",
-                "dark:shadow-[#BE1E2D]/30",
-                "active:scale-95",
-                "group",
-                "flex",
-                "items-center",
-                "gap-3",
-                "text-sm",
-                "sm:text-base",
-              )}
-            >
-              Watch Full Campaign
-              <ArrowRight
-                size={18}
-                className={clsx(
-                  "group-hover:translate-x-1",
-                  "transition-transform",
-                )}
-              />
-            </button>
+
+            <div className="flex flex-col sm:flex-row gap-3 pt-1">
+              <button
+                suppressHydrationWarning
+                onClick={() => setIsVideoModalOpen(true)}
+                className="group inline-flex items-center justify-center gap-3 pl-2 pr-6 py-2 rounded-full bg-primary dark:bg-[#BE1E2D] text-white font-bold text-sm sm:text-base shadow-xl shadow-primary/25 dark:shadow-[#BE1E2D]/25 hover:bg-primary/90 dark:hover:bg-[#9E1B26] active:scale-95 transition-all"
+              >
+                <span className="w-10 h-10 rounded-full bg-white/15 flex items-center justify-center group-hover:bg-white/25 transition-colors">
+                  <Play size={16} className="fill-current translate-x-[1px]" />
+                </span>
+                Watch Full Campaign
+              </button>
+              <a
+                href="#directory"
+                className="group inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full border border-slate-300 dark:border-white/15 text-charcoal dark:text-white font-bold text-sm sm:text-base hover:border-primary hover:text-primary dark:hover:border-[#BE1E2D] dark:hover:text-[#E04B57] transition-colors"
+              >
+                Explore the shops
+                <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+              </a>
+            </div>
           </div>
 
-          <div className={clsx("w-full", "md:w-1/2", "relative", "group")}>
+          {/* Video */}
+          <div className="lg:col-span-7">
             <div
-              className={clsx(
-                "absolute",
-                "-inset-4",
-                "bg-gradient-to-r",
-                "from-primary",
-                "dark:from-[#BE1E2D]",
-                "to-blue-600",
-                "rounded-[3rem]",
-                "blur-xl",
-                "opacity-20",
-                "group-hover:opacity-40",
-                "transition",
-                "duration-1000",
-              )}
-            ></div>
-            <div
-              className={clsx(
-                "relative",
-                "aspect-video",
-                "bg-black",
-                "rounded-4xl",
-                "overflow-hidden",
-                "border",
-                "border-slate-200",
-                "dark:border-white/10",
-                "shadow-2xl",
-              )}
+              role="button"
+              tabIndex={0}
+              onClick={() => setIsVideoModalOpen(true)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setIsVideoModalOpen(true);
+                }
+              }}
+              aria-label="Play the full campaign video"
+              className="group relative block w-full text-left cursor-pointer rounded-[1.75rem] sm:rounded-[2.25rem] p-1.5 sm:p-2 bg-white/60 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 shadow-2xl shadow-black/10 dark:shadow-black/50 focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/30"
             >
-              <video
-                src={config?.featuredVideoUrl || "/vid/Download.mp4"}
-                className={clsx(
-                  "w-full",
-                  "h-full",
-                  "object-cover",
-                  "opacity-80",
-                  "group-hover:opacity-100",
-                  "transition-opacity",
-                  "duration-700",
-                )}
-                autoPlay
-                loop
-                muted
-                playsInline
-              />
-              <div
-                className={clsx(
-                  "absolute",
-                  "inset-0",
-                  "bg-gradient-to-t",
-                  "from-black/90",
-                  "via-black/20",
-                  "to-transparent",
-                  "flex",
-                  "items-end",
-                  "p-4",
-                  "sm:p-8",
-                )}
-              >
-                <div
-                  className={clsx(
-                    "flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4",
-                  )}
-                >
-                  <div
-                    className={clsx(
-                      "w-10 h-10 sm:w-12 sm:h-12 bg-primary dark:bg-[#BE1E2D] text-white rounded-full flex items-center justify-center shadow-lg border-2 border-white/20 animate-pulse cursor-pointer hover:scale-110 transition-transform flex-shrink-0",
-                    )}
-                  >
-                    <svg
-                      className={clsx("w-4 h-4 sm:w-5 sm:h-5 translate-x-0.5")}
-                      fill="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path d="M8 5v14l11-7z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h4
-                      className={clsx(
-                        "text-sm sm:text-base text-white font-bold tracking-wide",
-                      )}
-                    >
-                      {config?.featuredVideoTitle ||
-                        "SR Mall Cinematic Experience"}
-                    </h4>
-                    <p
-                      className={clsx(
-                        "text-slate-300 text-[9px] sm:text-[10px] uppercase tracking-[0.15em] sm:tracking-[0.2em] font-bold",
-                      )}
-                    >
-                      Now Playing
+              <div className="relative aspect-video overflow-hidden rounded-[1.4rem] sm:rounded-[1.8rem] bg-black">
+                <video
+                  ref={campaignVideoRef}
+                  src={config?.featuredVideoUrl || "/vid/Download.mp4"}
+                  className="w-full h-full object-cover scale-[1.01] group-hover:scale-105 transition-transform duration-[1200ms] ease-out"
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                />
+
+                {/* Readability gradient */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-black/20" />
+
+                {/* Now playing chip */}
+                <div className="absolute top-3 left-3 sm:top-5 sm:left-5 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/45 backdrop-blur-md border border-white/15">
+                  <span className="flex items-end gap-[2px] h-3" aria-hidden>
+                    <span className="w-[3px] h-1.5 bg-white rounded-sm animate-pulse" />
+                    <span className="w-[3px] h-3 bg-white rounded-sm animate-pulse [animation-delay:150ms]" />
+                    <span className="w-[3px] h-2 bg-white rounded-sm animate-pulse [animation-delay:300ms]" />
+                  </span>
+                  <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] text-white">Now playing</span>
+                </div>
+
+                {/* Centre play button */}
+                <span className="absolute inset-0 flex items-center justify-center">
+                  <span className="relative flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-white/15 backdrop-blur-md border border-white/30 group-hover:scale-110 transition-transform duration-500">
+                    <span className="absolute inset-0 rounded-full bg-white/20 animate-ping [animation-duration:2.5s]" />
+                    <span className="relative flex items-center justify-center w-11 h-11 sm:w-14 sm:h-14 rounded-full bg-primary dark:bg-[#BE1E2D] text-white shadow-lg">
+                      <Play size={20} className="fill-current translate-x-[2px]" />
+                    </span>
+                  </span>
+                </span>
+
+                {/* Caption */}
+                <div className="absolute inset-x-0 bottom-0 p-4 sm:p-7 flex items-end justify-between gap-4">
+                  <div className="min-w-0">
+                    <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.25em] text-white/60">SR Mall presents</p>
+                    <p className="mt-1 text-base sm:text-xl font-black text-white tracking-tight truncate">
+                      {config?.featuredVideoTitle || "SR Mall Cinematic Experience"}
                     </p>
                   </div>
+                  {/* Sound on / off (the centre button plays the full video) */}
+                  <button
+                    type="button"
+                    onClick={toggleCampaignSound}
+                    onKeyDown={(e) => e.stopPropagation()}
+                    aria-pressed={!campaignMuted}
+                    aria-label={campaignMuted ? "Turn sound on" : "Turn sound off"}
+                    title={campaignMuted ? "Turn sound on" : "Turn sound off"}
+                    className="relative z-20 shrink-0 inline-flex items-center gap-1.5 h-9 sm:h-10 pl-2.5 pr-3.5 rounded-full bg-white text-charcoal hover:bg-primary hover:text-white dark:hover:bg-[#BE1E2D] shadow-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+                  >
+                    {campaignMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+                    <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest">
+                      {campaignMuted ? "Sound off" : "Sound on"}
+                    </span>
+                  </button>
                 </div>
               </div>
             </div>
