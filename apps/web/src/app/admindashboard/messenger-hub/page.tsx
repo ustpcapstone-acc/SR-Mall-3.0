@@ -103,10 +103,13 @@ function MessengerHubContent() {
   const getOtherParticipant = useCallback(
     (c: any) => {
       if (!c) return null;
-      if (c.user?.id === user?.id || c.user?.role === "ADMIN") {
-        return c.target || c.user;
-      }
-      return c.user;
+      // Same rule as the inbox: the non-admin person; in a chat between two
+      // admins, whichever one isn't me (it used to show me in that case).
+      const userIsAdmin = c.user?.role === "ADMIN";
+      const targetIsAdmin = c.target?.role === "ADMIN";
+      if (userIsAdmin && !targetIsAdmin) return c.target || c.user;
+      if (targetIsAdmin && !userIsAdmin) return c.user || c.target;
+      return c.user?.id === user?.id ? c.target || c.user : c.user || c.target;
     },
     [user?.id]
   );

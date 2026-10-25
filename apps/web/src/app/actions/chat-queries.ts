@@ -571,7 +571,19 @@ export async function replyToConversation(
     if (!conversation) throw new Error("Conversation not found");
 
     const senderId = explicitSenderId || (isFromTarget ? conversation.targetId : conversation.userId);
-    const recipientId = senderId === conversation.userId ? conversation.targetId : conversation.userId;
+    // Who receives it. A participant replies to the other participant. An
+    // admin who isn't in the chat (the admin inbox is shared, and lists each
+    // chat under its non-admin person — e.g. a chat another admin account
+    // started with a shop via "Inquire") replies to that non-admin person,
+    // not to the other admin.
+    let recipientId: string;
+    if (senderId === conversation.userId) recipientId = conversation.targetId;
+    else if (senderId === conversation.targetId) recipientId = conversation.userId;
+    else
+      recipientId =
+        conversation.user?.role === "ADMIN" && conversation.target?.role !== "ADMIN"
+          ? conversation.targetId
+          : conversation.userId;
 
     // Block check and the sender lookup are independent — one round trip.
     const [isBlocked, senderUser] = await Promise.all([
