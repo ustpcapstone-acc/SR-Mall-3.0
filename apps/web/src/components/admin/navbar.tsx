@@ -15,7 +15,7 @@ export const AdminNavbar = () => {
 
   const handleLogout = () => {
     logout();
-    router.push("/public-view");
+    router.push("/");
   };
 
   return (
@@ -85,7 +85,7 @@ export const AdminNavbar = () => {
                   <User size={16} /> Profile Settings
                 </Link>
                 <Link
-                  href="/public-view"
+                  href="/"
                   className="w-full flex items-center gap-3 px-5 py-3 text-sm font-medium hover:bg-slate-50 dark:hover:bg-white/5 transition-colors text-charcoal dark:text-slate-300"
                 >
                   <Search size={16} /> Public View

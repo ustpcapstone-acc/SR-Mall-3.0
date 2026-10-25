@@ -96,7 +96,7 @@ const EMPTY_FORM = {
   title: "",
   description: "",
   imageUrl: "",
-  linkUrl: "/public-view",
+  linkUrl: "/",
   priority: "MEDIUM" as "HIGH" | "MEDIUM" | "LOW",
   startDate: "",
   endDate: "",
@@ -210,7 +210,7 @@ export default function AdScheduler() {
         title: formData.title,
         description: formData.description,
         imageUrl: formData.imageUrl,
-        linkUrl: formData.linkUrl || "/public-view",
+        linkUrl: formData.linkUrl || "/",
         priority: formData.priority,
         startDate: phDayStart(formData.startDate),
         endDate: phDayEnd(formData.endDate),
@@ -242,7 +242,7 @@ export default function AdScheduler() {
       title: ad.title,
       description: ad.description || "",
       imageUrl: ad.imageUrl,
-      linkUrl: ad.linkUrl || "/public-view",
+      linkUrl: ad.linkUrl || "/",
       priority: ad.priority,
       startDate: toPHDateInput(ad.startDate),
       endDate: toPHDateInput(ad.endDate),
@@ -273,7 +273,7 @@ export default function AdScheduler() {
         title: formData.title,
         description: formData.description,
         imageUrl: formData.imageUrl,
-        linkUrl: formData.linkUrl || "/public-view",
+        linkUrl: formData.linkUrl || "/",
         priority: formData.priority,
         startDate: phDayStart(formData.startDate),
         endDate: isDefaultAd ? new Date("2099-12-31T23:59:59.000Z") : phDayEnd(formData.endDate),
@@ -488,7 +488,7 @@ export default function AdScheduler() {
             setFormData({ ...formData, linkUrl: e.target.value })
           }
           className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-800 text-charcoal dark:text-white rounded-xl border border-slate-200 dark:border-white/5 focus:border-primary outline-none transition-all text-sm"
-          placeholder="/public-view"
+          placeholder="/"
         />
       </div>
 

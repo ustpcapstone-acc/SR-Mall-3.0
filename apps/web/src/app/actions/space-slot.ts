@@ -169,7 +169,7 @@ export async function upsertAreaSlot(data: {
       });
     }
     revalidatePath("/admindashboard/space-manager");
-    revalidatePath("/public-view");
+    revalidatePath("/");
     revalidatePath("/available-spaces");
     return { success: true };
   } catch (error: any) {
@@ -208,7 +208,7 @@ export async function occupySlot(unit_id: string) {
       data: { status: "OCCUPIED" },
     });
     revalidatePath("/admindashboard/space-manager");
-    revalidatePath("/public-view");
+    revalidatePath("/");
     return { success: true };
   } catch (error) {
     console.error("Error occupying slot:", error);
@@ -334,7 +334,7 @@ export async function reserveSlotAction(
               <hr />
               <p><strong>Status: In process.</strong> Your business permit was submitted and the admin is reviewing your documents. This usually takes up to ${RESERVATION_HOLD_LABEL}. You'll get an email and a notification with the decision.</p>
               <p>You can monitor your communications via the mall messenger.</p>
-              <a href="${emailBaseUrl()}/public-view?recipient=admin" style="display: inline-block; padding: 10px 20px; background-color: #be1e2d; color: white; text-decoration: none; border-radius: 5px;">Open Messenger</a>
+              <a href="${emailBaseUrl()}/?recipient=admin" style="display: inline-block; padding: 10px 20px; background-color: #be1e2d; color: white; text-decoration: none; border-radius: 5px;">Open Messenger</a>
             </div>
           `,
         });
@@ -344,7 +344,7 @@ export async function reserveSlotAction(
     }
 
     revalidatePath("/admindashboard/space-manager");
-    revalidatePath("/public-view");
+    revalidatePath("/");
     return { success: true };
   } catch (error) {
     console.error("Error reserving slot:", error);
@@ -403,7 +403,7 @@ export async function approveReservationAction(unit_id: string, comment?: string
                 <hr />
                 <p>Next Steps: Our leasing representative will reach out to you within 24 hours to schedule a site visit and begin the contract initialization process.</p>
                 <p>You can now view more details about the mall's merchant guidelines in your dashboard.</p>
-                <a href="${emailBaseUrl()}/public-view" style="display: inline-block; padding: 10px 20px; background-color: #10b981; color: white; text-decoration: none; border-radius: 5px;">Return to Portal</a>
+                <a href="${emailBaseUrl()}/" style="display: inline-block; padding: 10px 20px; background-color: #10b981; color: white; text-decoration: none; border-radius: 5px;">Return to Portal</a>
               </div>
             `,
           });
@@ -414,7 +414,7 @@ export async function approveReservationAction(unit_id: string, comment?: string
     }
 
     revalidatePath("/admindashboard/space-manager");
-    revalidatePath("/public-view");
+    revalidatePath("/");
     return { success: true };
   } catch (error) {
     console.error("Error approving reservation:", error);
@@ -493,7 +493,7 @@ export async function rejectReservationAction(unit_id: string, feedback?: string
                 ${feedback ? `<div style="background: #fef2f2; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #be1e2d;"><strong>Admin Note:</strong> ${escapeHtml(feedback)}</div>` : ""}
                 <hr />
                 <p>If you have questions or wish to explore other units, please feel free to browse our available spaces or contact us via messenger.</p>
-                <a href="${emailBaseUrl()}/public-view" style="display: inline-block; padding: 10px 20px; background-color: #334155; color: white; text-decoration: none; border-radius: 5px;">Browse Other Spaces</a>
+                <a href="${emailBaseUrl()}/" style="display: inline-block; padding: 10px 20px; background-color: #334155; color: white; text-decoration: none; border-radius: 5px;">Browse Other Spaces</a>
               </div>
             `,
           });
@@ -504,7 +504,7 @@ export async function rejectReservationAction(unit_id: string, feedback?: string
     }
 
     revalidatePath("/admindashboard/space-manager");
-    revalidatePath("/public-view");
+    revalidatePath("/");
     return { success: true };
   } catch (error) {
     console.error("Error rejecting reservation:", error);
@@ -527,7 +527,7 @@ export async function deleteAreaSlot(id: string) {
     }
     await prisma.areaSlot.delete({ where: { id } });
     revalidatePath("/admindashboard/space-manager");
-    revalidatePath("/public-view");
+    revalidatePath("/");
     return { success: true };
   } catch (error) {
     console.error("Error deleting area slot:", error);

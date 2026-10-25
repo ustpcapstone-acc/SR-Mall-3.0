@@ -84,11 +84,11 @@ export async function updateSiteConfig(data: {
         message: data.isMaintenance
           ? "The public storefront has been taken offline for maintenance. Customers can no longer browse until it is re-enabled."
           : "The public storefront is back online and customers can browse again.",
-        link: "/public-view",
+        link: "/",
       });
     }
 
-    revalidatePath("/public-view");
+    revalidatePath("/");
     revalidatePath("/admindashboard/site-editor");
     return { success: true, config };
   } catch (error) {

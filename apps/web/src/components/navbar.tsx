@@ -83,10 +83,10 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
 
   const navItems = [
     { id: "products", label: "Products", href: "/products" },
-    { id: "directory", label: "Mall Directory", href: "/public-view#directory" },
-    { id: "availability", label: "Available Spaces", href: "/public-view#availability" },
-    { id: "events", label: "What's On", href: "/public-view#events" },
-    { id: "location", label: "Location", href: "/public-view#location" },
+    { id: "directory", label: "Mall Directory", href: "/#directory" },
+    { id: "availability", label: "Available Spaces", href: "/#availability" },
+    { id: "events", label: "What's On", href: "/#events" },
+    { id: "location", label: "Location", href: "/#location" },
   ];
 
   useEffect(() => {

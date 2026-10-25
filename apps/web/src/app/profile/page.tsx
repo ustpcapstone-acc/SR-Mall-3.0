@@ -113,7 +113,7 @@ export default function CustomerProfile() {
   const [merchantOpen, setMerchantOpen] = useState(false);
 
   useEffect(() => {
-    if (!isAuthenticated) router.push("/public-view");
+    if (!isAuthenticated) router.push("/");
   }, [isAuthenticated, router]);
 
   if (!isAuthenticated) return null;
@@ -168,7 +168,7 @@ export default function CustomerProfile() {
               type="button"
               onClick={() => {
                 logout();
-                router.push("/public-view");
+                router.push("/");
               }}
             >
               <LogOut size={14} /> Sign out
@@ -179,7 +179,7 @@ export default function CustomerProfile() {
             hasPassword={me.account.hasPassword}
             onDeleted={() => {
               logout();
-              router.push("/public-view");
+              router.push("/");
             }}
           />
         </>

@@ -157,7 +157,7 @@ export async function POST(req: Request) {
       options.html = createEmailHTML(
         'Welcome to the SR Mall Family',
         `<p>Dear <strong>${data?.name}</strong>,</p><p>Your account has been created.</p>`,
-        `${appUrl}/public-view`,
+        `${appUrl}/`,
         'Visit SR Mall'
       );
     } else if (type === 'ADMIN_NEW_USER_ALERT') {

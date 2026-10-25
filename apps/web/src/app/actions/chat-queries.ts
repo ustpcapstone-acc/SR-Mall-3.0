@@ -184,8 +184,8 @@ export async function getUnreadChatsAction(
           : role === "TENANT"
             ? `/tenantdashboard/customer-messenger?conversationId=${c.id}`
             : peerRole === "ADMIN"
-              ? "/public-view?chat=open&recipient=admin"
-              : `/public-view?chat=open&recipient=shop&shop=${encodeURIComponent(name)}`;
+              ? "/?chat=open&recipient=admin"
+              : `/?chat=open&recipient=shop&shop=${encodeURIComponent(name)}`;
       const row: UnreadChat = {
         key: peer.id,
         conversationId: c.id,

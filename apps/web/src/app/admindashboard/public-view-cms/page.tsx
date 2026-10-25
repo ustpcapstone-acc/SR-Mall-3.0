@@ -691,7 +691,7 @@ export default function PublicViewCMSPage() {
 
         <div className="flex items-center gap-4">
           <a
-            href="/public-view"
+            href="/"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-2 px-6 py-4 bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-slate-300 font-black text-[10px] uppercase tracking-widest rounded-2xl hover:bg-slate-200 dark:hover:bg-zinc-700 transition-all border border-slate-200 dark:border-white/5 shadow-sm active:scale-95"

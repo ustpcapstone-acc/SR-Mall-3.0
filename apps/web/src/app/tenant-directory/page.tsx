@@ -86,7 +86,7 @@ export default function TenantDirectoryPage() {
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 relative z-10">
           <Link
-            href="/public-view"
+            href="/"
             className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-primary transition-all mb-8 group"
           >
             <ArrowLeft

@@ -36,7 +36,7 @@ function AuthCallbackPageContent() {
           }
         } else {
           // No auth data in URL, redirect silently
-          router.push("/public-view");
+          router.push("/");
           return;
         }
 
@@ -59,12 +59,12 @@ function AuthCallbackPageContent() {
         } else if (res.data.role === "TENANT") {
           router.push("/tenantdashboard");
         } else {
-          router.push("/public-view");
+          router.push("/");
         }
       } catch (err: any) {
         console.error("Auth Callback Error:", err);
         setError(err?.message || "An unexpected error occurred");
-        setTimeout(() => router.push("/public-view"), 5000);
+        setTimeout(() => router.push("/"), 5000);
       }
     };
 

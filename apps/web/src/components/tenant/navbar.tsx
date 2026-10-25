@@ -20,7 +20,7 @@ export const TenantNavbar = ({ onMenuClick }: TenantNavbarProps) => {
 
   const handleLogout = () => {
     logout();
-    router.push("/public-view");
+    router.push("/");
   };
 
   return (
@@ -109,7 +109,7 @@ export const TenantNavbar = ({ onMenuClick }: TenantNavbarProps) => {
                     <User size={16} /> Profile
                   </div>
                 </Link>
-                <Link href="/public-view">
+                <Link href="/">
                   <div className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium hover:bg-slate-50 dark:hover:bg-white/5 transition-colors text-charcoal dark:text-slate-300 cursor-pointer">
                     <Search size={16} /> Directory
                   </div>

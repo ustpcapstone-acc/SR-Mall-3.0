@@ -94,7 +94,7 @@ export default function AdminProfileSettings() {
               type="button"
               onClick={() => {
                 logout();
-                router.push("/public-view");
+                router.push("/");
               }}
             >
               <LogOut size={14} /> Log out

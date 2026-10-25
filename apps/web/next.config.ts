@@ -52,6 +52,11 @@ const nextConfig: NextConfig = {
     "jspdf",
     "jspdf-autotable",
   ],
+  // The public home page lives at "/". Old links (emails, saved notifications,
+  // bookmarks) to /public-view keep working; the query string is kept.
+  async redirects() {
+    return [{ source: "/public-view", destination: "/", permanent: true }];
+  },
   experimental: {
     serverActions: {
       allowedOrigins: ["*", ...getLocalOrigins()],

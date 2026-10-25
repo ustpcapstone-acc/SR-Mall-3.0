@@ -8,7 +8,7 @@ import { isChatBlocked, markConversationReadAction } from "@/app/actions/chat-qu
 
 // Chat data is fetched on the client and pushed by Supabase Realtime, so these
 // actions deliberately do NOT call revalidatePath(): doing so makes Next.js
-// re-render the caller's whole page (e.g. /public-view) inside the action
+// re-render the caller's whole page (e.g. /) inside the action
 // response, which was the main source of the multi-second send delay.
 
 async function findSender(email: string) {

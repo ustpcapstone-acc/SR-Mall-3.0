@@ -637,7 +637,7 @@ export async function requestTenantAction(
       recipients: [userId],
       title: `Application received · ${data.shopName}`,
       message: "Your merchant application is under review. We'll let you know here as soon as the mall office decides.",
-      link: "/public-view",
+      link: "/",
       email: false,
     });
 
@@ -702,7 +702,7 @@ export async function approveTenantAction(tenantId: string, unitId?: string) {
 
     revalidatePath("/admindashboard/tenant-monitoring");
     revalidatePath("/admindashboard/space-manager");
-    revalidatePath("/public-view");
+    revalidatePath("/");
 
     const { notify } = await import("@/lib/notify");
     await notify("MERCHANT_APPLICATION_UPDATE", {
@@ -813,7 +813,7 @@ export async function deleteTenantAction(tenantId: string, adminUserId?: string)
     revalidatePath("/admindashboard/tenant-monitoring");
     revalidatePath("/admindashboard/space-manager");
     revalidatePath("/admindashboard/user-management");
-    revalidatePath("/public-view");
+    revalidatePath("/");
     return { success: true };
   } catch (error: any) {
     console.error("[DELETE_TENANT_ERROR]:", error);
@@ -837,7 +837,7 @@ export async function rejectTenantAction(tenantId: string) {
       recipients: [tenant.userId],
       title: `Application declined · ${tenant.shopName}`,
       message: "We're unable to approve your merchant application at this time. Message the mall office if you'd like to discuss it.",
-      link: "/public-view?chat=open&recipient=admin",
+      link: "/?chat=open&recipient=admin",
       email: false,
     });
 
@@ -1117,7 +1117,7 @@ export async function adminUpdateTenantAction(
     });
 
     revalidatePath("/admindashboard/tenant-monitoring");
-    revalidatePath("/public-view");
+    revalidatePath("/");
 
     return { success: true, data: updated };
   } catch (error: any) {
@@ -1175,7 +1175,7 @@ export async function deleteAdminPostSaleAction(tenantId: string, saleId: string
     });
 
     revalidatePath("/admindashboard/public-view-cms");
-    revalidatePath("/public-view");
+    revalidatePath("/");
 
     return { success: true };
   } catch (error: any) {
@@ -1203,7 +1203,7 @@ export async function updateAdminPostSaleAction(tenantId: string, saleId: string
     });
 
     revalidatePath("/admindashboard/public-view-cms");
-    revalidatePath("/public-view");
+    revalidatePath("/");
 
     return { success: true };
   } catch (error: any) {
@@ -1303,7 +1303,7 @@ export async function updateMyShopSettingsAction(
     if (!updated) return { success: false, error: "No shop is linked to this account." };
 
     revalidatePath("/tenantdashboard");
-    revalidatePath("/public-view");
+    revalidatePath("/");
     return { success: true };
   } catch (error: any) {
     console.error("[UPDATE_SHOP_SETTINGS_ERROR]:", error);
@@ -1324,7 +1324,7 @@ export async function uploadShopLogoAction(userId: string, formData: FormData) {
     await prisma.tenant.update({ where: { userId }, data: { logoUrl: url } });
 
     revalidatePath("/tenantdashboard");
-    revalidatePath("/public-view");
+    revalidatePath("/");
     return { success: true, url };
   } catch (error: any) {
     console.error("[UPLOAD_SHOP_LOGO_ERROR]:", error);

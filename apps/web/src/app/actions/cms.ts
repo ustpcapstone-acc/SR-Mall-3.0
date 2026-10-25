@@ -98,7 +98,7 @@ export async function updatePublicViewConfigAction(
       });
       await saveOpeningHours(updatedConfig.id);
       revalidatePath("/admindashboard/public-view-cms");
-      revalidatePath("/public-view");
+      revalidatePath("/");
       return updatedConfig;
     } else {
       const newConfig = await prisma.publicViewConfig.create({
@@ -106,7 +106,7 @@ export async function updatePublicViewConfigAction(
       });
       await saveOpeningHours(newConfig.id);
       revalidatePath("/admindashboard/public-view-cms");
-      revalidatePath("/public-view");
+      revalidatePath("/");
       return newConfig;
     }
   } catch (error) {
@@ -160,7 +160,7 @@ export async function createCarouselItemAction(
       data: data,
     });
     revalidatePath("/admindashboard/public-view-cms");
-    revalidatePath("/public-view");
+    revalidatePath("/");
     return carouselItem;
   } catch (error) {
     console.error("Error creating carousel item:", error);
@@ -191,7 +191,7 @@ export async function updateCarouselItemAction(
       },
     });
     revalidatePath("/admindashboard/public-view-cms");
-    revalidatePath("/public-view");
+    revalidatePath("/");
     return updatedItem;
   } catch (error) {
     console.error("Error updating carousel item:", error);
@@ -211,7 +211,7 @@ export async function deleteCarouselItemAction(id: string) {
       where: { id },
     });
     revalidatePath("/admindashboard/public-view-cms");
-    revalidatePath("/public-view");
+    revalidatePath("/");
     return true;
   } catch (error) {
     console.error("Error deleting carousel item:", error);
@@ -238,7 +238,7 @@ export async function toggleCarouselItemAction(id: string) {
     });
 
     revalidatePath("/admindashboard/public-view-cms");
-    revalidatePath("/public-view");
+    revalidatePath("/");
     return updatedItem;
   } catch (error) {
     console.error("Error toggling carousel item:", error);

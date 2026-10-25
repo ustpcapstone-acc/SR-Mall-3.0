@@ -63,7 +63,7 @@ export async function submitInquiryAction(data: {
       recipients: [data.userId],
       title: `Event inquiry received · ${data.eventType}`,
       message: `We got your inquiry for ${new Date(data.eventDate).toLocaleDateString()} at ${data.eventTime}. The events team replies within 12–24 hours.`,
-      link: "/public-view?chat=open&recipient=admin",
+      link: "/?chat=open&recipient=admin",
       email: false,
     });
 
@@ -84,7 +84,7 @@ export async function submitInquiryAction(data: {
               <p><strong>Scheduled Time:</strong> ${data.eventTime}</p>
               <hr />
               <p>Our leasing and events team will review your request and get back to you within 12-24 hours. You can monitor the status of your inquiry in your account dashboard.</p>
-              <a href="${emailBaseUrl()}/public-view?recipient=admin" style="display: inline-block; padding: 10px 20px; background-color: #be1e2d; color: white; text-decoration: none; border-radius: 5px;">Open Messenger</a>
+              <a href="${emailBaseUrl()}/?recipient=admin" style="display: inline-block; padding: 10px 20px; background-color: #be1e2d; color: white; text-decoration: none; border-radius: 5px;">Open Messenger</a>
             </div>
           `,
         });
@@ -94,7 +94,7 @@ export async function submitInquiryAction(data: {
     }
 
     revalidatePath("/admindashboard/requests");
-    revalidatePath("/public-view");
+    revalidatePath("/");
     return { success: true, data: inquiry };
   } catch (error) {
     console.error("Failed to submit inquiry:", error);
@@ -197,7 +197,7 @@ export async function updateInquiryStatusAction(
             : expired
               ? `Your ${inquiry.eventType} inquiry for ${when} wasn't reviewed within 3 days and was closed. You're welcome to submit a new one.`
               : `Your ${inquiry.eventType} inquiry for ${when} was declined.${feedback ? ` Admin note: ${feedback}` : ""}`,
-        link: "/public-view?chat=open&recipient=admin",
+        link: "/?chat=open&recipient=admin",
         email: false,
       });
     }
@@ -219,7 +219,7 @@ export async function updateInquiryStatusAction(
               ${feedback ? `<div style="background: #f8fafc; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid ${isApproved ? "#10b981" : "#be1e2d"};"><strong>Admin Feedback:</strong> ${feedback}</div>` : ""}
               <hr />
               <p>${isApproved ? "Our team will contact you shortly to finalize the details and logistics." : "If you have questions regarding this decision, please reach out to us via the mall messenger."}</p>
-              <a href="${emailBaseUrl()}/public-view?recipient=admin" style="display: inline-block; padding: 10px 20px; background-color: #334155; color: white; text-decoration: none; border-radius: 5px;">View Message Thread</a>
+              <a href="${emailBaseUrl()}/?recipient=admin" style="display: inline-block; padding: 10px 20px; background-color: #334155; color: white; text-decoration: none; border-radius: 5px;">View Message Thread</a>
             </div>
           `,
         });
@@ -358,7 +358,7 @@ export async function updateInquiryImageAction(
       },
     });
     
-    revalidatePath("/public-view");
+    revalidatePath("/");
     return { success: true, data: inquiry };
   } catch (error) {
     console.error("Failed to update inquiry image:", error);
@@ -380,7 +380,7 @@ export async function updateEventInfoAction(
       },
     });
     
-    revalidatePath("/public-view");
+    revalidatePath("/");
     return { success: true, data: inquiry };
   } catch (error) {
     console.error("Failed to update event info:", error);
@@ -407,7 +407,7 @@ export async function deleteInquiryAction(id: string) {
     
     revalidatePath("/admin/inquiry");
     revalidatePath("/admindashboard/public-view-cms");
-    revalidatePath("/public-view");
+    revalidatePath("/");
     return { success: true };
   } catch (error) {
     console.error("Failed to delete inquiry:", error);

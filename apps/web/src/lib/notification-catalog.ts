@@ -181,7 +181,7 @@ export const NOTIFICATION_CATALOG: NotificationTypeMeta[] = [
     audience: ["ADMIN", "TENANT", "CUSTOMER"],
     defaultEnabled: true,
     defaultChannels: ["IN_APP", "EMAIL"],
-    link: { DEFAULT: "/public-view" },
+    link: { DEFAULT: "/" },
   },
   {
     type: "SPACE_RESERVATION",
@@ -221,7 +221,7 @@ export const NOTIFICATION_CATALOG: NotificationTypeMeta[] = [
     audience: ["CUSTOMER", "TENANT"],
     defaultEnabled: true,
     defaultChannels: ["IN_APP"],
-    link: { DEFAULT: "/public-view" },
+    link: { DEFAULT: "/" },
   },
   {
     type: "MERCHANT_APPLICATION_UPDATE",
@@ -231,7 +231,7 @@ export const NOTIFICATION_CATALOG: NotificationTypeMeta[] = [
     audience: ["CUSTOMER", "TENANT"],
     defaultEnabled: true,
     defaultChannels: ["IN_APP"],
-    link: { TENANT: "/tenantdashboard", DEFAULT: "/public-view" },
+    link: { TENANT: "/tenantdashboard", DEFAULT: "/" },
   },
   {
     type: "LOST_AND_FOUND_REPORT",
@@ -333,7 +333,7 @@ export const NOTIFICATION_CATALOG: NotificationTypeMeta[] = [
     audience: ["ADMIN", "TENANT"],
     defaultEnabled: true,
     defaultChannels: ["IN_APP", "EMAIL"],
-    link: { DEFAULT: "/public-view" },
+    link: { DEFAULT: "/" },
   },
 
   // ── ℹ️ Informational ───────────────────────────────────────────────────────

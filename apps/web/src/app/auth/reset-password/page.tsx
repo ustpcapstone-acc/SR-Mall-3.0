@@ -87,7 +87,7 @@ function VerifyCodeStep({
 
       <p className="text-center text-xs text-slate-400 mt-5">
         Didn't get a code?{" "}
-        <a href="/public-view" className="text-primary font-bold hover:underline">
+        <a href="/" className="text-primary font-bold hover:underline">
           Go back and request again
         </a>
       </p>

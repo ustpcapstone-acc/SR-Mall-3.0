@@ -70,7 +70,7 @@ export async function createMallAd(data: {
         title: data.title,
         description: data.description || "",
         imageUrl: data.imageUrl,
-        linkUrl: data.linkUrl || "/public-view",
+        linkUrl: data.linkUrl || "/",
         priority: data.priority,
         startDate: data.startDate,
         endDate: data.endDate,
@@ -82,7 +82,7 @@ export async function createMallAd(data: {
     console.log("[ADS_ACTION]: Mall Ad created successfully:", ad.id);
 
     revalidatePath("/admindashboard/ad-scheduler");
-    revalidatePath("/public-view");
+    revalidatePath("/");
     return { success: true, ad };
   } catch (error: any) {
     console.error("[CREATE_MALL_AD_ERROR]:", error);
@@ -287,7 +287,7 @@ export async function updatePromoStatus(
 
     revalidatePath("/admindashboard/ad-scheduler");
     revalidatePath("/tenantdashboard/ad-promo-manager");
-    revalidatePath("/public-view");
+    revalidatePath("/");
     return { success: true };
   } catch (error) {
     console.error("[UPDATE_PROMO_STATUS_ERROR]:", error);
@@ -356,7 +356,7 @@ export async function deletePromo(id: string, userId?: string) {
 
     await (prisma as any).tenantPromo.delete({ where: { id } });
     revalidatePath("/tenantdashboard/ad-promo-manager");
-    revalidatePath("/public-view");
+    revalidatePath("/");
     return { success: true };
   } catch (error) {
     console.error("[DELETE_PROMO_ERROR]:", error);
@@ -395,7 +395,7 @@ export async function updateMallAd(
     });
 
     revalidatePath("/admindashboard/ad-scheduler");
-    revalidatePath("/public-view");
+    revalidatePath("/");
     return { success: true, ad };
   } catch (error: any) {
     console.error("[UPDATE_MALL_AD_ERROR]:", error);
@@ -428,7 +428,7 @@ export async function deleteMallAd(id: string) {
     });
 
     revalidatePath("/admindashboard/ad-scheduler");
-    revalidatePath("/public-view");
+    revalidatePath("/");
     return { success: true };
   } catch (error) {
     console.error("[DELETE_MALL_AD_ERROR]:", error);
@@ -470,7 +470,7 @@ export async function updateTenantPromoStatus(
     });
 
     // Revalidate the cache for public view and admin scheduler
-    revalidatePath("/public-view");
+    revalidatePath("/");
     revalidatePath("/admindashboard/ad-scheduler");
 
     return { success: true };

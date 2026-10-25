@@ -89,7 +89,7 @@ export default function SpaceDetailModal({
       onInquire(slot.unit_id);
     } else {
       // Fallback or default behavior
-      router.push(`/public-view?recipient=admin&unit=${encodeURIComponent(slot.unit_id)}`);
+      router.push(`/?recipient=admin&unit=${encodeURIComponent(slot.unit_id)}`);
       onClose();
     }
   };

@@ -26,7 +26,7 @@ export function getNotificationRoute(notification: NotificationLike, userRole?: 
 
   if (notification.link && notification.link.startsWith("/")) {
     // Customers' message links open the chat on the public page. New links
-    // already name the thread; older ones (/public-view) are read from the text.
+    // already name the thread; older ones (/) are read from the text.
     if (type === "MESSAGE" && role !== "ADMIN" && role !== "TENANT" && !notification.link.includes("chat=open")) {
       return customerChatRoute(notification.message);
     }
@@ -46,6 +46,6 @@ export function getNotificationRoute(notification: NotificationLike, userRole?: 
 /** Message text looks like `New message from <Sender>: "<excerpt>"`. */
 function customerChatRoute(message?: string) {
   const sender = (message || "").match(/from\s+(.+?)(?::|$)/i)?.[1]?.trim() || "";
-  if (!sender || /admin/i.test(sender)) return "/public-view?chat=open&recipient=admin";
-  return `/public-view?chat=open&recipient=shop&shop=${encodeURIComponent(sender)}`;
+  if (!sender || /admin/i.test(sender)) return "/?chat=open&recipient=admin";
+  return `/?chat=open&recipient=shop&shop=${encodeURIComponent(sender)}`;
 }

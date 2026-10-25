@@ -106,7 +106,7 @@ export const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
   const redirectByRole = (role?: string) => {
     if (role === "ADMIN") router.push("/admindashboard");
     else if (role === "TENANT") router.push("/tenantdashboard");
-    else router.push("/public-view");
+    else router.push("/");
   };
 
   const handleGoogleLogin = async () => {

@@ -137,7 +137,7 @@ export async function submitReviewAction(
       },
     });
 
-    revalidatePath("/public-view");
+    revalidatePath("/");
     revalidatePath("/admindashboard");
     revalidatePath("/admindashboard/user-management");
     revalidatePath("/tenantdashboard");
@@ -219,7 +219,7 @@ export async function editMyReviewAction(
       data: { rating, comment: comment || null },
     });
 
-    revalidatePath("/public-view");
+    revalidatePath("/");
     revalidatePath("/admindashboard");
     revalidatePath("/admindashboard/user-management");
     revalidatePath("/tenantdashboard");
@@ -252,7 +252,7 @@ export async function deleteMyReviewAction(userId: string, tenantId?: string) {
 
     await prisma.review.delete({ where: { id: existingReview.id } });
 
-    revalidatePath("/public-view");
+    revalidatePath("/");
     revalidatePath("/admindashboard");
     revalidatePath("/admindashboard/user-management");
     revalidatePath("/tenantdashboard");
@@ -516,7 +516,7 @@ export async function markReviewSpamAction(reviewId: string, isSpam: boolean) {
       reviewId,
     );
     await notifyReviewModeration(parties, isSpam ? "hidden" : "restored");
-    revalidatePath("/public-view");
+    revalidatePath("/");
     revalidatePath("/admindashboard/user-management");
     return { success: true };
   } catch (error: any) {
@@ -568,7 +568,7 @@ export async function approveReviewAction(reviewId: string) {
         user: { select: { name: true, email: true } },
       },
     });
-    revalidatePath("/public-view");
+    revalidatePath("/");
     revalidatePath("/admindashboard");
     return { success: true, data: review, message: "Review approved" };
   } catch (error) {
@@ -585,7 +585,7 @@ export async function unpublishReviewAction(reviewId: string) {
       data: { isApproved: false },
     });
     await notifyReviewModeration(parties, "hidden");
-    revalidatePath("/public-view");
+    revalidatePath("/");
     return { success: true };
   } catch (error) {
     console.error("Unpublish review error:", error);
@@ -598,7 +598,7 @@ export async function deleteReviewAction(reviewId: string) {
     const parties = await reviewParties(reviewId);
     await prisma.review.delete({ where: { id: reviewId } });
     await notifyReviewModeration(parties, "deleted");
-    revalidatePath("/public-view");
+    revalidatePath("/");
     revalidatePath("/admindashboard");
     return { success: true, message: "Review deleted successfully" };
   } catch (error) {

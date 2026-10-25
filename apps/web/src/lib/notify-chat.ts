@@ -45,8 +45,8 @@ export async function notifyChatMessage(opts: {
         : role === "TENANT"
           ? `/tenantdashboard/customer-messenger?conversationId=${opts.conversationId}`
           : opts.senderName === "SR Mall Admin"
-            ? "/public-view?chat=open&recipient=admin"
-            : `/public-view?chat=open&recipient=shop&shop=${encodeURIComponent(opts.senderName)}`;
+            ? "/?chat=open&recipient=admin"
+            : `/?chat=open&recipient=shop&shop=${encodeURIComponent(opts.senderName)}`;
 
     // Who gets an email: first unread message in this chat, and not chatting right now.
     // Same rule as the unread badges: the admin side's own replies don't count.
