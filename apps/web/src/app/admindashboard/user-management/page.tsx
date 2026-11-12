@@ -34,6 +34,7 @@ export default function UserManagement() {
   const [pastTenants, setPastTenants] = useState<any[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any | null>(null);
+  const [blacklistTarget, setBlacklistTarget] = useState<any | null>(null);
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -85,28 +86,37 @@ export default function UserManagement() {
   };
 
   const handleToggleBlacklist = async (id: string, currentStatus: boolean) => {
-    if (
-      !confirm(
-        `Authorization Override: Are you sure you want to ${currentStatus ? "Restore" : "Revoke"} access for this entity?`,
-      )
-    )
-      return;
     setIsProcessing(id);
-    const { toggleUserBlacklistAction } = await import("@/app/actions/auth");
-    const res = await toggleUserBlacklistAction(id, !currentStatus, currentUser?.id);
-    if (res.success) {
-      toast.success(
-        `Entity ${!currentStatus ? "Restricted" : "Restored"} Successfully`,
-      );
-      setUsers(
-        users.map((u) =>
-          u.id === id ? { ...u, isBlacklisted: !currentStatus } : u,
-        ),
-      );
-    } else {
-      toast.error((res as any).error || "Couldn't update the account.");
+    try {
+      const { toggleUserBlacklistAction } = await import("@/app/actions/auth");
+      const res = await toggleUserBlacklistAction(id, !currentStatus, currentUser?.id);
+      if (res.success) {
+        toast.success(
+          `Entity ${!currentStatus ? "Restricted" : "Restored"} Successfully`,
+        );
+        setUsers((current) =>
+          current.map((u) =>
+            u.id === id ? { ...u, isBlacklisted: !currentStatus } : u,
+          ),
+        );
+        setSelectedUser((current: any) =>
+          current?.id === id ? { ...current, isBlacklisted: !currentStatus } : current,
+        );
+      } else {
+        toast.error((res as any).error || "Couldn't update the account.");
+      }
+    } catch {
+      toast.error("Couldn't update the account.");
+    } finally {
+      setIsProcessing(null);
     }
-    setIsProcessing(null);
+  };
+
+  const confirmBlacklistToggle = async () => {
+    if (!blacklistTarget) return;
+    const target = blacklistTarget;
+    await handleToggleBlacklist(target.id, target.isBlacklisted);
+    setBlacklistTarget(null);
   };
 
 
@@ -423,13 +433,10 @@ export default function UserManagement() {
                             )}
                           </td>
                           <td className="px-8 py-8 text-right">
-                            <div className="flex items-center justify-end gap-3 opacity-0 group-hover/row:opacity-100 transition-all duration-300">
+                            <div className="flex items-center justify-end gap-3 opacity-100 transition-all duration-300 lg:opacity-0 lg:group-hover/row:opacity-100">
                               <button
                                 onClick={() =>
-                                  handleToggleBlacklist(
-                                    item.id,
-                                    item.isBlacklisted,
-                                  )
+                                  setBlacklistTarget(item)
                                 }
                                 disabled={isProcessing === item.id}
                                 className={clsx(
@@ -462,6 +469,113 @@ export default function UserManagement() {
       {activeTab === "history" && (
         <div className="animate-fade-in">
           <TenantHistory rows={pastTenants} loading={loadingHistory} />
+        </div>
+      )}
+
+      {blacklistTarget && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in"
+          onClick={() => !isProcessing && setBlacklistTarget(null)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="blacklist-modal-title"
+            className="w-full max-w-md overflow-hidden rounded-[2.5rem] border border-slate-200 bg-white shadow-2xl animate-fade-in-up dark:border-white/10 dark:bg-zinc-900"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-8 space-y-5">
+              <div className="flex items-start justify-between gap-4">
+                <div
+                  className={clsx(
+                    "flex h-14 w-14 items-center justify-center rounded-2xl",
+                    blacklistTarget.isBlacklisted
+                      ? "bg-emerald-500/10 text-emerald-500"
+                      : "bg-red-500/10 text-red-500",
+                  )}
+                >
+                  {blacklistTarget.isBlacklisted ? (
+                    <CheckCircle2 size={26} />
+                  ) : (
+                    <Ban size={26} />
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setBlacklistTarget(null)}
+                  disabled={isProcessing === blacklistTarget.id}
+                  aria-label="Close"
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition-colors hover:bg-slate-200 disabled:opacity-50 dark:bg-zinc-800 dark:text-slate-300 dark:hover:bg-zinc-700"
+                >
+                  <X size={16} strokeWidth={3} />
+                </button>
+              </div>
+
+              <div className="space-y-2">
+                <h3
+                  id="blacklist-modal-title"
+                  className="text-xl font-black uppercase tracking-tight text-charcoal dark:text-white"
+                >
+                  {blacklistTarget.isBlacklisted
+                    ? "Restore this account?"
+                    : "Suspend this account?"}
+                </h3>
+                <p className="text-sm font-medium leading-relaxed text-slate-500">
+                  <span className="font-bold text-charcoal dark:text-white">
+                    {blacklistTarget.name || blacklistTarget.email || "This user"}
+                  </span>{" "}
+                  {blacklistTarget.isBlacklisted
+                    ? "will be able to sign in, shop and send messages again."
+                    : "will be signed out and blocked from signing in, shopping and sending messages until restored."}
+                </p>
+              </div>
+
+              <div
+                className={clsx(
+                  "rounded-2xl border p-4 text-[11px] font-bold leading-relaxed",
+                  blacklistTarget.isBlacklisted
+                    ? "border-emerald-500/20 bg-emerald-500/5 text-emerald-700 dark:text-emerald-400"
+                    : "border-red-500/20 bg-red-500/5 text-red-600 dark:text-red-400",
+                )}
+              >
+                {blacklistTarget.isBlacklisted
+                  ? "Their listings and message history stay exactly as they are."
+                  : "Their existing listings and message history are kept; access is paused, not deleted."}
+              </div>
+            </div>
+
+            <div className="flex gap-3 border-t border-slate-100 bg-slate-50/60 p-6 dark:border-white/5 dark:bg-white/[0.02]">
+              <button
+                type="button"
+                disabled={isProcessing === blacklistTarget.id}
+                onClick={() => setBlacklistTarget(null)}
+                className="flex-1 rounded-2xl bg-slate-100 px-4 py-3.5 text-[10px] font-black uppercase tracking-widest text-slate-500 transition-all hover:bg-slate-200 disabled:opacity-50 dark:bg-zinc-800 dark:text-slate-300 dark:hover:bg-zinc-700"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isProcessing === blacklistTarget.id}
+                onClick={confirmBlacklistToggle}
+                className={clsx(
+                  "flex flex-1 items-center justify-center gap-2 rounded-2xl px-4 py-3.5 text-[10px] font-black uppercase tracking-widest text-white shadow-xl transition-all active:scale-95 disabled:opacity-50",
+                  blacklistTarget.isBlacklisted
+                    ? "bg-emerald-500 shadow-emerald-500/20 hover:bg-emerald-600"
+                    : "bg-red-500 shadow-red-500/20 hover:bg-red-600",
+                )}
+              >
+                {isProcessing === blacklistTarget.id ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin" /> Saving
+                  </>
+                ) : blacklistTarget.isBlacklisted ? (
+                  "Restore access"
+                ) : (
+                  "Suspend account"
+                )}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

@@ -49,6 +49,7 @@ import {
 } from "@/lib/theme";
 import clsx from "clsx";
 import { formatSaleDate, isSaleActive, saleEndsAt } from "@/lib/post-sales";
+import { CustomSelect } from "@/components/ui/custom-select";
 
 interface CarouselItem {
   id: string;
@@ -175,13 +176,26 @@ export default function PublicViewCMSPage() {
   const [isEventInfoModalOpen, setIsEventInfoModalOpen] = useState(false);
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [eventInfoForm, setEventInfoForm] = useState({
+    eventName: "",
+    eventType: "",
+    eventDate: "",
+    eventTime: "",
+    message: "",
     fbAccount: "",
     contactNumber: "",
   });
+  const [deleteEventTarget, setDeleteEventTarget] = useState<any | null>(null);
 
   const openEventInfoModal = (ev: any) => {
     setEditingEventId(ev.id);
     setEventInfoForm({
+      eventName: ev.eventName || "",
+      eventType: ev.eventType || "Community Gatherings",
+      eventDate: ev.eventDate
+        ? new Date(ev.eventDate).toISOString().slice(0, 10)
+        : "",
+      eventTime: ev.eventTime || "",
+      message: ev.message || "",
       fbAccount: ev.fbAccount || "",
       contactNumber: ev.contactNumber || "",
     });
@@ -190,27 +204,33 @@ export default function PublicViewCMSPage() {
 
   const handleUpdateEventInfo = async () => {
     if (!editingEventId) return;
+    if (!eventInfoForm.eventDate || !eventInfoForm.eventTime) {
+      showToast("Please set both the event date and time", "error");
+      return;
+    }
+    setIsSaving(true);
     try {
-      const res = await updateEventInfoAction(
-        editingEventId,
-        eventInfoForm.fbAccount,
-        eventInfoForm.contactNumber
-      );
+      const res = await updateEventInfoAction(editingEventId, {
+        eventName: eventInfoForm.eventName,
+        eventType: eventInfoForm.eventType,
+        eventDate: eventInfoForm.eventDate,
+        eventTime: eventInfoForm.eventTime,
+        message: eventInfoForm.message,
+        fbAccount: eventInfoForm.fbAccount,
+        contactNumber: eventInfoForm.contactNumber,
+      });
       if (res.success) {
-        showToast("Event info updated successfully", "success");
-        setApprovedEvents((prev) =>
-          prev.map((ev) =>
-            ev.id === editingEventId
-              ? { ...ev, fbAccount: eventInfoForm.fbAccount, contactNumber: eventInfoForm.contactNumber }
-              : ev
-          )
-        );
+        showToast("Event updated successfully", "success");
         setIsEventInfoModalOpen(false);
+        const refreshed = await getAdminEventsAction();
+        if (refreshed.success) setApprovedEvents(refreshed.data || []);
       } else {
-        showToast(res.error || "Failed to update info", "error");
+        showToast(res.error || "Failed to update event", "error");
       }
     } catch (e) {
-      showToast("Error updating event info", "error");
+      showToast("Error updating event", "error");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -369,21 +389,23 @@ export default function PublicViewCMSPage() {
     }
   };
 
-  const handleDeleteEvent = async (id: string) => {
-    if (!confirm("Are you sure you want to completely delete this event inquiry?")) return;
+  const confirmDeleteEvent = async () => {
+    if (!deleteEventTarget) return;
+    const id = deleteEventTarget.id;
 
     setIsSaving(true);
     try {
       const result = await deleteInquiryAction(id);
       if (result.success) {
         setApprovedEvents((prev: any[]) => prev.filter((ev: any) => ev.id !== id));
-        showToast("Event purged successfully", "success");
+        setDeleteEventTarget(null);
+        showToast("Event deleted successfully", "success");
       } else {
         showToast("Failed to delete event", "error");
       }
     } catch (error) {
       console.error("Error deleting event:", error);
-      showToast("Failed to purge event", "error");
+      showToast("Failed to delete event", "error");
     } finally {
       setIsSaving(false);
     }
@@ -1512,7 +1534,7 @@ export default function PublicViewCMSPage() {
                       ev.isPast && "opacity-70",
                     )}
                   >
-                    <div className="flex items-center justify-between gap-2 mb-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-[10px] font-black uppercase tracking-widest border border-primary/20">
                           {ev.eventType}
@@ -1531,24 +1553,24 @@ export default function PublicViewCMSPage() {
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-2 shrink-0">
+                      <div className="flex flex-wrap items-center gap-2 shrink-0">
                         <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
                           {new Date(ev.eventDate).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" })}
                           {ev.eventTime ? ` · ${ev.eventTime}` : ""}
                         </span>
                         <button
                           onClick={() => openEventInfoModal(ev)}
-                          className="p-1.5 text-slate-400 hover:text-blue-500 hover:bg-blue-500/10 rounded-lg transition-colors"
-                          title="Edit Event Info"
+                          className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-widest text-slate-500 transition-colors hover:border-blue-500/30 hover:bg-blue-500/10 hover:text-blue-500 dark:border-white/10 dark:text-slate-300"
+                          title="Edit event"
                         >
-                          <Info size={14} />
+                          <Edit size={12} /> Edit
                         </button>
                         <button
-                          onClick={() => handleDeleteEvent(ev.id)}
-                          className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
-                          title="Delete Event"
+                          onClick={() => setDeleteEventTarget(ev)}
+                          className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-widest text-slate-500 transition-colors hover:border-red-500/30 hover:bg-red-500/10 hover:text-red-500 dark:border-white/10 dark:text-slate-300"
+                          title="Delete event"
                         >
-                          <Trash2 size={14} />
+                          <Trash2 size={12} /> Delete
                         </button>
                       </div>
                     </div>
@@ -2032,40 +2054,117 @@ export default function PublicViewCMSPage() {
 
       {/* Event Info Modal */}
       {isEventInfoModalOpen && (
-        <div className="fixed inset-0 bg-charcoal/80 backdrop-blur-md z-[100] flex items-center justify-center p-6 animate-fade-in">
-          <div className="bg-white dark:bg-zinc-900 w-full max-w-md rounded-[3rem] border border-white/10 shadow-2xl overflow-hidden animate-scale-in">
-            <div className="p-8 border-b border-slate-100 dark:border-white/5 flex items-center justify-between bg-slate-50/50 dark:bg-white/5">
+        <div className="fixed inset-0 bg-charcoal/80 backdrop-blur-md z-[100] flex items-center justify-center p-4 sm:p-6 animate-fade-in">
+          <div className="bg-white dark:bg-zinc-900 w-full max-w-2xl rounded-[2.5rem] border border-white/10 shadow-2xl overflow-hidden animate-scale-in flex flex-col max-h-[90vh]">
+            <div className="p-6 sm:p-8 border-b border-slate-100 dark:border-white/5 flex items-center justify-between bg-slate-50/50 dark:bg-white/5 shrink-0">
               <div>
                 <h3 className="text-xl font-black text-charcoal dark:text-white uppercase italic tracking-tighter">
-                  Event <span className="text-primary">Info.</span>
+                  Edit <span className="text-primary">Event.</span>
                 </h3>
                 <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1">
-                  Add Join Event Info
+                  Update the event details shown on the public page
                 </p>
               </div>
               <button
                 onClick={() => setIsEventInfoModalOpen(false)}
                 className="w-10 h-10 rounded-2xl bg-slate-100 dark:bg-zinc-800 text-slate-500 flex items-center justify-center hover:scale-110 active:scale-90 transition-all"
+                aria-label="Close"
               >
                 <X size={18} />
               </button>
             </div>
 
-            <div className="p-8 space-y-6">
-              <InputGroup label="FB Account URL/Name" icon={Globe}>
+            <div className="p-6 sm:p-8 space-y-5 overflow-y-auto custom-scrollbar flex-1">
+              <InputGroup label="Event Name" icon={Sparkles}>
                 <input
-                  value={eventInfoForm.fbAccount}
+                  value={eventInfoForm.eventName}
                   onChange={(e) =>
                     setEventInfoForm((prev) => ({
                       ...prev,
-                      fbAccount: e.target.value,
+                      eventName: e.target.value,
                     }))
                   }
                   className="cms-input"
-                  placeholder="e.g. fb.com/events"
+                  placeholder="e.g. Summer Esports Championship"
                 />
               </InputGroup>
-              <InputGroup label="Contact Number" icon={Monitor}>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                    Event Type
+                  </label>
+                  <CustomSelect
+                    value={eventInfoForm.eventType}
+                    onChange={(value) =>
+                      setEventInfoForm((prev) => ({ ...prev, eventType: value }))
+                    }
+                    options={Array.from(
+                      new Set([
+                        "Esports & Gaming Events",
+                        "Mini Sports Competitions",
+                        "Fitness & Active Events",
+                        "Trade Shows & Exhibitions",
+                        "Community Gatherings",
+                        ...(eventInfoForm.eventType
+                          ? [eventInfoForm.eventType]
+                          : []),
+                      ]),
+                    ).map((type) => ({ value: type, label: type }))}
+                    ariaLabel="Event type"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                    Event Date
+                  </label>
+                  <input
+                    type="date"
+                    value={eventInfoForm.eventDate}
+                    onChange={(e) =>
+                      setEventInfoForm((prev) => ({
+                        ...prev,
+                        eventDate: e.target.value,
+                      }))
+                    }
+                    className="cms-input"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                    Event Time
+                  </label>
+                  <input
+                    type="time"
+                    value={eventInfoForm.eventTime}
+                    onChange={(e) =>
+                      setEventInfoForm((prev) => ({
+                        ...prev,
+                        eventTime: e.target.value,
+                      }))
+                    }
+                    className="cms-input"
+                  />
+                </div>
+                <InputGroup label="FB Account URL/Name" icon={Globe}>
+                  <input
+                    value={eventInfoForm.fbAccount}
+                    onChange={(e) =>
+                      setEventInfoForm((prev) => ({
+                        ...prev,
+                        fbAccount: e.target.value,
+                      }))
+                    }
+                    className="cms-input"
+                    placeholder="e.g. fb.com/events"
+                  />
+                </InputGroup>
+              </div>
+
+              <InputGroup label="Contact Number" icon={Phone}>
                 <input
                   value={eventInfoForm.contactNumber}
                   onChange={(e) =>
@@ -2078,20 +2177,79 @@ export default function PublicViewCMSPage() {
                   placeholder="e.g. 09123456789"
                 />
               </InputGroup>
+
+              <InputGroup label="Event Message / Notes" icon={Info}>
+                <textarea
+                  value={eventInfoForm.message}
+                  onChange={(e) =>
+                    setEventInfoForm((prev) => ({
+                      ...prev,
+                      message: e.target.value,
+                    }))
+                  }
+                  rows={3}
+                  className="cms-input resize-none"
+                  placeholder="Optional details shown with the event"
+                />
+              </InputGroup>
             </div>
 
-            <div className="p-8 bg-slate-50/50 dark:bg-white/5 border-t border-slate-100 dark:border-white/5 flex gap-4">
+            <div className="p-6 sm:p-8 bg-slate-50/50 dark:bg-white/5 border-t border-slate-100 dark:border-white/5 flex gap-4 shrink-0">
               <button
                 onClick={() => setIsEventInfoModalOpen(false)}
-                className="flex-1 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-charcoal transition-all"
+                disabled={isSaving}
+                className="flex-1 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-charcoal transition-all disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 onClick={handleUpdateEventInfo}
-                className="flex-[2] py-3 bg-primary text-white font-black text-[10px] uppercase tracking-[0.2em] rounded-2xl shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all"
+                disabled={isSaving}
+                className="flex-[2] py-3 bg-primary text-white font-black text-[10px] uppercase tracking-[0.2em] rounded-2xl shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:hover:scale-100"
               >
-                Save Info
+                {isSaving ? "Saving…" : "Save changes"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deleteEventTarget && (
+        <div className="fixed inset-0 bg-charcoal/80 backdrop-blur-md z-[100] flex items-center justify-center p-4 sm:p-6 animate-fade-in">
+          <div className="bg-white dark:bg-zinc-900 w-full max-w-md rounded-[2.5rem] border border-white/10 shadow-2xl overflow-hidden animate-scale-in">
+            <div className="p-8 space-y-5">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-red-500/10 text-red-500">
+                <Trash2 size={26} />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-xl font-black uppercase tracking-tight text-charcoal dark:text-white">
+                  Delete this event?
+                </h3>
+                <p className="text-sm font-medium leading-relaxed text-slate-500">
+                  <span className="font-bold text-charcoal dark:text-white">
+                    {deleteEventTarget.eventName || deleteEventTarget.eventType}
+                  </span>{" "}
+                  will be removed from the public page along with its uploaded
+                  image. This can&apos;t be undone.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-3 border-t border-slate-100 bg-slate-50/60 p-6 dark:border-white/5 dark:bg-white/[0.02]">
+              <button
+                type="button"
+                disabled={isSaving}
+                onClick={() => setDeleteEventTarget(null)}
+                className="flex-1 rounded-2xl bg-slate-100 px-4 py-3.5 text-[10px] font-black uppercase tracking-widest text-slate-500 transition-all hover:bg-slate-200 disabled:opacity-50 dark:bg-zinc-800 dark:text-slate-300 dark:hover:bg-zinc-700"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isSaving}
+                onClick={confirmDeleteEvent}
+                className="flex-1 rounded-2xl bg-red-500 px-4 py-3.5 text-[10px] font-black uppercase tracking-widest text-white shadow-xl shadow-red-500/20 transition-all hover:bg-red-600 active:scale-95 disabled:opacity-50"
+              >
+                {isSaving ? "Deleting…" : "Delete event"}
               </button>
             </div>
           </div>

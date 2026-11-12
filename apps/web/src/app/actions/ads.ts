@@ -309,6 +309,27 @@ export async function getLivePromosAction() {
   }
 }
 
+/** Ended or rejected promos, newest first — read-only audit history. */
+export async function getPromoHistoryAction() {
+  try {
+    const now = new Date();
+    return await (prisma as any).tenantPromo.findMany({
+      where: {
+        OR: [
+          { status: "REJECTED" },
+          { status: "APPROVED", endDate: { lt: now } },
+        ],
+      },
+      include: { tenant: { select: { shopName: true, unitId: true } } },
+      orderBy: { endDate: "desc" },
+      take: 100,
+    });
+  } catch (error) {
+    console.error("[GET_PROMO_HISTORY_ERROR]:", error);
+    return [];
+  }
+}
+
 export async function getPendingPromos() {
   try {
     return await (prisma as any).tenantPromo.findMany({

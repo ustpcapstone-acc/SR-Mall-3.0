@@ -117,6 +117,10 @@ export const ChatBox = ({
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  /** Short send cooldown so double-taps cannot post the same inquiry twice. */
+  const [cooldownUntil, setCooldownUntil] = useState(0);
+  const [cooldownLeft, setCooldownLeft] = useState(0);
+  const sendingRef = useRef(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [lightboxImageUrl, setLightboxImageUrl] = useState<string | null>(null);
@@ -232,6 +236,19 @@ export const ChatBox = ({
       setInputText(initialMessage);
     }
   }, [initialMessage, isOpen]);
+
+  // Countdown for the 3-second send lock.
+  useEffect(() => {
+    if (!cooldownUntil) {
+      setCooldownLeft(0);
+      return;
+    }
+    const tick = () =>
+      setCooldownLeft(Math.max(0, Math.ceil((cooldownUntil - Date.now()) / 1000)));
+    tick();
+    const timer = setInterval(tick, 250);
+    return () => clearInterval(timer);
+  }, [cooldownUntil]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -584,8 +601,19 @@ export const ChatBox = ({
     }
   };
 
-  const handleSend = async (e: React.FormEvent, slotId?: string) => {
+  const handleSend = async (e: React.SyntheticEvent, slotId?: string) => {
     e.preventDefault();
+
+    // A double-tap used to post the same inquiry twice. The ref blocks the
+    // second click while the first request is still in flight, and the
+    // cooldown keeps repeated taps from spamming the thread.
+    if (sendingRef.current) return;
+
+    const waitSeconds = Math.ceil((cooldownUntil - Date.now()) / 1000);
+    if (waitSeconds > 0) {
+      toast.error(`Please wait ${waitSeconds}s before sending another message.`);
+      return;
+    }
 
     let textToSend = inputText;
     const fileToSend = imageFile;
@@ -603,13 +631,17 @@ export const ChatBox = ({
     }
 
     if (!textToSend.trim() && !fileToSend) return;
+    if (!user?.email) return;
+
+    sendingRef.current = true;
+    setCooldownUntil(Date.now() + 3000);
 
     // Reset input immediately
     setInputText("");
     setImageFile(null);
     setImagePreview(null);
 
-    if (user?.email) {
+    try {
       // Instant optimistic update with local preview
       const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
       const contentToSend = textToSend || "📎 Image";
@@ -641,6 +673,8 @@ export const ChatBox = ({
         preview: previewToSend,
         slotId,
       });
+    } finally {
+      sendingRef.current = false;
     }
   };
 
@@ -858,7 +892,7 @@ export const ChatBox = ({
                 );
               })()
             ) : (
-              <div className="h-full flex flex-col items-center justify-center p-6 text-center top-0 left-0 right-0 bottom-0 absolute bg-white/50 dark:bg-zinc-900/50 backdrop-blur-sm z-10 w-full">
+              <div className="relative h-full w-full flex flex-col items-center justify-center p-6 text-center bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm z-10">
                 <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
                   <MapPin size={32} className="text-primary" />
                 </div>
@@ -869,6 +903,7 @@ export const ChatBox = ({
                   Connect securely with mall administration and individual stores.
                 </p>
                 <button
+                  type="button"
                   onClick={() => setIsLoginModalOpen(true)}
                   className="px-8 py-3 bg-primary text-white font-bold tracking-widest text-xs uppercase rounded-xl shadow-lg hover:bg-primary-hover hover:scale-105 transition-all"
                 >
@@ -1033,10 +1068,20 @@ export const ChatBox = ({
                 {recipient === "admin" && inquirySlotId && (
                   <div className="mb-3 px-1">
                     <button
+                      type="button"
                       onClick={(e) => handleSend(e, inquirySlotId)}
-                      className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-green-600 bg-green-50 dark:bg-green-900/20 px-3 py-1.5 rounded-full border border-green-200 dark:border-green-900/50 hover:bg-green-100 transition-colors"
+                      disabled={cooldownLeft > 0 || isUploading}
+                      title={
+                        cooldownLeft > 0
+                          ? `Please wait ${cooldownLeft}s before sending another message`
+                          : "Send a leasing inquiry to the mall admin"
+                      }
+                      className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-green-600 bg-green-50 dark:bg-green-900/20 px-3 py-1.5 rounded-full border border-green-200 dark:border-green-900/50 hover:bg-green-100 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      <MapPin size={12} /> Share Inquiry For Unit {inquirySlotId}
+                      <MapPin size={12} />
+                      {cooldownLeft > 0
+                        ? `Wait ${cooldownLeft}s`
+                        : `Share Inquiry For Unit ${inquirySlotId}`}
                     </button>
                   </div>
                 )}
@@ -1081,7 +1126,18 @@ export const ChatBox = ({
                   <button
                     suppressHydrationWarning
                     type="submit"
-                    disabled={(!inputText.trim() && !imageFile) || isUploading || isUserBlocked || isRecipientBlocking}
+                    disabled={
+                      (!inputText.trim() && !imageFile) ||
+                      isUploading ||
+                      cooldownLeft > 0 ||
+                      isUserBlocked ||
+                      isRecipientBlocking
+                    }
+                    title={
+                      cooldownLeft > 0
+                        ? `Please wait ${cooldownLeft}s before sending another message`
+                        : "Send message"
+                    }
                     className="p-2.5 sm:p-3 bg-primary text-white rounded-xl hover:bg-primary-hover transition-all active:scale-95 disabled:opacity-50 disabled:scale-100 shadow-md shrink-0 flex items-center justify-center"
                   >
                     {isUploading ? (

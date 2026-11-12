@@ -34,6 +34,8 @@ import {
   RefreshCw,
   ArrowUpDown,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Check,
   LayoutGrid,
   List,
@@ -48,6 +50,7 @@ import {
 } from "lucide-react";
 import { RegisterTenantModal } from "@/components/admin/register-tenant-modal";
 import { RecordCashPaymentModal } from "@/components/admin/record-cash-payment-modal";
+import { CustomSelect } from "@/components/ui/custom-select";
 import clsx from "clsx";
 import {
   getAllTenantsAction,
@@ -259,6 +262,9 @@ export default function TenantMonitoring() {
   const [sortBy, setSortBy] = useState<"name" | "status" | "rent">("name");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [viewMode, setViewMode] = useState<"table" | "grid">("table");
+  // Client-side pagination for the tenant directory.
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(8);
   const [stats, setStats] = useState({
     total: 0,
     active: 0,
@@ -885,6 +891,36 @@ export default function TenantMonitoring() {
       }
       return sortOrder === "asc" ? comparison : -comparison;
     });
+
+  // Keep the current page valid as filters/search change the result count.
+  const totalPages = Math.max(1, Math.ceil(filteredTenants.length / pageSize));
+  const currentPage = Math.min(Math.max(1, page), totalPages);
+  const pageStart = (currentPage - 1) * pageSize;
+  const paginatedTenants = filteredTenants.slice(pageStart, pageStart + pageSize);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, statusFilter, paymentFilter, sortBy, sortOrder, pageSize, viewMode]);
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
+
+  const pageNumbers = (() => {
+    const pages: (number | "ellipsis")[] = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i += 1) pages.push(i);
+      return pages;
+    }
+    const start = Math.max(2, currentPage - 1);
+    const end = Math.min(totalPages - 1, currentPage + 1);
+    pages.push(1);
+    if (start > 2) pages.push("ellipsis");
+    for (let i = start; i <= end; i += 1) pages.push(i);
+    if (end < totalPages - 1) pages.push("ellipsis");
+    pages.push(totalPages);
+    return pages;
+  })();
 
   const multiplier = getTimeframeMultiplier(timeframe);
   const tfDetails = getTimeframeDetails(timeframe);
@@ -1776,10 +1812,18 @@ export default function TenantMonitoring() {
                 </div>
               </div>
               <p className="text-4xl font-black text-charcoal dark:text-white tracking-tighter">
-                ₱{Math.round((stats.collectedRevenue * multiplier) / 1000).toLocaleString()}K
+                ₱
+                {(stats.collectedRevenue * multiplier).toLocaleString("en-PH", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
               </p>
               <p className="text-[10px] font-bold text-slate-500 uppercase mt-1">
-                Pending: ₱{Math.round((stats.pendingRevenue * multiplier) / 1000).toLocaleString()}K
+                Pending: ₱
+                {(stats.pendingRevenue * multiplier).toLocaleString("en-PH", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
               </p>
             </div>
           </div>
@@ -2149,8 +2193,14 @@ export default function TenantMonitoring() {
 
             <p className="ml-auto text-[10px] font-black uppercase tracking-widest text-slate-400">
               Showing{" "}
-              <span className="text-charcoal dark:text-white">{filteredTenants.length}</span>{" "}
-              of {tenants.length} tenant{tenants.length === 1 ? "" : "s"}
+              <span className="text-charcoal dark:text-white">
+                {filteredTenants.length === 0 ? 0 : pageStart + 1}–
+                {Math.min(pageStart + pageSize, filteredTenants.length)}
+              </span>{" "}
+              of {filteredTenants.length} tenant{filteredTenants.length === 1 ? "" : "s"}
+              {filteredTenants.length !== tenants.length && (
+                <span className="text-slate-300 dark:text-slate-600"> ({tenants.length} total)</span>
+              )}
             </p>
           </div>
         </div>
@@ -2261,7 +2311,7 @@ export default function TenantMonitoring() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-white/5">
-                    {filteredTenants.map((tenant) => {
+                    {paginatedTenants.map((tenant) => {
                       const statusConfig =
                         STATUS_CONFIG[tenant.status] || STATUS_CONFIG.INACTIVE;
                       const paymentConfig =
@@ -2434,7 +2484,7 @@ export default function TenantMonitoring() {
                   "gap-6",
                 )}
               >
-                {filteredTenants.map((tenant) => {
+                {paginatedTenants.map((tenant) => {
                   const statusConfig =
                     STATUS_CONFIG[tenant.status] || STATUS_CONFIG.INACTIVE;
 
@@ -2614,6 +2664,83 @@ export default function TenantMonitoring() {
                   );
                 })}
               </div>
+
+            {/* Pagination */}
+            {filteredTenants.length > 0 && (
+              <div className="mt-6 flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm dark:border-white/5 dark:bg-zinc-900 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                    Rows
+                  </span>
+                  <CustomSelect
+                    value={String(pageSize)}
+                    onChange={(value) => setPageSize(Number(value))}
+                    options={[8, 12, 24, 48].map((size) => ({
+                      value: String(size),
+                      label: String(size),
+                    }))}
+                    ariaLabel="Tenants per page"
+                    className="w-20"
+                    buttonClassName="!px-3 !py-1.5"
+                    menuClassName="!bottom-full !mb-2 !mt-0"
+                  />
+                </div>
+
+                <div className="flex flex-wrap items-center justify-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setPage(Math.max(1, currentPage - 1))}
+                    disabled={currentPage <= 1}
+                    aria-label="Previous page"
+                    className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition-colors hover:border-primary/30 hover:text-primary disabled:cursor-not-allowed disabled:opacity-40 dark:border-white/10 dark:text-slate-300"
+                  >
+                    <ChevronLeft size={16} />
+                  </button>
+
+                  {pageNumbers.map((entry, index) =>
+                    entry === "ellipsis" ? (
+                      <span
+                        key={`ellipsis-${index}`}
+                        className="px-1 text-xs font-black text-slate-400"
+                      >
+                        …
+                      </span>
+                    ) : (
+                      <button
+                        key={entry}
+                        type="button"
+                        onClick={() => setPage(entry)}
+                        aria-label={`Page ${entry}`}
+                        aria-current={entry === currentPage ? "page" : undefined}
+                        className={clsx(
+                          "h-9 min-w-9 rounded-xl px-2 text-[11px] font-black transition-colors",
+                          entry === currentPage
+                            ? "bg-primary text-white shadow-md shadow-primary/25"
+                            : "border border-slate-200 text-slate-500 hover:border-primary/30 hover:text-primary dark:border-white/10 dark:text-slate-300",
+                        )}
+                      >
+                        {entry}
+                      </button>
+                    ),
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => setPage(Math.min(totalPages, currentPage + 1))}
+                    disabled={currentPage >= totalPages}
+                    aria-label="Next page"
+                    className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition-colors hover:border-primary/30 hover:text-primary disabled:cursor-not-allowed disabled:opacity-40 dark:border-white/10 dark:text-slate-300"
+                  >
+                    <ChevronRight size={16} />
+                  </button>
+                </div>
+
+                <p className="text-center text-[10px] font-black uppercase tracking-widest text-slate-400 sm:text-right">
+                  Page <span className="text-charcoal dark:text-white">{currentPage}</span> of{" "}
+                  {totalPages}
+                </p>
+              </div>
+            )}
           </>
         )}
 

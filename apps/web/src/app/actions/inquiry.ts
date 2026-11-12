@@ -368,19 +368,39 @@ export async function updateInquiryImageAction(
 
 export async function updateEventInfoAction(
   id: string,
-  fbAccount: string,
-  contactNumber: string,
+  data: {
+    fbAccount?: string;
+    contactNumber?: string;
+    eventName?: string;
+    eventType?: string;
+    eventDate?: string | Date;
+    eventTime?: string;
+    message?: string;
+  },
 ) {
   try {
+    const patch: Record<string, any> = {};
+    if (data.fbAccount !== undefined) patch.fbAccount = data.fbAccount;
+    if (data.contactNumber !== undefined) patch.contactNumber = data.contactNumber;
+    if (data.eventName !== undefined) patch.eventName = data.eventName;
+    if (data.eventType !== undefined) patch.eventType = data.eventType;
+    if (data.eventTime !== undefined) patch.eventTime = data.eventTime;
+    if (data.message !== undefined) patch.message = data.message;
+    if (data.eventDate !== undefined) {
+      const nextDate = new Date(data.eventDate);
+      if (Number.isNaN(nextDate.getTime())) {
+        return { success: false, error: "Please pick a valid event date" };
+      }
+      patch.eventDate = nextDate;
+    }
+
     const inquiry = await prisma.eventInquiry.update({
       where: { id },
-      data: {
-        fbAccount,
-        contactNumber,
-      },
+      data: patch,
     });
-    
+
     revalidatePath("/");
+    revalidatePath("/admindashboard/public-view-cms");
     return { success: true, data: inquiry };
   } catch (error) {
     console.error("Failed to update event info:", error);

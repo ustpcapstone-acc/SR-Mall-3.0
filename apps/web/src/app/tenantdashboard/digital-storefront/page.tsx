@@ -28,6 +28,7 @@ import { useAuth } from "@/app/providers";
 import { PRODUCT_STATUS_OPTIONS, availabilityLabel, isOutOfStock } from "@/lib/products";
 import { DEFAULT_SALE_DAYS, formatSaleDate, isSaleActive, phToday, saleEndDateInput, saleEndsAt } from "@/lib/post-sales";
 import { ShopCard } from "@/components/shop-card";
+import { CustomSelect } from "@/components/ui/custom-select";
 
 const PLACEHOLDERS = [
   "/images/logo/gudget.jpg",
@@ -455,7 +456,7 @@ export default function DigitalStorefrontPage() {
 
             {/* ── Tab: Brand Identity ── */}
             {activeTab === "identity" && (
-              <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl sm:rounded-3xl shadow-sm overflow-hidden animate-fade-in">
+              <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl sm:rounded-3xl shadow-sm overflow-visible animate-fade-in">
                 {/* Logo + Name section — stacks vertically on mobile */}
                 <div className="p-4 sm:p-6 lg:p-8 flex flex-col gap-5 border-b border-slate-100 dark:border-white/5">
                   {/* Logo Upload — centered on mobile */}
@@ -553,15 +554,13 @@ export default function DigitalStorefrontPage() {
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-1.5">
                       <Tag size={11} /> Store Category
                     </label>
-                    <select
+                    <CustomSelect
                       value={profile.category || "Fashion"}
-                      onChange={(e) => updateField("category", e.target.value)}
-                      className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-bold text-charcoal dark:text-white focus:outline-none focus:border-primary transition-all appearance-none cursor-pointer"
-                    >
-                      {STORE_CATEGORIES.map((cat) => (
-                        <option key={cat} value={cat}>{cat}</option>
-                      ))}
-                    </select>
+                      onChange={(value) => updateField("category", value)}
+                      options={STORE_CATEGORIES.map((cat) => ({ value: cat, label: cat }))}
+                      ariaLabel="Store category"
+                      buttonClassName="!px-4 !py-3 !text-sm dark:!bg-zinc-800"
+                    />
                     <p className="text-[10px] text-slate-400 font-medium mt-1.5">
                       This helps customers find your store in the mall directory.
                     </p>
@@ -677,7 +676,7 @@ export default function DigitalStorefrontPage() {
                     >
                       <button
                         onClick={() => removeProduct(index)}
-                        className="absolute top-3 right-3 w-6 h-6 bg-red-500 text-white rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all shadow-md z-10"
+                        className="absolute top-3 right-3 w-6 h-6 bg-red-500 text-white rounded-lg flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all shadow-md z-10"
                       >
                         <X size={11} />
                       </button>
@@ -765,40 +764,60 @@ export default function DigitalStorefrontPage() {
                             <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1 mb-1">
                               <ShoppingBag size={9} /> Category
                             </label>
-                            <select
+                            <CustomSelect
                               value={product.category || ""}
-                              onChange={(e) =>
-                                updateProduct(index, "category", e.target.value)
+                              onChange={(value) =>
+                                updateProduct(index, "category", value)
                               }
-                              className={`w-full px-3 py-2.5 bg-white dark:bg-zinc-900 border rounded-xl text-xs font-bold focus:outline-none focus:border-primary transition-all cursor-pointer ${product.category ? "border-slate-200 dark:border-white/10 text-charcoal dark:text-white" : "border-amber-300 dark:border-amber-500/40 text-slate-400"}`}
-                            >
-                              <option value="">Select category</option>
-                              {PRODUCT_CATEGORIES.map((cat) => (
-                                <option key={cat} value={cat}>{cat}</option>
-                              ))}
-                            </select>
+                              options={[
+                                { value: "", label: "Select category" },
+                                ...PRODUCT_CATEGORIES.map((cat) => ({
+                                  value: cat,
+                                  label: cat,
+                                })),
+                              ]}
+                              ariaLabel="Product category"
+                              buttonClassName={
+                                product.category
+                                  ? ""
+                                  : "!border-amber-300 !text-slate-400 dark:!border-amber-500/40"
+                              }
+                            />
                           </div>
                           <div className="col-span-2 sm:col-span-2">
                             <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1 mb-1">
                               <Eye size={9} /> Status
                             </label>
-                            <select
+                            <CustomSelect
                               value={product.status || "AVAILABLE"}
-                              onChange={(e) =>
-                                updateProduct(index, "status", e.target.value as StoreProduct["status"])
+                              onChange={(value) =>
+                                updateProduct(index, "status", value as StoreProduct["status"])
                               }
-                              className={`w-full px-3 py-2.5 bg-white dark:bg-zinc-900 border rounded-xl text-xs font-bold focus:outline-none focus:border-primary transition-all cursor-pointer ${
+                              options={PRODUCT_STATUS_OPTIONS.map((option) => ({
+                                value: option.value,
+                                label: option.label,
+                                tone:
+                                  option.value === "HIDDEN"
+                                    ? "slate"
+                                    : option.value === "OUT_OF_STOCK"
+                                      ? "amber"
+                                      : "emerald",
+                                description:
+                                  option.value === "HIDDEN"
+                                    ? "Removed from the Store Catalog and product pages"
+                                    : option.value === "OUT_OF_STOCK"
+                                      ? "Still visible, marked as out of stock"
+                                      : "Visible and orderable in the Store Catalog",
+                              }))}
+                              ariaLabel="Product availability"
+                              buttonClassName={
                                 product.status === "HIDDEN"
-                                  ? "border-slate-300 dark:border-white/20 text-slate-500"
+                                  ? "!border-slate-300 !text-slate-500 dark:!border-white/20"
                                   : isOutOfStock(product)
-                                    ? "border-amber-300 dark:border-amber-500/40 text-amber-600 dark:text-amber-400"
-                                    : "border-emerald-300 dark:border-emerald-500/30 text-emerald-600 dark:text-emerald-400"
-                              }`}
-                            >
-                              {PRODUCT_STATUS_OPTIONS.map((o) => (
-                                <option key={o.value} value={o.value}>{o.label}</option>
-                              ))}
-                            </select>
+                                    ? "!border-amber-300 !text-amber-600 dark:!border-amber-500/40 dark:!text-amber-400"
+                                    : "!border-emerald-300 !text-emerald-600 dark:!border-emerald-500/30 dark:!text-emerald-400"
+                              }
+                            />
                             <p className="text-[10px] text-slate-400 font-medium mt-1">
                               {product.status === "HIDDEN"
                                 ? "Not shown in the Store Catalog or product pages."
@@ -876,7 +895,7 @@ export default function DigitalStorefrontPage() {
                     >
                       <button
                         onClick={() => removePostSale(index)}
-                        className="absolute top-3 right-3 w-6 h-6 bg-red-500 text-white rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all shadow-md z-10"
+                        className="absolute top-3 right-3 w-6 h-6 bg-red-500 text-white rounded-lg flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all shadow-md z-10"
                       >
                         <X size={11} />
                       </button>

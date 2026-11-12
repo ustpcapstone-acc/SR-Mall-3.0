@@ -130,6 +130,34 @@ export async function sendMessage(data: {
         },
       }));
 
+    // Anti-spam: a double-tap (or an impatient retry) used to insert the same
+    // bubble twice. If this sender already posted identical text in this
+    // conversation within the last 3 seconds, return that message instead of
+    // creating a duplicate.
+    if (!imageUrl && content.trim()) {
+      const recentDuplicate = await prisma.message.findFirst({
+        where: {
+          conversationId: conversation.id,
+          senderId: sender.id,
+          content,
+          imageUrl: null,
+          createdAt: { gte: new Date(Date.now() - 3000) },
+        },
+        orderBy: { createdAt: "desc" },
+      });
+
+      if (recentDuplicate) {
+        return {
+          success: true,
+          messageId: recentDuplicate.id,
+          conversationId: recentDuplicate.conversationId,
+          targetId: targetUser.id,
+          message: recentDuplicate,
+          duplicate: true,
+        };
+      }
+    }
+
     // Insert the message and bump the conversation's updatedAt concurrently.
     const [message] = await Promise.all([
       prisma.message.create({

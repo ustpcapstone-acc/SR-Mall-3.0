@@ -22,6 +22,8 @@ import {
   Eye,
   BarChart3,
   Edit2,
+  History,
+  ChevronDown,
 } from "lucide-react";
 import {
   createMallAd,
@@ -31,6 +33,7 @@ import {
   updateMallAd,
   getAllMallAds,
   getLivePromosAction,
+  getPromoHistoryAction,
 } from "@/app/actions/ads";
 import { formatPHDate, phDayEnd, phDayStart, toPHDateInput } from "@/lib/ph-date";
 import { ChatConfirmModal } from "@/components/chat/chat-ui";
@@ -109,7 +112,9 @@ export default function AdScheduler() {
   const [mallAds, setMallAds] = useState<any[]>([]);
   const [pendingPromos, setPendingPromos] = useState<any[]>([]);
   const [livePromos, setLivePromos] = useState<any[]>([]);
-  const [promoTab, setPromoTab] = useState<"pending" | "live">("pending");
+  const [promoHistory, setPromoHistory] = useState<any[]>([]);
+  const [promoTab, setPromoTab] = useState<"pending" | "live" | "history">("pending");
+  const [showAdHistory, setShowAdHistory] = useState(false);
   /** Reject a pending promo or take down a live one (with an optional reason). */
   const [promoAction, setPromoAction] = useState<{ promo: any; kind: "reject" | "takedown" } | null>(null);
   const [promoReason, setPromoReason] = useState("");
@@ -137,6 +142,11 @@ export default function AdScheduler() {
     setTimeout(() => setToast(null), 4000);
   };
 
+  // Active/scheduled banners stay in the main carousel; ended ones move to
+  // the read-only history drawer so the working view stays uncluttered.
+  const activeMallAds = mallAds.filter((ad) => adStatus(ad) !== "EXPIRED");
+  const expiredMallAds = mallAds.filter((ad) => adStatus(ad) === "EXPIRED");
+
   useEffect(() => {
     fetchData();
   }, []);
@@ -144,14 +154,16 @@ export default function AdScheduler() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [globalAds, approvals, live] = await Promise.all([
+      const [globalAds, approvals, live, history] = await Promise.all([
         getAllMallAds(),
         getPendingPromos(),
         getLivePromosAction(),
+        getPromoHistoryAction(),
       ]);
       setMallAds(globalAds);
       setPendingPromos(approvals);
       setLivePromos(live);
+      setPromoHistory(history);
     } catch (error) {
       showToast("Failed to fetch ad data", "error");
     } finally {
@@ -599,10 +611,10 @@ export default function AdScheduler() {
               submissions.
             </p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row">
             <button
               onClick={fetchData}
-              className="flex items-center gap-2 px-5 py-3 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-slate-300 font-bold rounded-2xl transition-all"
+              className="flex items-center justify-center gap-2 px-5 py-3 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-slate-300 font-bold rounded-2xl transition-all"
             >
               <RefreshCw size={18} /> Refresh
             </button>
@@ -611,7 +623,7 @@ export default function AdScheduler() {
                 setFormData(EMPTY_FORM);
                 setIsModalOpen(true);
               }}
-              className="flex items-center gap-3 px-6 py-3 bg-primary hover:bg-primary-hover text-white font-black rounded-2xl transition-all shadow-xl shadow-primary/30 active:scale-95 whitespace-nowrap uppercase tracking-widest text-xs"
+              className="flex items-center justify-center gap-3 px-6 py-3 bg-primary hover:bg-primary-hover text-white font-black rounded-2xl transition-all shadow-xl shadow-primary/30 active:scale-95 whitespace-nowrap uppercase tracking-widest text-xs"
             >
               <Plus size={18} /> Create Mall-Wide Ad
             </button>
@@ -711,7 +723,7 @@ export default function AdScheduler() {
                   </div>
                 ))}
               </div>
-            ) : mallAds.length === 0 ? (
+            ) : activeMallAds.length === 0 ? (
               <div className="py-20 border-2 border-dashed border-slate-200 dark:border-white/5 rounded-2xl text-center">
                 <Megaphone
                   size={40}
@@ -732,7 +744,7 @@ export default function AdScheduler() {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {mallAds.map((ad) => {
+                {activeMallAds.map((ad) => {
                   const pc =
                     PRIORITY_CONFIG[
                       ad.priority as keyof typeof PRIORITY_CONFIG
@@ -785,7 +797,7 @@ export default function AdScheduler() {
                           {status === "DEFAULT" ? "Default" : ui.label}
                         </div>
                         {/* Action Buttons */}
-                        <div className="absolute bottom-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="absolute bottom-3 right-3 flex gap-2 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
                           <button
                             onClick={() => handleEditAd(ad)}
                             className="p-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors shadow-lg"
@@ -845,12 +857,84 @@ export default function AdScheduler() {
                 })}
               </div>
             )}
+
+            {expiredMallAds.length > 0 && (
+              <div className="mt-6 border-t border-slate-100 dark:border-white/5 pt-5">
+                <button
+                  type="button"
+                  onClick={() => setShowAdHistory((value) => !value)}
+                  aria-expanded={showAdHistory}
+                  className="flex w-full items-center justify-between gap-3 rounded-xl px-1 py-1 text-left"
+                >
+                  <span className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                    <History size={14} /> Banner history
+                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[9px] text-slate-500 dark:bg-white/5 dark:text-slate-400">
+                      {expiredMallAds.length}
+                    </span>
+                  </span>
+                  <ChevronDown
+                    size={16}
+                    className={clsx(
+                      "text-slate-400 transition-transform",
+                      showAdHistory && "rotate-180",
+                    )}
+                  />
+                </button>
+
+                {showAdHistory && (
+                  <div className="mt-3 space-y-2">
+                    {expiredMallAds.map((ad) => (
+                      <div
+                        key={ad.id}
+                        className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 dark:border-white/5 dark:bg-zinc-950 sm:flex-row sm:items-center sm:justify-between"
+                      >
+                        <div className="flex min-w-0 items-center gap-3">
+                          <div className="h-12 w-20 shrink-0 overflow-hidden rounded-xl bg-slate-200 dark:bg-zinc-800">
+                            {ad.imageUrl?.match(/\.(mp4|webm|mov|ogg)$/i) ||
+                            ad.imageUrl?.includes("/video/upload/") ? (
+                              <video
+                                src={ad.imageUrl}
+                                className="h-full w-full object-cover"
+                                muted
+                              />
+                            ) : (
+                              <img
+                                src={ad.imageUrl}
+                                alt={ad.title}
+                                className="h-full w-full object-cover"
+                              />
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="truncate text-xs font-bold text-charcoal dark:text-white">
+                              {ad.title}
+                            </p>
+                            <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400">
+                              Ended {formatPHDate(ad.endDate)} · {ad.priority}
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setDeleteAdTarget(ad)}
+                          aria-label={`Delete ${ad.title}`}
+                          title="Delete banner"
+                          className="flex h-8 w-8 shrink-0 items-center justify-center self-end rounded-lg border border-slate-200 text-slate-400 transition-colors hover:border-red-500/30 hover:bg-red-500 hover:text-white dark:border-white/10 sm:self-auto"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
         {/* ─── PENDING TENANT PROMOS ─── */}
         <div className="bg-white dark:bg-zinc-900 rounded-3xl border border-slate-200 dark:border-white/5 shadow-sm overflow-hidden">
-          <div className="p-6 border-b border-slate-200 dark:border-white/5 flex items-center justify-between">
+          <div className="p-6 border-b border-slate-200 dark:border-white/5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
               <Filter size={18} className="text-amber-500" />
               <div>
@@ -862,11 +946,12 @@ export default function AdScheduler() {
                 </p>
               </div>
             </div>
-            <div className="flex gap-1 p-1 bg-slate-100 dark:bg-zinc-800 rounded-xl">
+            <div className="flex flex-wrap gap-1 p-1 bg-slate-100 dark:bg-zinc-800 rounded-xl self-start sm:self-auto">
               {(
                 [
                   { key: "pending", label: "Pending review", count: pendingPromos.length },
                   { key: "live", label: "Live & scheduled", count: livePromos.length },
+                  { key: "history", label: "History", count: promoHistory.length },
                 ] as const
               ).map((t) => (
                 <button
@@ -880,7 +965,7 @@ export default function AdScheduler() {
                 >
                   {t.label}
                   {t.count > 0 && (
-                    <span className={clsx("px-1.5 rounded-full", t.key === "pending" ? "bg-amber-500/15 text-amber-600" : "bg-emerald-500/15 text-emerald-600")}>
+                    <span className={clsx("px-1.5 rounded-full", t.key === "pending" ? "bg-amber-500/15 text-amber-600" : t.key === "history" ? "bg-slate-500/15 text-slate-500" : "bg-emerald-500/15 text-emerald-600")}>
                       {t.count}
                     </span>
                   )}
@@ -905,6 +990,79 @@ export default function AdScheduler() {
                   </div>
                 ))}
               </div>
+            ) : promoTab === "history" ? (
+              promoHistory.length === 0 ? (
+                <div className="py-16 text-center">
+                  <History
+                    size={40}
+                    className="mx-auto text-slate-300 dark:text-zinc-700 mb-3"
+                  />
+                  <h4 className="font-bold text-charcoal dark:text-white mb-1">
+                    No promo history yet
+                  </h4>
+                  <p className="text-xs text-slate-400 font-medium">
+                    Rejected, taken-down and ended promos are archived here.
+                  </p>
+                </div>
+              ) : (
+                promoHistory.map((promo) => {
+                  const rejected = promo.status === "REJECTED";
+                  return (
+                    <div
+                      key={promo.id}
+                      className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-white/5 dark:bg-zinc-950 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div className="flex min-w-0 items-center gap-4">
+                        <div className="h-16 w-24 shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-slate-200 dark:border-white/5 dark:bg-zinc-800">
+                          {promo.promoVideo ? (
+                            <video
+                              src={promo.promoVideo}
+                              className="h-full w-full object-cover"
+                              muted
+                            />
+                          ) : (
+                            <img
+                              src={promo.promoImage}
+                              alt={promo.title}
+                              className="h-full w-full object-cover opacity-80"
+                            />
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <h4 className="truncate text-sm font-bold text-charcoal dark:text-white">
+                            {promo.title}
+                          </h4>
+                          <p className="mt-0.5 text-[10px] font-bold uppercase tracking-widest text-primary">
+                            <Tag size={10} className="mr-1 inline" />
+                            {promo.category} ·{" "}
+                            {promo.tenant?.shopName || "Tenant"}
+                          </p>
+                          <p className="mt-1 flex flex-wrap items-center gap-2 text-[9px] font-bold uppercase tracking-widest text-slate-400">
+                            <Calendar size={10} />
+                            {formatPHDate(promo.startDate)} —{" "}
+                            {formatPHDate(promo.endDate)}
+                            {promo.tenant?.unitId && (
+                              <span className="text-slate-300 dark:text-slate-600">
+                                · Unit {promo.tenant.unitId}
+                              </span>
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                      <span
+                        className={clsx(
+                          "shrink-0 self-start rounded-lg border px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest sm:self-auto",
+                          rejected
+                            ? "border-red-200 bg-red-50 text-red-600 dark:border-red-900/30 dark:bg-red-950/20 dark:text-red-400"
+                            : "border-slate-200 bg-slate-100 text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-400",
+                        )}
+                      >
+                        {rejected ? "Rejected / taken down" : "Ended"}
+                      </span>
+                    </div>
+                  );
+                })
+              )
             ) : promoTab === "live" ? (
               livePromos.length === 0 ? (
                 <div className="py-16 text-center">
