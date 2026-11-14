@@ -2,6 +2,7 @@
 
 import { prisma } from "@srmall/database";
 import { revalidatePath } from "next/cache";
+import { findInappropriateLanguage } from "@/lib/comment-moderation";
 
 /**
  * The comment status that actually applies right now:
@@ -21,6 +22,118 @@ function effectiveCommentStatus(user?: {
     if (!until || new Date(until) > new Date()) return "MUTED";
   }
   return "ACTIVE";
+}
+
+/**
+ * Progressive warnings are stored in the existing `commentStatus` column, so
+ * no database migration is needed:
+ *   ACTIVE → 0 offenses, WARNED_1 → 1, WARNED_2 → 2, MUTED/RESTRICTED → 3+.
+ * `effectiveCommentStatus` deliberately treats WARNED_* as ACTIVE: the user
+ * can still comment, they have just used up their warnings.
+ */
+function commentOffenseCount(status?: string | null) {
+  if (status === "WARNED_1") return 1;
+  if (status === "WARNED_2") return 2;
+  if (status === "MUTED" || status === "RESTRICTED") return 3;
+  return 0;
+}
+
+type CommentGate =
+  | { ok: true; status: string | null }
+  | { ok: false; error: string };
+
+/** Banned / muted accounts cannot post or edit reviews. */
+async function checkCommentPermission(userId: string): Promise<CommentGate> {
+  const userData = await (prisma as any).user.findUnique({
+    where: { id: userId },
+    select: { commentStatus: true, commentRestrictedUntil: true },
+  });
+
+  if (userData?.commentStatus === "BANNED") {
+    return {
+      ok: false,
+      error: "Your account has been banned from commenting.",
+    };
+  }
+
+  if (effectiveCommentStatus(userData) === "MUTED") {
+    if (!userData?.commentRestrictedUntil) {
+      return {
+        ok: false,
+        error: "You have been muted from posting reviews.",
+      };
+    }
+    const until = new Date(userData.commentRestrictedUntil).toLocaleDateString(
+      "en-US",
+      { year: "numeric", month: "long", day: "numeric" },
+    );
+    return {
+      ok: false,
+      error: `You cannot post reviews until ${until}.`,
+    };
+  }
+
+  return { ok: true, status: userData?.commentStatus ?? null };
+}
+
+type CommentLanguageResult =
+  | { blocked: false }
+  | {
+      blocked: true;
+      offense: number;
+      muted: boolean;
+      mutedUntil?: string;
+      message: string;
+    };
+
+/**
+ * Progressive penalty for inappropriate language:
+ *  - 1st and 2nd offense → warning only (the comment is not saved)
+ *  - 3rd offense → 24-hour comment mute
+ */
+async function moderateCommentLanguage(
+  userId: string,
+  comment: string | undefined,
+  currentStatus: string | null,
+): Promise<CommentLanguageResult> {
+  const match = findInappropriateLanguage(comment);
+  if (!match) return { blocked: false };
+
+  const offense = commentOffenseCount(currentStatus) + 1;
+
+  if (offense >= 3) {
+    const mutedUntil = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    await (prisma as any).user.update({
+      where: { id: userId },
+      data: {
+        commentStatus: "MUTED",
+        commentRestrictedUntil: mutedUntil,
+      },
+    });
+    return {
+      blocked: true,
+      offense,
+      muted: true,
+      mutedUntil: mutedUntil.toISOString(),
+      message:
+        "This is your third inappropriate-language offense. Commenting is paused for 24 hours.",
+    };
+  }
+
+  await (prisma as any).user.update({
+    where: { id: userId },
+    data: { commentStatus: `WARNED_${offense}` },
+  });
+
+  return {
+    blocked: true,
+    offense,
+    muted: false,
+    message:
+      offense === 1
+        ? "Your comment contains inappropriate language. This is warning 1 of 2 — please revise it before posting."
+        : "Your comment still contains inappropriate language. This is warning 2 of 2 — a third offense pauses commenting for 24 hours.",
+  };
 }
 
 /** reply / report columns for a set of reviews (raw SQL: new columns). */
@@ -80,35 +193,29 @@ export async function submitReviewAction(
       };
     }
 
-    // ── Check user comment restrictions ──────────────────────────────────────
-    const userData = await (prisma as any).user.findUnique({
-      where: { id: userId },
-      select: { commentStatus: true, commentRestrictedUntil: true },
-    });
+    // ── Comment permission + inappropriate-language checks ──────────────────
+    const gate = await checkCommentPermission(userId);
+    if (!gate.ok) {
+      return { success: false, error: gate.error };
+    }
 
-    if (userData?.commentStatus === "BANNED") {
+    const language = await moderateCommentLanguage(
+      userId,
+      comment,
+      gate.status,
+    );
+    if (language.blocked) {
       return {
         success: false,
-        error: "Your account has been banned from commenting.",
+        error: language.message,
+        warning: language.message,
+        inappropriate: true,
+        offense: language.offense,
+        muted: language.muted,
+        mutedUntil: language.mutedUntil,
       };
     }
 
-    if (effectiveCommentStatus(userData) === "MUTED") {
-      if (!userData?.commentRestrictedUntil) {
-        return {
-          success: false,
-          error: "You have been muted from posting reviews.",
-        };
-      }
-      const until = new Date(userData.commentRestrictedUntil).toLocaleDateString(
-        "en-US",
-        { year: "numeric", month: "long", day: "numeric" },
-      );
-      return {
-        success: false,
-        error: `You cannot post reviews until ${until}.`,
-      };
-    }
     // ── Spam detection: count reviews in past 24 hours ───────────────────────
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const recentCount = await (prisma as any).review.count({
@@ -213,6 +320,28 @@ export async function editMyReviewAction(
       },
     });
     if (!existingReview) return { success: false, error: "Review not found." };
+
+    const gate = await checkCommentPermission(userId);
+    if (!gate.ok) {
+      return { success: false, error: gate.error };
+    }
+
+    const language = await moderateCommentLanguage(
+      userId,
+      comment,
+      gate.status,
+    );
+    if (language.blocked) {
+      return {
+        success: false,
+        error: language.message,
+        warning: language.message,
+        inappropriate: true,
+        offense: language.offense,
+        muted: language.muted,
+        mutedUntil: language.mutedUntil,
+      };
+    }
 
     const review = await prisma.review.update({
       where: { id: existingReview.id },

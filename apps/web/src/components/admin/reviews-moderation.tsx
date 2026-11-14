@@ -55,6 +55,7 @@ interface ReviewRow {
     name: string | null;
     email: string;
     avatarUrl?: string | null;
+    commentStatus?: string | null;
     commentRestrictedUntil?: string | null;
     effectiveCommentStatus: UserStatus;
   } | null;
@@ -504,6 +505,22 @@ function Stars({ rating }: { rating: number }) {
 }
 
 function UserStatusBadge({ user }: { user: NonNullable<ReviewRow["user"]> }) {
+  const warnings =
+    user.commentStatus === "WARNED_1"
+      ? 1
+      : user.commentStatus === "WARNED_2"
+        ? 2
+        : 0;
+
+  if (warnings > 0) {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border whitespace-nowrap bg-amber-500/10 text-amber-600 border-amber-500/20">
+        <AlertTriangle size={10} />
+        Warning {warnings}/2
+      </span>
+    );
+  }
+
   if (user.effectiveCommentStatus === "ACTIVE") return null;
   const banned = user.effectiveCommentStatus === "BANNED";
   return (
@@ -754,6 +771,16 @@ function ModerateUserMenu({
             ))}
           </div>
           <div className="border-t border-slate-100 dark:border-white/5 pt-1">
+            {(user.commentStatus === "WARNED_1" ||
+              user.commentStatus === "WARNED_2") && (
+              <button
+                role="menuitem"
+                onClick={() => pick("ACTIVE")}
+                className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs font-bold text-emerald-600 hover:bg-emerald-500/10"
+              >
+                <ShieldCheck size={14} /> Clear language warnings
+              </button>
+            )}
             {user.effectiveCommentStatus !== "BANNED" && (
               <button
                 role="menuitem"

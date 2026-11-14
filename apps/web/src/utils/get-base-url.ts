@@ -45,18 +45,28 @@ export async function getBaseUrl() {
 /**
  * Base URL for links inside emails (server-only). Emails are opened later, on
  * any device, so they always point at the live site: EMAIL_BASE_URL
- * (e.g. https://sr-mall-3-0-web.vercel.app), then NEXT_PUBLIC_APP_URL.
+ * (e.g. https://www.sophieredmall.com), then NEXT_PUBLIC_APP_URL.
  */
-const LIVE_SITE_URL = "https://sr-mall-3-0-web.vercel.app";
+const LIVE_SITE_URL = "https://www.sophieredmall.com";
+const LEGACY_EMAIL_HOST = "sr-mall-3-0-web.vercel.app";
+
+/** True for the retired Vercel URL so a stale environment value can't win. */
+function isLegacyEmailHost(value: string) {
+  try {
+    return new URL(value).host === LEGACY_EMAIL_HOST;
+  } catch {
+    return false;
+  }
+}
 
 export function emailBaseUrl() {
   const clean = (v?: string) => (v || "").trim().replace(/\/+$/, "");
   const explicit = clean(process.env.EMAIL_BASE_URL);
-  if (explicit) return explicit;
+  if (explicit && !isLegacyEmailHost(explicit)) return explicit;
   // A local / LAN address (e.g. http://192.168.0.103:3000) can't be opened from
   // an email on another device — use the live site instead.
   const app = clean(process.env.NEXT_PUBLIC_APP_URL);
-  if (app) {
+  if (app && !isLegacyEmailHost(app)) {
     try {
       if (!isLocalHost(new URL(app).host)) return app;
     } catch {

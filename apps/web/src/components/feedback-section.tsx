@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Star,
   MessageSquare,
@@ -9,8 +9,10 @@ import {
   Heart,
   CheckCircle,
   AlertCircle,
+  AlertTriangle,
   ChevronDown,
   Store,
+  X,
 } from "lucide-react";
 import clsx from "clsx";
 import {
@@ -66,6 +68,18 @@ export const FeedbackSection = ({
   } | null>(null);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [myPendingReview, setMyPendingReview] = useState<any>(null);
+  const [languageWarning, setLanguageWarning] = useState<{
+    offense: number;
+    muted: boolean;
+    mutedUntil?: string;
+    message: string;
+  } | null>(null);
+  const [mutedUntil, setMutedUntil] = useState<string | null>(null);
+  const submittingRef = useRef(false);
+  const commentRef = useRef<HTMLTextAreaElement>(null);
+  const isCommentingPaused = Boolean(
+    mutedUntil && new Date(mutedUntil).getTime() > Date.now(),
+  );
 
   // ── Load available storefronts if not locked to tenantId ───
   useEffect(() => {
@@ -175,6 +189,8 @@ export const FeedbackSection = ({
       return;
     }
 
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setIsSubmitting(true);
     setSubmitMessage(null);
 
@@ -182,6 +198,24 @@ export const FeedbackSection = ({
       const result = myReview
         ? await editMyReviewAction(user.id, rating, comment, effectiveTenantId)
         : await submitReviewAction(user.id, rating, comment, effectiveTenantId);
+
+      const payload = result as any;
+      if (payload.inappropriate) {
+        setLanguageWarning({
+          offense: Number(payload.offense) || 1,
+          muted: Boolean(payload.muted),
+          mutedUntil: payload.mutedUntil,
+          message:
+            payload.warning ||
+            payload.error ||
+            "Your comment contains inappropriate language.",
+        });
+        if (payload.muted && payload.mutedUntil) {
+          setMutedUntil(payload.mutedUntil);
+        }
+        setSubmitMessage(null);
+        return;
+      }
 
       if (result.success) {
         setSubmitMessage({
@@ -203,7 +237,17 @@ export const FeedbackSection = ({
         message: "An unexpected error occurred. Please try again.",
       });
     } finally {
+      submittingRef.current = false;
       setIsSubmitting(false);
+    }
+  };
+
+  const dismissLanguageWarning = () => {
+    if (!languageWarning) return;
+    const canEdit = !languageWarning.muted;
+    setLanguageWarning(null);
+    if (canEdit) {
+      setTimeout(() => commentRef.current?.focus(), 50);
     }
   };
 
@@ -710,6 +754,22 @@ export const FeedbackSection = ({
                   </div>
                 ) : (
                   <div className="space-y-4 sm:space-y-6">
+                    {isCommentingPaused && mutedUntil && (
+                      <div className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-red-700 dark:border-red-900/30 dark:bg-red-950/20 dark:text-red-400">
+                        <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+                        <p className="text-[10px] font-bold uppercase tracking-wide sm:text-xs">
+                          Commenting is paused until{" "}
+                          {new Date(mutedUntil).toLocaleString("en-PH", {
+                            month: "long",
+                            day: "numeric",
+                            hour: "numeric",
+                            minute: "2-digit",
+                          })}
+                          .
+                        </p>
+                      </div>
+                    )}
+
                     {submitMessage && (
                       <div
                         className={`p-2 sm:p-4 rounded-lg flex items-center gap-2 ${submitMessage.type === "success"
@@ -780,10 +840,11 @@ export const FeedbackSection = ({
                         Protocol Detail
                       </label>
                       <textarea
+                        ref={commentRef}
                         value={comment}
                         onChange={(e) => setComment(e.target.value)}
                         placeholder="Detail your experience..."
-                        disabled={isSubmitting}
+                        disabled={isSubmitting || isCommentingPaused}
                         className={clsx(
                           "w-full",
                           "px-3",
@@ -813,7 +874,9 @@ export const FeedbackSection = ({
                     <button
                       suppressHydrationWarning
                       onClick={handleSubmit}
-                      disabled={isSubmitting || rating === 0}
+                      disabled={
+                        isSubmitting || rating === 0 || isCommentingPaused
+                      }
                       className={clsx(
                         "w-full",
                         "py-3 sm:py-4",
@@ -831,7 +894,11 @@ export const FeedbackSection = ({
                         "tracking-widest",
                       )}
                     >
-                      {isSubmitting ? "Syncing..." : "Log Experience"}
+                      {isCommentingPaused
+                        ? "Commenting paused"
+                        : isSubmitting
+                          ? "Syncing..."
+                          : "Log Experience"}
                     </button>
                   </div>
                 )}
@@ -840,6 +907,88 @@ export const FeedbackSection = ({
           </div>
         </div>
       </div>
+
+      {languageWarning && (
+        <div
+          className="fixed inset-0 z-[120] flex items-center justify-center bg-charcoal/80 p-4 backdrop-blur-md animate-fade-in"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="language-warning-title"
+          onClick={dismissLanguageWarning}
+        >
+          <div
+            className="w-full max-w-md overflow-hidden rounded-[2rem] border border-white/10 bg-white shadow-2xl animate-scale-in dark:bg-zinc-900"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="p-6 sm:p-8 space-y-4">
+              <div className="flex items-start justify-between gap-4">
+                <div
+                  className={clsx(
+                    "flex h-14 w-14 items-center justify-center rounded-2xl",
+                    languageWarning.muted
+                      ? "bg-red-500/10 text-red-500"
+                      : "bg-amber-500/10 text-amber-500",
+                  )}
+                >
+                  <AlertTriangle size={26} />
+                </div>
+                <button
+                  type="button"
+                  onClick={dismissLanguageWarning}
+                  aria-label="Close warning"
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition-colors hover:bg-slate-200 dark:bg-zinc-800 dark:text-slate-300 dark:hover:bg-zinc-700"
+                >
+                  <X size={16} strokeWidth={3} />
+                </button>
+              </div>
+
+              <div className="space-y-2">
+                <h3
+                  id="language-warning-title"
+                  className="text-xl font-black uppercase tracking-tight text-charcoal dark:text-white"
+                >
+                  {languageWarning.muted
+                    ? "Commenting paused"
+                    : `Warning ${languageWarning.offense} of 2`}
+                </h3>
+                <p className="text-sm font-medium leading-relaxed text-slate-500">
+                  {languageWarning.muted
+                    ? `Your comment was not posted. Commenting is paused for 24 hours${
+                        languageWarning.mutedUntil
+                          ? `, until ${new Date(
+                              languageWarning.mutedUntil,
+                            ).toLocaleString("en-PH", {
+                              month: "long",
+                              day: "numeric",
+                              hour: "numeric",
+                              minute: "2-digit",
+                            })}`
+                          : ""
+                      }. Please keep future comments respectful.`
+                    : languageWarning.message}
+                </p>
+              </div>
+
+              {!languageWarning.muted && (
+                <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4 text-[11px] font-bold leading-relaxed text-amber-700 dark:text-amber-400">
+                  Your comment was not posted. Revise it to continue. A third
+                  inappropriate comment will pause commenting for 24 hours.
+                </div>
+              )}
+            </div>
+
+            <div className="border-t border-slate-100 bg-slate-50/60 p-5 dark:border-white/5 dark:bg-white/[0.02]">
+              <button
+                type="button"
+                onClick={dismissLanguageWarning}
+                className="w-full rounded-2xl bg-primary px-4 py-3.5 text-[10px] font-black uppercase tracking-widest text-white shadow-xl shadow-primary/20 transition-all hover:bg-primary-hover active:scale-95"
+              >
+                {languageWarning.muted ? "I understand" : "Edit my comment"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Login Modal */}
       <LoginModal
