@@ -18,6 +18,7 @@ import {
   Loader2,
   FileText,
   UploadCloud,
+  Store,
 } from "lucide-react";
 import { useAuth } from "@/app/providers";
 import { reserveSlotAction } from "@/app/actions/space-slot";
@@ -67,6 +68,8 @@ export default function SpaceDetailModal({
   // This person's own reservation, waiting for the admin's review
   const isMyReservation =
     status === "RESERVED" && !!user?.id && ((slot as any).tenant_id === user.id || submitted);
+  // Tenants already hold a unit and cannot reserve a second one.
+  const isTenant = user?.role === "TENANT";
 
   // Images are now a native array in PostgreSQL
   const images: string[] = Array.isArray(slot.space_images)
@@ -100,6 +103,13 @@ export default function SpaceDetailModal({
     if (!isAuthenticated || !user) {
       if (onLoginRequired) onLoginRequired();
       else toast.error("Please log in to reserve a unit.");
+      return;
+    }
+    if (user.role === "TENANT") {
+      toast.error("You're already a tenant", {
+        description:
+          "A tenant account can only hold one unit. Contact mall administration if you need a different space.",
+      });
       return;
     }
     if (status !== "AVAILABLE") {
@@ -338,13 +348,32 @@ export default function SpaceDetailModal({
           <div className="mt-14 space-y-4">
             {status === "AVAILABLE" ? (
               <div className="flex flex-col gap-4">
-                <button
-                  onClick={handleReservation}
-                  disabled={isReserving}
-                  className="w-full py-6 bg-charcoal dark:bg-white text-white dark:text-black hover:bg-primary dark:hover:bg-primary dark:hover:text-white font-black rounded-2xl transition-all shadow-xl dark:shadow-[0_20px_40px_-10px_rgba(255,255,255,0.2)] disabled:opacity-50 active:scale-95 uppercase tracking-widest text-xs"
-                >
-                  Secure Reservation
-                </button>
+                {isTenant ? (
+                  <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-left dark:border-amber-500/20 dark:bg-amber-500/10">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400">
+                      <Store size={18} />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400">
+                        Cannot reserve — already a tenant
+                      </p>
+                      <p className="mt-1 text-xs font-medium leading-relaxed text-slate-600 dark:text-slate-300">
+                        Your account already holds a tenant unit. A tenant can
+                        only reserve one unit, so additional reservations are
+                        disabled. Contact mall administration if you need a
+                        different space.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    onClick={handleReservation}
+                    disabled={isReserving}
+                    className="w-full py-6 bg-charcoal dark:bg-white text-white dark:text-black hover:bg-primary dark:hover:bg-primary dark:hover:text-white font-black rounded-2xl transition-all shadow-xl dark:shadow-[0_20px_40px_-10px_rgba(255,255,255,0.2)] disabled:opacity-50 active:scale-95 uppercase tracking-widest text-xs"
+                  >
+                    Secure Reservation
+                  </button>
+                )}
                 <button
                   onClick={handleInquiry}
                   className="w-full flex items-center justify-center gap-3 py-6 bg-slate-50 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 text-charcoal dark:text-white font-black rounded-2xl transition-all border border-slate-200 dark:border-white/10 group uppercase tracking-widest text-xs"

@@ -239,13 +239,49 @@ export async function reserveSlotAction(
     // Who is reserving (from the database, not the caller-supplied name)
     const reserver = await prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, name: true, email: true, isBlacklisted: true },
+      select: { id: true, name: true, email: true, isBlacklisted: true, role: true },
     });
     if (!reserver) return { success: false, error: "Please log in again to reserve a unit." };
     if (reserver.isBlacklisted) {
       return { success: false, error: "Your account is restricted. Please contact mall administration." };
     }
     userName = reserver.name || reserver.email.split("@")[0] || userName;
+
+    // A tenant account can only hold one unit. Block the role plus any unit that
+    // is already occupied by this user (e.g. an approved reservation that has
+    // not been converted into a Tenant profile yet).
+    const [tenantProfile, occupiedUnit] = await Promise.all([
+      prisma.tenant.findUnique({
+        where: { userId },
+        select: { status: true, unitId: true },
+      }),
+      prisma.areaSlot.findFirst({
+        where: { tenant_id: userId, status: "OCCUPIED" },
+        select: { unit_id: true },
+      }),
+    ]);
+    const tenantUnit =
+      occupiedUnit?.unit_id ||
+      (tenantProfile?.status === "ACTIVE" &&
+      tenantProfile.unitId &&
+      tenantProfile.unitId !== "PENDING_ASSIGNMENT" &&
+      tenantProfile.unitId !== "PENDING"
+        ? tenantProfile.unitId
+        : null);
+
+    if (
+      reserver.role === "TENANT" ||
+      tenantProfile?.status === "ACTIVE" ||
+      occupiedUnit
+    ) {
+      return {
+        success: false,
+        code: "ALREADY_TENANT" as const,
+        error: tenantUnit
+          ? `You already hold Unit ${tenantUnit}. A tenant account can only reserve one unit. Contact mall administration if you need a different space.`
+          : "Your account is already registered as a tenant. A tenant account can only reserve one unit. Contact mall administration if you need a different space.",
+      };
+    }
 
     // One active reservation per customer (within the hold window)
     const holdCutoff = new Date(Date.now() - RESERVATION_HOLD_MS);

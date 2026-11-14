@@ -14,6 +14,7 @@ import {
   ArrowLeft,
   LayoutGrid,
   ArrowRight,
+  Store,
 } from "lucide-react";
 import Link from "next/link";
 import { getPublicAreaSlots } from "@/app/actions/space-slot";
@@ -122,6 +123,23 @@ export default function AvailableSpacesPage() {
       <section className="pt-10 sm:pt-14">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="mx-auto max-w-4xl rounded-[2rem] border border-slate-100 dark:border-white/5 bg-white dark:bg-zinc-950 p-5 sm:p-7 shadow-sm">
+            {isAuthenticated && user?.role === "TENANT" && (
+              <div className="mb-4 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-left dark:border-amber-500/20 dark:bg-amber-500/10">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400">
+                  <Store size={18} />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400">
+                    Cannot reserve — already a tenant
+                  </p>
+                  <p className="mt-1 text-xs font-medium leading-relaxed text-slate-600 dark:text-slate-300">
+                    Your account already holds a tenant unit. A tenant can only
+                    reserve one unit, so additional reservations are disabled.
+                    Contact mall administration if you need a different space.
+                  </p>
+                </div>
+              </div>
+            )}
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-4">
               <div>
                 <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">
