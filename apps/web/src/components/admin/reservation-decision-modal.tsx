@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { approveReservationAction, getPermitLinkAction, rejectReservationAction } from "@/app/actions/space-slot";
 import { useAuth } from "@/app/providers";
+import { ReservationStepper } from "@/components/reservation-stepper";
 
 export interface ReservationRow {
   unit_id: string;
@@ -151,7 +152,7 @@ export function ReservationDecisionModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="reservation-decision-title"
-        className="relative w-full max-w-lg max-h-[92vh] overflow-y-auto bg-white dark:bg-zinc-950 rounded-[2rem] shadow-2xl animate-fade-in-up"
+        className="relative w-full max-w-xl max-h-[92vh] overflow-y-auto bg-white dark:bg-zinc-950 rounded-[2rem] shadow-2xl animate-fade-in-up"
       >
         <div
           className={clsx(
@@ -182,6 +183,8 @@ export function ReservationDecisionModal({
         </div>
 
         <div className="p-7 space-y-5">
+          <ReservationStepper current={approve ? 3 : 2} />
+
           {/* Who */}
           <div className="flex items-center gap-3 p-4 rounded-2xl bg-slate-50 dark:bg-zinc-900 border border-slate-100 dark:border-white/5">
             <span className="w-11 h-11 rounded-full bg-primary/10 text-primary overflow-hidden flex items-center justify-center font-black shrink-0">

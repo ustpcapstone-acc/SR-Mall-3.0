@@ -21,6 +21,7 @@ import { useAuth } from "@/app/providers";
 import clsx from "clsx";
 import { AreaSlot } from "@srmall/database";
 import SpaceDetailModal from "@/components/space-detail-modal";
+import { ReservationStepper } from "@/components/reservation-stepper";
 import { mergeSlotPatch, slotAccess, useLiveSlots } from "@/lib/slot-live";
 import { toast } from "sonner";
 import { LoginModal } from "@/components/login-modal";
@@ -113,6 +114,29 @@ export default function AvailableSpacesPage() {
                 />
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Reservation process */}
+      <section className="pt-10 sm:pt-14">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="mx-auto max-w-4xl rounded-[2rem] border border-slate-100 dark:border-white/5 bg-white dark:bg-zinc-950 p-5 sm:p-7 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-4">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">
+                  Simple 3-step process
+                </p>
+                <h2 className="text-lg sm:text-xl font-black text-charcoal dark:text-white uppercase tracking-tight">
+                  How reservation works
+                </h2>
+              </div>
+              <p className="text-xs text-slate-500 max-w-md">
+                Submit your business permit, wait for the admin&apos;s document
+                review, then receive the approval.
+              </p>
+            </div>
+            <ReservationStepper current={1} />
           </div>
         </div>
       </section>

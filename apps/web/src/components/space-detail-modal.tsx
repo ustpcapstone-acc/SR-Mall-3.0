@@ -23,6 +23,7 @@ import { useAuth } from "@/app/providers";
 import { reserveSlotAction } from "@/app/actions/space-slot";
 import { toast } from "sonner";
 import { announceSlotChange } from "@/lib/slot-live";
+import { ReservationStepper } from "@/components/reservation-stepper";
 import {
   PERMIT_FOLDER,
   PERMIT_MAX_BYTES,
@@ -356,19 +357,22 @@ export default function SpaceDetailModal({
                 </button>
               </div>
             ) : (
-              <div className="w-full py-8 bg-slate-50 dark:bg-white/5 rounded-[2rem] border border-slate-100 dark:border-white/5 flex flex-col items-center gap-3 text-center">
-                <div className="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500 mb-1">
-                  <Clock size={20} />
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm font-black text-charcoal dark:text-white uppercase tracking-widest">
-                    {isMyReservation ? "In process" : "Verification Pending"}
-                  </p>
-                  <p className="text-[10px] text-slate-500 font-medium max-w-[220px] leading-relaxed italic mx-auto">
-                    {isMyReservation
-                      ? `Business permit submitted. The admin is reviewing your documents (up to ${RESERVATION_HOLD_LABEL}).`
-                      : "This elite unit is currently under review for a new merchant partnership."}
-                  </p>
+              <div className="space-y-3">
+                {isMyReservation && <ReservationStepper current={2} compact />}
+                <div className="w-full py-8 bg-slate-50 dark:bg-white/5 rounded-[2rem] border border-slate-100 dark:border-white/5 flex flex-col items-center gap-3 text-center">
+                  <div className="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500 mb-1">
+                    <Clock size={20} />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm font-black text-charcoal dark:text-white uppercase tracking-widest">
+                      {isMyReservation ? "In process" : "Verification Pending"}
+                    </p>
+                    <p className="text-[10px] text-slate-500 font-medium max-w-[220px] leading-relaxed italic mx-auto">
+                      {isMyReservation
+                        ? `Business permit submitted. The admin is reviewing your documents (up to ${RESERVATION_HOLD_LABEL}).`
+                        : "This elite unit is currently under review for a new merchant partnership."}
+                    </p>
+                  </div>
                 </div>
               </div>
             )}
@@ -390,10 +394,10 @@ export default function SpaceDetailModal({
             role="dialog"
             aria-modal="true"
             aria-labelledby="reserve-title"
-            className="relative w-full max-w-md max-h-[92vh] overflow-y-auto bg-white dark:bg-zinc-950 rounded-[2rem] shadow-2xl p-7 space-y-5 animate-in zoom-in-95 duration-200"
+            className="relative w-full max-w-lg max-h-[92vh] overflow-y-auto bg-white dark:bg-zinc-950 rounded-[2rem] shadow-2xl p-5 sm:p-7 space-y-4 animate-in zoom-in-95 duration-200"
           >
             {submitted ? (
-              <div className="space-y-5 text-center py-2">
+              <div className="space-y-4 text-center py-2">
                 <div className="w-14 h-14 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto">
                   <Clock size={26} />
                 </div>
@@ -401,6 +405,7 @@ export default function SpaceDetailModal({
                   <p className="text-[10px] font-black uppercase tracking-widest text-amber-500">In process</p>
                   <h2 className="mt-1 text-xl font-black text-charcoal dark:text-white">Unit {slot.unit_id} is held for you</h2>
                 </div>
+                <ReservationStepper current={2} />
                 <p className="text-sm text-slate-600 dark:text-slate-300">
                   Your business permit was submitted. The admin reviews your documents before approving, which usually takes up to{" "}
                   <strong>{RESERVATION_HOLD_LABEL}</strong>. You&apos;ll get an email and a notification with the decision and the admin&apos;s comment.
@@ -432,6 +437,8 @@ export default function SpaceDetailModal({
               </h2>
             </div>
 
+            <ReservationStepper current={1} />
+
             <dl className="grid grid-cols-2 gap-3 p-4 rounded-2xl bg-slate-50 dark:bg-zinc-900 border border-slate-100 dark:border-white/5 text-sm">
               <div>
                 <dt className="text-[10px] font-black uppercase tracking-widest text-slate-400">Unit</dt>
@@ -451,7 +458,7 @@ export default function SpaceDetailModal({
               </div>
             </dl>
 
-            <ul className="space-y-2 text-sm text-slate-600 dark:text-slate-300">
+            <ul className="space-y-1.5 text-xs text-slate-600 dark:text-slate-300">
               <li className="flex gap-2">
                 <Clock size={16} className="shrink-0 mt-0.5 text-amber-500" />
                 <span>
