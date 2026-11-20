@@ -14,6 +14,7 @@ import {
 import { getLostAndFoundItems, updateLostAndFoundItemStatus, createLostAndFoundItem } from "@/app/actions/lost-and-found";
 import { getAdminEventsAction, updateInquiryImageAction, deleteInquiryAction, updateEventInfoAction } from "@/app/actions/inquiry";
 import { Info } from "lucide-react";
+import { toast } from "sonner";
 import { getAllPostSalesAction, deleteAdminPostSaleAction, updateAdminPostSaleAction } from "@/app/actions/tenant";
 import {
   Plus,
@@ -83,6 +84,19 @@ interface PublicViewConfig {
   aboutImageUrl: string | null;
   videoTitle: string | null;
   videoDescription: string | null;
+  productsTitle: string | null;
+  productsDescription: string | null;
+  videoCtaLabel: string | null;
+  directoryTitle: string | null;
+  directoryDescription: string | null;
+  spacesTitle: string | null;
+  spacesDescription: string | null;
+  venueEyebrow: string | null;
+  venueTitle: string | null;
+  venueDescription: string | null;
+  reviewsTitle: string | null;
+  reviewsDescription: string | null;
+  locationTitle: string | null;
   featuredVideoUrl: string | null;
   contactTitle: string | null;
   contactDescription: string | null;
@@ -122,6 +136,19 @@ export default function PublicViewCMSPage() {
     aboutImageUrl: "",
     videoTitle: "",
     videoDescription: "",
+    productsTitle: "",
+    productsDescription: "",
+    videoCtaLabel: "",
+    directoryTitle: "",
+    directoryDescription: "",
+    spacesTitle: "",
+    spacesDescription: "",
+    venueEyebrow: "",
+    venueTitle: "",
+    venueDescription: "",
+    reviewsTitle: "",
+    reviewsDescription: "",
+    locationTitle: "",
     featuredVideoUrl: "",
     contactTitle: "",
     contactDescription: "",
@@ -234,14 +261,9 @@ export default function PublicViewCMSPage() {
     }
   };
 
-  const [toast, setToast] = useState<{
-    msg: string;
-    type: "success" | "error";
-  } | null>(null);
-
   const showToast = (msg: string, type: "success" | "error") => {
-    setToast({ msg, type });
-    setTimeout(() => setToast(null), 5000);
+    if (type === "success") toast.success(msg);
+    else toast.error(msg);
   };
 
   useEffect(() => {
@@ -675,7 +697,7 @@ export default function PublicViewCMSPage() {
       id: "general",
       label: "General Settings",
       icon: Globe,
-      desc: "Branding, contact, map & footer",
+      desc: "Branding, contact, map & home page copy",
     },
 
     {
@@ -683,12 +705,6 @@ export default function PublicViewCMSPage() {
       label: "Shop Sales Monitoring",
       icon: Monitor,
       desc: "Manage Tenant Sales Posts",
-    },
-    {
-      id: "content",
-      label: "About & Video",
-      icon: Layers,
-      desc: "About section & featured video",
     },
     { id: "carousel", label: "Billboards", icon: Layout, desc: "Homepage Banners" },
     { id: "events", label: "Upcoming Events", icon: CalendarIcon, desc: "Approved Event Images" },
@@ -784,7 +800,7 @@ export default function PublicViewCMSPage() {
               <SectionHeader
                 icon={Globe}
                 title="General Settings"
-                sub="Your mall's name, logo, contact details, map and footer."
+                sub="Your mall's name, logo, contact details, map, home page content and footer."
               />
 
               {/* ── Branding ─────────────────────────────────────────────── */}
@@ -1008,6 +1024,297 @@ export default function PublicViewCMSPage() {
                     allowFullScreen
                     title="Map preview"
                   />
+                </div>
+              </SettingsCard>
+
+              {/* ── Homepage section text ────────────────────────────────── */}
+              <SettingsCard
+                icon={Layers}
+                tone="bg-amber-500/10 text-amber-600"
+                title="Homepage section text"
+                sub="Headings and descriptions shown on the public home page"
+              >
+                <div className="space-y-6">
+                  <div className="space-y-4">
+                    <p className="text-[11px] font-black uppercase tracking-widest text-charcoal dark:text-white">
+                      Featured Products
+                    </p>
+                    <Field
+                      label="Heading"
+                      hint="Use a line break to keep the two-tone heading: “Featured” on the first line, “Products.” on the second."
+                    >
+                      <textarea
+                        value={config.productsTitle ?? ""}
+                        onChange={(e) => handleConfigChange("productsTitle", e.target.value)}
+                        className="cms-input min-h-[72px] resize-none"
+                        placeholder={"Featured\nProducts."}
+                      />
+                    </Field>
+                    <Field label="Description">
+                      <textarea
+                        value={config.productsDescription ?? ""}
+                        onChange={(e) => handleConfigChange("productsDescription", e.target.value)}
+                        className="cms-input min-h-[72px] resize-none"
+                        placeholder="Handpicked collections from our premier tenants, refreshed daily."
+                      />
+                    </Field>
+                  </div>
+
+                  <div className="space-y-4 pt-6 border-t border-slate-100 dark:border-white/5">
+                    <p className="text-[11px] font-black uppercase tracking-widest text-charcoal dark:text-white">
+                      Mall Directory
+                    </p>
+                    <Field
+                      label="Heading"
+                      hint="Use a line break to keep the two-tone heading: “Mall” on the first line, “Directory.” on the second."
+                    >
+                      <textarea
+                        value={config.directoryTitle ?? ""}
+                        onChange={(e) => handleConfigChange("directoryTitle", e.target.value)}
+                        className="cms-input min-h-[72px] resize-none"
+                        placeholder={"Mall\nDirectory."}
+                      />
+                    </Field>
+                    <Field label="Description">
+                      <textarea
+                        value={config.directoryDescription ?? ""}
+                        onChange={(e) => handleConfigChange("directoryDescription", e.target.value)}
+                        className="cms-input min-h-[88px] resize-none"
+                        placeholder="Navigate through our curated ecosystem of high-end retail, digital-first storefronts, and world-class dining destinations."
+                      />
+                    </Field>
+                  </div>
+
+                  <div className="space-y-4 pt-6 border-t border-slate-100 dark:border-white/5">
+                    <p className="text-[11px] font-black uppercase tracking-widest text-charcoal dark:text-white">
+                      Available Spaces
+                    </p>
+                    <Field
+                      label="Heading"
+                      hint="Use a line break to keep the two-tone heading: “Available” on the first line, “Spaces.” on the second."
+                    >
+                      <textarea
+                        value={config.spacesTitle ?? ""}
+                        onChange={(e) => handleConfigChange("spacesTitle", e.target.value)}
+                        className="cms-input min-h-[72px] resize-none"
+                        placeholder={"Available\nSpaces."}
+                      />
+                    </Field>
+                    <Field label="Description">
+                      <textarea
+                        value={config.spacesDescription ?? ""}
+                        onChange={(e) => handleConfigChange("spacesDescription", e.target.value)}
+                        className="cms-input min-h-[88px] resize-none"
+                        placeholder="Join our premium retail ecosystem. Explore high-visibility slots designed for modern brands and start your journey at SR Mall."
+                      />
+                    </Field>
+                  </div>
+
+                  <div className="space-y-4 pt-6 border-t border-slate-100 dark:border-white/5">
+                    <p className="text-[11px] font-black uppercase tracking-widest text-charcoal dark:text-white">
+                      Venue booking
+                    </p>
+                    <Field label="Eyebrow label">
+                      <input
+                        value={config.venueEyebrow ?? ""}
+                        onChange={(e) => handleConfigChange("venueEyebrow", e.target.value)}
+                        className="cms-input"
+                        placeholder="Venue booking"
+                      />
+                    </Field>
+                    <Field
+                      label="Heading"
+                      hint="Use a line break for the two lines. Wrap words in *asterisks* to keep the red italic accent."
+                    >
+                      <textarea
+                        value={config.venueTitle ?? ""}
+                        onChange={(e) => handleConfigChange("venueTitle", e.target.value)}
+                        className="cms-input min-h-[72px] resize-none"
+                        placeholder={"Plan your next *big*\n*day* here."}
+                      />
+                    </Field>
+                    <Field label="Description">
+                      <textarea
+                        value={config.venueDescription ?? ""}
+                        onChange={(e) => handleConfigChange("venueDescription", e.target.value)}
+                        className="cms-input min-h-[88px] resize-none"
+                        placeholder="Esports nights, sports meets, fitness events, trade shows and community gatherings. Tell us what you're planning and the events team gets back to you."
+                      />
+                    </Field>
+                  </div>
+
+                  <div className="space-y-4 pt-6 border-t border-slate-100 dark:border-white/5">
+                    <p className="text-[11px] font-black uppercase tracking-widest text-charcoal dark:text-white">
+                      Customer Experiences
+                    </p>
+                    <Field label="Heading">
+                      <input
+                        value={config.reviewsTitle ?? ""}
+                        onChange={(e) => handleConfigChange("reviewsTitle", e.target.value)}
+                        className="cms-input"
+                        placeholder="Customer Experiences"
+                      />
+                    </Field>
+                    <Field label="Description">
+                      <input
+                        value={config.reviewsDescription ?? ""}
+                        onChange={(e) => handleConfigChange("reviewsDescription", e.target.value)}
+                        className="cms-input"
+                        placeholder="Real feedback from our valued visitors and tenants"
+                      />
+                    </Field>
+                  </div>
+
+                  <div className="space-y-4 pt-6 border-t border-slate-100 dark:border-white/5">
+                    <p className="text-[11px] font-black uppercase tracking-widest text-charcoal dark:text-white">
+                      Location
+                    </p>
+                    <Field label="Heading" hint="Use a line break for “Prime location.” and “Endless access.”">
+                      <textarea
+                        value={config.locationTitle ?? ""}
+                        onChange={(e) => handleConfigChange("locationTitle", e.target.value)}
+                        className="cms-input min-h-[72px] resize-none"
+                        placeholder={"Prime location.\nEndless access."}
+                      />
+                    </Field>
+                    <Field label="Description" hint="Shown under the location heading.">
+                      <textarea
+                        value={config.contactDescription ?? ""}
+                        onChange={(e) => handleConfigChange("contactDescription", e.target.value)}
+                        className="cms-input min-h-[88px] resize-none"
+                        placeholder="On the national highway in Brgy. Luz Banzon, Jasaan. Easy to reach from Cagayan de Oro and the towns of Misamis Oriental."
+                      />
+                    </Field>
+                  </div>
+                </div>
+              </SettingsCard>
+
+              {/* ── About Our Vision ─────────────────────────────────────── */}
+              <SettingsCard
+                icon={Sparkles}
+                tone="bg-rose-500/10 text-rose-600"
+                title="About Our Vision"
+                sub="Tell the story behind the mall."
+              >
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                  <div className="md:col-span-1 space-y-4">
+                    <p className="text-[11px] font-black uppercase tracking-widest text-slate-400">
+                      Visionary asset
+                    </p>
+                    <div className="aspect-[4/5] bg-slate-100 dark:bg-zinc-800 rounded-3xl border-2 border-dashed border-slate-300 dark:border-white/10 flex items-center justify-center overflow-hidden relative group">
+                      {config.aboutImageUrl ? (
+                        <img
+                          src={config.aboutImageUrl}
+                          alt="About section"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <ImageIcon size={32} className="text-slate-400" />
+                      )}
+                      <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center cursor-pointer transition-opacity text-white text-[10px] font-black uppercase tracking-widest gap-1">
+                        <Edit size={22} />
+                        Change
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => handleImageUpload("aboutImageUrl", e)}
+                        />
+                      </label>
+                    </div>
+                    <Field label="Image URL" hint="Filled in automatically when you upload.">
+                      <input
+                        value={config.aboutImageUrl ?? ""}
+                        onChange={(e) => handleConfigChange("aboutImageUrl", e.target.value)}
+                        className="cms-input"
+                        placeholder="https://…"
+                      />
+                    </Field>
+                  </div>
+                  <div className="md:col-span-2 space-y-5">
+                    <Field label="Section headline" hint="Leave empty to keep “Our Legacy”.">
+                      <input
+                        value={config.aboutTitle ?? ""}
+                        onChange={(e) => handleConfigChange("aboutTitle", e.target.value)}
+                        className="cms-input"
+                        placeholder="Our Legacy"
+                      />
+                    </Field>
+                    <Field label="Narrative text" hint="Leave empty to keep the original story.">
+                      <textarea
+                        value={config.aboutDescription ?? ""}
+                        onChange={(e) => handleConfigChange("aboutDescription", e.target.value)}
+                        className="cms-input min-h-[220px] resize-none"
+                        placeholder="Since 1995..."
+                      />
+                    </Field>
+                  </div>
+                </div>
+              </SettingsCard>
+
+              {/* ── Featured video ───────────────────────────────────────── */}
+              <SettingsCard
+                icon={Monitor}
+                tone="bg-indigo-500/10 text-indigo-600"
+                title="Featured video"
+                sub="The cinematic section below the featured products"
+              >
+                <div className="flex flex-col md:flex-row md:items-start items-center gap-8">
+                  <div className="w-full md:w-48 shrink-0 aspect-video bg-slate-100 dark:bg-zinc-800 rounded-3xl border-2 border-dashed border-slate-300 dark:border-white/10 flex items-center justify-center overflow-hidden group relative">
+                    <video
+                      key={config.featuredVideoUrl || "default"}
+                      src={config.featuredVideoUrl || "/vid/Download.mp4"}
+                      className="w-full h-full object-cover"
+                      controls
+                    />
+                    <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center cursor-pointer transition-opacity text-white text-[10px] font-black uppercase tracking-widest gap-1">
+                      <Plus size={22} />
+                      Replace
+                      <input
+                        type="file"
+                        accept="video/*"
+                        className="hidden"
+                        onChange={(e) => handleImageUpload("featuredVideoUrl", e)}
+                      />
+                    </label>
+                  </div>
+                  <div className="flex-1 space-y-5 w-full min-w-0">
+                    <Field
+                      label="Video URL"
+                      hint="Leave empty to use the default mall film. Uploading replaces it automatically."
+                    >
+                      <input
+                        value={config.featuredVideoUrl ?? ""}
+                        onChange={(e) => handleConfigChange("featuredVideoUrl", e.target.value)}
+                        className="cms-input"
+                        placeholder="https://…"
+                      />
+                    </Field>
+                    <Field label="Heading">
+                      <input
+                        value={config.videoTitle ?? ""}
+                        onChange={(e) => handleConfigChange("videoTitle", e.target.value)}
+                        className="cms-input"
+                        placeholder="Elevate Your Lifestyle."
+                      />
+                    </Field>
+                    <Field label="Description">
+                      <textarea
+                        value={config.videoDescription ?? ""}
+                        onChange={(e) => handleConfigChange("videoDescription", e.target.value)}
+                        className="cms-input min-h-[88px] resize-none"
+                        placeholder="Watch our latest visual showcase highlighting the premier shopping and dining experiences waiting for you at SR Mall. Immerse yourself in the extraordinary."
+                      />
+                    </Field>
+                    <Field label="Link label" hint="The link that jumps to the shop directory.">
+                      <input
+                        value={config.videoCtaLabel ?? ""}
+                        onChange={(e) => handleConfigChange("videoCtaLabel", e.target.value)}
+                        className="cms-input"
+                        placeholder="Explore the shops"
+                      />
+                    </Field>
+                  </div>
                 </div>
               </SettingsCard>
 
@@ -1251,167 +1558,6 @@ export default function PublicViewCMSPage() {
                   </div>
                 </div>
               )}
-            </div>
-          )}
-
-          {activeTab === "content" && (
-            <div className="space-y-12">
-              <div className="space-y-10">
-                <SectionHeader
-                  icon={Globe}
-                  title="About Our Vision"
-                  sub="Tell the story behind the mall."
-                />
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                  <div className="md:col-span-1">
-                    <p className="text-[11px] font-black uppercase tracking-widest text-slate-400 mb-4">
-                      Visionary Asset
-                    </p>
-                    <div className="aspect-[4/5] bg-slate-100 dark:bg-zinc-800 rounded-3xl border-2 border-dashed border-slate-300 dark:border-white/10 flex items-center justify-center overflow-hidden relative group">
-                      {config.aboutImageUrl ? (
-                        <img
-                          src={config.aboutImageUrl}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <ImageIcon size={32} className="text-slate-400" />
-                      )}
-                      <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity">
-                        <Edit size={24} className="text-white" />
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={(e) =>
-                            handleImageUpload("aboutImageUrl", e)
-                          }
-                        />
-                      </label>
-                    </div>
-                  </div>
-                  <div className="md:col-span-2 space-y-6">
-                    <InputGroup label="Section Headline" icon={Layers}>
-                      <input
-                        value={config.aboutTitle ?? ""}
-                        onChange={(e) =>
-                          handleConfigChange("aboutTitle", e.target.value)
-                        }
-                        className="cms-input"
-                        placeholder="Our Legacy"
-                      />
-                    </InputGroup>
-                    <InputGroup label="Narrative Text" icon={Globe}>
-                      <textarea
-                        value={config.aboutDescription ?? ""}
-                        onChange={(e) =>
-                          handleConfigChange("aboutDescription", e.target.value)
-                        }
-                        className="cms-input min-h-[220px] resize-none"
-                        placeholder="Since 1995..."
-                      />
-                    </InputGroup>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-10 pt-10 border-t border-slate-100 dark:border-white/5">
-                <SectionHeader
-                  icon={Monitor}
-                  title="Media Engagement"
-                  sub="Configure your featured cinematic asset."
-                />
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="md:col-span-2 bg-white dark:bg-zinc-900/50 border border-slate-100 dark:border-white/5 p-8 rounded-[2.5rem] shadow-sm">
-                    <p className="text-[11px] font-black uppercase tracking-widest text-slate-400 mb-6">
-                      Cinematic Asset (Video)
-                    </p>
-                    <div className="flex flex-col md:flex-row items-center gap-8">
-                      <div className="w-48 aspect-video bg-slate-100 dark:bg-zinc-800 rounded-3xl border-2 border-dashed border-slate-300 dark:border-white/10 flex items-center justify-center overflow-hidden group relative">
-                        <video
-                          key={config.featuredVideoUrl || "default"}
-                          src={config.featuredVideoUrl || "/vid/Download.mp4"}
-                          className="w-full h-full object-cover"
-                          controls
-                        />
-                        <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity">
-                          <Plus size={24} className="text-white" />
-                          <input
-                            type="file"
-                            accept="video/*"
-                            className="hidden"
-                            onChange={(e) => handleImageUpload("featuredVideoUrl", e)}
-                          />
-                        </label>
-                      </div>
-                      <div className="flex-1 space-y-4 w-full">
-                        <InputGroup label="Cinema URL (Direct Video Link)" icon={Globe}>
-                          <input
-                            value={config.featuredVideoUrl ?? ""}
-                            onChange={(e) =>
-                              handleConfigChange("featuredVideoUrl", e.target.value)
-                            }
-                            className="w-full bg-slate-50 dark:bg-zinc-800 border-none rounded-2xl p-4 text-sm font-bold placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-                            placeholder="https://..."
-                          />
-                        </InputGroup>
-                      </div>
-                    </div>
-                  </div>
-
-                  <InputGroup label="Engagement Title" icon={Sparkles}>
-                    <input
-                      value={config.videoTitle ?? ""}
-                      onChange={(e) =>
-                        handleConfigChange("videoTitle", e.target.value)
-                      }
-                      className="cms-input"
-                      placeholder="Discover Excellence"
-                    />
-                  </InputGroup>
-                  <div className="md:col-span-1">
-                    <InputGroup label="Contextual Subtext" icon={Layers}>
-                      <input
-                        value={config.videoDescription ?? ""}
-                        onChange={(e) =>
-                          handleConfigChange("videoDescription", e.target.value)
-                        }
-                        className="cms-input"
-                        placeholder="A cinematic look at our latest developments."
-                      />
-                    </InputGroup>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-10 pt-10 border-t border-slate-100 dark:border-white/5">
-                <SectionHeader
-                  icon={Globe}
-                  title="Footer Context"
-                  sub="Information shown at the base of your site."
-                />
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <InputGroup label="Footer Headline" icon={Layers}>
-                    <input
-                      value={config.contactTitle ?? ""}
-                      onChange={(e) =>
-                        handleConfigChange("contactTitle", e.target.value)
-                      }
-                      className="cms-input"
-                      placeholder="Connect with Us"
-                    />
-                  </InputGroup>
-                  <InputGroup label="Sign-off Message" icon={Globe}>
-                    <input
-                      value={config.contactDescription ?? ""}
-                      onChange={(e) =>
-                        handleConfigChange("contactDescription", e.target.value)
-                      }
-                      className="cms-input"
-                      placeholder="Visit us daily from 10am to 10pm."
-                    />
-                  </InputGroup>
-                </div>
-              </div>
             </div>
           )}
 

@@ -1,25 +1,39 @@
 "use client";
 
-import { isOutOfStock, productHref } from "@/lib/products";
-import React, { useEffect, useState } from "react";
+import {
+  availabilityLabel,
+  isOutOfStock,
+  productHref,
+} from "@/lib/products";
+import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
+  AlertTriangle,
   ArrowLeft,
+  CalendarDays,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  Flame,
+  Heart,
+  Loader2,
   MapPin,
   MessageCircle,
-  AlertTriangle,
-  CheckCircle,
-  ChevronRight,
-  ChevronLeft,
-  Loader2,
+  Phone,
+  Search,
+  ShoppingBag,
+  Star,
   Store,
   Tag,
-  Search,
   X,
-  ShoppingBag,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { DigitalStorefront } from "@/types/storefront";
-import { getStorefrontByIdAction } from "@/app/actions/tenant";
+import {
+  getDirectoryShopsAction,
+  getStorefrontByIdAction,
+} from "@/app/actions/tenant";
 import { useAuth } from "@/app/providers";
 import { spaCache } from "@/utils/cache";
 import { ChatBox } from "@/components/chat-box";
@@ -28,6 +42,8 @@ import { ShopPromos } from "@/components/shop-promos";
 import NotificationDropdown from "@/components/notification-dropdown";
 import { FeedbackSection } from "@/components/feedback-section";
 import { LoginModal } from "@/components/login-modal";
+import { FAVORITES_EVENT, readLocalFavorites, setFavorite } from "@/lib/favorites";
+import { formatSaleDate, isSaleActive, saleEndsAt } from "@/lib/post-sales";
 import clsx from "clsx";
 
 // Premium Placeholders for Broken/Blob URLs
@@ -37,6 +53,15 @@ const PLACEHOLDERS = [
   "/images/logo/gudget3.webp",
   "/images/logo/logoshop.jpg",
 ];
+
+const FLOOR_LABELS: Record<string, string> = {
+  ground: "Ground Floor",
+  first: "First Floor",
+  second: "Second Floor",
+};
+
+type ShopTab = "products" | "about" | "promos";
+type SortKey = "featured" | "price-asc" | "price-desc" | "name-asc";
 
 const getSafeUrl = (url: string | null | undefined, index: number) => {
   if (!url || url.startsWith("blob:") || url.includes("placeholder")) {
@@ -50,10 +75,44 @@ const getGalleryUrls = (galleryUrls: string[] | null | undefined): string[] => {
   return Array.isArray(galleryUrls) ? galleryUrls : [];
 };
 
+/** Prices are raw strings ("99.0", "1111", "---"); only format real numbers. */
+const formatPrice = (raw?: string | null): string | null => {
+  const value = (raw || "").trim();
+  if (!value) return null;
+  const numeric = Number(value.replace(/,/g, ""));
+  if (!Number.isFinite(numeric) || !/\d/.test(value)) return value;
+  return new Intl.NumberFormat("en-PH", {
+    style: "currency",
+    currency: "PHP",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: Number.isInteger(numeric) ? 0 : 2,
+  }).format(numeric);
+};
+
+const priceValue = (raw?: string | null): number | null => {
+  const value = (raw || "").trim().replace(/,/g, "");
+  if (!value || !/\d/.test(value)) return null;
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : null;
+};
+
+/** Display-only cleanup for descriptions that were saved with light markdown. */
+const plainText = (text?: string | null): string =>
+  (text || "")
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/[*_`>]/g, "")
+    .trim();
+
+const plainPreview = (text?: string | null): string =>
+  plainText(text).replace(/\s+/g, " ").trim();
+
+type InfoItem = { label: string; value: React.ReactNode; icon: LucideIcon };
+
 export default function ShopProfilePage() {
   const params = useParams();
   const router = useRouter();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const [shop, setShop] = useState<DigitalStorefront | null>(() => {
     return params?.id ? spaCache.get("shop_profile_" + params.id) : null;
   });
@@ -61,10 +120,23 @@ export default function ShopProfilePage() {
     return params?.id ? !spaCache.has("shop_profile_" + params.id) : true;
   });
   const [error, setError] = useState<string | null>(null);
+  const [extras, setExtras] = useState<{
+    avgRating: number;
+    reviewCount: number;
+    floor: string | null;
+  } | null>(() => {
+    return params?.id ? spaCache.get("shop_extras_" + params.id) : null;
+  });
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [productSearch, setProductSearch] = useState("");
+  const [activeTab, setActiveTab] = useState<ShopTab>("products");
+  const [activeCategory, setActiveCategory] = useState("All");
+  const [sortBy, setSortBy] = useState<SortKey>("featured");
+  const [promoCount, setPromoCount] = useState<number | null>(null);
+  const [isFavorited, setIsFavorited] = useState(false);
+
   // Products open their own page (/products/[shopId]/[productId]).
   const setSelectedProduct = (p: any) => {
     const shopId = p?.shopId || (params.id as string);
@@ -76,14 +148,32 @@ export default function ShopProfilePage() {
       if (params?.id) {
         const hasCache = spaCache.has("shop_profile_" + params.id);
         if (!hasCache) setLoading(true);
-        const res = await getStorefrontByIdAction(params.id as string);
+        if (!spaCache.get("shop_extras_" + params.id)) setExtras(null);
+        setError(null);
+        const [res, directory] = await Promise.all([
+          getStorefrontByIdAction(params.id as string),
+          getDirectoryShopsAction().catch(() => null),
+        ]);
         if (res.success && res.data) {
           setShop(res.data);
+          setActiveImageIndex(0);
           spaCache.set("shop_profile_" + params.id, res.data);
         } else {
           // If we have cached data but API failed, let's keep showing cached data but log error
           if (!hasCache) {
             setError(res.error || "Shop not found");
+          }
+        }
+        if (directory && directory.success && directory.data) {
+          const row = directory.data.find((s) => s.id === params.id);
+          if (row) {
+            const nextExtras = {
+              avgRating: Number(row.avgRating || 0),
+              reviewCount: Number(row.reviewCount || 0),
+              floor: row.floor || null,
+            };
+            setExtras(nextExtras);
+            spaCache.set("shop_extras_" + params.id, nextExtras);
           }
         }
         setLoading(false);
@@ -92,33 +182,90 @@ export default function ShopProfilePage() {
     loadShop();
   }, [params?.id]);
 
+  // Reset the catalog controls when visiting another shop.
+  useEffect(() => {
+    setActiveTab("products");
+    setActiveCategory("All");
+    setSortBy("featured");
+    setProductSearch("");
+    setPromoCount(null);
+  }, [params?.id]);
+
+  // Favourites: account-backed when signed in (see lib/favorites).
+  useEffect(() => {
+    const refresh = () =>
+      setIsFavorited(shop?.id ? readLocalFavorites().includes(shop.id) : false);
+    refresh();
+    window.addEventListener(FAVORITES_EVENT, refresh);
+    return () => window.removeEventListener(FAVORITES_EVENT, refresh);
+  }, [shop?.id]);
+
+  const toggleFavorite = async () => {
+    if (!shop?.id) return;
+    const next = !isFavorited;
+    setIsFavorited(next);
+    const ok = await setFavorite(shop.id, next, user?.id);
+    if (!ok) setIsFavorited(!next);
+  };
+
+  const products = shop?.products ?? [];
+  const activeSales = (shop?.post_sales ?? []).filter((sale) => isSaleActive(sale));
+
+  const productCategories = useMemo(() => {
+    const seen = new Set<string>();
+    for (const p of products) {
+      const category = (p.category || "").trim();
+      if (category) seen.add(category);
+    }
+    return Array.from(seen);
+  }, [products]);
+
+  const filteredProducts = useMemo(() => {
+    const query = productSearch.trim().toLowerCase();
+    const rows = products.filter((p) => {
+      if (activeCategory !== "All" && (p.category || "").trim() !== activeCategory) {
+        return false;
+      }
+      if (!query) return true;
+      return (
+        (p.name || "").toLowerCase().includes(query) ||
+        (p.description || "").toLowerCase().includes(query)
+      );
+    });
+
+    if (sortBy === "name-asc") {
+      rows.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+    } else if (sortBy === "price-asc" || sortBy === "price-desc") {
+      rows.sort((a, b) => {
+        const aPrice = priceValue(a.price);
+        const bPrice = priceValue(b.price);
+        if (aPrice === null && bPrice === null) return 0;
+        if (aPrice === null) return 1;
+        if (bPrice === null) return -1;
+        return sortBy === "price-asc" ? aPrice - bPrice : bPrice - aPrice;
+      });
+    }
+
+    return rows;
+  }, [products, productSearch, activeCategory, sortBy]);
+
+  const searchMatches = productSearch.trim()
+    ? products
+        .filter((p) =>
+          (p.name || "")
+            .toLowerCase()
+            .includes(productSearch.trim().toLowerCase()),
+        )
+        .slice(0, 5)
+    : [];
+
+  const totalPromos = (promoCount ?? 0) + activeSales.length;
+
   if (loading) {
     return (
-      <div
-        className={clsx(
-          "min-h-screen",
-          "bg-white",
-          "dark:bg-zinc-950",
-          "flex",
-          "flex-col",
-          "items-center",
-          "justify-center",
-          "space-y-6",
-        )}
-      >
-        <Loader2
-          className={clsx("w-12", "h-12", "text-primary", "animate-spin")}
-        />
-        <p
-          className={clsx(
-            "text-[10px]",
-            "font-black",
-            "uppercase",
-            "tracking-[0.3em]",
-            "text-slate-400",
-            "animate-pulse",
-          )}
-        >
+      <div className="flex min-h-screen flex-col items-center justify-center space-y-6 bg-[#FAF7F3] dark:bg-zinc-950">
+        <Loader2 className="h-12 w-12 animate-spin text-[#C51D30]" />
+        <p className="animate-pulse text-[10px] font-bold uppercase tracking-[0.3em] text-[#A79E98]">
           Consulting Mall Concierge...
         </p>
       </div>
@@ -127,72 +274,19 @@ export default function ShopProfilePage() {
 
   if (error || !shop) {
     return (
-      <div
-        className={clsx(
-          "min-h-screen",
-          "bg-white",
-          "dark:bg-zinc-950",
-          "flex",
-          "flex-col",
-          "items-center",
-          "justify-center",
-          "p-8",
-          "text-center",
-        )}
-      >
-        <div
-          className={clsx(
-            "w-20",
-            "h-20",
-            "bg-primary/10",
-            "rounded-full",
-            "flex",
-            "items-center",
-            "justify-center",
-            "text-primary",
-            "mb-6",
-          )}
-        >
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[#FAF7F3] p-8 text-center dark:bg-zinc-950">
+        <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-[#C51D30]/10 text-[#C51D30]">
           <AlertTriangle size={40} />
         </div>
-        <h2
-          className={clsx(
-            "text-3xl",
-            "font-black",
-            "text-charcoal",
-            "dark:text-white",
-            "mb-4",
-            "uppercase",
-            "text-center",
-          )}
-        >
+        <h2 className="mb-3 text-3xl font-black uppercase tracking-tight text-[#21191B] dark:text-white">
           Slot Vacant
         </h2>
-        <p
-          className={clsx("text-slate-500", "font-medium", "max-w-sm", "mb-8")}
-        >
+        <p className="mb-8 max-w-sm font-medium text-[#70656A] dark:text-slate-400">
           {error || "This unit currently has no digital profile."}
         </p>
         <button
           onClick={() => router.back()}
-          className={clsx(
-            "flex",
-            "items-center",
-            "gap-2",
-            "px-8",
-            "py-4",
-            "bg-primary",
-            "text-white",
-            "rounded-2xl",
-            "font-black",
-            "text-xs",
-            "uppercase",
-            "tracking-widest",
-            "shadow-xl",
-            "shadow-primary/20",
-            "hover:scale-105",
-            "transition-transform",
-          )}
+          className="flex items-center gap-2 rounded-full bg-[#C51D30] px-7 py-3.5 text-xs font-bold uppercase tracking-[0.16em] text-white shadow-lg shadow-[#C51D30]/25 transition-all hover:bg-[#A8172A] hover:shadow-xl active:scale-95"
         >
           <ArrowLeft size={16} /> Return to Directory
         </button>
@@ -201,910 +295,777 @@ export default function ShopProfilePage() {
   }
 
   const galleryUrls = getGalleryUrls(shop.gallery_urls);
+  const coverIndex = galleryUrls.length ? activeImageIndex % galleryUrls.length : 0;
+  const coverUrl = galleryUrls.length
+    ? getSafeUrl(galleryUrls[coverIndex], coverIndex)
+    : null;
+  const coverIsVideo = !!coverUrl &&
+    (!!coverUrl.match(/\.(mp4|webm|mov|ogg)$/i) || coverUrl.includes("/video/upload/"));
+  const logo = getSafeUrl(shop.logo_url || "", 0);
+  const hasUnit =
+    !!shop.unit_id &&
+    shop.unit_id !== "PENDING" &&
+    shop.unit_id !== "PENDING_ASSIGNMENT";
+  const floorKey = extras?.floor || shop.floor || null;
+  const floorLabel = floorKey ? FLOOR_LABELS[floorKey] || floorKey : null;
+
+  const infoItems: InfoItem[] = [
+    {
+      label: "Products",
+      value: `${products.length} ${products.length === 1 ? "item" : "items"}`,
+      icon: ShoppingBag,
+    },
+  ];
+  if (extras && extras.reviewCount > 0) {
+    infoItems.push({
+      label: "Rating",
+      value: `${extras.avgRating.toFixed(1)} (${extras.reviewCount} ${
+        extras.reviewCount === 1 ? "review" : "reviews"
+      })`,
+      icon: Star,
+    });
+  }
+  if (shop.category) {
+    infoItems.push({ label: "Category", value: shop.category, icon: Tag });
+  }
+  if (hasUnit) {
+    infoItems.push({
+      label: "Location",
+      value: `Unit ${shop.unit_id}${floorLabel ? ` · ${floorLabel}` : ""}`,
+      icon: MapPin,
+    });
+  }
+  if (shop.opening_hours) {
+    infoItems.push({
+      label: "Hours",
+      value: shop.opening_hours,
+      icon: Clock,
+    });
+  }
+  if (shop.phone) {
+    infoItems.push({
+      label: "Phone",
+      value: (
+        <a
+          href={`tel:${shop.phone.replace(/[^\d+]/g, "")}`}
+          className="hover:text-[#C51D30]"
+        >
+          {shop.phone}
+        </a>
+      ),
+      icon: Phone,
+    });
+  }
+  if (shop.createdAt) {
+    const joined = new Date(shop.createdAt);
+    if (!Number.isNaN(joined.getTime())) {
+      infoItems.push({
+        label: "Joined",
+        value: joined.toLocaleDateString("en-US", {
+          month: "short",
+          year: "numeric",
+        }),
+        icon: CalendarDays,
+      });
+    }
+  }
+
+  const tabs: {
+    id: ShopTab;
+    label: string;
+    shortLabel?: string;
+    icon: LucideIcon;
+    count: number;
+  }[] = [
+    { id: "products", label: "Products", icon: ShoppingBag, count: products.length },
+    { id: "about", label: "About the shop", shortLabel: "About", icon: Store, count: 0 },
+    {
+      id: "promos",
+      label: "Promos & sales",
+      shortLabel: "Promos",
+      icon: Tag,
+      count: totalPromos,
+    },
+  ];
+
+  const openChat = () => {
+    if (isAuthenticated) setIsChatOpen(true);
+    else setIsLoginModalOpen(true);
+  };
 
   return (
-    <div
-      className={clsx(
-        "min-h-screen",
-        "bg-white",
-        "dark:bg-zinc-950",
-        "pb-24",
-        "lg:pb-0",
-        "relative",
-        "overflow-x-hidden",
-      )}
-    >
-      {/* Premium Background Elements */}
-      <div className="absolute top-0 left-0 w-full h-[300px] sm:h-[500px] bg-gradient-to-b from-primary/5 to-transparent pointer-events-none" />
-      <div className="absolute -top-12 -right-12 sm:-top-24 sm:-right-24 w-64 h-64 sm:w-96 sm:h-96 bg-primary/10 rounded-full blur-[60px] sm:blur-[100px] pointer-events-none" />
-
-      {/* Dynamic Navigation Bar (Sticky) */}
-      <nav
-        className={clsx(
-          "sticky",
-          "top-0",
-          "z-50",
-          "bg-white/80",
-          "dark:bg-zinc-950/80",
-          "backdrop-blur-xl",
-          "border-b",
-          "border-slate-100",
-          "dark:border-white/5",
-          "px-4",
-          "sm:px-6",
-          "py-3",
-          "flex",
-          "items-center",
-          "justify-between",
-        )}
-      >
-        <button
-          onClick={() => router.back()}
-          className={clsx(
-            "w-9",
-            "h-9",
-            "sm:w-10",
-            "sm:h-10",
-            "rounded-xl",
-            "bg-slate-50",
-            "dark:bg-zinc-900",
-            "flex",
-            "items-center",
-            "justify-center",
-            "text-slate-500",
-            "hover:bg-primary",
-            "hover:text-white",
-            "transition-colors",
-            "group",
-          )}
-        >
-          <ArrowLeft
-            size={18}
-            className={clsx(
-              "group-hover:-translate-x-1",
-              "transition-transform",
-            )}
-          />
-        </button>
-
-        <div
-          className={clsx(
-            "flex",
-            "flex-col",
-            "items-center",
-            "max-w-[180px] sm:max-w-md",
-            "mx-auto",
-            "px-3",
-            "sm:px-5",
-            "py-1",
-            "sm:py-1.5",
-            "rounded-xl",
-            "sm:rounded-2xl",
-            "bg-slate-50/50",
-            "dark:bg-white/5",
-            "border",
-            "border-slate-200/50",
-            "dark:border-white/10",
-            "shadow-sm",
-          )}
-        >
-          <div className={clsx("flex", "items-center", "gap-1.5", "mb-0.5")}>
-            <div
-              className={clsx(
-                "w-1",
-                "h-1",
-                "sm:w-1.5",
-                "sm:h-1.5",
-                "rounded-full",
-                "bg-emerald-500",
-                "animate-pulse",
-                "shadow-[0_0_8px_rgba(16,185,129,0.5)]",
-              )}
-            />
-            <h4
-              className={clsx(
-                "text-[6px] sm:text-[7px]",
-                "font-black",
-                "text-slate-400",
-                "uppercase",
-                "tracking-[0.3em] sm:tracking-[0.4em]",
-                "leading-none",
-              )}
+    <div className="min-h-screen bg-[#FAF7F3] pb-24 text-[#21191B] dark:bg-zinc-950 dark:text-white">
+      {/* Slim sticky back-nav */}
+      <nav className="sticky top-0 z-50 border-b border-[#EDE6E0] bg-[#FAF7F3]/90 backdrop-blur-xl dark:border-white/5 dark:bg-zinc-950/90">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-10">
+          <div className="flex min-w-0 items-center gap-3">
+            <button
+              onClick={() => router.back()}
+              aria-label="Back to directory"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#E8E2DE] bg-white text-[#70656A] shadow-sm transition-colors hover:border-[#C51D30]/30 hover:text-[#C51D30] dark:border-white/10 dark:bg-zinc-900 dark:text-slate-300"
             >
-              Now Visiting
-            </h4>
-          </div>
-          <div className={clsx("flex", "items-center", "gap-2 sm:gap-3")}>
-            <span
-              className={clsx(
-                "text-[10px] sm:text-sm",
-                "font-black",
-                "text-charcoal",
-                "dark:text-white",
-                "tracking-tight",
-                "uppercase",
-                "line-clamp-1",
-              )}
-            >
-              {shop.shop_name}
-            </span>
-            <div
-              className={clsx(
-                "h-2.5 sm:h-3",
-                "w-[1px] sm:w-[1.5px]",
-                "bg-primary/20",
-                "rounded-full",
-                "hidden xs:block",
-              )}
-            ></div>
-            <div className={clsx("hidden xs:flex", "items-center", "gap-1")}>
-              <Tag size={10} className="text-primary hidden sm:block" />
-              <span
-                className={clsx(
-                  "text-[8px] sm:text-[9px]",
-                  "font-bold",
-                  "text-slate-500",
-                  "dark:text-slate-400",
-                  "uppercase",
-                  "tracking-widest",
-                )}
-              >
-                Fashion
-              </span>
+              <ArrowLeft size={17} />
+            </button>
+            <div className="min-w-0">
+              <p className="text-[9px] font-semibold uppercase tracking-[0.22em] text-[#A79E98]">
+                Now visiting
+              </p>
+              <p className="truncate text-sm font-bold text-[#21191B] dark:text-white">
+                {shop.shop_name}
+              </p>
             </div>
           </div>
+          {isAuthenticated ? (
+            <NotificationDropdown />
+          ) : (
+            <div className="h-9 w-9 sm:h-10 sm:w-10" aria-hidden />
+          )}
         </div>
-
-        {/* Signed-in shoppers keep their bell (alerts + new messages) on shop pages too. */}
-        {isAuthenticated ? <NotificationDropdown /> : <div className="w-9 h-9 sm:w-10 sm:h-10" aria-hidden />}
       </nav>
 
-      <div
-        className={clsx(
-          "max-w-7xl",
-          "mx-auto",
-          "px-4",
-          "sm:px-6",
-          "lg:px-10",
-          "py-6",
-          "sm:py-8",
-          "lg:py-12",
-        )}
-      >
-        {/* main card: Glass container */}
-        <div
-          className={clsx(
-            "bg-white",
-            "dark:bg-zinc-900/40",
-            "rounded-[2rem]",
-            "sm:rounded-[3rem]",
-            "border",
-            "border-slate-200",
-            "dark:border-white/5",
-            "shadow-2xl",
-            "overflow-hidden",
-            "grid",
-            "grid-cols-1",
-            "lg:grid-cols-12",
-          )}
-        >
-          {/* Left Side: Media / Lookbook (7 cols) */}
-          <div
-            className={clsx(
-              "lg:col-span-7",
-              "p-4",
-              "sm:p-6",
-              "lg:p-10",
-              "border-b",
-              "lg:border-b-0",
-              "lg:border-r",
-              "border-slate-100",
-              "dark:border-white/5",
-            )}
-          >
-            {/* Main Hero Slider */}
-            <div
-              className={clsx(
-                "relative",
-                "aspect-[4/3] sm:aspect-video lg:aspect-[4/3]",
-                "rounded-[1.5rem] sm:rounded-[2.5rem]",
-                "overflow-hidden",
-                "bg-slate-100",
-                "dark:bg-zinc-800",
-                "shadow-xl",
-                "group/slider",
-              )}
-            >
-              {(() => {
-                const galleryUrls = getGalleryUrls(shop.gallery_urls);
-                if (!galleryUrls || galleryUrls.length === 0) {
-                  return (
-                    <div
-                      className={clsx(
-                        "w-full",
-                        "h-full",
-                        "flex",
-                        "flex-col",
-                        "items-center",
-                        "justify-center",
-                        "text-slate-300",
-                      )}
-                    >
-                      <Store size={60} className="sm:size-[80px]" />
-                      <span
-                        className={clsx(
-                          "text-[8px] sm:text-[10px]",
-                          "font-black",
-                          "uppercase",
-                          "tracking-widest",
-                          "mt-4",
-                          "text-center",
-                        )}
-                      >
-                        Store Hub Media Missing
-                      </span>
-                    </div>
-                  );
-                }
-
-                const currentUrl = getSafeUrl(
-                  galleryUrls[activeImageIndex],
-                  activeImageIndex,
-                );
-                const isVideo =
-                  currentUrl?.match(/\.(mp4|webm|mov|ogg)$/i) ||
-                  currentUrl?.includes("/video/upload/");
-
-                return isVideo ? (
-                  <video
-                    src={currentUrl}
-                    className={clsx("w-full", "h-full", "object-cover")}
-                    autoPlay
-                    loop
-                    muted
-                    playsInline
-                  />
-                ) : (
-                  <img
-                    src={currentUrl}
-                    className={clsx(
-                      "w-full",
-                      "h-full",
-                      "object-cover",
-                      "transition-transform",
-                      "duration-1000",
-                      "group-hover:scale-110",
-                    )}
-                    alt="Store Highlight"
-                  />
-                );
-              })()}
-
-              <div
-                className={clsx(
-                  "absolute",
-                  "inset-0",
-                  "bg-gradient-to-t",
-                  "from-black/40",
-                  "via-transparent",
-                  "to-black/20",
-                  "pointer-events-none",
-                )}
-              ></div>
-
-              {/* Carousel Controls */}
-              {(() => {
-                const galleryUrls = getGalleryUrls(shop.gallery_urls);
-                return (
-                  galleryUrls &&
-                  galleryUrls.length > 1 && (
-                    <>
-                      <button
-                        onClick={() =>
-                          setActiveImageIndex((prev) =>
-                            prev === 0 ? galleryUrls.length - 1 : prev - 1,
-                          )
-                        }
-                        className={clsx(
-                          "absolute",
-                          "left-2",
-                          "sm:left-4",
-                          "top-1/2",
-                          "-translate-y-1/2",
-                          "w-10",
-                          "h-10",
-                          "sm:w-12",
-                          "sm:h-12",
-                          "bg-white/10",
-                          "hover:bg-white/30",
-                          "backdrop-blur-xl",
-                          "rounded-xl",
-                          "sm:rounded-2xl",
-                          "flex",
-                          "items-center",
-                          "justify-center",
-                          "text-white",
-                          "opacity-80 sm:opacity-0",
-                          "group-hover/slider:opacity-100",
-                          "transition-all",
-                          "active:scale-95",
-                        )}
-                      >
-                        <ChevronLeft size={20} className="sm:size-[24px]" />
-                      </button>
-                      <button
-                        onClick={() =>
-                          setActiveImageIndex((prev) =>
-                            prev === galleryUrls.length - 1 ? 0 : prev + 1,
-                          )
-                        }
-                        className={clsx(
-                          "absolute",
-                          "right-2",
-                          "sm:right-4",
-                          "top-1/2",
-                          "-translate-y-1/2",
-                          "w-10",
-                          "h-10",
-                          "sm:w-12",
-                          "sm:h-12",
-                          "bg-white/10",
-                          "hover:bg-white/30",
-                          "backdrop-blur-xl",
-                          "rounded-xl",
-                          "sm:rounded-2xl",
-                          "flex",
-                          "items-center",
-                          "justify-center",
-                          "text-white",
-                          "opacity-80 sm:opacity-0",
-                          "group-hover/slider:opacity-100",
-                          "transition-all",
-                          "active:scale-95",
-                        )}
-                      >
-                        <ChevronRight size={20} className="sm:size-[24px]" />
-                      </button>
-                    </>
-                  )
-                );
-              })()}
-
-              {/* Store Status Overlay Badge */}
-              <div className="absolute bottom-4 left-4 sm:bottom-6 sm:left-6">
-                <div
-                  className={`px-3 py-1.5 sm:px-5 sm:py-2 rounded-full backdrop-blur-xl border flex items-center gap-1.5 sm:gap-2 shadow-2xl ${shop.is_open ? "bg-emerald-500/80 border-emerald-400/30 text-white" : "bg-charcoal/80 border-white/10 text-slate-300"}`}
-                >
-                  <div
-                    className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${shop.is_open ? "bg-white animate-pulse" : "bg-slate-400"}`}
-                  ></div>
-                  <span
-                    className={clsx(
-                      "text-[8px] sm:text-[10px]",
-                      "font-black",
-                      "uppercase",
-                      "tracking-[0.15em] sm:tracking-[0.2em]",
-                    )}
-                  >
-                    {shop.is_open ? "Open Now" : "Closed"}
-                  </span>
-                </div>
-              </div>
-
-              {/* Counter */}
-              <div className="absolute top-4 right-4 sm:top-6 sm:right-6">
-                <div className="bg-black/30 backdrop-blur-md px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg sm:rounded-xl border border-white/10 text-white text-[8px] sm:text-[9px] font-black uppercase tracking-widest">
-                  {(galleryUrls?.length || 0) > 0
-                    ? (activeImageIndex + 1).toString().padStart(2, "0")
-                    : "00"}{" "}
-                  / {(galleryUrls?.length || 0).toString().padStart(2, "0")}
-                </div>
-              </div>
-            </div>
-
-            {/* Gallery Thumbnails Strip */}
-            <div
-              className={clsx(
-                "flex",
-                "gap-3",
-                "sm:gap-4",
-                "mt-4 sm:mt-8",
-                "overflow-x-auto",
-                "pb-2",
-                "no-scrollbar",
-              )}
-            >
-              {galleryUrls.map((url, i) => (
-                <button
-                  key={i}
-                  onClick={() => setActiveImageIndex(i)}
-                  className={`w-16 h-16 sm:w-24 sm:h-24 shrink-0 rounded-xl sm:rounded-2xl overflow-hidden border-2 transition-all ${activeImageIndex === i ? "border-primary shadow-lg scale-105" : "border-transparent opacity-40 hover:opacity-100"}`}
-                >
-                  <img
-                    src={getSafeUrl(url, i)}
-                    className={clsx("w-full", "h-full", "object-cover")}
-                    alt="Gallery"
-                  />
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Right Side: Identity & Premium Interaction (5 cols) */}
-          <div
-            className={clsx(
-              "lg:col-span-5",
-              "bg-slate-50/30",
-              "dark:bg-zinc-950/20",
-              "p-6",
-              "sm:p-8",
-              "lg:p-12",
-              "flex",
-              "flex-col",
-              "justify-between",
-            )}
-          >
-            <div className="space-y-8 sm:space-y-12">
-              {/* Header: Logo + Identity */}
-              <div className="flex flex-col items-center lg:items-start gap-6 sm:gap-8">
-                <div className="relative group">
-                  <div className="absolute -inset-1 bg-gradient-to-r from-primary to-orange-500 rounded-[1.8rem] sm:rounded-[2.5rem] blur opacity-20 group-hover:opacity-40 transition-opacity"></div>
-                  <div
-                    className={clsx(
-                      "relative",
-                      "w-24",
-                      "h-24",
-                      "sm:w-32",
-                      "sm:h-32",
-                      "rounded-[1.6rem] sm:rounded-[2.2rem]",
-                      "bg-white",
-                      "dark:bg-zinc-900",
-                      "p-1",
-                      "sm:p-1.5",
-                      "shadow-2xl",
-                      "border",
-                      "border-slate-100",
-                      "dark:border-white/10",
-                      "rotate-2",
-                    )}
-                  >
+      <main className="mx-auto max-w-7xl px-4 pt-5 sm:px-6 sm:pt-7 lg:px-10">
+        {/* Wide horizontal shop profile card */}
+        <section className="overflow-hidden rounded-[1.75rem] border border-[#E8E2DE] bg-white shadow-[0_24px_60px_-45px_rgba(33,25,27,0.45)] dark:border-white/10 dark:bg-zinc-900">
+          <div className="grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.02fr)]">
+            {/* Cover */}
+            <div className="group/cover relative min-h-[300px] overflow-hidden bg-zinc-900 sm:min-h-[345px] lg:min-h-[360px]">
+              {coverIsVideo ? (
+                <video
+                  src={coverUrl!}
+                  className="absolute inset-0 h-full w-full object-cover"
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                />
+              ) : coverUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={coverUrl}
+                  alt={`${shop.shop_name} cover`}
+                  className="absolute inset-0 h-full w-full object-cover transition-transform duration-1000 hover:scale-105"
+                />
+              ) : (
+                <div className="absolute inset-0 overflow-hidden bg-gradient-to-br from-[#3A2E31] via-[#241C1E] to-[#120E0F]">
+                  {shop.logo_url && !shop.logo_url.startsWith("blob:") && (
+                    // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={getSafeUrl(shop.logo_url || "", 0)}
-                      className={clsx(
-                        "w-full",
-                        "h-full",
-                        "object-cover",
-                        "rounded-[1.4rem] sm:rounded-[2rem]",
-                      )}
-                      alt="Shop Logo"
+                      src={logo}
+                      alt=""
+                      aria-hidden
+                      className="h-full w-full scale-125 object-cover opacity-25 blur-2xl"
                     />
-                  </div>
-                </div>
-
-                <div className="text-center lg:text-left space-y-3 sm:space-y-4">
-                  <div className="inline-flex items-center gap-2 px-3 py-1 sm:px-4 sm:py-1.5 bg-primary/5 border border-primary/20 rounded-full mx-auto lg:mx-0">
-                    <Store size={10} className="text-primary sm:size-[12px]" />
-                    <span className="text-[8px] sm:text-[10px] font-black text-primary uppercase tracking-[0.2em] sm:tracking-[0.3em]">
-                      Verified Boutique
-                    </span>
-                  </div>
-                  <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black text-charcoal dark:text-white tracking-tighter uppercase leading-[0.9]">
-                    {shop.shop_name}
-                  </h1>
-
-                  {/* Compact Location Badge */}
-                  <div className="flex items-center justify-center lg:justify-start gap-2 sm:gap-3 pt-1">
-                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-zinc-900 dark:bg-zinc-800 flex items-center justify-center text-white">
-                      <MapPin size={14} className="sm:size-[16px]" />
-                    </div>
-                    <div className="flex flex-col text-left">
-                      <span className="text-[8px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-0.5 sm:mb-1">
-                        Floor Level
-                      </span>
-                      <span className="text-[10px] sm:text-xs font-black text-charcoal dark:text-white uppercase tracking-widest">
-                        {shop.unit_id} — Plaza Wing
-                      </span>
-                    </div>
-                  </div>
-                  {(shop.opening_hours || shop.phone) && (
-                    <div className="flex flex-wrap items-center justify-center lg:justify-start gap-x-4 gap-y-1 pt-2 text-[10px] sm:text-xs font-bold text-slate-500">
-                      {shop.opening_hours && <span>🕒 {shop.opening_hours}</span>}
-                      {shop.phone && (
-                        <a href={`tel:${shop.phone.replace(/\s+/g, "")}`} className="hover:text-primary">
-                          📞 {shop.phone}
-                        </a>
-                      )}
-                    </div>
                   )}
                 </div>
-              </div>
+              )}
 
-              {/* Description Body */}
-              <div className="relative p-5 sm:p-6 bg-white dark:bg-zinc-900 rounded-[1.2rem] sm:rounded-[1.5rem] border border-slate-100 dark:border-white/5 shadow-sm overflow-hidden">
-                <div className="absolute top-0 left-0 w-1 h-full bg-primary" />
-                <h3 className="text-[8px] sm:text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] sm:tracking-[0.4em] mb-3 sm:mb-4">
-                  Official Bio
-                </h3>
-                <p
-                  className={clsx(
-                    "text-sm sm:text-base",
-                    "text-slate-600",
-                    "dark:text-slate-300",
-                    "font-medium",
-                    "leading-relaxed",
-                    "italic",
-                  )}
-                >
-                  "
-                  {shop.description ||
-                    "Welcome to Rizal Fashion. We specialize in presenting the finest local craftsmanship mixed with global design trends. Experience the luxury of choice with our curated seasonal collections."}
-                  "
-                </p>
-              </div>
-            </div>
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-black/10" />
 
-            {/* Action Section */}
-            <div className="mt-8 sm:mt-12 space-y-3 sm:space-y-4">
+              {/* Favourite */}
               <button
-                onClick={() => {
-                  if (isAuthenticated) setIsChatOpen(true);
-                  else setIsLoginModalOpen(true);
-                }}
+                type="button"
+                onClick={toggleFavorite}
+                aria-pressed={isFavorited}
+                aria-label={
+                  isFavorited
+                    ? `Remove ${shop.shop_name} from favourites`
+                    : `Save ${shop.shop_name} to favourites`
+                }
+                title={isFavorited ? "Saved" : "Save to favourites"}
                 className={clsx(
-                  "w-full",
-                  "py-4 sm:py-5",
-                  "bg-primary",
-                  "text-white",
-                  "rounded-[1.2rem] sm:rounded-[1.5rem]",
-                  "flex",
-                  "items-center",
-                  "justify-center",
-                  "gap-3 sm:gap-4",
-                  "font-black",
-                  "text-[10px] sm:text-xs",
-                  "uppercase",
-                  "tracking-[0.15em] sm:tracking-[0.2em]",
-                  "hover:scale-[1.02]",
-                  "active:scale-95",
-                  "transition-all",
-                  "shadow-[0_15px_30px_-10px_rgba(190,30,45,0.4)]",
+                  "absolute left-4 top-4 z-20 flex h-10 w-10 items-center justify-center rounded-full border shadow-lg backdrop-blur-xl transition-all",
+                  isFavorited
+                    ? "border-[#C51D30] bg-[#C51D30] text-white"
+                    : "border-white/40 bg-white/20 text-white hover:bg-white hover:text-[#C51D30]",
                 )}
               >
-                <MessageCircle size={18} /> Initiate Concierge Chat
+                <Heart size={17} fill={isFavorited ? "currentColor" : "none"} />
               </button>
 
-              <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                <div className="p-3 sm:p-4 bg-white dark:bg-zinc-900 rounded-xl sm:rounded-2xl border border-slate-100 dark:border-white/5 flex flex-col items-center justify-center text-center">
-                  <span className="text-[7px] sm:text-[8px] font-bold text-slate-400 uppercase tracking-widest mb-0.5 sm:mb-1">
-                    Status
+              {/* Status + photo counter */}
+              <div className="absolute right-4 top-4 z-20 flex items-center gap-2">
+                {galleryUrls.length > 0 && (
+                  <span className="rounded-full border border-white/15 bg-black/35 px-2.5 py-1.5 text-[9px] font-bold uppercase tracking-[0.14em] text-white backdrop-blur-md">
+                    {(coverIndex + 1).toString().padStart(2, "0")} /{" "}
+                    {galleryUrls.length.toString().padStart(2, "0")}
                   </span>
-                  <span className="text-[8px] sm:text-[10px] font-black text-emerald-500 uppercase">
-                    Live Now
-                  </span>
+                )}
+                <span
+                  className={clsx(
+                    "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[9px] font-bold uppercase tracking-[0.14em] shadow-lg backdrop-blur-md",
+                    shop.is_open
+                      ? "border-emerald-400/30 bg-emerald-500/85 text-white"
+                      : "border-white/15 bg-black/45 text-slate-200",
+                  )}
+                >
+                  <span
+                    className={clsx(
+                      "h-1.5 w-1.5 rounded-full",
+                      shop.is_open ? "animate-pulse bg-white" : "bg-slate-400",
+                    )}
+                  />
+                  {shop.is_open ? "Open now" : "Closed"}
+                </span>
+              </div>
+
+              {/* Gallery arrows */}
+              {galleryUrls.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    aria-label="Previous shop photo"
+                    onClick={() =>
+                      setActiveImageIndex((prev) =>
+                        prev === 0 ? galleryUrls.length - 1 : prev - 1,
+                      )
+                    }
+                    className="absolute left-3 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-black/30 text-white opacity-80 backdrop-blur-md transition-all hover:bg-black/55 active:scale-95 sm:opacity-0 sm:group-hover/cover:opacity-100"
+                  >
+                    <ChevronLeft size={19} />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Next shop photo"
+                    onClick={() =>
+                      setActiveImageIndex((prev) =>
+                        prev === galleryUrls.length - 1 ? 0 : prev + 1,
+                      )
+                    }
+                    className="absolute right-3 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-black/30 text-white opacity-80 backdrop-blur-md transition-all hover:bg-black/55 active:scale-95 sm:opacity-0 sm:group-hover/cover:opacity-100"
+                  >
+                    <ChevronRight size={19} />
+                  </button>
+                </>
+              )}
+
+              {/* Identity + chat */}
+              <div className="absolute inset-x-0 bottom-0 z-10 p-5 sm:p-6">
+                <div className="flex items-end gap-3 sm:gap-4">
+                  <div className="h-14 w-14 shrink-0 overflow-hidden rounded-full border-2 border-white/85 bg-white shadow-xl sm:h-16 sm:w-16">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={logo}
+                      alt={`${shop.shop_name} logo`}
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                  <div className="min-w-0 pb-0.5">
+                    <h1 className="text-2xl font-black leading-tight tracking-tight text-white sm:text-3xl lg:text-4xl">
+                      {shop.shop_name}
+                    </h1>
+                    {shop.category && (
+                      <p className="mt-1.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/70">
+                        {shop.category}
+                      </p>
+                    )}
+                  </div>
                 </div>
-                <div className="p-3 sm:p-4 bg-white dark:bg-zinc-900 rounded-xl sm:rounded-2xl border border-slate-100 dark:border-white/5 flex flex-col items-center justify-center text-center">
-                  <span className="text-[7px] sm:text-[8px] font-bold text-slate-400 uppercase tracking-widest mb-0.5 sm:mb-1">
-                    Inquiries
-                  </span>
-                  <span className="text-[8px] sm:text-[10px] font-black text-charcoal dark:text-white uppercase">
-                    High Volume
-                  </span>
-                </div>
+
+                <button
+                  type="button"
+                  onClick={openChat}
+                  className="mt-4 inline-flex items-center gap-2 rounded-full bg-[#C51D30] px-5 py-2.5 text-xs font-semibold text-white shadow-lg shadow-[#C51D30]/30 transition-all hover:bg-[#A8172A] hover:shadow-xl active:scale-[0.98]"
+                >
+                  <MessageCircle size={15} /> Chat
+                </button>
               </div>
             </div>
-          </div>
-        </div>
-      </div>
 
-      {/* Approved promos running now (video plays here) */}
-      {shop?.id && <ShopPromos tenantId={shop.id} />}
+            {/* Shop information */}
+            <div className="flex flex-col p-5 sm:p-6 lg:p-7">
+              <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#C51D30]">
+                Shop information
+              </p>
+              <p className="mt-1 text-[13px] font-medium text-[#70656A] dark:text-slate-400">
+                {shop.is_open
+                  ? "Open now — browse the catalog or say hello."
+                  : "Currently closed — you can still browse the catalog."}
+              </p>
 
-      {/* Featured Products Section: The Lookbook */}
-      {shop?.products && shop.products.length > 0 && (
-        <div
-          className={clsx(
-            "max-w-7xl",
-            "mx-auto",
-            "px-4",
-            "sm:px-6",
-            "lg:px-10",
-            "pb-32",
-            "animate-fade-in-up",
-          )}
-          style={{ animationDelay: "400ms" }}
-        >
-          <div
-            className={clsx(
-              "flex",
-              "flex-col",
-              "lg:flex-row",
-              "lg:items-end",
-              "justify-between",
-              "mb-10 sm:mb-12",
-              "gap-6 sm:gap-8",
-            )}
-          >
-            <div className="space-y-3 sm:space-y-4">
-              <span className="text-[8px] sm:text-[10px] font-black text-primary uppercase tracking-[0.3em] sm:tracking-[0.4em]">
-                Curated Collection
-              </span>
-              <h3
-                className={clsx(
-                  "text-3xl sm:text-5xl",
-                  "font-black",
-                  "text-charcoal",
-                  "dark:text-white",
-                  "uppercase",
-                  "tracking-tighter",
-                  "leading-none",
-                )}
-              >
-                Store{" "}
-                <span className="text-slate-300 dark:text-zinc-800">
-                  Catalog.
-                </span>
-              </h3>
-            </div>
-
-            {/* Professional Search Input + Predictive Recommendations */}
-            <div className="relative group w-full lg:w-96">
-              <Search
-                size={18}
-                className="absolute left-4 sm:left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors"
-              />
-              <input
-                type="text"
-                placeholder="Search in this boutique..."
-                value={productSearch}
-                onChange={(e) => setProductSearch(e.target.value)}
-                className="w-full bg-slate-50 dark:bg-zinc-950 border-2 border-slate-100 dark:border-white/5 rounded-xl sm:rounded-2xl py-3.5 sm:py-4 pl-12 sm:pl-14 pr-10 sm:pr-6 text-[11px] sm:text-sm font-bold text-charcoal dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all"
-              />
-
-              {/* Predictive Search Panel */}
-              {productSearch && (
-                <div className="absolute top-full left-0 w-full mt-2 sm:mt-3 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-2xl sm:rounded-3xl shadow-2xl z-[100] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300">
-                  <div className="p-3 sm:p-4 border-b border-slate-50 dark:border-white/5">
-                    <span className="text-[8px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                      Recommended Matches
+              <div className="mt-4 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                {infoItems.map((item) => (
+                  <div
+                    key={item.label}
+                    className="flex min-w-0 items-start gap-3 rounded-xl border border-[#F0EAE4] bg-[#FDFBF9] p-3 dark:border-white/10 dark:bg-zinc-950/40"
+                  >
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[#C51D30]/15 bg-[#C51D30]/5 text-[#C51D30]">
+                      <item.icon size={15} />
                     </span>
-                  </div>
-                  <div className="max-h-60 sm:max-h-80 overflow-y-auto no-scrollbar">
-                    {shop.products
-                      .filter((p) =>
-                        (p.name || "")
-                          .toLowerCase()
-                          .includes(productSearch.toLowerCase()),
-                      )
-                      .slice(0, 5)
-                      .map((p, i) => (
-                        <button
-                          key={p.id}
-                          onClick={() => setProductSearch(p.name || "")}
-                          className="w-full p-3 sm:p-4 flex items-center gap-3 sm:gap-4 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors border-b border-slate-50 dark:border-white/5 last:border-0 text-left group/item"
-                        >
-                          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-slate-100 dark:bg-zinc-800 overflow-hidden shrink-0">
-                            {p.image_url ? (
-                              <img
-                                src={getSafeUrl(p.image_url, i)}
-                                className="w-full h-full object-cover group-hover/item:scale-110 transition-transform"
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-slate-300">
-                                <Store size={14} className="sm:size-[18px]" />
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex-1">
-                            <p className="text-[10px] sm:text-xs font-black text-charcoal dark:text-white line-clamp-1">
-                              {p.name || "Untitled Boutique Item"}
-                            </p>
-                            <p className="text-[8px] sm:text-[10px] font-bold text-emerald-600 uppercase tracking-widest">
-                              {p.price || "Price on Inquiry"}
-                            </p>
-                          </div>
-                          <ChevronRight
-                            size={12}
-                            className="text-slate-300 group-hover/item:text-primary transition-colors sm:size-[14px]"
-                          />
-                        </button>
-                      ))}
-                    {shop.products.filter((p) =>
-                      (p.name || "")
-                        .toLowerCase()
-                        .includes(productSearch.toLowerCase()),
-                    ).length === 0 && (
-                      <div className="p-6 sm:p-8 text-center text-slate-400">
-                        <Search size={24} className="mx-auto mb-2 opacity-20" />
-                        <p className="text-[8px] sm:text-[10px] font-bold uppercase tracking-widest">
-                          No matching items found
-                        </p>
+                    <div className="min-w-0">
+                      <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-[#A79E98]">
+                        {item.label}
+                      </p>
+                      <div className="mt-0.5 truncate text-[12.5px] font-semibold text-[#21191B] dark:text-slate-200">
+                        {item.value}
                       </div>
-                    )}
+                    </div>
                   </div>
-                </div>
-              )}
+                ))}
+              </div>
 
-              {productSearch && (
-                <button
-                  onClick={() => setProductSearch("")}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-charcoal z-10"
-                >
-                  <X size={14} className="sm:size-[16px]" />
-                </button>
-              )}
-            </div>
-          </div>
-
-          <div
-            className={clsx(
-              "grid",
-              "grid-cols-2",
-              "sm:grid-cols-3",
-              "lg:grid-cols-4",
-              "xl:grid-cols-5",
-              "gap-4",
-              "sm:gap-6",
-            )}
-          >
-            {shop.products
-              .filter((p) => {
-                const query = productSearch.toLowerCase();
-                return (
-                  !productSearch ||
-                  (p.name && p.name.toLowerCase().includes(query)) ||
-                  (p.description && p.description.toLowerCase().includes(query))
-                );
-              })
-              .map((product) => (
-                <div
-                  key={product.id}
-                  className={clsx(
-                    "group",
-                    "bg-white",
-                    "dark:bg-zinc-900",
-                    "rounded-[1.5rem]",
-                    "sm:rounded-[2rem]",
-                    "overflow-hidden",
-                    "border",
-                    "border-slate-100",
-                    "dark:border-white/5",
-                    "shadow-sm",
-                    "hover:shadow-2xl",
-                    "transition-all",
-                    "duration-700",
-                    "flex",
-                    "flex-col",
-                    "hover:-translate-y-2",
-                    "cursor-pointer",
-                  )}
-                  onClick={() => setSelectedProduct({ ...product, shopName: shop.shop_name })}
-                >
-                  <div
-                    className={clsx(
-                      "aspect-square",
-                      "relative",
-                      "overflow-hidden",
-                      "bg-slate-50",
-                      "dark:bg-zinc-800",
-                    )}
-                  >
-                    {isOutOfStock(product) && (
-                      <span className="absolute top-3 right-3 z-10 px-2.5 py-1.5 rounded-xl bg-black/70 text-white text-[9px] font-black uppercase tracking-[0.15em]">
-                        Out of stock
-                      </span>
-                    )}
-                    {product.image_url ? (
-                      <img
-                        src={getSafeUrl(product.image_url, 0)}
-                        className={clsx(
-                          "w-full",
-                          "h-full",
-                          "object-cover",
-                          "transition-transform",
-                          "duration-1000",
-                          "group-hover:scale-110",
-                        )}
-                        alt={product.name || "Product"}
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-slate-200 dark:text-zinc-700">
-                        <ShoppingBag size={32} className="sm:size-[40px]" />
-                      </div>
-                    )}
-
-                    {/* Compact Price Tag */}
-                    {product.price && (
-                      <div
-                        className={clsx(
-                          "absolute",
-                          "top-3",
-                          "right-3",
-                          "bg-white/90",
-                          "dark:bg-zinc-950/90",
-                          "backdrop-blur-md",
-                          "px-2.5",
-                          "py-1",
-                          "rounded-lg",
-                          "shadow-lg",
-                          "border",
-                          "border-white/20",
-                          "group-hover:scale-105",
-                          "transition-transform",
-                        )}
-                      >
-                        <span
-                          className={clsx(
-                            "text-[8px] sm:text-[9px]",
-                            "font-black",
-                            "text-emerald-600",
-                            "dark:text-emerald-400",
-                            "tracking-wider",
-                          )}
-                        >
-                          {product.price}
-                        </span>
-                      </div>
-                    )}
-
-                    <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-                  </div>
-
-                  <div
-                    className={clsx(
-                      "p-4",
-                      "sm:p-5",
-                      "flex-1",
-                      "flex",
-                      "flex-col",
-                      "text-center",
-                    )}
-                  >
-                    <h4
-                      className={clsx(
-                        "text-[10px] sm:text-xs",
-                        "font-black",
-                        "text-charcoal",
-                        "dark:text-white",
-                        "mb-2",
-                        "uppercase",
-                        "tracking-tight",
-                        "line-clamp-1",
-                        "group-hover:text-primary",
-                        "transition-colors",
-                      )}
-                    >
-                      {product.name || "Untitled Boutique Item"}
-                    </h4>
-                    <p
-                      className={clsx(
-                        "text-[8px] sm:text-[9px]",
-                        "font-medium",
-                        "text-slate-500",
-                        "dark:text-slate-400",
-                        "line-clamp-2",
-                        "flex-1",
-                        "leading-tight",
-                        "italic",
-                      )}
-                    >
-                      {product.description || "Curated for quality."}
+              {shop.description && (
+                <div className="mt-auto pt-4">
+                  <div className="border-t border-[#F0EAE4] pt-4 dark:border-white/10">
+                    <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#A79E98]">
+                      About
                     </p>
-
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedProduct({ ...product, shopName: shop.shop_name });
-                      }}
-                      className="mt-4 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-100 dark:border-white/5 rounded-lg text-[6px] sm:text-[8px] font-black uppercase tracking-widest text-slate-400 group-hover:bg-primary group-hover:text-white group-hover:border-primary transition-all active:scale-95"
+                    <p className="mt-1.5 line-clamp-3 whitespace-pre-line text-[12.5px] leading-relaxed text-[#70656A] dark:text-slate-400">
+                      {plainText(shop.description)}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("about")}
+                      className="mt-2 inline-flex items-center gap-1 text-[12px] font-semibold text-[#C51D30] hover:underline"
                     >
-                      Investigate
+                      Read more <ChevronRight size={13} />
                     </button>
                   </div>
                 </div>
-              ))}
+              )}
+            </div>
+          </div>
+        </section>
+
+        {/* Gallery thumbnails (preserved) */}
+        {galleryUrls.length > 1 && (
+          <div className="no-scrollbar mt-3 flex gap-2 overflow-x-auto pb-1">
+            {galleryUrls.map((url, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => setActiveImageIndex(i)}
+                aria-label={`View shop photo ${i + 1}`}
+                aria-current={coverIndex === i}
+                className={clsx(
+                  "h-14 w-14 shrink-0 overflow-hidden rounded-xl border-2 transition-all",
+                  coverIndex === i
+                    ? "border-[#C51D30] opacity-100"
+                    : "border-transparent opacity-60 hover:opacity-100",
+                )}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={getSafeUrl(url, i)}
+                  alt=""
+                  className="h-full w-full object-cover"
+                />
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Rounded tab bar */}
+        <div className="mt-5 flex w-full flex-wrap gap-1.5 rounded-2xl border border-[#E8E2DE] bg-white p-1.5 shadow-sm dark:border-white/10 dark:bg-zinc-900 sm:w-fit sm:flex-nowrap">
+          {tabs.map((tab) => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                aria-pressed={isActive}
+                className={clsx(
+                  "inline-flex shrink-0 items-center gap-1.5 rounded-xl px-2.5 py-2.5 text-[11.5px] font-semibold transition-all sm:gap-2 sm:px-5 sm:text-[12.5px]",
+                  isActive
+                    ? "bg-[#C51D30] text-white shadow-md shadow-[#C51D30]/25"
+                    : "text-[#70656A] hover:bg-[#FAF7F3] hover:text-[#21191B] dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-white",
+                )}
+              >
+                <tab.icon size={15} />
+                <span className="hidden sm:inline">{tab.label}</span>
+                <span className="sm:hidden">{tab.shortLabel || tab.label}</span>
+                {tab.count > 0 && (
+                  <span
+                    className={clsx(
+                      "rounded-full px-1.5 py-0.5 text-[10px] font-bold leading-none",
+                      isActive
+                        ? "bg-white/20 text-white"
+                        : "bg-[#C51D30]/10 text-[#C51D30]",
+                    )}
+                  >
+                    {tab.count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Products */}
+        <div className={activeTab === "products" ? "block" : "hidden"}>
+          <div className="mt-4 rounded-2xl border border-[#E8E2DE] bg-white p-3 shadow-sm dark:border-white/10 dark:bg-zinc-900 sm:p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <div className="relative flex-1">
+                <Search
+                  size={17}
+                  className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#A79E98]"
+                />
+                <input
+                  type="text"
+                  value={productSearch}
+                  onChange={(e) => setProductSearch(e.target.value)}
+                  placeholder={`Search in ${shop.shop_name}`}
+                  aria-label={`Search in ${shop.shop_name}`}
+                  className="h-12 w-full rounded-xl border border-[#E8E2DE] bg-white pl-11 pr-10 text-[13px] font-medium text-[#21191B] outline-none transition-all placeholder:text-[#A79E98] focus:border-[#C51D30] focus:ring-4 focus:ring-[#C51D30]/10 dark:border-white/10 dark:bg-zinc-950 dark:text-white"
+                />
+                {productSearch && (
+                  <button
+                    type="button"
+                    onClick={() => setProductSearch("")}
+                    aria-label="Clear search"
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#A79E98] transition-colors hover:text-[#C51D30]"
+                  >
+                    <X size={15} />
+                  </button>
+                )}
+
+                {/* Predictive matches (existing behaviour) */}
+                {productSearch.trim() && (
+                  <div className="absolute left-0 right-0 top-full z-30 mt-2 overflow-hidden rounded-2xl border border-[#E8E2DE] bg-white shadow-2xl dark:border-white/10 dark:bg-zinc-900">
+                    <div className="border-b border-[#F0EAE4] px-4 py-2.5 text-[9px] font-bold uppercase tracking-[0.18em] text-[#A79E98] dark:border-white/10">
+                      Matching products
+                    </div>
+                    <div className="max-h-72 overflow-y-auto">
+                      {searchMatches.map((p, i) => {
+                        const price = formatPrice(p.price);
+                        return (
+                          <button
+                            key={p.id}
+                            type="button"
+                            onClick={() => setProductSearch(p.name || "")}
+                            className="flex w-full items-center gap-3 border-b border-[#F7F2ED] px-3 py-2.5 text-left transition-colors last:border-0 hover:bg-[#FAF7F3] dark:border-white/5 dark:hover:bg-white/5"
+                          >
+                            <div className="h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-[#F4EEE6] dark:bg-zinc-800">
+                              {p.image_url ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img
+                                  src={getSafeUrl(p.image_url, i)}
+                                  alt=""
+                                  className="h-full w-full object-cover"
+                                />
+                              ) : (
+                                <div className="flex h-full w-full items-center justify-center text-[#D8CCC2]">
+                                  <ShoppingBag size={15} />
+                                </div>
+                              )}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-xs font-semibold text-[#21191B] dark:text-white">
+                                {p.name || "Untitled product"}
+                              </p>
+                              <p className="text-[11px] font-bold text-[#C51D30]">
+                                {price || "Price on inquiry"}
+                              </p>
+                            </div>
+                            <ChevronRight size={13} className="shrink-0 text-[#C4B8AE]" />
+                          </button>
+                        );
+                      })}
+                      {searchMatches.length === 0 && (
+                        <div className="px-4 py-6 text-center text-xs text-[#8B7F76]">
+                          No matching products found
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="relative sm:w-52">
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as SortKey)}
+                  aria-label="Sort products"
+                  className="h-12 w-full appearance-none rounded-xl border border-[#E8E2DE] bg-white pl-4 pr-10 text-[12.5px] font-semibold text-[#21191B] outline-none transition-all focus:border-[#C51D30] focus:ring-4 focus:ring-[#C51D30]/10 dark:border-white/10 dark:bg-zinc-950 dark:text-white"
+                >
+                  <option value="featured">Featured</option>
+                  <option value="price-asc">Price: Low to High</option>
+                  <option value="price-desc">Price: High to Low</option>
+                  <option value="name-asc">Name: A to Z</option>
+                </select>
+                <ChevronDown
+                  size={16}
+                  className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[#8B7F76]"
+                />
+              </div>
+            </div>
+
+            {productCategories.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {["All", ...productCategories].map((category) => {
+                  const isActive = activeCategory === category;
+                  return (
+                    <button
+                      key={category}
+                      type="button"
+                      onClick={() => setActiveCategory(category)}
+                      aria-pressed={isActive}
+                      className={clsx(
+                        "rounded-full border px-3.5 py-1.5 text-[11.5px] font-semibold transition-all",
+                        isActive
+                          ? "border-[#C51D30] bg-[#C51D30] text-white shadow-sm shadow-[#C51D30]/20"
+                          : "border-[#E8E2DE] bg-white text-[#70656A] hover:border-[#C51D30]/45 hover:text-[#C51D30] dark:border-white/10 dark:bg-zinc-950 dark:text-slate-300",
+                      )}
+                    >
+                      {category}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <div className="mt-4 flex items-center justify-between gap-3">
+            <p className="text-xs font-medium text-[#8B7F76]">
+              Showing {filteredProducts.length} of {products.length}{" "}
+              {products.length === 1 ? "product" : "products"}
+              {activeCategory !== "All" ? ` in ${activeCategory}` : ""}
+            </p>
+            {productSearch && (
+              <button
+                type="button"
+                onClick={() => setProductSearch("")}
+                className="text-xs font-semibold text-[#C51D30] hover:underline"
+              >
+                Clear search
+              </button>
+            )}
+          </div>
+
+          {filteredProducts.length > 0 ? (
+            <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5">
+              {filteredProducts.map((product, index) => {
+                const price = formatPrice(product.price);
+                const soldOut = isOutOfStock(product);
+                return (
+                  <article
+                    key={product.id}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`View ${product.name || "product"}`}
+                    onClick={() =>
+                      setSelectedProduct({
+                        ...product,
+                        shopName: shop.shop_name,
+                      })
+                    }
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setSelectedProduct({
+                          ...product,
+                          shopName: shop.shop_name,
+                        });
+                      }
+                    }}
+                    className="group flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-[#E8E2DE] bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-[#C51D30]/25 hover:shadow-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C51D30] dark:border-white/10 dark:bg-zinc-900"
+                  >
+                    <div className="relative aspect-square overflow-hidden bg-[#F4EEE6] dark:bg-zinc-800">
+                      {product.image_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={getSafeUrl(product.image_url, index)}
+                          alt={product.name || "Product"}
+                          loading="lazy"
+                          className={clsx(
+                            "h-full w-full object-cover transition-transform duration-700 group-hover:scale-105",
+                            soldOut && "grayscale",
+                          )}
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center text-[#D8CCC2]">
+                          <ShoppingBag size={34} />
+                        </div>
+                      )}
+
+                      {soldOut && (
+                        <>
+                          <div className="absolute inset-0 bg-black/40" />
+                          <span className="absolute inset-0 flex items-center justify-center p-3 text-center">
+                            <span className="rounded-full border border-white/20 bg-black/75 px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-white">
+                              Sold out
+                            </span>
+                          </span>
+                        </>
+                      )}
+                    </div>
+
+                    <div className="flex flex-1 flex-col p-3 sm:p-3.5">
+                      {product.category && (
+                        <span className="mb-1.5 inline-flex w-fit rounded-full bg-[#C51D30]/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.08em] text-[#C51D30]">
+                          {product.category}
+                        </span>
+                      )}
+                      <h3 className="line-clamp-2 text-[13px] font-semibold leading-snug text-[#21191B] transition-colors group-hover:text-[#C51D30] dark:text-white sm:text-sm">
+                        {product.name || "Untitled product"}
+                      </h3>
+                      {plainPreview(product.description) && (
+                        <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-[#8B7F76] dark:text-slate-500">
+                          {plainPreview(product.description)}
+                        </p>
+                      )}
+                      <div className="mt-auto flex items-end justify-between gap-2 pt-3">
+                        {price ? (
+                          <span className="text-[15px] font-extrabold tracking-tight text-[#C51D30] sm:text-base">
+                            {price}
+                          </span>
+                        ) : (
+                          <span className="text-[11px] font-medium text-[#A79E98]">
+                            Price on inquiry
+                          </span>
+                        )}
+                        <span
+                          className={clsx(
+                            "shrink-0 text-[9.5px] font-semibold",
+                            soldOut ? "text-[#A79E98]" : "text-emerald-600",
+                          )}
+                        >
+                          {availabilityLabel(product)}
+                        </span>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="mt-3 rounded-2xl border border-dashed border-[#DDD2C6] bg-white/70 px-6 py-14 text-center dark:border-white/10 dark:bg-zinc-900/40">
+              <Search size={28} className="mx-auto text-[#C4B8AE]" />
+              <p className="mt-3 text-sm font-semibold text-[#21191B] dark:text-white">
+                No products found
+              </p>
+              <p className="mt-1 text-xs text-[#8B7F76]">
+                Try a different search or category.
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* About the shop */}
+        <div className={activeTab === "about" ? "block" : "hidden"}>
+          <div className="mt-4 grid items-start gap-4 lg:grid-cols-[minmax(0,1.55fr)_minmax(0,0.75fr)]">
+            <div className="rounded-2xl border border-[#E8E2DE] bg-white p-5 shadow-sm dark:border-white/10 dark:bg-zinc-900 sm:p-7">
+              <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#C51D30]">
+                About the shop
+              </p>
+              <h2 className="mt-2 text-2xl font-bold tracking-tight text-[#21191B] dark:text-white">
+                {shop.shop_name}
+              </h2>
+              {shop.description ? (
+                <p className="mt-4 whitespace-pre-line text-[13.5px] leading-7 text-[#70656A] dark:text-slate-400">
+                  {plainText(shop.description)}
+                </p>
+              ) : (
+                <p className="mt-4 text-sm text-[#8B7F76]">
+                  This shop has not added a description yet.
+                </p>
+              )}
+            </div>
+
+            <aside className="rounded-2xl border border-[#E8E2DE] bg-white p-5 shadow-sm dark:border-white/10 dark:bg-zinc-900 sm:p-6">
+              <h3 className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#A79E98]">
+                Shop details
+              </h3>
+              <div className="mt-4 space-y-3">
+                {infoItems.map((item) => (
+                  <div key={item.label} className="flex items-start gap-3">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[#C51D30]/15 bg-[#C51D30]/5 text-[#C51D30]">
+                      <item.icon size={14} />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-[#A79E98]">
+                        {item.label}
+                      </p>
+                      <div className="mt-0.5 break-words text-[12.5px] font-semibold text-[#21191B] dark:text-slate-200">
+                        {item.value}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={openChat}
+                className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-[#C51D30] px-4 py-2.5 text-xs font-semibold text-white shadow-lg shadow-[#C51D30]/25 transition-all hover:bg-[#A8172A] hover:shadow-xl active:scale-[0.99]"
+              >
+                <MessageCircle size={14} /> Chat with the shop
+              </button>
+            </aside>
           </div>
         </div>
-      )}
+
+        {/* Promos & sales */}
+        <div className={activeTab === "promos" ? "block" : "hidden"}>
+          <div className="mt-4 space-y-6">
+            <ShopPromos
+              tenantId={shop.id}
+              embedded
+              onCount={setPromoCount}
+            />
+
+            {activeSales.length > 0 && (
+              <section>
+                <div className="mb-3 flex items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[#C51D30]/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-[#C51D30]">
+                    <Flame size={12} /> Sales
+                  </span>
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#A79E98]">
+                    {activeSales.length} running now
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                  {activeSales.map((sale) => (
+                    <article
+                      key={sale.id}
+                      className="overflow-hidden rounded-2xl border border-[#E8E2DE] bg-white shadow-sm dark:border-white/10 dark:bg-zinc-900"
+                    >
+                      <div className="relative aspect-[16/10] bg-[#F4EEE6] dark:bg-zinc-800">
+                        {sale.image_url &&
+                        !sale.image_url.startsWith("blob:") ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={sale.image_url}
+                            alt={sale.title}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center text-[#D8CCC2]">
+                            <Tag size={34} />
+                          </div>
+                        )}
+                        <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-[#C51D30] px-3 py-1 text-[9px] font-bold uppercase tracking-[0.16em] text-white shadow-lg shadow-[#C51D30]/30">
+                          <Flame size={11} fill="currentColor" /> Sale
+                        </span>
+                      </div>
+                      <div className="space-y-2 p-4 sm:p-5">
+                        <h3 className="text-lg font-bold leading-tight text-[#21191B] dark:text-white sm:text-xl">
+                          {sale.title}
+                        </h3>
+                        <p className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#8B7F76]">
+                          <CalendarDays size={12} className="text-[#C51D30]" />{" "}
+                          Until {formatSaleDate(saleEndsAt(sale))}
+                        </p>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {promoCount === 0 && activeSales.length === 0 && (
+              <div className="rounded-2xl border border-dashed border-[#DDD2C6] bg-white/70 px-6 py-16 text-center dark:border-white/10 dark:bg-zinc-900/40">
+                <Tag size={30} className="mx-auto text-[#C4B8AE]" />
+                <p className="mt-3 text-sm font-semibold text-[#21191B] dark:text-white">
+                  No active promos or sales right now
+                </p>
+                <p className="mt-1 text-xs text-[#8B7F76]">
+                  Check back soon for new offers from {shop.shop_name}.
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      </main>
 
       {/* Tenant-Specific Feedback Section */}
       <FeedbackSection isAuthenticated={isAuthenticated} tenantId={shop.id} />
@@ -1125,7 +1086,6 @@ export default function ShopProfilePage() {
         isOpen={isLoginModalOpen}
         onClose={() => setIsLoginModalOpen(false)}
       />
-
     </div>
   );
 }

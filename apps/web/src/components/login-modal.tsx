@@ -213,7 +213,7 @@ export const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
                   <img src="/images/srmall-logo/sr_logo2.jpg" alt="Logo" className="w-full h-full object-cover rounded-xl" />
                 </div>
                 <h2 className="text-white font-bold uppercase text-[10px] tracking-[0.3em]">
-                  {isForgotPassword ? "Reset Password" : isSignUp ? "SR MALL" : "SR MALL LOGIN"}
+                  {isForgotPassword ? "Reset Password" : isSignUp ? "SR MALL" : "Welcome back"}
                 </h2>
               </div>
               <button
@@ -364,7 +364,7 @@ export const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
                           <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                         ) : (
                           <>
-                            <LogIn size={18} /> {isSignUp ? "Create Account" : "Authorize Access"}
+                            <LogIn size={18} /> {isSignUp ? "Create Account" : "Sign In"}
                           </>
                         )}
                       </button>

@@ -13,6 +13,7 @@ import { EventInquiryForm } from "@/components/event-inquiry-form";
 import {
   Search,
   MapPin,
+  Mail,
   Navigation,
   ArrowRight,
   MessageCircle,
@@ -70,6 +71,30 @@ function shopMatchesCategory(category: string | null | undefined, selected: stri
     return !Object.values(CATEGORY_KEYWORDS).some((words) => words.some((w) => c.includes(w)));
   }
   return (CATEGORY_KEYWORDS[selected] || []).some((w) => c.includes(w));
+}
+
+/** Two-line section heading: first line dark, the rest in the muted accent. */
+function SectionTitleLines({
+  text,
+  accentClass,
+  breakClassName,
+}: {
+  text: string;
+  accentClass: string;
+  breakClassName?: string;
+}) {
+  const [first, ...rest] = text.split(/\r?\n/);
+  return (
+    <>
+      {first}
+      {rest.length > 0 && (
+        <>
+          <br className={breakClassName} />{" "}
+          <span className={accentClass}>{rest.join(" ")}</span>
+        </>
+      )}
+    </>
+  );
 }
 
 export default function PublicDigitalConcierge() {
@@ -410,6 +435,14 @@ export default function PublicDigitalConcierge() {
   const visibleSlotsArray = filteredSlots.slice(0, visibleSlotsCount);
   const hasMoreSlots = visibleSlotsCount < filteredSlots.length;
 
+  // Location section: same contact data and directions link the page already used.
+  const contactAddress =
+    config?.contactAddress || "Crossing Villanueva, Misamis Oriental, 9002, Philippines";
+  const contactEmail = config?.contactEmail || config?.footerEmail || "";
+  const directionsHref = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
+    config?.contactAddress || config?.footerAddress || "Sophie Red Mall Villanueva Misamis Oriental",
+  )}`;
+
   return (
     <div
       className={clsx(
@@ -477,11 +510,11 @@ export default function PublicDigitalConcierge() {
                   Top Picks
                 </span>
                 <h2 className="text-3xl sm:text-5xl lg:text-6xl font-black text-charcoal dark:text-white tracking-tighter leading-none">
-                  Featured <br className="hidden sm:block" />
-                  <span className="text-slate-300 dark:text-zinc-800">
-                    {" "}
-                    Products.
-                  </span>
+                  <SectionTitleLines
+                    text={config?.productsTitle || "Featured\nProducts."}
+                    accentClass="text-slate-300 dark:text-zinc-800"
+                    breakClassName="hidden sm:block"
+                  />
                 </h2>
               </div>
               <div className="flex flex-col items-start sm:items-end gap-3">
@@ -608,7 +641,7 @@ export default function PublicDigitalConcierge() {
                 href="#directory"
                 className="group inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full border border-slate-300 dark:border-white/15 text-charcoal dark:text-white font-bold text-sm sm:text-base hover:border-primary hover:text-primary dark:hover:border-[#BE1E2D] dark:hover:text-[#E04B57] transition-colors"
               >
-                Explore the shops
+                {config?.videoCtaLabel || "Explore the shops"}
                 <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
               </a>
             </div>
@@ -727,10 +760,10 @@ export default function PublicDigitalConcierge() {
                     "sm:mb-8",
                   )}
                 >
-                  Mall <br />
-                  <span className="text-slate-300 dark:text-zinc-800">
-                    Directory.
-                  </span>
+                  <SectionTitleLines
+                    text={config?.directoryTitle || "Mall\nDirectory."}
+                    accentClass="text-slate-300 dark:text-zinc-800"
+                  />
                 </h2>
                 <p
                   className={clsx(
@@ -743,9 +776,8 @@ export default function PublicDigitalConcierge() {
                     "max-w-xl",
                   )}
                 >
-                  Navigate through our curated ecosystem of high-end retail,
-                  digital-first storefronts, and world-class dining
-                  destinations.
+                  {config?.directoryDescription ||
+                    "Navigate through our curated ecosystem of high-end retail, digital-first storefronts, and world-class dining destinations."}
                 </p>
               </div>
 
@@ -1133,10 +1165,10 @@ export default function PublicDigitalConcierge() {
                   "leading-[0.95]",
                 )}
               >
-                Available <br />
-                <span className="text-slate-300 dark:text-zinc-800">
-                  Spaces.
-                </span>
+                <SectionTitleLines
+                  text={config?.spacesTitle || "Available\nSpaces."}
+                  accentClass="text-slate-300 dark:text-zinc-800"
+                />
               </h2>
               <p
                 className={clsx(
@@ -1149,8 +1181,8 @@ export default function PublicDigitalConcierge() {
                   "leading-relaxed",
                 )}
               >
-                Join our premium retail ecosystem. Explore high-visibility slots
-                designed for modern brands and start your journey at SR Mall.
+                {config?.spacesDescription ||
+                  "Join our premium retail ecosystem. Explore high-visibility slots designed for modern brands and start your journey at SR Mall."}
               </p>
             </div>
 
@@ -1525,196 +1557,60 @@ export default function PublicDigitalConcierge() {
         onClose={() => setIsLoginModalOpen(false)}
       />
 
-      {/* High-Impact Event Inquiry Section */}
+      {/* Venue Booking / Event Inquiry Section */}
       <section
         id="event-inquiry"
-        className={clsx(
-          "py-12 sm:py-20 bg-zinc-50 dark:bg-zinc-950 relative overflow-hidden",
-        )}
+        className="relative scroll-mt-24 overflow-hidden bg-[#FAF7F3] dark:bg-zinc-950"
       >
-        {/* Background Visual Elements */}
-        <div className="absolute inset-0 opacity-5 dark:opacity-10 pointer-events-none">
-          <div className="absolute top-1/4 right-0 w-[400px] sm:w-[800px] h-[400px] sm:h-[800px] bg-primary rounded-full blur-[100px] sm:blur-[200px] translate-x-1/2"></div>
-          <div className="absolute bottom-1/4 left-0 w-[300px] sm:w-[600px] h-[300px] sm:h-[600px] bg-blue-600 rounded-full blur-[100px] sm:blur-[150px] -translate-x-1/2"></div>
-        </div>
-
-        <div
-          className={clsx(
-            "max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 relative z-10",
-          )}
-        >
-          <div className="text-center mb-8 sm:mb-16">
-            <span className="inline-block px-4 py-1 bg-primary/10 text-primary text-[10px] font-black uppercase tracking-[0.3em] rounded-full mb-4 border border-primary/20">
-              Elite Venue Booking
-            </span>
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-black dark:text-white tracking-tighter leading-tight mb-4">
-              Plan Your Next{" "}
-              <span className="text-slate-300 dark:text-zinc-800">
-                Masterpiece.
-              </span>
-            </h2>
-            <p className="max-w-xl mx-auto text-xs sm:text-base text-slate-500 font-medium leading-relaxed">
-              Digital-ready spaces for corporate exhibits or regional finals.
-            </p>
-          </div>
-
-          <EventInquiryForm isAuthenticated={isAuthenticated} user={user} />
-        </div>
+        <EventInquiryForm
+          isAuthenticated={isAuthenticated}
+          user={user}
+          eyebrow={config?.venueEyebrow}
+          title={config?.venueTitle}
+          description={config?.venueDescription}
+        />
       </section>
 
       {/* Gated Feedback & Communication */}
-      <FeedbackSection isAuthenticated={isAuthenticated} />
+      <FeedbackSection
+        isAuthenticated={isAuthenticated}
+        title={config?.reviewsTitle}
+        description={config?.reviewsDescription}
+      />
 
       {/* Location Section */}
       <section
         id="location"
         className={clsx(
+          "scroll-mt-20",
+          "bg-[#FAF7F3]",
+          "dark:bg-zinc-950",
           "py-16",
           "sm:py-24",
-          "lg:py-32",
-          "bg-slate-100",
-          "dark:bg-black",
+          "lg:py-28",
         )}
       >
-        <div
-          className={clsx(
-            "max-w-7xl",
-            "mx-auto",
-            "px-4",
-            "grid",
-            "grid-cols-1",
-            "lg:grid-cols-2",
-            "gap-12",
-            "sm:gap-16",
-            "lg:gap-24",
-            "items-center",
-          )}
-        >
-          <div className={clsx("space-y-10", "order-2", "lg:order-1")}>
-            <div className="space-y-4">
-              <span
-                className={clsx(
-                  "text-xs",
-                  "uppercase",
-                  "tracking-[0.2em]",
-                  "text-primary",
-                  "font-bold",
-                  "bg-primary/10",
-                  "px-4",
-                  "py-1.5",
-                  "rounded-full",
-                  "inline-block",
-                )}
-              >
-                Visit Us
+        <div className={clsx("max-w-7xl", "mx-auto", "px-4", "sm:px-6", "lg:px-10")}>
+          <div className="max-w-2xl">
+            <p className="text-[11px] font-bold uppercase tracking-[0.26em] text-[#C51D30]">
+              Visit us
+            </p>
+            <h2 className="mt-4 text-[2.5rem] font-black leading-[1.05] tracking-tight text-[#21191B] dark:text-white sm:text-[3.8rem] lg:text-[4.4rem]">
+              <span className="whitespace-pre-line">
+                {config?.locationTitle || "Prime location.\nEndless access."}
               </span>
-              <h2
-                className={clsx(
-                  "text-3xl",
-                  "sm:text-4xl",
-                  "lg:text-5xl",
-                  "font-black",
-                  "text-charcoal",
-                  "dark:text-white",
-                  "tracking-tight",
-                  "leading-tight",
-                )}
-              >
-                Prime Location. <br />
-                <span className="text-slate-400">Endless Access.</span>
-              </h2>
-            </div>
-
-            <div className="space-y-8">
-              <div
-                className={clsx(
-                  "group flex flex-col sm:flex-row items-start gap-4 sm:gap-6 p-4 sm:p-6 rounded-2xl sm:rounded-3xl bg-zinc-50 dark:bg-zinc-900 border border-slate-100 dark:border-white/5 transition-all hover:shadow-xl",
-                )}
-              >
-                <div
-                  className={clsx(
-                    "w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-slate-100 dark:bg-black flex items-center justify-center text-primary shadow-sm border border-slate-200 dark:border-white/5 flex-shrink-0",
-                  )}
-                >
-                  <MapPin size={24} />
-                </div>
-                <div>
-                  <h4
-                    className={clsx(
-                      "text-base sm:text-lg font-bold text-charcoal dark:text-white mb-1 sm:mb-2",
-                    )}
-                  >
-                    Physical Address
-                  </h4>
-                  <p
-                    className={clsx(
-                      "text-xs sm:text-sm text-slate-500 font-medium leading-relaxed",
-                    )}
-                  >
-                    {config?.contactAddress || (
-                      <>
-                        Crossing Villanueva, Misamis Oriental, <br />
-                        9002, Philippines
-                      </>
-                    )}
-                  </p>
-                </div>
-              </div>
-
-              <a
-                href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
-                  config?.contactAddress || config?.footerAddress || "Sophie Red Mall Villanueva Misamis Oriental",
-                )}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={clsx(
-                  "group flex flex-col sm:flex-row items-start gap-4 sm:gap-6 p-4 sm:p-6 rounded-2xl sm:rounded-3xl bg-primary text-white transition-all hover:shadow-2xl hover:shadow-primary/30 cursor-pointer",
-                )}
-              >
-                <div
-                  className={clsx(
-                    "w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-white/10 flex items-center justify-center text-white backdrop-blur-md flex-shrink-0",
-                  )}
-                >
-                  <Navigation size={24} />
-                </div>
-                <div>
-                  <h4
-                    className={clsx(
-                      "text-base sm:text-lg font-bold mb-1 sm:mb-2",
-                    )}
-                  >
-                    Get Directions
-                  </h4>
-                  <p
-                    className={clsx(
-                      "text-xs sm:text-sm text-white/70 font-medium leading-relaxed",
-                    )}
-                  >
-                    Open in Google Maps for the fastest route <br />
-                    from your current location.
-                  </p>
-                </div>
-              </a>
-            </div>
+            </h2>
+            <p className="mt-5 max-w-xl text-base leading-relaxed text-[#70656A] dark:text-slate-400">
+              {config?.contactDescription ||
+                "On the national highway in Brgy. Luz Banzon, Jasaan. Easy to reach from Cagayan de Oro and the towns of Misamis Oriental."}
+            </p>
           </div>
 
-          <div className={clsx("relative", "order-1", "lg:order-2")}>
-            <div
-              className={clsx(
-                "aspect-square",
-                "bg-slate-100",
-                "dark:bg-zinc-900",
-                "rounded-[3rem]",
-                "overflow-hidden",
-                "group",
-                "shadow-2xl",
-                "border-8",
-                "border-zinc-100",
-                "dark:border-zinc-900/50",
-              )}
-            >
+          <div className="mt-10 grid gap-4 md:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] md:gap-5 lg:gap-6">
+            {/* Interactive Google Map */}
+            <div className="relative min-h-[22rem] overflow-hidden rounded-[1.75rem] border border-[#E8E2DE] bg-[#F4EEE6] shadow-[0_18px_40px_-32px_rgba(33,25,27,0.4)] dark:border-white/10 dark:bg-zinc-900 sm:min-h-[26rem] md:min-h-0">
               <iframe
+                title="Map to SR Mall"
                 src={mapEmbedSrc(config)}
                 width="100%"
                 height="100%"
@@ -1722,14 +1618,64 @@ export default function PublicDigitalConcierge() {
                 allowFullScreen={true}
                 loading="lazy"
                 referrerPolicy="no-referrer-when-downgrade"
-                className={clsx(
-                  "grayscale",
-                  "group-hover:grayscale-0",
-                  "transition-all",
-                  "duration-700",
-                  "contrast-125",
-                )}
+                className="absolute inset-0 h-full w-full"
               />
+            </div>
+
+            {/* Mall photo, contact card and directions */}
+            <div className="flex flex-col gap-4">
+              <div className="relative aspect-[16/10] overflow-hidden rounded-[1.75rem] border border-[#E8E2DE] shadow-[0_18px_40px_-32px_rgba(33,25,27,0.4)] dark:border-white/10">
+                {/* Existing SR Mall building photo. */}
+                <img
+                  src="/images/mall/facade.webp"
+                  alt="The Sophie Red Mall entrance"
+                  className="h-full w-full object-cover"
+                />
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
+                <span className="absolute bottom-3 left-3 rounded-lg bg-[#1C1417] px-2.5 py-1.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-white">
+                  You are here
+                </span>
+              </div>
+
+              <div className="overflow-hidden rounded-2xl border border-[#E8E2DE] bg-white shadow-sm dark:border-white/10 dark:bg-zinc-900">
+                <div className="flex items-start gap-3 border-b border-[#E8E2DE] p-4 dark:border-white/10">
+                  <MapPin
+                    size={20}
+                    strokeWidth={1.8}
+                    className="mt-0.5 shrink-0 text-[#C51D30]"
+                    aria-hidden
+                  />
+                  <p className="text-[13.5px] font-medium leading-relaxed text-[#21191B] dark:text-slate-200 sm:text-sm">
+                    {contactAddress}
+                  </p>
+                </div>
+                {contactEmail && (
+                  <div className="flex items-start gap-3 p-4">
+                    <Mail
+                      size={20}
+                      strokeWidth={1.8}
+                      className="mt-0.5 shrink-0 text-[#C51D30]"
+                      aria-hidden
+                    />
+                    <a
+                      href={`mailto:${contactEmail}`}
+                      className="break-all text-[13.5px] font-medium leading-relaxed text-[#21191B] transition-colors hover:text-[#C51D30] dark:text-slate-200 sm:text-sm"
+                    >
+                      {contactEmail}
+                    </a>
+                  </div>
+                )}
+              </div>
+
+              <a
+                href={directionsHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#C51D30] px-6 text-[14px] font-semibold text-white shadow-[0_10px_24px_-12px_rgba(197,29,48,0.7)] transition-all hover:bg-[#A8172A] hover:shadow-[0_14px_30px_-12px_rgba(197,29,48,0.75)] active:scale-[0.99]"
+              >
+                <Navigation size={16} aria-hidden />
+                Get directions
+              </a>
             </div>
           </div>
         </div>

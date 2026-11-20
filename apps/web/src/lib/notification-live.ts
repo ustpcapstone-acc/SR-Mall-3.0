@@ -77,7 +77,7 @@ export function useLiveNotifications(
 
   useEffect(() => {
     if (!userId) return;
-    const unsubscribe = isChatRealtimeConfigured() ? subscribe(userId, (n) => onNewRef.current(n)) : () => {};
+    const unsubscribe = isChatRealtimeConfigured() ? subscribe(userId, (n) => onNewRef.current(n)) : () => { };
     const poll = setInterval(() => {
       if (!document.hidden) refreshRef.current();
     }, fallbackMs);

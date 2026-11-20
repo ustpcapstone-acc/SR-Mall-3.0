@@ -319,6 +319,19 @@ model PublicViewConfig {
   featuredVideoUrl      String?
   videoDescription      String?
   videoTitle            String?
+  productsTitle         String?
+  productsDescription   String?
+  videoCtaLabel         String?
+  directoryTitle        String?
+  directoryDescription  String?
+  spacesTitle           String?
+  spacesDescription     String?
+  venueEyebrow          String?
+  venueTitle            String?
+  venueDescription      String?
+  reviewsTitle          String?
+  reviewsDescription    String?
+  locationTitle         String?
   themeColor            String?
   googleMapsEmbedUrl    String?
   googleMapsApiKey      String?

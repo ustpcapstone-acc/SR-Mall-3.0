@@ -29,6 +29,8 @@ import { useAuth } from "@/app/providers";
 interface FeedbackSectionProps {
   isAuthenticated: boolean;
   tenantId?: string;
+  title?: string | null;
+  description?: string | null;
 }
 
 interface Review {
@@ -50,7 +52,12 @@ interface Review {
 export const FeedbackSection = ({
   isAuthenticated,
   tenantId,
+  title,
+  description,
 }: FeedbackSectionProps) => {
+  const titleText = title?.trim() || "Customer Experiences";
+  const descriptionText =
+    description?.trim() || "Real feedback from our valued visitors and tenants";
   const { user } = useAuth();
 
   const [selectedTenantId, setSelectedTenantId] = useState<string>(tenantId || "");
@@ -153,7 +160,7 @@ export const FeedbackSection = ({
       if (result.success) {
         setSubmitMessage({
           type: "success",
-          message: "Review deleted successfully!",
+          message: "Your review has been removed.",
         });
         setRating(0);
         setComment("");
@@ -184,7 +191,7 @@ export const FeedbackSection = ({
     if (!user || (!user.id && !isAuthenticated)) {
       setSubmitMessage({
         type: "error",
-        message: "Session error. Please log in again.",
+        message: "Please sign in again to continue.",
       });
       return;
     }
@@ -220,7 +227,7 @@ export const FeedbackSection = ({
       if (result.success) {
         setSubmitMessage({
           type: "success",
-          message: result.message || "Your review is now live!",
+          message: result.message || "Thanks for sharing your experience!",
         });
         setRating(0);
         setComment("");
@@ -308,7 +315,7 @@ export const FeedbackSection = ({
               )}
             >
               <Heart size={14} />
-              Community Voices
+              Visitor reviews
             </span>
             <h2
               className={clsx(
@@ -322,7 +329,7 @@ export const FeedbackSection = ({
                 "mb-3",
               )}
             >
-              Customer Experiences
+              {titleText}
             </h2>
             <p
               className={clsx(
@@ -334,7 +341,7 @@ export const FeedbackSection = ({
                 "mx-auto",
               )}
             >
-              Real feedback from our valued visitors and tenants
+              {descriptionText}
             </p>
           </div>
 
@@ -542,7 +549,7 @@ export const FeedbackSection = ({
                               disabled={isSubmitting}
                               className="text-[9px] text-red-500 font-black uppercase tracking-widest hover:underline cursor-pointer"
                             >
-                              Del
+                              Delete
                             </button>
                           </div>
                         )}
@@ -603,7 +610,7 @@ export const FeedbackSection = ({
                       "text-[10px]",
                     )}
                   >
-                    Be the first to share.
+                    No reviews yet. Be the first to share your experience.
                   </p>
                 </div>
               )}
@@ -671,7 +678,7 @@ export const FeedbackSection = ({
                       "uppercase",
                     )}
                   >
-                    Experience
+                    Share your experience
                   </h3>
                 </div>
 
@@ -713,7 +720,7 @@ export const FeedbackSection = ({
                         "mb-1 uppercase tracking-widest",
                       )}
                     >
-                      Community Auth
+                      Sign in to leave a review
                     </h4>
                     <p
                       className={clsx(
@@ -725,7 +732,7 @@ export const FeedbackSection = ({
                         "mb-4 sm:mb-6",
                       )}
                     >
-                      Sign in to share your journey.
+                      Tell us what you loved about your visit.
                     </p>
                     <button
                       suppressHydrationWarning
@@ -749,7 +756,7 @@ export const FeedbackSection = ({
                         "tracking-[0.15em]",
                       )}
                     >
-                      Auth Identity
+                      Sign in
                     </button>
                   </div>
                 ) : (
@@ -800,7 +807,7 @@ export const FeedbackSection = ({
                           "tracking-widest",
                         )}
                       >
-                        Rating Selection
+                        Your rating
                       </label>
                       <div className={clsx("flex", "gap-1.5")}>
                         {[1, 2, 3, 4, 5].map((star) => (
@@ -837,13 +844,13 @@ export const FeedbackSection = ({
                           "tracking-widest",
                         )}
                       >
-                        Protocol Detail
+                        Your review
                       </label>
                       <textarea
                         ref={commentRef}
                         value={comment}
                         onChange={(e) => setComment(e.target.value)}
-                        placeholder="Detail your experience..."
+                        placeholder="What did you enjoy? What could be better?"
                         disabled={isSubmitting || isCommentingPaused}
                         className={clsx(
                           "w-full",
@@ -897,8 +904,8 @@ export const FeedbackSection = ({
                       {isCommentingPaused
                         ? "Commenting paused"
                         : isSubmitting
-                          ? "Syncing..."
-                          : "Log Experience"}
+                          ? "Posting..."
+                          : "Share review"}
                     </button>
                   </div>
                 )}
