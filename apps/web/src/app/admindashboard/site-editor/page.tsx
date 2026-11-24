@@ -8,7 +8,6 @@ import {
   Type,
   Loader2,
   UploadCloud,
-  CheckCircle,
 } from "lucide-react";
 import { useAuth } from "@/app/providers";
 import { getSiteConfig, updateSiteConfig } from "@/app/actions/site-config";
@@ -93,7 +92,7 @@ export default function SiteEditorPage() {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center space-y-4">
         <Loader2 className="w-10 h-10 text-primary animate-spin" />
-        <p className="text-sm font-bold text-slate-400 uppercase tracking-widest text-center">
+        <p className="text-sm font-bold text-slate-400 text-center">
           Loading Global Config...
         </p>
       </div>
@@ -103,7 +102,7 @@ export default function SiteEditorPage() {
   if (user?.role !== "ADMIN") {
     return (
       <div className="p-10 text-center">
-        <h1 className="text-2xl font-black text-red-500">Access Denied</h1>
+        <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-red-500">Access Denied</h1>
         <p>You do not have permission to configure global site variables.</p>
       </div>
     );
@@ -129,21 +128,8 @@ export default function SiteEditorPage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-slate-100 dark:border-white/5 pb-10">
         <div className="space-y-2">
-          <div className="flex items-center gap-3">
-            <div className="flex -space-x-2">
-              <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center text-white border-2 border-white dark:border-zinc-950">
-                <CheckCircle size={14} />
-              </div>
-              <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white border-2 border-white dark:border-zinc-950">
-                <Layout size={14} />
-              </div>
-            </div>
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-              Global Architect
-            </span>
-          </div>
-          <h1 className="text-5xl font-black text-charcoal dark:text-white tracking-tighter">
-            Site Configurator
+          <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-charcoal dark:text-white">
+            Site Editor
           </h1>
           <p className="text-lg text-slate-500 font-medium max-w-xl">
             Modify the hardcoded defaults for the Public Directory. Changes are
@@ -154,7 +140,7 @@ export default function SiteEditorPage() {
         <button
           onClick={handleSave}
           disabled={saving}
-          className="flex items-center gap-4 px-12 py-5 bg-primary text-white hover:scale-105 active:scale-95 disabled:grayscale disabled:scale-100 rounded-3xl font-black text-sm uppercase tracking-widest transition-all shadow-2xl shadow-primary/30"
+          className="flex items-center gap-4 px-12 py-5 bg-primary text-white hover:scale-105 active:scale-95 disabled:grayscale disabled:scale-100 rounded-3xl font-semibold text-sm transition-all shadow-2xl shadow-primary/30"
         >
           {saving ? (
             <>
@@ -171,13 +157,13 @@ export default function SiteEditorPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
         {/* Mall Hero Section */}
         <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-[3rem] shadow-xs p-12 space-y-10">
-          <h2 className="font-black text-charcoal dark:text-white flex items-center gap-3 text-xl tracking-tight uppercase">
+          <h2 className="font-semibold text-charcoal dark:text-white flex items-center gap-3 text-xl tracking-tight">
             <Layout size={24} className="text-primary" /> Landing Page Hero
           </h2>
 
           <div className="space-y-6">
             <div className="group/field">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">
+              <label className="text-xs font-semibold text-slate-400 block mb-2">
                 Hero Floating Badge
               </label>
               <input
@@ -190,19 +176,19 @@ export default function SiteEditorPage() {
             </div>
 
             <div className="group/field">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">
+              <label className="text-xs font-semibold text-slate-400 block mb-2">
                 Main Hero Title
               </label>
               <textarea
                 value={config?.heroTitle || ""}
                 onChange={(e) => updateField("heroTitle", e.target.value)}
                 rows={2}
-                className="w-full px-5 py-4 bg-slate-50 dark:bg-zinc-800/50 border border-slate-100 dark:border-white/5 rounded-2xl focus:border-primary focus:outline-hidden text-lg font-black shadow-xs resize-none tracking-tight"
+                className="w-full px-5 py-4 bg-slate-50 dark:bg-zinc-800/50 border border-slate-100 dark:border-white/5 rounded-2xl focus:border-primary focus:outline-hidden text-lg font-semibold shadow-xs resize-none tracking-tight"
               ></textarea>
             </div>
 
             <div className="group/field">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">
+              <label className="text-xs font-semibold text-slate-400 block mb-2">
                 Hero Subtitle
               </label>
               <textarea
@@ -214,7 +200,7 @@ export default function SiteEditorPage() {
             </div>
 
             <div className="group/field">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">
+              <label className="text-xs font-semibold text-slate-400 block mb-2">
                 Primary Button Text
               </label>
               <input
@@ -227,12 +213,12 @@ export default function SiteEditorPage() {
 
             <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-white/5">
               <div className="flex items-center justify-between">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                <label className="text-xs font-semibold text-slate-400 flex items-center gap-2">
                   <ImageIcon size={14} /> Hero Background Image
                 </label>
                 <button
                   onClick={() => heroBgInputRef.current?.click()}
-                  className="text-[10px] bg-primary/10 text-primary px-4 py-2 rounded-full font-black uppercase tracking-widest"
+                  className="text-xs bg-primary/10 text-primary px-4 py-2 rounded-full font-semibold"
                 >
                   Change
                 </button>
@@ -253,10 +239,10 @@ export default function SiteEditorPage() {
         {/* Default Ad Banner Section */}
         <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-[3rem] shadow-xs p-12 space-y-10">
           <div className="flex justify-between items-center">
-            <h2 className="font-black text-charcoal dark:text-white flex items-center gap-3 text-xl tracking-tight uppercase">
+            <h2 className="font-semibold text-charcoal dark:text-white flex items-center gap-3 text-xl tracking-tight">
               <Type size={24} className="text-primary" /> Default Ad Fallback
             </h2>
-            <span className="text-[9px] font-bold text-primary bg-primary/10 px-3 py-1 rounded-md uppercase tracking-widest">
+            <span className="text-xs font-bold text-primary bg-primary/10 px-3 py-1 rounded-md">
               Fallback Only
             </span>
           </div>
@@ -267,7 +253,7 @@ export default function SiteEditorPage() {
 
           <div className="space-y-6">
             <div className="group/field">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">
+              <label className="text-xs font-semibold text-slate-400 block mb-2">
                 Campaign Title
               </label>
               <input
@@ -275,12 +261,12 @@ export default function SiteEditorPage() {
                 value={config?.defaultAdTitle || ""}
                 onChange={(e) => updateField("defaultAdTitle", e.target.value)}
                 placeholder="e.g. Luxe Summer Sale"
-                className="w-full px-5 py-4 bg-slate-50 dark:bg-zinc-800/50 border border-slate-100 dark:border-white/5 rounded-2xl focus:border-primary focus:outline-hidden text-xl font-black shadow-xs tracking-tight"
+                className="w-full px-5 py-4 bg-slate-50 dark:bg-zinc-800/50 border border-slate-100 dark:border-white/5 rounded-2xl focus:border-primary focus:outline-hidden text-xl font-semibold shadow-xs tracking-tight"
               />
             </div>
 
             <div className="group/field">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">
+              <label className="text-xs font-semibold text-slate-400 block mb-2">
                 Ad Description
               </label>
               <textarea
@@ -292,7 +278,7 @@ export default function SiteEditorPage() {
             </div>
 
             <div className="group/field">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">
+              <label className="text-xs font-semibold text-slate-400 block mb-2">
                 Call-to-Action Text
               </label>
               <input
@@ -306,12 +292,12 @@ export default function SiteEditorPage() {
 
             <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-white/5">
               <div className="flex items-center justify-between">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                <label className="text-xs font-semibold text-slate-400 flex items-center gap-2">
                   <ImageIcon size={14} /> Campaign Background
                 </label>
                 <button
                   onClick={() => adImageInputRef.current?.click()}
-                  className="text-[10px] bg-primary/10 text-primary px-4 py-2 rounded-full font-black uppercase tracking-widest"
+                  className="text-xs bg-primary/10 text-primary px-4 py-2 rounded-full font-semibold"
                 >
                   Upload Replace
                 </button>
@@ -330,7 +316,7 @@ export default function SiteEditorPage() {
                     />
                     <div className="absolute opacity-0 group-hover/upload:opacity-100 transition-opacity flex flex-col items-center text-white drop-shadow-md">
                       <UploadCloud size={32} className="mb-2" />
-                      <span className="text-[10px] font-black uppercase tracking-widest">
+                      <span className="text-xs font-semibold">
                         Replace Media
                       </span>
                     </div>
@@ -338,7 +324,7 @@ export default function SiteEditorPage() {
                 ) : (
                   <div className="text-center text-slate-400 group-hover/upload:text-primary transition-colors">
                     <UploadCloud size={32} className="mx-auto mb-2" />
-                    <span className="text-[10px] font-black uppercase tracking-widest">
+                    <span className="text-xs font-semibold">
                       Push Visual Cover
                     </span>
                   </div>

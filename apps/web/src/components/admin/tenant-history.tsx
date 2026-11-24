@@ -101,7 +101,7 @@ export function TenantHistory({ rows, loading }: { rows: TenantHistoryRow[]; loa
               <Store size={22} />
             </div>
             <div>
-              <h3 className="text-lg font-black text-charcoal dark:text-white">Tenant History</h3>
+              <h3 className="text-lg font-semibold text-charcoal dark:text-white">Tenant History</h3>
               <p className="text-xs text-slate-400">
                 {rows.length} former tenant{rows.length === 1 ? "" : "s"} · saved automatically whenever a tenant leaves
               </p>
@@ -111,7 +111,7 @@ export function TenantHistory({ rows, loading }: { rows: TenantHistoryRow[]; loa
             type="button"
             onClick={() => exportCsv(filtered)}
             disabled={filtered.length === 0}
-            className="inline-flex items-center gap-2 h-10 px-4 rounded-xl border border-slate-200 dark:border-white/10 text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 disabled:opacity-40"
+            className="inline-flex items-center gap-2 h-10 px-4 rounded-xl border border-slate-200 dark:border-white/10 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 disabled:opacity-40"
           >
             <Download size={14} /> Export CSV
           </button>
@@ -171,7 +171,7 @@ export function TenantHistory({ rows, loading }: { rows: TenantHistoryRow[]; loa
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="bg-slate-50/60 dark:bg-white/2 text-[10px] font-black uppercase tracking-widest text-slate-400">
+              <tr className="bg-slate-50/60 dark:bg-white/2 text-xs font-semibold text-slate-400">
                 <th className="px-6 py-4">Shop</th>
                 <th className="px-6 py-4">Unit / Floor</th>
                 <th className="px-6 py-4">Stayed</th>
@@ -185,7 +185,7 @@ export function TenantHistory({ rows, loading }: { rows: TenantHistoryRow[]; loa
                 <tr key={r.id} className="hover:bg-slate-50/70 dark:hover:bg-white/2">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-zinc-800 overflow-hidden flex items-center justify-center font-black text-slate-500 shrink-0">
+                      <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-zinc-800 overflow-hidden flex items-center justify-center font-semibold text-slate-500 shrink-0">
                         {r.logoUrl ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img src={r.logoUrl} alt="" className="w-full h-full object-cover" />
@@ -221,7 +221,7 @@ export function TenantHistory({ rows, loading }: { rows: TenantHistoryRow[]; loa
                     <button
                       type="button"
                       onClick={() => setSelected(r)}
-                      className="h-9 px-4 rounded-xl border border-slate-200 dark:border-white/10 text-[10px] font-black uppercase tracking-widest text-charcoal dark:text-white hover:bg-slate-50 dark:hover:bg-white/5"
+                      className="h-9 px-4 rounded-xl border border-slate-200 dark:border-white/10 text-xs font-semibold text-charcoal dark:text-white hover:bg-slate-50 dark:hover:bg-white/5"
                     >
                       Details
                     </button>
@@ -242,7 +242,7 @@ export function TenantHistory({ rows, loading }: { rows: TenantHistoryRow[]; loa
           >
             <div className="p-6 border-b border-slate-100 dark:border-white/5 flex items-start justify-between gap-3">
               <div className="flex items-center gap-3 min-w-0">
-                <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-zinc-800 overflow-hidden flex items-center justify-center font-black text-slate-500 shrink-0">
+                <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-zinc-800 overflow-hidden flex items-center justify-center font-semibold text-slate-500 shrink-0">
                   {selected.logoUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={selected.logoUrl} alt="" className="w-full h-full object-cover" />
@@ -251,7 +251,7 @@ export function TenantHistory({ rows, loading }: { rows: TenantHistoryRow[]; loa
                   )}
                 </div>
                 <div className="min-w-0">
-                  <h4 className="text-lg font-black text-charcoal dark:text-white truncate">{selected.shopName}</h4>
+                  <h4 className="text-lg font-semibold text-charcoal dark:text-white truncate">{selected.shopName}</h4>
                   <p className="text-xs text-slate-400 inline-flex items-center gap-1">
                     <MapPin size={11} className="text-primary" /> {location(selected)}
                     {selected.category ? ` · ${selected.category}` : ""}
@@ -287,7 +287,7 @@ export function TenantHistory({ rows, loading }: { rows: TenantHistoryRow[]; loa
                   ["Unpaid balance", selected.outstanding > 0 ? peso(selected.outstanding) : "None"],
                 ].map(([k, v]) => (
                   <div key={k} className="p-3 rounded-2xl bg-slate-50 dark:bg-white/3 border border-slate-100 dark:border-white/5">
-                    <dt className="text-[10px] font-black uppercase tracking-widest text-slate-400">{k}</dt>
+                    <dt className="text-xs font-semibold text-slate-400">{k}</dt>
                     <dd className={clsx("mt-0.5 font-bold", k === "Unpaid balance" && selected.outstanding > 0 ? "text-amber-600" : "text-charcoal dark:text-white")}>{v}</dd>
                   </div>
                 ))}
@@ -295,7 +295,7 @@ export function TenantHistory({ rows, loading }: { rows: TenantHistoryRow[]; loa
 
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div className="p-3 rounded-2xl bg-slate-50 dark:bg-white/3 border border-slate-100 dark:border-white/5">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Rating when they left</p>
+                  <p className="text-xs font-semibold text-slate-400">Rating when they left</p>
                   <p className="mt-0.5 font-bold text-charcoal dark:text-white inline-flex items-center gap-1">
                     {selected.reviewCount ? (
                       <>
@@ -308,7 +308,7 @@ export function TenantHistory({ rows, loading }: { rows: TenantHistoryRow[]; loa
                   </p>
                 </div>
                 <div className="p-3 rounded-2xl bg-slate-50 dark:bg-white/3 border border-slate-100 dark:border-white/5 min-w-0">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Owner</p>
+                  <p className="text-xs font-semibold text-slate-400">Owner</p>
                   <p className="mt-0.5 font-bold text-charcoal dark:text-white truncate">{selected.ownerName || "—"}</p>
                   {selected.ownerEmail && (
                     <a href={`mailto:${selected.ownerEmail}`} className="text-xs text-primary hover:underline break-all">

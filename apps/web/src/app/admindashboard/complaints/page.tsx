@@ -106,16 +106,12 @@ function AdminComplaints() {
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         <div className="space-y-2">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-primary/10 border border-primary/20 rounded-full">
-            <ClipboardList size={10} className="text-primary" />
-            <span className="text-[9px] font-black text-primary uppercase tracking-[0.2em]">Tenant Support</span>
-          </div>
-          <h1 className="text-4xl sm:text-5xl font-black text-charcoal dark:text-white tracking-tighter uppercase leading-none">
-            Tenant <span className="text-primary">Complaints.</span>
+          <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-charcoal dark:text-white">
+            Tenant Complaints
           </h1>
           <p className="text-sm font-medium text-slate-500 max-w-xl">Reply to tenants, track each issue and close it out — all in one thread.</p>
         </div>
-        <button onClick={refreshAll} className="self-start lg:self-auto inline-flex items-center gap-2 h-11 px-4 rounded-2xl border border-slate-200 dark:border-white/10 text-[11px] font-black uppercase tracking-widest text-slate-500 hover:text-primary hover:border-primary">
+        <button onClick={refreshAll} className="self-start lg:self-auto inline-flex items-center gap-2 h-11 px-4 rounded-2xl border border-slate-200 dark:border-white/10 text-xs font-semibold text-slate-500 hover:text-primary hover:border-primary">
           <RefreshCw size={14} /> Refresh
         </button>
       </div>
@@ -127,8 +123,8 @@ function AdminComplaints() {
             <div className={clsx("w-9 h-9 rounded-xl flex items-center justify-center mb-3", c.tone)}>
               <c.icon size={18} />
             </div>
-            <p className="text-2xl sm:text-3xl font-black text-charcoal dark:text-white">{c.value}</p>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">{c.label}</p>
+            <p className="text-2xl sm:text-3xl font-semibold text-charcoal dark:text-white">{c.value}</p>
+            <p className="text-xs font-semibold text-slate-400 mt-1">{c.label}</p>
           </button>
         ))}
       </div>
@@ -173,7 +169,7 @@ function AdminComplaints() {
           ) : filtered.length === 0 ? (
             <div className={clsx(CARD, "py-14 px-6 text-center")}>
               <ClipboardList size={36} className="mx-auto text-slate-200 dark:text-zinc-700 mb-3" />
-              <p className="text-sm font-black text-slate-400">No complaints match these filters</p>
+              <p className="text-sm font-semibold text-slate-400">No complaints match these filters</p>
             </div>
           ) : (
             filtered.map((c) => (
@@ -193,7 +189,7 @@ function AdminComplaints() {
                       <StatusBadge status={c.status} />
                       {c.priority !== "NORMAL" && <PriorityBadge priority={c.priority} />}
                     </div>
-                    <p className={clsx("text-sm text-charcoal dark:text-white truncate", c.unread ? "font-black" : "font-bold")}>{c.subject}</p>
+                    <p className={clsx("text-sm text-charcoal dark:text-white truncate", c.unread ? "font-semibold" : "font-bold")}>{c.subject}</p>
                     <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate inline-flex items-center gap-1 max-w-full">
                       <Store size={11} className="shrink-0" /> <span className="truncate">{c.shopName} · Unit {c.unitId}</span>
                     </p>
@@ -222,7 +218,7 @@ function AdminComplaints() {
           ) : (
             <div className={clsx(CARD, "py-24 px-6 text-center")}>
               <MessageSquare size={36} className="mx-auto text-slate-200 dark:text-zinc-700 mb-3" />
-              <p className="text-sm font-black text-slate-400">Select a complaint to view and reply</p>
+              <p className="text-sm font-semibold text-slate-400">Select a complaint to view and reply</p>
             </div>
           )}
         </div>

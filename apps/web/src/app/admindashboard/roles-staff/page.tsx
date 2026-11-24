@@ -478,7 +478,7 @@ export default function RolesStaffPage() {
     <div className="mx-auto max-w-6xl space-y-6 p-6 sm:p-8">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="font-display text-2xl font-semibold text-kumo-default">
+          <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-kumo-default">
             Roles &amp; Staff
           </h1>
           <p className="mt-1 max-w-2xl text-sm text-kumo-subtle">

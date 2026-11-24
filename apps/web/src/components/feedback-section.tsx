@@ -299,9 +299,10 @@ export const FeedbackSection = ({
           <div className={clsx("text-center", "mb-12", "sm:mb-16")}>
             <h2
               className={clsx(
-                "text-2xl",
-                "sm:text-3xl",
-                "lg:text-4xl",
+                "font-display",
+                "text-3xl",
+                "sm:text-4xl",
+                "lg:text-5xl",
                 "font-semibold",
                 "text-charcoal",
                 "dark:text-white",

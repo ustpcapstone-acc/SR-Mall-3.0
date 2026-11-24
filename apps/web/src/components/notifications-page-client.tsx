@@ -138,7 +138,7 @@ export default function NotificationsPageClient() {
           <div className="inline-flex items-center gap-2 px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-semibold border border-primary/20">
             <Bell size={12} /> {unreadCount > 0 ? `${unreadCount} unread` : "All caught up"}
           </div>
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-semibold text-charcoal dark:text-white tracking-tight leading-none">
+          <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-charcoal dark:text-white">
             Notifi<span className="text-primary">cations.</span>
           </h1>
           <p className="text-slate-500 font-medium">Everything the system has told you, newest first.</p>

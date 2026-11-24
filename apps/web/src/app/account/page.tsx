@@ -92,7 +92,7 @@ export default function CustomerAccountPage() {
           <>
             <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <h1 className="font-display text-3xl font-semibold text-kumo-default">Hello, {data.name}</h1>
+                <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-kumo-default">Hello, {data.name}</h1>
                 <p className="mt-1 text-sm text-kumo-subtle">Your bookings, saved shops and messages at SR Mall.</p>
               </div>
               <div className="flex gap-2">

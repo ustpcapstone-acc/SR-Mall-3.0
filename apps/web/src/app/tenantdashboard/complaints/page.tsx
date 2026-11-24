@@ -277,7 +277,7 @@ function TenantComplaints() {
     <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10 py-4 sm:py-6 lg:py-10 space-y-4 sm:space-y-6 lg:space-y-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="font-display text-xl sm:text-2xl lg:text-3xl font-semibold text-charcoal dark:text-white tracking-tight">Complaints</h1>
+          <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-charcoal dark:text-white">Complaints</h1>
           <p className="text-xs sm:text-sm text-slate-400 font-medium mt-1">Report a problem to the mall admin and follow it here — no need to go to the office.</p>
         </div>
         <div className="flex gap-2">

@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from "react";
 import {
-  ShieldCheck,
   User,
   Store,
   CheckCircle2,
@@ -246,11 +245,8 @@ export default function MasterBookingsPage() {
       {/* Premium Header */}
       <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 pb-8 border-b border-slate-200 dark:border-white/10">
         <div className="space-y-4">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-primary/10 text-primary rounded-full text-[10px] font-black uppercase tracking-widest border border-primary/20">
-            <ShieldCheck size={12} /> Access Level: Master Admin
-          </div>
-          <h1 className="text-5xl font-black text-charcoal dark:text-white tracking-tighter italic uppercase leading-none">
-            Bookings & <span className="text-primary">Reservations.</span>
+          <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-charcoal dark:text-white">
+            Bookings and Reservations
           </h1>
           <p className="text-slate-500 font-medium max-w-2xl text-lg">
             Manage event inquiries, space reservations, and merchant applications in one place.
@@ -261,7 +257,7 @@ export default function MasterBookingsPage() {
           {isSyncing && (
             <div className="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-zinc-800 rounded-full animate-pulse">
               <Loader2 size={12} className="animate-spin text-primary" />
-              <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+              <span className="text-xs font-semibold text-slate-500">
                 Live Sync
               </span>
             </div>
@@ -290,13 +286,13 @@ export default function MasterBookingsPage() {
             )}
           >
             <tab.icon size={18} />
-            <span className="text-[11px] font-black uppercase tracking-widest">
+            <span className="text-xs font-semibold">
               {tab.label}
             </span>
             {tab.count > 0 && (
               <span
                 className={clsx(
-                  "px-2 py-0.5 rounded-full text-[9px] font-bold border",
+                  "px-2 py-0.5 rounded-full text-xs font-bold border",
                   activeTab === tab.id
                     ? "bg-white text-primary border-white"
                     : "bg-primary/10 text-primary border-primary/20",
@@ -316,10 +312,10 @@ export default function MasterBookingsPage() {
             {/* Inquiry List */}
             <div className="xl:col-span-3 space-y-8">
               <div className="flex items-center justify-between">
-                <h2 className="text-xl font-black text-charcoal dark:text-white uppercase italic tracking-tighter">
+                <h2 className="text-xl font-semibold text-charcoal dark:text-white tracking-tight">
                   Experience <span className="text-primary">Queue.</span>
                 </h2>
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                <span className="text-xs font-semibold text-slate-400">
                   {pendingEvents.length} Pending Actions
                 </span>
               </div>
@@ -331,7 +327,7 @@ export default function MasterBookingsPage() {
                       size={48}
                       className="text-slate-200 mx-auto mb-4"
                     />
-                    <p className="text-xs font-black text-slate-400 uppercase tracking-widest">
+                    <p className="text-xs font-semibold text-slate-400">
                       Master Calendar is Clear
                     </p>
                   </div>
@@ -347,7 +343,7 @@ export default function MasterBookingsPage() {
                             <Clock size={20} />
                           </div>
                           <div className="text-right">
-                            <p className="text-[10px] font-black text-charcoal dark:text-white uppercase tracking-widest">
+                            <p className="text-xs font-semibold text-charcoal dark:text-white">
                               {new Date(inq.eventDate).toLocaleDateString(
                                 "en-US",
                                 {
@@ -357,22 +353,22 @@ export default function MasterBookingsPage() {
                                 },
                               )}
                             </p>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
+                            <p className="text-xs font-bold text-slate-400 mt-1">
                               {inq.eventTime}
                             </p>
                           </div>
                         </div>
-                        <span className="px-2 py-1 bg-primary text-white text-[8px] font-black uppercase tracking-widest rounded-sm mb-3 inline-block">
+                        <span className="px-2 py-1 bg-primary text-white text-xs font-semibold rounded-sm mb-3 inline-block">
                           {inq.eventType}
                         </span>
-                        <h3 className="text-xl font-black text-charcoal dark:text-white uppercase tracking-tight leading-tight italic">
+                        <h3 className="text-xl font-semibold text-charcoal dark:text-white tracking-tight leading-tight">
                           {inq.user?.name || "Anonymous User"}
                         </h3>
-                        <p className="text-[11px] text-slate-500 font-bold uppercase tracking-widest mt-1 mb-6">
+                        <p className="text-xs text-slate-500 font-bold mt-1 mb-6">
                           {inq.user?.email}
                         </p>
                         <div className="p-4 bg-slate-50 dark:bg-black rounded-2xl border border-slate-100 dark:border-white/5 mb-8">
-                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-2">
+                          <p className="text-xs font-semibold text-slate-400 mb-1 flex items-center gap-2">
                             <MessageSquare size={12} /> Inquiry Message
                           </p>
                           <p className="text-xs text-charcoal dark:text-white/80 leading-relaxed line-clamp-2">
@@ -380,7 +376,7 @@ export default function MasterBookingsPage() {
                           </p>
                           {inq.imageUrl && (
                             <div className="mt-4 pt-4 border-t border-slate-200 dark:border-white/5">
-                              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+                              <p className="text-xs font-semibold text-slate-400 mb-2 flex items-center gap-2">
                                 <Sparkles size={12} /> Attached Image
                               </p>
                               <div className="aspect-video w-full rounded-xl overflow-hidden bg-slate-100 dark:bg-zinc-800">
@@ -399,7 +395,7 @@ export default function MasterBookingsPage() {
                           onClick={() =>
                             handleEventActionClick(inq, "ACCEPTED")
                           }
-                          className="flex-1 py-4 bg-emerald-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-emerald-500/20 hover:scale-105 active:scale-95 transition-all"
+                          className="flex-1 py-4 bg-emerald-500 text-white rounded-2xl font-semibold text-xs shadow-lg shadow-emerald-500/20 hover:scale-105 active:scale-95 transition-all"
                         >
                           Secure
                         </button>
@@ -407,7 +403,7 @@ export default function MasterBookingsPage() {
                           onClick={() =>
                             handleEventActionClick(inq, "REJECTED")
                           }
-                          className="flex-1 py-4 border border-slate-200 dark:border-white/10 text-slate-500 hover:text-red-500 rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all"
+                          className="flex-1 py-4 border border-slate-200 dark:border-white/10 text-slate-500 hover:text-red-500 rounded-2xl font-semibold text-xs active:scale-95 transition-all"
                         >
                           Deny
                         </button>
@@ -420,7 +416,7 @@ export default function MasterBookingsPage() {
 
             {/* Master Schedule Calendar */}
             <div className="xl:col-span-2 space-y-8">
-              <h2 className="text-xl font-black text-charcoal dark:text-white uppercase italic tracking-tighter">
+              <h2 className="text-xl font-semibold text-charcoal dark:text-white tracking-tight">
                 Strategic <span className="text-primary">Schedule.</span>
               </h2>
               <div className="bg-white dark:bg-zinc-900 rounded-[3rem] p-10 border border-slate-100 dark:border-white/5 shadow-xs">
@@ -432,10 +428,10 @@ export default function MasterBookingsPage() {
                     <ChevronLeft size={20} />
                   </button>
                   <div className="text-center">
-                    <h3 className="text-2xl font-black text-charcoal dark:text-white uppercase tracking-tighter leading-none italic">
+                    <h3 className="text-2xl font-semibold text-charcoal dark:text-white tracking-tight leading-none">
                       {MONTHS[month]}
                     </h3>
-                    <p className="text-[10px] font-black text-primary uppercase tracking-[0.3em] mt-1">
+                    <p className="text-xs font-semibold text-primary mt-1">
                       {year}
                     </p>
                   </div>
@@ -451,7 +447,7 @@ export default function MasterBookingsPage() {
                   {DAYS_OF_WEEK.map((d) => (
                     <div
                       key={d}
-                      className="text-center text-[10px] font-black text-slate-300 uppercase mb-4"
+                      className="text-center text-xs font-semibold text-slate-300 mb-4"
                     >
                       {d}
                     </div>
@@ -481,7 +477,7 @@ export default function MasterBookingsPage() {
                       >
                         <span
                           className={clsx(
-                            "text-xs font-black",
+                            "text-xs font-semibold",
                             isToday && evs.length === 0 ? "text-primary" : "",
                           )}
                         >
@@ -496,13 +492,13 @@ export default function MasterBookingsPage() {
                 </div>
 
                 <div className="mt-10 pt-10 border-t border-slate-100 dark:border-white/5 space-y-4">
-                  <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-slate-400">
+                  <div className="flex items-center justify-between text-xs font-semibold text-slate-400">
                     <span>Confirmed Slates</span>
                     <span className="text-emerald-500">
                       {acceptedEvents.length} Active
                     </span>
                   </div>
-                  <p className="text-[10px] font-medium leading-relaxed uppercase grey-text">
+                  <p className="text-xs font-medium leading-relaxed grey-text">
                     Click any high-intensity date to view detailed engagement
                     manifests.
                   </p>
@@ -518,16 +514,16 @@ export default function MasterBookingsPage() {
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-slate-50/50 dark:bg-white/5">
-                      <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 dark:border-white/5">
+                      <th className="px-8 py-6 text-xs font-semibold text-slate-400 border-b border-slate-100 dark:border-white/5">
                         Commercial Space
                       </th>
-                      <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 dark:border-white/5">
+                      <th className="px-8 py-6 text-xs font-semibold text-slate-400 border-b border-slate-100 dark:border-white/5">
                         Reserving Customer
                       </th>
-                      <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 dark:border-white/5">
+                      <th className="px-8 py-6 text-xs font-semibold text-slate-400 border-b border-slate-100 dark:border-white/5">
                         2-Day Review Window
                       </th>
-                      <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 dark:border-white/5 text-right">
+                      <th className="px-8 py-6 text-xs font-semibold text-slate-400 border-b border-slate-100 dark:border-white/5 text-right">
                         Decision Protocol
                       </th>
                     </tr>
@@ -537,13 +533,13 @@ export default function MasterBookingsPage() {
                       <tr>
                         <td
                           colSpan={4}
-                          className="p-24 text-center text-slate-400 font-bold uppercase tracking-widest text-xs"
+                          className="p-24 text-center text-slate-400 font-bold text-xs"
                         >
                           <div className="max-w-md mx-auto space-y-3">
                             <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-white/5 text-slate-400 flex items-center justify-center mx-auto">
                               <Building size={24} />
                             </div>
-                            <p className="text-sm font-black text-charcoal dark:text-white uppercase tracking-tight">
+                            <p className="text-sm font-semibold text-charcoal dark:text-white tracking-tight">
                               No Pending Space Reservations
                             </p>
                             <p className="text-xs text-slate-400 font-medium">
@@ -564,15 +560,15 @@ export default function MasterBookingsPage() {
                                 <Building size={24} />
                               </div>
                               <div>
-                                <p className="font-black text-lg text-charcoal dark:text-white uppercase tracking-tighter leading-none">
+                                <p className="font-semibold text-lg text-charcoal dark:text-white tracking-tight leading-none">
                                   Unit {res.unit_id}
                                 </p>
                                 <div className="flex items-center gap-2 mt-1.5">
-                                  <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+                                  <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
                                     {res.sqm_size} SQM
                                   </span>
                                   <span className="text-slate-300 dark:text-white/20">&bull;</span>
-                                  <span className="text-[10px] font-black text-primary uppercase tracking-widest">
+                                  <span className="text-xs font-semibold text-primary">
                                     ₱{res.base_rent?.toLocaleString()} / mo
                                   </span>
                                 </div>
@@ -582,7 +578,7 @@ export default function MasterBookingsPage() {
 
                           <td className="px-8 py-6">
                             <div className="flex items-center gap-3.5">
-                              <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 flex items-center justify-center font-black text-sm text-charcoal dark:text-white uppercase overflow-hidden shrink-0">
+                              <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 flex items-center justify-center font-semibold text-sm text-charcoal dark:text-white overflow-hidden shrink-0">
                                 {res.reservingUser?.avatarUrl ? (
                                   <img
                                     src={res.reservingUser.avatarUrl}
@@ -594,14 +590,14 @@ export default function MasterBookingsPage() {
                                 )}
                               </div>
                               <div>
-                                <p className="text-sm font-black text-charcoal dark:text-white leading-snug">
+                                <p className="text-sm font-semibold text-charcoal dark:text-white leading-snug">
                                   {res.reservingUser?.name || "Registered Customer"}
                                 </p>
                                 <p className="text-xs text-slate-400 font-medium">
                                   {res.reservingUser?.email || "No email available"}
                                 </p>
                                 {res.reservedAt && (
-                                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+                                  <p className="text-xs font-bold text-slate-400 mt-0.5">
                                     Reserved: {new Date(res.reservedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
                                   </p>
                                 )}
@@ -613,7 +609,7 @@ export default function MasterBookingsPage() {
                             <div className="space-y-1.5">
                               <div
                                 className={clsx(
-                                  "inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-black uppercase tracking-wider border shadow-xs",
+                                  "inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold border shadow-xs",
                                   res.isUrgent
                                     ? "bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 border-red-500/30 animate-pulse"
                                     : res.isWarning
@@ -637,21 +633,21 @@ export default function MasterBookingsPage() {
                             <div className="flex justify-end items-center gap-2.5">
                               <button
                                 onClick={() => handleReservationDetails(res)}
-                                className="px-5 py-2.5 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-white/10 text-slate-500 hover:text-primary hover:border-primary/30 rounded-xl font-black text-xs uppercase tracking-widest hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5"
+                                className="px-5 py-2.5 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-white/10 text-slate-500 hover:text-primary hover:border-primary/30 rounded-xl font-semibold text-xs hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5"
                                 title="See details and business permit"
                               >
                                 <FileText size={15} /> See details
                               </button>
                               <button
                                 onClick={() => handleApproveReservation(res.unit_id)}
-                                className="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-black text-xs uppercase tracking-widest rounded-xl shadow-lg shadow-emerald-500/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5"
+                                className="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold text-xs rounded-xl shadow-lg shadow-emerald-500/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5"
                                 title="Approve Reservation"
                               >
                                 <CheckCircle2 size={15} /> Approve
                               </button>
                               <button
                                 onClick={() => handleRejectReservation(res)}
-                                className="px-5 py-2.5 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-white/10 text-slate-500 hover:text-red-500 hover:border-red-500/30 rounded-xl font-black text-xs uppercase tracking-widest hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5"
+                                className="px-5 py-2.5 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-white/10 text-slate-500 hover:text-red-500 hover:border-red-500/30 rounded-xl font-semibold text-xs hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5"
                                 title="Reject Reservation"
                               >
                                 <XCircle size={15} /> Reject
@@ -695,11 +691,11 @@ export default function MasterBookingsPage() {
                 )}
               </div>
               <div>
-                <h2 className="text-2xl font-black text-charcoal dark:text-white uppercase tracking-tighter italic leading-none">
+                <h2 className="font-display text-2xl font-semibold text-charcoal dark:text-white tracking-tight leading-none">
                   {modalAction === "ACCEPTED" ? "Approve" : "Reject"}{" "}
                   Engagement.
                 </h2>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">
+                <p className="text-xs font-semibold text-slate-400 mt-1">
                   Final Authorization Protocol
                 </p>
               </div>
@@ -707,7 +703,7 @@ export default function MasterBookingsPage() {
 
             <div className="space-y-6">
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">
+                <label className="text-xs font-semibold text-slate-400 pl-2">
                   Strategy Note
                 </label>
                 <textarea
@@ -729,7 +725,7 @@ export default function MasterBookingsPage() {
                   (modalAction === "REJECTED" && !feedback.trim())
                 }
                 className={clsx(
-                  "w-full py-6 rounded-2xl text-[11px] font-black uppercase tracking-[0.3em] text-white transition-all shadow-2xl active:scale-95 disabled:opacity-50",
+                  "w-full py-6 rounded-2xl text-xs font-semibold text-white transition-all shadow-2xl active:scale-95 disabled:opacity-50",
                   modalAction === "ACCEPTED"
                     ? "bg-emerald-500 shadow-emerald-500/30"
                     : "bg-red-500 shadow-red-500/30",
@@ -760,10 +756,10 @@ export default function MasterBookingsPage() {
                 <CalendarIcon size={24} />
               </div>
               <div>
-                <h3 className="text-2xl font-black text-charcoal dark:text-white uppercase tracking-tighter italic leading-none">
+                <h3 className="text-2xl font-semibold text-charcoal dark:text-white tracking-tight leading-none">
                   Day Manifest.
                 </h3>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">
+                <p className="text-xs font-semibold text-slate-400 mt-1">
                   {selectedCalendarDate.toLocaleDateString("en-US", {
                     weekday: "long",
                     month: "long",
@@ -780,7 +776,7 @@ export default function MasterBookingsPage() {
                   className="p-6 rounded-4xl bg-slate-50 dark:bg-black border border-slate-100 dark:border-white/5 group hover:border-primary/50 transition-all"
                 >
                   <div className="flex justify-between items-center mb-2">
-                    <span className="text-[9px] font-black text-primary uppercase tracking-widest">
+                    <span className="text-xs font-semibold text-primary">
                       {ev.eventTime}
                     </span>
                     <ArrowRight
@@ -788,16 +784,16 @@ export default function MasterBookingsPage() {
                       className="text-slate-300 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all"
                     />
                   </div>
-                  <h4 className="text-sm font-black text-charcoal dark:text-white uppercase tracking-tight">
+                  <h4 className="text-sm font-semibold text-charcoal dark:text-white tracking-tight">
                     {ev.eventType}
                   </h4>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5 mb-3">
+                  <p className="text-xs text-slate-400 font-bold mt-0.5 mb-3">
                     {ev.user?.name || "Authorized Client"}
                   </p>
 
                   {ev.message && (
                     <div className="p-3 bg-white dark:bg-zinc-900 rounded-xl border border-slate-100 dark:border-white/5">
-                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-1.5">
+                      <p className="text-xs font-semibold text-slate-400 mb-1 flex items-center gap-1.5">
                         <MessageSquare size={10} /> Context
                       </p>
                       <p className="text-[11px] text-charcoal dark:text-white/80 leading-relaxed italic line-clamp-3">
@@ -811,7 +807,7 @@ export default function MasterBookingsPage() {
 
             <button
               onClick={() => setSelectedCalendarDate(null)}
-              className="w-full mt-8 py-4 bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-slate-400 font-black text-[10px] uppercase tracking-widest rounded-2xl hover:bg-slate-200 dark:hover:bg-zinc-700 transition-all"
+              className="w-full mt-8 py-4 bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-slate-400 font-semibold text-xs rounded-2xl hover:bg-slate-200 dark:hover:bg-zinc-700 transition-all"
             >
               Close View
             </button>

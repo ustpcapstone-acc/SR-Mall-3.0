@@ -380,7 +380,7 @@ export default function DigitalStorefrontPage() {
             (Save was being pushed past the edge). sm+ keeps the original row. */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
           <div className="min-w-0">
-            <h1 className="font-display text-2xl sm:text-3xl font-semibold text-charcoal dark:text-white tracking-tight leading-none">
+            <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-charcoal dark:text-white">
               Digital Storefront
             </h1>
             <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1.5">

@@ -81,7 +81,7 @@ export default function RentASpacePage() {
   return (
     <div className="mx-auto max-w-6xl space-y-10 p-6 sm:p-8">
       <header>
-        <h1 className="font-display text-2xl font-semibold text-kumo-default">Rent a Space</h1>
+        <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-kumo-default">Rent a Space</h1>
         <p className="mt-1 max-w-2xl text-sm text-kumo-subtle">
           Send a request for the space you want, then pay at the SR Mall management office. The office approves the
           request once payment is received, and your e-invoice appears below.

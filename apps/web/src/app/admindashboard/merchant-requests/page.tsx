@@ -102,18 +102,18 @@ export default function MerchantRequestsPage() {
     <div className="p-10 animate-fade-in-up">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-4xl font-black text-charcoal dark:text-white tracking-tight italic uppercase">
-            Merchant <span className="text-primary">Partnerships</span>
+          <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-charcoal dark:text-white">
+            Merchant Requests
           </h1>
           <p className="text-sm text-slate-500 font-medium mt-1">
             Review and board new digital storefront partners.
           </p>
         </div>
         <div className="flex items-center gap-4 px-6 py-3 bg-primary/5 border border-primary/10 rounded-2xl">
-          <p className="text-[10px] font-black uppercase tracking-widest text-primary">
+          <p className="text-xs font-semibold text-primary">
             Pending Applications
           </p>
-          <span className="text-2xl font-black text-primary">
+          <span className="text-2xl font-semibold text-primary">
             {requests.length}
           </span>
         </div>
@@ -124,16 +124,16 @@ export default function MerchantRequestsPage() {
           <table className="w-full text-left border-collapse min-w-[900px]">
             <thead>
               <tr className="border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/5">
-                <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
+                <th className="px-8 py-6 text-xs font-semibold text-slate-400">
                   Applicant Details
                 </th>
-                <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
+                <th className="px-8 py-6 text-xs font-semibold text-slate-400">
                   Shop Description
                 </th>
-                <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
+                <th className="px-8 py-6 text-xs font-semibold text-slate-400">
                   Unit Assignment
                 </th>
-                <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 text-right">
+                <th className="px-8 py-6 text-xs font-semibold text-slate-400 text-right">
                   Decision
                 </th>
               </tr>
@@ -146,7 +146,7 @@ export default function MerchantRequestsPage() {
                       className="animate-spin mx-auto text-primary"
                       size={40}
                     />
-                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mt-4">
+                    <p className="text-xs font-semibold text-slate-400 mt-4">
                       Reviewing Applications...
                     </p>
                   </td>
@@ -163,12 +163,12 @@ export default function MerchantRequestsPage() {
                           <User size={22} />
                         </div>
                         <div>
-                          <p className="text-lg font-black text-charcoal dark:text-white leading-none">
+                          <p className="text-lg font-semibold text-charcoal dark:text-white leading-none">
                             {req.user?.name}
                           </p>
                           <div className="flex items-center gap-2 mt-1">
                             <Mail size={10} className="text-slate-400" />
-                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest leading-none">
+                            <p className="text-xs text-slate-500 font-bold leading-none">
                               {req.user?.email}
                             </p>
                           </div>
@@ -177,7 +177,7 @@ export default function MerchantRequestsPage() {
                     </td>
                     <td className="px-8 py-6 max-w-xs">
                       <div className="space-y-1">
-                        <p className="text-xs font-black text-charcoal dark:text-white uppercase tracking-wider">
+                        <p className="text-xs font-semibold text-charcoal dark:text-white">
                           {req.shopName}
                         </p>
                         <p className="text-[11px] text-slate-500 font-medium line-clamp-2 leading-relaxed">
@@ -222,7 +222,7 @@ export default function MerchantRequestsPage() {
                                     setOpenSelectId(null);
                                   }}
                                   className={clsx(
-                                    "w-full text-left px-5 py-3 text-xs font-black transition-all hover:bg-slate-100 dark:hover:bg-zinc-800",
+                                    "w-full text-left px-5 py-3 text-xs font-semibold transition-all hover:bg-slate-100 dark:hover:bg-zinc-800",
                                     !selectedUnits[req.id]
                                       ? "text-primary"
                                       : "text-slate-500 dark:text-zinc-300"
@@ -242,7 +242,7 @@ export default function MerchantRequestsPage() {
                                       setOpenSelectId(null);
                                     }}
                                     className={clsx(
-                                      "w-full text-left px-5 py-3 text-xs font-black transition-all hover:bg-slate-100 dark:hover:bg-zinc-800",
+                                      "w-full text-left px-5 py-3 text-xs font-semibold transition-all hover:bg-slate-100 dark:hover:bg-zinc-800",
                                       selectedUnits[req.id] === slot.unit_id
                                         ? "text-primary"
                                         : "text-slate-800 dark:text-zinc-100"
@@ -262,7 +262,7 @@ export default function MerchantRequestsPage() {
                         <button
                           onClick={() => handleApprove(req.id)}
                           disabled={isApproving === req.id}
-                          className="flex items-center gap-2 px-5 py-2.5 bg-emerald-500 text-white hover:bg-emerald-600 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-emerald-500/30 active:scale-95 disabled:opacity-50"
+                          className="flex items-center gap-2 px-5 py-2.5 bg-emerald-500 text-white hover:bg-emerald-600 rounded-xl text-xs font-semibold transition-all shadow-lg shadow-emerald-500/30 active:scale-95 disabled:opacity-50"
                         >
                           {isApproving === req.id ? (
                             <Loader2 size={14} className="animate-spin" />
@@ -273,7 +273,7 @@ export default function MerchantRequestsPage() {
                         </button>
                         <button
                           onClick={() => handleReject(req.id)}
-                          className="flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-white/10 text-slate-500 hover:text-primary rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95"
+                          className="flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-white/10 text-slate-500 hover:text-primary rounded-xl text-xs font-semibold transition-all active:scale-95"
                         >
                           <XCircle size={14} /> Reject
                         </button>
@@ -287,7 +287,7 @@ export default function MerchantRequestsPage() {
                     <div className="w-16 h-16 rounded-3xl bg-slate-50 dark:bg-white/5 flex items-center justify-center mx-auto text-slate-300 mb-4">
                       <Store size={32} />
                     </div>
-                    <p className="text-lg font-black text-charcoal dark:text-white">
+                    <p className="text-lg font-semibold text-charcoal dark:text-white">
                       All Requests Finalized
                     </p>
                     <p className="text-sm text-slate-500 font-medium">

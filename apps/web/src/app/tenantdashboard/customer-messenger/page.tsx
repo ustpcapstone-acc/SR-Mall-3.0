@@ -568,7 +568,7 @@ function CustomerMessenger({ inbox }: { inbox: Inbox }) {
     <div className="h-screen flex flex-col pt-4 sm:pt-6 lg:pt-10 px-4 sm:px-6 lg:px-8 pb-4 sm:pb-6 lg:pb-8 animate-fade-in-up">
       <div className="mb-4 sm:mb-6 flex items-end justify-between shrink-0">
         <div>
-          <h1 className="font-display text-xl sm:text-2xl lg:text-3xl font-semibold text-charcoal dark:text-white tracking-tight">
+          <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-charcoal dark:text-white">
             {inbox === "mall" ? "Mall Office Messages" : inbox === "customers" ? "Customer Messages" : "Messages"}
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
@@ -781,7 +781,7 @@ function CustomerMessenger({ inbox }: { inbox: Inbox }) {
                           </div>
 
                           <div className="flex flex-col leading-tight">
-                            <h3 className="font-bold text-charcoal dark:text-white flex items-center gap-2 text-sm lg:text-base">
+                            <h3 className="font-semibold text-charcoal dark:text-white flex items-center gap-2 text-sm lg:text-base">
                               {otherPerson?.name || otherPerson?.email || "SR Mall Member"}
                               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                             </h3>

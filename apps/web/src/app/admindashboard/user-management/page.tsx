@@ -148,11 +148,8 @@ export default function UserManagement() {
       {/* Premium Header */}
       <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 pb-8 border-b border-slate-200 dark:border-white/10">
         <div className="space-y-4">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-primary/10 text-primary rounded-full text-[10px] font-black uppercase tracking-widest border border-primary/20">
-            <Shield size={12} /> User Administration
-          </div>
-          <h1 className="text-5xl font-black text-charcoal dark:text-white tracking-tighter italic uppercase leading-none">
-            User <span className="text-primary">Management.</span>
+          <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-charcoal dark:text-white">
+            User Management
           </h1>
           <p className="text-slate-500 font-medium max-w-2xl text-lg">
             Manage registered users, update roles and permissions, and review customer feedback.
@@ -183,11 +180,11 @@ export default function UserManagement() {
           )}
         >
           <Users size={18} />
-          <span className="text-[11px] font-black uppercase tracking-widest">
+          <span className="text-xs font-semibold">
             Users
           </span>
           {users.length > 0 && (
-            <span className="ml-2 px-2 py-0.5 bg-primary/10 text-primary rounded-full text-[9px] font-bold">
+            <span className="ml-2 px-2 py-0.5 bg-primary/10 text-primary rounded-full text-xs font-bold">
               {users.length}
             </span>
           )}
@@ -202,11 +199,11 @@ export default function UserManagement() {
           )}
         >
           <MessageSquare size={18} />
-          <span className="text-[11px] font-black uppercase tracking-widest">
+          <span className="text-xs font-semibold">
             Feedback & Reviews
           </span>
           {reviewAttention > 0 && (
-            <span className="ml-2 px-2 py-0.5 bg-amber-500/10 text-amber-600 rounded-full text-[9px] font-bold">
+            <span className="ml-2 px-2 py-0.5 bg-amber-500/10 text-amber-600 rounded-full text-xs font-bold">
               {reviewAttention}
             </span>
           )}
@@ -221,7 +218,7 @@ export default function UserManagement() {
           )}
         >
           <Store size={18} />
-          <span className="text-[11px] font-black uppercase tracking-widest">
+          <span className="text-xs font-semibold">
             Tenant History
           </span>
         </button>
@@ -236,10 +233,10 @@ export default function UserManagement() {
                   <ShieldCheck size={28} />
                 </div>
                 <div>
-                  <h3 className="text-xl font-black text-charcoal dark:text-white uppercase tracking-tighter italic">
+                  <h3 className="text-xl font-semibold text-charcoal dark:text-white tracking-tight">
                     Global Directory
                   </h3>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">
+                  <p className="text-xs font-semibold text-slate-400 mt-1">
                     Institutional Integrity: 100% Operational
                   </p>
                 </div>
@@ -253,7 +250,7 @@ export default function UserManagement() {
                       key={role}
                       onClick={() => setRoleFilter(role)}
                       className={clsx(
-                        "px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap",
+                        "px-4 py-3 rounded-xl text-xs font-semibold transition-all whitespace-nowrap",
                         roleFilter === role
                           ? "bg-white dark:bg-zinc-800 text-charcoal dark:text-white shadow-xs"
                           : "text-slate-400 hover:text-charcoal dark:hover:text-white"
@@ -276,19 +273,19 @@ export default function UserManagement() {
                     onChange={(e) => setSearchQuery(e.target.value)}
                     onFocus={() => setIsSearchFocused(true)}
                     placeholder="FILTER IDENTITY..."
-                    className="pl-12 pr-6 py-4 bg-white dark:bg-black border border-slate-200 dark:border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest w-full md:w-72 focus:ring-4 focus:ring-primary/10 transition-all outline-hidden relative z-10"
+                    className="pl-12 pr-6 py-4 bg-white dark:bg-black border border-slate-200 dark:border-white/10 rounded-2xl text-xs font-semibold w-full md:w-72 focus:ring-4 focus:ring-primary/10 transition-all outline-hidden relative z-10"
                   />
 
                   {/* Recommended Matches Dropdown */}
                   {isSearchFocused && searchQuery.length > 0 && (
                     <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl overflow-hidden z-50 animate-fade-in-up">
                       <div className="p-3 border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/2">
-                        <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Recommended Matches</p>
+                        <p className="text-xs font-semibold text-slate-400">Recommended Matches</p>
                       </div>
                       <div className="max-h-60 overflow-y-auto custom-scrollbar">
                         {filteredUsers.slice(0, 5).length === 0 ? (
                           <div className="p-4 text-center">
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">No Matches Found</p>
+                            <p className="text-xs font-semibold text-slate-400">No Matches Found</p>
                           </div>
                         ) : (
                           filteredUsers.slice(0, 5).map((u) => (
@@ -301,14 +298,14 @@ export default function UserManagement() {
                                 setIsSearchFocused(false);
                               }}
                             >
-                              <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-black text-xs shrink-0">
+                              <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-semibold text-xs shrink-0">
                                 {u.name ? u.name.charAt(0).toUpperCase() : "U"}
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className="text-xs font-black uppercase text-charcoal dark:text-white truncate">{u.name || "ANONYMOUS"}</p>
-                                <p className="text-[9px] font-bold text-slate-400 truncate">{u.email}</p>
+                                <p className="text-xs font-semibold text-charcoal dark:text-white truncate">{u.name || "ANONYMOUS"}</p>
+                                <p className="text-xs font-bold text-slate-400 truncate">{u.email}</p>
                               </div>
-                              <div className="px-2 py-0.5 bg-slate-100 dark:bg-zinc-800 rounded-full text-[8px] font-black uppercase text-slate-500 shrink-0">
+                              <div className="px-2 py-0.5 bg-slate-100 dark:bg-zinc-800 rounded-full text-xs font-semibold text-slate-500 shrink-0">
                                 {u.role}
                               </div>
                             </div>
@@ -325,7 +322,7 @@ export default function UserManagement() {
               {loading ? (
                 <div className="py-40 flex flex-col items-center justify-center gap-4">
                   <Loader2 className="w-10 h-10 text-primary animate-spin" />
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">
+                  <p className="text-xs font-semibold text-slate-400">
                     Loading Users...
                   </p>
                 </div>
@@ -333,16 +330,16 @@ export default function UserManagement() {
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-slate-50/50 dark:bg-white/2">
-                      <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                      <th className="px-8 py-6 text-xs font-semibold text-slate-400">
                         User Details
                       </th>
-                      <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                      <th className="px-8 py-6 text-xs font-semibold text-slate-400">
                         Role & Permissions
                       </th>
-                      <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                      <th className="px-8 py-6 text-xs font-semibold text-slate-400">
                         Security Status
                       </th>
-                      <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">
+                      <th className="px-8 py-6 text-xs font-semibold text-slate-400 text-right">
                         Administrative Protocol
                       </th>
                     </tr>
@@ -351,7 +348,7 @@ export default function UserManagement() {
                     {filteredUsers.length === 0 ? (
                       <tr>
                         <td colSpan={4} className="px-8 py-20 text-center">
-                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">
+                          <p className="text-xs font-semibold text-slate-400">
                             No identities matched the filter criteria.
                           </p>
                         </td>
@@ -369,7 +366,7 @@ export default function UserManagement() {
                             <div className="flex items-center gap-5">
                               <div
                                 className={clsx(
-                                  "w-14 h-14 rounded-3xl font-black text-lg flex items-center justify-center border transition-all shadow-xs",
+                                  "w-14 h-14 rounded-3xl font-semibold text-lg flex items-center justify-center border transition-all shadow-xs",
                                   item.isBlacklisted
                                     ? "bg-red-500 text-white border-red-400"
                                     : "bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-slate-400 border-transparent",
@@ -382,7 +379,7 @@ export default function UserManagement() {
                               <div>
                                 <p
                                   className={clsx(
-                                    "text-base font-black uppercase tracking-tight italic",
+                                    "text-base font-semibold tracking-tight",
                                     item.isBlacklisted
                                       ? "text-red-500 line-through opacity-60"
                                       : "text-charcoal dark:text-white",
@@ -390,7 +387,7 @@ export default function UserManagement() {
                                 >
                                   {item.name || "ANONYMOUS"}
                                 </p>
-                                <p className="text-[10px] font-bold text-slate-400 mt-0.5 tracking-wider">
+                                <p className="text-xs font-bold text-slate-400 mt-0.5">
                                   {item.email}
                                 </p>
                               </div>
@@ -415,7 +412,7 @@ export default function UserManagement() {
                                   handleRoleChange(item.id, e.target.value)
                                 }
                                 disabled={isProcessing === item.id}
-                                className="bg-transparent text-[11px] font-black uppercase tracking-widest text-charcoal dark:text-white hover:text-primary transition-colors cursor-pointer outline-hidden border-none p-0 focus:ring-0"
+                                className="bg-transparent text-xs font-semibold text-charcoal dark:text-white hover:text-primary transition-colors cursor-pointer outline-hidden border-none p-0 focus:ring-0"
                               >
                                 <option value="CUSTOMER" className="bg-white dark:bg-zinc-900 text-charcoal dark:text-white">Customer Segment</option>
                                 <option value="TENANT" className="bg-white dark:bg-zinc-900 text-charcoal dark:text-white">Merchant Partner</option>
@@ -431,11 +428,11 @@ export default function UserManagement() {
                           </td>
                           <td className="px-8 py-8">
                             {item.isBlacklisted ? (
-                              <span className="inline-flex items-center gap-2 px-3 py-1 bg-red-500/10 text-red-500 text-[9px] font-black uppercase tracking-widest rounded-full border border-red-500/20">
+                              <span className="inline-flex items-center gap-2 px-3 py-1 bg-red-500/10 text-red-500 text-xs font-semibold rounded-full border border-red-500/20">
                                 <Ban size={10} /> Blacklisted
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-500/10 text-emerald-500 text-[9px] font-black uppercase tracking-widest rounded-full border border-emerald-500/20">
+                              <span className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-500/10 text-emerald-500 text-xs font-semibold rounded-full border border-emerald-500/20">
                                 <Activity size={10} className="animate-pulse" />{" "}
                                 Active Uplink
                               </span>
@@ -450,7 +447,7 @@ export default function UserManagement() {
                                 }
                                 disabled={isProcessing === item.id}
                                 className={clsx(
-                                  "px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl active:scale-95 disabled:opacity-50",
+                                  "px-6 py-3 rounded-xl text-xs font-semibold transition-all shadow-xl active:scale-95 disabled:opacity-50",
                                   item.isBlacklisted
                                     ? "bg-emerald-500 text-white shadow-emerald-500/20"
                                     : "bg-red-500 text-white shadow-red-500/20",
@@ -525,7 +522,7 @@ export default function UserManagement() {
               <div className="space-y-2">
                 <h3
                   id="blacklist-modal-title"
-                  className="text-xl font-black uppercase tracking-tight text-charcoal dark:text-white"
+                  className="text-xl font-semibold tracking-tight text-charcoal dark:text-white"
                 >
                   {blacklistTarget.isBlacklisted
                     ? "Restore this account?"
@@ -560,7 +557,7 @@ export default function UserManagement() {
                 type="button"
                 disabled={isProcessing === blacklistTarget.id}
                 onClick={() => setBlacklistTarget(null)}
-                className="flex-1 rounded-2xl bg-slate-100 px-4 py-3.5 text-[10px] font-black uppercase tracking-widest text-slate-500 transition-all hover:bg-slate-200 disabled:opacity-50 dark:bg-zinc-800 dark:text-slate-300 dark:hover:bg-zinc-700"
+                className="flex-1 rounded-2xl bg-slate-100 px-4 py-3.5 text-xs font-semibold text-slate-500 transition-all hover:bg-slate-200 disabled:opacity-50 dark:bg-zinc-800 dark:text-slate-300 dark:hover:bg-zinc-700"
               >
                 Cancel
               </button>
@@ -569,7 +566,7 @@ export default function UserManagement() {
                 disabled={isProcessing === blacklistTarget.id}
                 onClick={confirmBlacklistToggle}
                 className={clsx(
-                  "flex flex-1 items-center justify-center gap-2 rounded-2xl px-4 py-3.5 text-[10px] font-black uppercase tracking-widest text-white shadow-xl transition-all active:scale-95 disabled:opacity-50",
+                  "flex flex-1 items-center justify-center gap-2 rounded-2xl px-4 py-3.5 text-xs font-semibold text-white shadow-xl transition-all active:scale-95 disabled:opacity-50",
                   blacklistTarget.isBlacklisted
                     ? "bg-emerald-500 shadow-emerald-500/20 hover:bg-emerald-600"
                     : "bg-red-500 shadow-red-500/20 hover:bg-red-600",
@@ -597,7 +594,7 @@ export default function UserManagement() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-8 border-b border-slate-100 dark:border-white/5 flex items-center justify-between">
-              <h3 className="text-xl font-black text-charcoal dark:text-white uppercase tracking-tighter italic">
+              <h3 className="text-xl font-semibold text-charcoal dark:text-white tracking-tight">
                 Entity <span className="text-primary">Manifest.</span>
               </h3>
               <button
@@ -610,20 +607,20 @@ export default function UserManagement() {
 
             <div className="p-8 space-y-8">
               <div className="flex items-center gap-6">
-                <div className={clsx("w-20 h-20 rounded-4xl font-black text-3xl flex items-center justify-center border-4 shadow-xl transition-all",
+                <div className={clsx("w-20 h-20 rounded-4xl font-semibold text-3xl flex items-center justify-center border-4 shadow-xl transition-all",
                   selectedUser.isBlacklisted ? "bg-red-500/10 text-red-500 border-red-500/20" : "bg-primary/10 text-primary border-primary/20"
                 )}>
                   {selectedUser.name ? selectedUser.name.charAt(0).toUpperCase() : "U"}
                 </div>
                 <div>
-                  <h4 className={clsx("text-2xl font-black uppercase tracking-tight italic", selectedUser.isBlacklisted ? "text-red-500 line-through opacity-60" : "text-charcoal dark:text-white")}>
+                  <h4 className={clsx("text-2xl font-semibold tracking-tight", selectedUser.isBlacklisted ? "text-red-500 line-through opacity-60" : "text-charcoal dark:text-white")}>
                     {selectedUser.name || "ANONYMOUS"}
                   </h4>
-                  <p className="text-sm font-bold text-slate-400 tracking-wider mt-1">
+                  <p className="text-sm font-bold text-slate-400 mt-1">
                     {selectedUser.email}
                   </p>
                   <div className="mt-3 flex gap-2">
-                    <span className="inline-flex items-center gap-1 px-3 py-1 bg-slate-100 dark:bg-zinc-800 text-slate-500 text-[9px] font-black uppercase tracking-widest rounded-full">
+                    <span className="inline-flex items-center gap-1 px-3 py-1 bg-slate-100 dark:bg-zinc-800 text-slate-500 text-xs font-semibold rounded-full">
                       ID: {selectedUser.id}
                     </span>
                   </div>
@@ -632,23 +629,23 @@ export default function UserManagement() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-5 bg-slate-50 dark:bg-white/2 rounded-3xl border border-slate-100 dark:border-white/5">
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-1"><Shield size={10} /> Privilege Level</p>
-                  <p className="text-sm font-black text-charcoal dark:text-white uppercase">{selectedUser.role}</p>
+                  <p className="text-xs font-semibold text-slate-400 mb-1 flex items-center gap-1"><Shield size={10} /> Privilege Level</p>
+                  <p className="text-sm font-semibold text-charcoal dark:text-white">{selectedUser.role}</p>
                 </div>
                 <div className="p-5 bg-slate-50 dark:bg-white/2 rounded-3xl border border-slate-100 dark:border-white/5">
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-1"><Activity size={10} /> Security Status</p>
-                  <p className={clsx("text-sm font-black uppercase", selectedUser.isBlacklisted ? "text-red-500" : "text-emerald-500")}>
+                  <p className="text-xs font-semibold text-slate-400 mb-1 flex items-center gap-1"><Activity size={10} /> Security Status</p>
+                  <p className={clsx("text-sm font-semibold", selectedUser.isBlacklisted ? "text-red-500" : "text-emerald-500")}>
                     {selectedUser.isBlacklisted ? "Blacklisted" : "Active"}
                   </p>
                 </div>
                 <div className="p-5 bg-slate-50 dark:bg-white/2 rounded-3xl border border-slate-100 dark:border-white/5">
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Created At</p>
+                  <p className="text-xs font-semibold text-slate-400 mb-1">Created At</p>
                   <p className="text-sm font-bold text-charcoal dark:text-white">
                     {selectedUser.createdAt ? new Date(selectedUser.createdAt).toLocaleDateString() : "Unknown"}
                   </p>
                 </div>
                 <div className="p-5 bg-slate-50 dark:bg-white/2 rounded-3xl border border-slate-100 dark:border-white/5">
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Last Login</p>
+                  <p className="text-xs font-semibold text-slate-400 mb-1">Last Login</p>
                   <p className="text-sm font-bold text-charcoal dark:text-white">
                     {selectedUser.lastLogin ? new Date(selectedUser.lastLogin).toLocaleDateString() : "N/A"}
                   </p>
@@ -657,7 +654,7 @@ export default function UserManagement() {
             </div>
 
             <div className="p-6 bg-slate-50 dark:bg-white/2 border-t border-slate-100 dark:border-white/5 flex justify-end">
-              <button onClick={() => setSelectedUser(null)} className="px-8 py-4 bg-charcoal dark:bg-white text-white dark:text-black rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl hover:scale-105 active:scale-95 transition-all">
+              <button onClick={() => setSelectedUser(null)} className="px-8 py-4 bg-charcoal dark:bg-white text-white dark:text-black rounded-2xl text-xs font-semibold shadow-xl hover:scale-105 active:scale-95 transition-all">
                 Acknowledge
               </button>
             </div>

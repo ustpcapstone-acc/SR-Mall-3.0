@@ -62,7 +62,7 @@ export default function SpaceStaffPage() {
     <div className="mx-auto max-w-6xl space-y-6 p-6 sm:p-8">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="font-display text-2xl font-semibold text-kumo-default">Staff{data ? `, Unit ${data.unitId}` : ""}</h1>
+          <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-kumo-default">Staff{data ? `, Unit ${data.unitId}` : ""}</h1>
           <p className="mt-1 max-w-2xl text-sm text-kumo-subtle">
             Staff sign in at /tenant-portal with their own email and password. They only see this space, and only the
             sections their role opens.

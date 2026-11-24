@@ -268,7 +268,7 @@ export default function BecomeATenantPage() {
       <main className="bg-kumo-recessed px-4 pb-20 pt-28 sm:pt-32">
         <div className="mx-auto max-w-2xl">
           <header className="mb-8">
-            <h1 className="font-display text-3xl font-semibold text-kumo-default sm:text-4xl">Become a tenant</h1>
+            <h1 className="font-display text-3xl sm:text-4xl lg:text-5xl font-semibold tracking-tight text-kumo-default">Become a tenant</h1>
             <p className="mt-2 text-kumo-subtle">
               Register your business with SR Mall. Once your account is set up, you can choose a space to rent from your
               tenant dashboard.

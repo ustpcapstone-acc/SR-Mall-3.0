@@ -18,7 +18,7 @@ export default function NotFound() {
         <h1 className="mt-3 bg-linear-to-br from-charcoal via-charcoal to-slate-400 bg-clip-text text-7xl font-semibold tracking-tight text-transparent dark:from-white dark:via-white dark:to-zinc-600 sm:text-8xl">
           404
         </h1>
-        <h2 className="mt-4 text-2xl font-semibold tracking-tight text-charcoal dark:text-white sm:text-3xl">
+        <h2 className="font-display mt-4 text-2xl font-semibold tracking-tight text-charcoal dark:text-white sm:text-3xl">
           This floor is empty.
         </h2>
         <p className="mx-auto mt-3 max-w-md text-sm font-medium leading-relaxed text-slate-500 dark:text-slate-400">

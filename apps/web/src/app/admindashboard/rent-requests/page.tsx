@@ -61,7 +61,7 @@ export default function RentRequestsPage() {
   return (
     <div className="mx-auto max-w-6xl space-y-6 p-6 sm:p-8">
       <header>
-        <h1 className="font-display text-2xl font-semibold text-kumo-default">Rent Requests</h1>
+        <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-kumo-default">Rent Requests</h1>
         <p className="mt-1 max-w-2xl text-sm text-kumo-subtle">
           Tenants ask for a space here. Approve a request once the tenant has paid at the office: the space is assigned,
           the lease starts and a paid e-invoice is sent to the tenant.

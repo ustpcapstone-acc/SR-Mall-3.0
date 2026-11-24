@@ -41,7 +41,7 @@ export function SettingsShell<K extends string>({
     <div className="space-y-8">
       <div className="pb-6 border-b border-kumo-line space-y-2">
         <p className="text-sm text-kumo-subtle">{eyebrow}</p>
-        <h1 className="font-display text-3xl sm:text-4xl font-semibold text-kumo-default tracking-tight">
+        <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-kumo-default">
           {title} {accent}
         </h1>
         <p className="text-sm text-kumo-subtle max-w-2xl">{subtitle}</p>

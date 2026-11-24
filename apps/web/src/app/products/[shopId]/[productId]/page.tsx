@@ -148,7 +148,7 @@ export default function ProductPage() {
                       <Tag size={10} /> {p.category}
                     </span>
                   )}
-                  <h1 className="text-2xl sm:text-3xl font-semibold text-charcoal dark:text-white leading-tight wrap-break-word">{p.name}</h1>
+                  <h1 className="font-display text-3xl sm:text-4xl lg:text-5xl font-semibold tracking-tight text-charcoal dark:text-white wrap-break-word">{p.name}</h1>
                   {shop.reviewCount > 0 && (
                     <p className="flex items-center gap-1.5 text-xs text-slate-500">
                       <Star size={13} className="fill-amber-400 text-amber-400" />

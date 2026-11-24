@@ -28,10 +28,10 @@ export const AdminNavbar = () => {
               <span className="text-white font-bold text-xl">S</span>
             </div>
             <div>
-              <h1 className="text-charcoal dark:text-white font-bold text-lg tracking-tight leading-none">
+              <h1 className="text-charcoal dark:text-white font-semibold text-lg tracking-tight leading-none">
                 SR-MANAGE
               </h1>
-              <span className="text-[10px] text-primary font-bold uppercase tracking-widest">
+              <span className="text-xs text-primary font-bold">
                 Admin Control
               </span>
             </div>
@@ -49,7 +49,7 @@ export const AdminNavbar = () => {
               onClick={() => setIsProfileOpen(!isProfileOpen)}
               className="flex items-center gap-3 px-3 py-1.5 bg-slate-50 dark:bg-zinc-800 rounded-full border border-slate-100 dark:border-white/5 transition-all hover:shadow-lg"
             >
-              <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold text-sm shadow-inner tracking-wider overflow-hidden border border-slate-100 dark:border-white/5">
+              <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold text-sm shadow-inner overflow-hidden border border-slate-100 dark:border-white/5">
                 {user?.avatarUrl ? (
                   <img src={user.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
                 ) : (
@@ -73,7 +73,7 @@ export const AdminNavbar = () => {
             {isProfileOpen && (
               <div className="absolute top-full right-0 mt-4 w-56 bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl border border-slate-100 dark:border-white/5 py-3 animate-fade-in-up">
                 <div className="px-5 py-2 border-b border-slate-50 dark:border-white/5 mb-2">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                  <p className="text-xs font-bold text-slate-400">
                     Account Overview
                   </p>
                 </div>

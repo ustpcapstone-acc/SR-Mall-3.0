@@ -96,10 +96,10 @@ export default function FinanceManager() {
       <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-3xl overflow-hidden shadow-xs animate-fade-in-up mt-8">
         <div className="p-6 border-b border-slate-100 dark:border-white/5 flex items-center justify-between">
           <div>
-            <h2 className="font-bold text-lg text-charcoal dark:text-white flex items-center gap-2">
+            <h2 className="font-semibold text-lg text-charcoal dark:text-white flex items-center gap-2">
               <FileText size={18} className="text-slate-400" /> Master Ledger
             </h2>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mt-1">
+            <p className="text-xs font-bold text-slate-400 mt-1">
               Manage billing & clear deposit slips
             </p>
           </div>
@@ -114,9 +114,7 @@ export default function FinanceManager() {
               "bg-primary",
               "text-white",
               "font-bold",
-              "text-[10px]",
-              "uppercase",
-              "tracking-widest",
+              "text-[10px]",
               "rounded-xl",
               "hover:bg-primary-hover",
               "shadow-md",
@@ -132,16 +130,16 @@ export default function FinanceManager() {
           <table className="w-full text-left border-collapse min-w-[800px]">
             <thead>
               <tr className="bg-slate-50/50 dark:bg-white/5 border-b border-slate-100 dark:border-white/5">
-                <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                <th className="px-6 py-4 text-xs font-bold text-slate-400">
                   Tenant / Shop
                 </th>
-                <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                <th className="px-6 py-4 text-xs font-bold text-slate-400">
                   Invoice Details
                 </th>
-                <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                <th className="px-6 py-4 text-xs font-bold text-slate-400">
                   Status
                 </th>
-                <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-400 text-right">
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 text-right">
                   Verification
                 </th>
               </tr>
@@ -156,36 +154,36 @@ export default function FinanceManager() {
                     <p className="font-bold text-charcoal dark:text-white text-sm">
                       {inv.tenant?.shopName || "Unknown Shop"}
                     </p>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
+                    <p className="text-xs font-bold text-slate-400 mt-1">
                       Unit {inv.tenant?.unitId || "N/A"}
                     </p>
                   </td>
                   <td className="px-6 py-5">
-                    <p className="font-black text-charcoal dark:text-white text-sm">
+                    <p className="font-semibold text-charcoal dark:text-white text-sm">
                       ₱{inv.amount.toLocaleString()}
                     </p>
-                    <p className="text-[10px] font-bold text-primary uppercase tracking-widest mt-1">
+                    <p className="text-xs font-bold text-primary mt-1">
                       {inv.invoiceNumber}{inv.status === "PAID" && ` (OR-${inv.invoiceNumber.replace("#INV-", "").replace("#", "")})`} • {inv.month}
                     </p>
                   </td>
                   <td className="px-6 py-5">
                     {inv.status === "PAID" && (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 text-[10px] font-bold uppercase tracking-widest bg-green-50 text-green-600 rounded-lg border border-green-200">
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold bg-green-50 text-green-600 rounded-lg border border-green-200">
                         <CheckCircle size={12} /> Cleared
                       </span>
                     )}
                     {inv.status === "REVIEWING" && (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 text-[10px] font-bold uppercase tracking-widest bg-blue-50 text-blue-600 rounded-lg border border-blue-200 animate-pulse">
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold bg-blue-50 text-blue-600 rounded-lg border border-blue-200 animate-pulse">
                         <Clock size={12} /> Awaiting Clearance
                       </span>
                     )}
                     {inv.status === "PENDING" && (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 text-[10px] font-bold uppercase tracking-widest bg-amber-50 text-amber-600 rounded-lg border border-amber-200">
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold bg-amber-50 text-amber-600 rounded-lg border border-amber-200">
                         <AlertTriangle size={12} /> Unpaid
                       </span>
                     )}
                     {inv.status === "OVERDUE" && (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 text-[10px] font-bold uppercase tracking-widest bg-red-50 text-primary rounded-lg border border-red-200">
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold bg-red-50 text-primary rounded-lg border border-red-200">
                         <AlertTriangle size={12} /> Overdue
                       </span>
                     )}
@@ -207,7 +205,7 @@ export default function FinanceManager() {
                             <button
                               disabled={processing === inv.id}
                               onClick={() => handleStatusChange(inv.id, "PAID")}
-                              className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white font-bold text-[10px] uppercase tracking-widest rounded-xl transition-all"
+                              className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white font-bold text-xs rounded-xl transition-all"
                             >
                               Approve
                             </button>
@@ -216,7 +214,7 @@ export default function FinanceManager() {
                               onClick={() =>
                                 handleStatusChange(inv.id, "PENDING")
                               }
-                              className="px-4 py-2 bg-red-50 hover:text-red-600 text-red-500 border border-red-200 font-bold text-[10px] uppercase tracking-widest rounded-xl transition-all"
+                              className="px-4 py-2 bg-red-50 hover:text-red-600 text-red-500 border border-red-200 font-bold text-xs rounded-xl transition-all"
                             >
                               Reject
                             </button>
@@ -224,7 +222,7 @@ export default function FinanceManager() {
                         )}
                       </div>
                     ) : (
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                      <span className="text-xs font-bold text-slate-400">
                         No Proof Uploaded
                       </span>
                     )}
@@ -235,7 +233,7 @@ export default function FinanceManager() {
                 <tr>
                   <td
                     colSpan={4}
-                    className="px-6 py-12 text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest"
+                    className="px-6 py-12 text-center text-xs font-bold text-slate-400"
                   >
                     No Invoices Found in Ledger
                   </td>
@@ -282,11 +280,10 @@ export default function FinanceManager() {
             <h2
               className={clsx(
                 "text-xl",
-                "font-black",
+                "font-semibold",
                 "text-charcoal",
                 "dark:text-white",
-                "mb-6",
-                "uppercase",
+                "mb-6",
                 "tracking-tight",
               )}
             >
@@ -297,10 +294,8 @@ export default function FinanceManager() {
                 <label
                   className={clsx(
                     "text-[10px]",
-                    "font-black",
-                    "text-slate-500",
-                    "uppercase",
-                    "tracking-widest",
+                    "font-semibold",
+                    "text-slate-500",
                     "px-1",
                   )}
                 >
@@ -343,10 +338,8 @@ export default function FinanceManager() {
                   <label
                     className={clsx(
                       "text-[10px]",
-                      "font-black",
-                      "text-slate-500",
-                      "uppercase",
-                      "tracking-widest",
+                      "font-semibold",
+                      "text-slate-500",
                       "px-1",
                     )}
                   >
@@ -382,10 +375,8 @@ export default function FinanceManager() {
                   <label
                     className={clsx(
                       "text-[10px]",
-                      "font-black",
-                      "text-slate-500",
-                      "uppercase",
-                      "tracking-widest",
+                      "font-semibold",
+                      "text-slate-500",
                       "px-1",
                     )}
                   >
@@ -422,10 +413,8 @@ export default function FinanceManager() {
                 <label
                   className={clsx(
                     "text-[10px]",
-                    "font-black",
-                    "text-slate-500",
-                    "uppercase",
-                    "tracking-widest",
+                    "font-semibold",
+                    "text-slate-500",
                     "px-1",
                   )}
                 >
@@ -469,9 +458,7 @@ export default function FinanceManager() {
                     "text-slate-500",
                     "bg-slate-100",
                     "dark:bg-zinc-800",
-                    "rounded-xl",
-                    "uppercase",
-                    "tracking-widest",
+                    "rounded-xl",
                     "hover:bg-slate-200",
                     "dark:hover:bg-zinc-700",
                     "transition-all",
@@ -488,9 +475,7 @@ export default function FinanceManager() {
                     "text-white",
                     "font-bold",
                     "rounded-xl",
-                    "text-xs",
-                    "uppercase",
-                    "tracking-widest",
+                    "text-xs",
                     "shadow-md",
                     "shadow-primary/20",
                     "hover:bg-primary-hover",

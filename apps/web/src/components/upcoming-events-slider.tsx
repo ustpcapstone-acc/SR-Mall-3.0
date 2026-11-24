@@ -237,7 +237,7 @@ export const UpcomingEventsSlider = () => {
           />
           <div className="relative w-full max-w-lg bg-white dark:bg-zinc-950 rounded-4xl shadow-2xl overflow-hidden animate-fade-in-up border border-slate-100 dark:border-white/5">
             <div className="bg-primary p-8 text-white relative">
-              <h2 className="text-2xl font-semibold tracking-tight">
+              <h2 className="font-display text-2xl font-semibold tracking-tight">
                 Join Event Info
               </h2>
               <p className="text-xs text-white/80 font-bold mt-1">

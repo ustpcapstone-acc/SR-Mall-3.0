@@ -196,7 +196,7 @@ export default function FeedbackReviews() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 sm:gap-4">
           <div>
-            <h1 className="font-display text-xl sm:text-2xl lg:text-3xl font-semibold text-charcoal dark:text-white tracking-tight">
+            <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-charcoal dark:text-white">
               Feedback & Reviews
             </h1>
             <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
@@ -370,7 +370,7 @@ export default function FeedbackReviews() {
                     <div className="w-16 h-16 bg-slate-100 dark:bg-zinc-800 rounded-full flex items-center justify-center mx-auto mb-5">
                       <MessageSquare size={28} className="text-slate-300" />
                     </div>
-                    <h3 className="text-base font-bold text-charcoal dark:text-white mb-1">
+                    <h3 className="text-base font-semibold text-charcoal dark:text-white mb-1">
                       {hasFilters ? "No reviews match these filters" : "No reviews yet"}
                     </h3>
                     <p className="text-sm text-slate-500 max-w-xs mx-auto">

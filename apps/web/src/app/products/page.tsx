@@ -128,7 +128,7 @@ export default function AllProductsPage() {
           </Link>
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
             <div className="space-y-4 max-w-2xl">
-              <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-semibold text-charcoal dark:text-white tracking-tight leading-[1.05]">
+              <h1 className="font-display text-3xl sm:text-4xl lg:text-5xl font-semibold tracking-tight text-charcoal dark:text-white">
                 Explore All <br />
                 <span className="text-slate-500 dark:text-slate-400">
                   Mall Items

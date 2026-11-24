@@ -288,7 +288,7 @@ export default function SpaceDetailModal({
                   Premier Business Hub
                 </span>
               </div>
-              <h2 className="text-5xl sm:text-6xl font-semibold text-charcoal dark:text-white tracking-tight leading-[0.8] mb-10">
+              <h2 className="font-display text-5xl sm:text-6xl font-semibold text-charcoal dark:text-white tracking-tight leading-[0.8] mb-10">
                 Unit{" "}
                 <span className="text-slate-200 dark:text-white/20">
                   {slot.unit_id}

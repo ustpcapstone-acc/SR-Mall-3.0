@@ -153,7 +153,7 @@ export default function LostAndFoundPage() {
               >
                 <ArrowLeft size={14} /> Back to Mall
               </Link>
-              <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-semibold text-charcoal dark:text-white tracking-tight leading-[1.05]">
+              <h1 className="font-display text-3xl sm:text-4xl lg:text-5xl font-semibold tracking-tight text-charcoal dark:text-white">
                 Lost &{" "}
                 <span className="text-slate-500 dark:text-slate-400">
                   Found
@@ -289,7 +289,7 @@ export default function LostAndFoundPage() {
                   <div className="flex-1 animate-fade-in">
                     <div className="flex items-center gap-3 mb-10">
                       <div className="w-1.5 h-8 bg-primary rounded-full"></div>
-                      <h2 className="text-2xl font-semibold text-charcoal dark:text-white tracking-tight">
+                      <h2 className="font-display text-2xl font-semibold text-charcoal dark:text-white tracking-tight">
                         Found Items
                       </h2>
                     </div>
@@ -342,7 +342,7 @@ export default function LostAndFoundPage() {
                   <div className="flex-1 animate-fade-in">
                     <div className="flex items-center gap-3 mb-10">
                       <div className="w-1.5 h-8 bg-orange-500 rounded-full"></div>
-                      <h2 className="text-2xl font-semibold text-charcoal dark:text-white tracking-tight">
+                      <h2 className="font-display text-2xl font-semibold text-charcoal dark:text-white tracking-tight">
                         Lost Items
                       </h2>
                     </div>
@@ -394,7 +394,7 @@ export default function LostAndFoundPage() {
                   <div className="flex-1 animate-fade-in">
                     <div className="flex items-center gap-3 mb-10">
                       <div className="w-1.5 h-8 bg-blue-500 rounded-full"></div>
-                      <h2 className="text-2xl font-semibold text-charcoal dark:text-white tracking-tight">
+                      <h2 className="font-display text-2xl font-semibold text-charcoal dark:text-white tracking-tight">
                         Report Item
                       </h2>
                     </div>
@@ -518,7 +518,7 @@ export default function LostAndFoundPage() {
                     <div className="flex items-center gap-3 mb-10">
                       <div className="w-1.5 h-8 bg-emerald-500 rounded-full"></div>
                       <div>
-                        <h2 className="text-2xl font-semibold text-charcoal dark:text-white tracking-tight">
+                        <h2 className="font-display text-2xl font-semibold text-charcoal dark:text-white tracking-tight">
                           Claimed Items
                         </h2>
                         <p className="text-xs text-slate-400 font-bold mt-0.5">

@@ -119,11 +119,9 @@ export const AdminSidebar = () => {
           <p
             className={clsx(
               "text-[10px]",
-              "font-black",
+              "font-semibold",
               "text-slate-400",
-              "dark:text-slate-400",
-              "uppercase",
-              "tracking-[0.3em]",
+              "dark:text-slate-400",
             )}
           >
             Menu
@@ -154,13 +152,13 @@ export const AdminSidebar = () => {
               >
                 <Icon size={18} />
               </div>
-              <span className="tracking-tight uppercase text-[10px] sm:text-xs flex-1">
+              <span className="tracking-tight text-xs flex-1">
                 {item.label}
               </span>
               {(() => {
                 const badge = item.icon === MessageSquare ? unreadMessages : item.icon === ClipboardList ? unreadComplaints : 0;
                 return badge > 0 ? (
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[9px] font-black text-white mr-2 shadow-md">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-semibold text-white mr-2 shadow-md">
                     {badge > 9 ? "9+" : badge}
                   </span>
                 ) : null;

@@ -249,7 +249,7 @@ export const MerchantApplicationModal = ({
                 )}
               </div>
               <div className="space-y-2 px-4">
-                <h2 className="text-3xl font-semibold text-charcoal dark:text-white tracking-tight">
+                <h2 className="font-display text-3xl font-semibold text-charcoal dark:text-white tracking-tight">
                   {existingStatus === "REJECTED" ? "Application " : "Existing "}
                   <span
                     className={
@@ -282,7 +282,7 @@ export const MerchantApplicationModal = ({
                 <CheckCircle2 size={40} />
               </div>
               <div className="space-y-2">
-                <h2 className="text-3xl font-semibold text-charcoal dark:text-white tracking-tight">
+                <h2 className="font-display text-3xl font-semibold text-charcoal dark:text-white tracking-tight">
                   Application <span className="text-emerald-500">Received</span>
                 </h2>
                 <p className="text-slate-500 font-medium">
@@ -308,7 +308,7 @@ export const MerchantApplicationModal = ({
                 </span>
               </div>
 
-              <h2 className="text-4xl font-semibold text-charcoal dark:text-white tracking-tight mb-2">
+              <h2 className="font-display text-4xl font-semibold text-charcoal dark:text-white tracking-tight mb-2">
                 Join <span className="text-primary">Sophie Red.</span>
               </h2>
               <p className="text-slate-500 font-medium mb-8">

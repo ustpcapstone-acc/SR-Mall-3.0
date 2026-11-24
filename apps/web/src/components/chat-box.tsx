@@ -731,7 +731,7 @@ export const ChatBox = ({
               )}
             </div>
             <div className="flex flex-col min-w-0">
-              <h3 className="font-bold text-sm tracking-tight truncate max-w-[220px]">
+              <h3 className="font-semibold text-sm tracking-tight truncate max-w-[220px]">
                 {viewMode === "chat"
                   ? recipient === "admin"
                     ? "Mall Administration"

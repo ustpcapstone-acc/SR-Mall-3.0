@@ -59,8 +59,8 @@ import { toast } from "sonner";
 const BRAND = "#BE1E2D";
 
 // Same typography the other admin pages use.
-const LABEL = "text-[10px] font-black uppercase tracking-widest text-slate-400";
-const NAME = "font-black text-charcoal dark:text-white uppercase tracking-tight italic";
+const LABEL = "text-xs font-semibold text-slate-400";
+const NAME = "font-semibold text-charcoal dark:text-white tracking-tight";
 
 const pesoCompact = new Intl.NumberFormat("en-PH", {
   style: "currency",
@@ -148,7 +148,7 @@ export default function AdminDashboard() {
           <p className="text-sm text-slate-500">{error}</p>
           <button
             onClick={() => load(true)}
-            className="px-6 py-3 bg-primary text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/25 active:scale-95"
+            className="px-6 py-3 bg-primary text-white rounded-xl text-xs font-semibold shadow-lg shadow-primary/25 active:scale-95"
           >
             Try again
           </button>
@@ -169,7 +169,7 @@ export default function AdminDashboard() {
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 pb-8 border-b border-slate-200 dark:border-white/10">
         <div className="space-y-4">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-primary/10 text-primary rounded-full text-[10px] font-black uppercase tracking-widest border border-primary/20">
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-semibold border border-primary/20">
             <LayoutDashboard size={12} />
             {new Date().toLocaleDateString("en-US", {
               weekday: "long",
@@ -178,8 +178,8 @@ export default function AdminDashboard() {
               year: "numeric",
             })}
           </div>
-          <h1 className="text-5xl font-black text-charcoal dark:text-white tracking-tighter italic uppercase leading-none">
-            Admin <span className="text-primary">Dashboard.</span>
+          <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-charcoal dark:text-white">
+            Admin Dashboard
           </h1>
           <p className="text-slate-500 font-medium max-w-2xl text-lg">
             {greeting(new Date())}, {firstName}. Here&apos;s what&apos;s happening at SR Mall today.
@@ -190,12 +190,12 @@ export default function AdminDashboard() {
           {refreshing ? (
             <div className="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-zinc-800 rounded-full animate-pulse">
               <Loader2 size={12} className="animate-spin text-primary" />
-              <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Live Sync</span>
+              <span className="text-xs font-semibold text-slate-500">Live Sync</span>
             </div>
           ) : (
             <div className="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-zinc-800 rounded-full">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+              <span className="text-xs font-semibold text-slate-500">
                 Updated {updatedAt.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
               </span>
             </div>
@@ -307,7 +307,7 @@ export default function AdminDashboard() {
                     key={range}
                     onClick={() => setRevenueRange(range)}
                     className={clsx(
-                      "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95",
+                      "px-4 py-2 rounded-xl text-xs font-semibold transition-all active:scale-95",
                       revenueRange === range
                         ? "bg-primary text-white shadow-lg shadow-primary/25"
                         : "text-slate-400 hover:text-charcoal dark:hover:text-white",
@@ -355,14 +355,14 @@ export default function AdminDashboard() {
                     </p>
                   </div>
                   <div className="text-right shrink-0">
-                    <p className="text-sm font-black text-charcoal dark:text-white">{pesoFull.format(inv.amount)}</p>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-red-600">
+                    <p className="text-sm font-semibold text-charcoal dark:text-white">{pesoFull.format(inv.amount)}</p>
+                    <p className="text-xs font-semibold text-red-600">
                       {inv.daysLate > 0 ? `${inv.daysLate} day${inv.daysLate === 1 ? "" : "s"} late` : "Due today"}
                     </p>
                   </div>
                   <button
                     onClick={() => setPayingInvoice(inv)}
-                    className="shrink-0 hidden sm:inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-md shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
+                    className="shrink-0 hidden sm:inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-white rounded-xl text-xs font-semibold shadow-md shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
                   >
                     <PhilippinePeso size={12} /> Record
                   </button>
@@ -395,7 +395,7 @@ export default function AdminDashboard() {
                   </div>
                   <span
                     className={clsx(
-                      "shrink-0 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border",
+                      "shrink-0 px-2.5 py-1 rounded-full text-xs font-semibold border",
                       lease.daysLeft <= 0
                         ? "bg-red-500/10 text-red-600 border-red-500/20"
                         : lease.daysLeft <= 30
@@ -418,7 +418,7 @@ export default function AdminDashboard() {
           <CardHeader
             title="Recent activity"
             action={
-              <button onClick={() => setShowHistory(true)} className="text-[10px] font-black uppercase tracking-widest text-primary hover:underline">
+              <button onClick={() => setShowHistory(true)} className="text-xs font-semibold text-primary hover:underline">
                 View all
               </button>
             }
@@ -452,7 +452,7 @@ export default function AdminDashboard() {
                   <FloorTile key={slot.id} slot={slot} />
                 ))}
               </div>
-              <div className="mt-6 flex flex-wrap gap-6 text-[10px] font-black uppercase tracking-widest text-slate-500">
+              <div className="mt-6 flex flex-wrap gap-6 text-xs font-semibold text-slate-500">
                 {Object.entries(UNIT_STATUS).map(([key, s]) => (
                   <span key={key} className="flex items-center gap-1.5">
                     <span className={clsx("w-2 h-2 rounded-full", s.dot)} /> {s.label}
@@ -509,7 +509,7 @@ function CardHeader({
   return (
     <div className="flex items-start justify-between gap-3 mb-6">
       <div className="space-y-1">
-        <h2 className="text-xl font-black text-charcoal dark:text-white uppercase tracking-tight italic leading-none">
+        <h2 className="text-xl font-semibold text-charcoal dark:text-white tracking-tight leading-none">
           {title}
         </h2>
         {subtitle && <p className={LABEL}>{subtitle}</p>}
@@ -521,7 +521,7 @@ function CardHeader({
 
 function CardLink({ href, children }: { href: string; children: React.ReactNode }) {
   return (
-    <Link href={href} className="shrink-0 text-[10px] font-black uppercase tracking-widest text-primary hover:underline flex items-center gap-1">
+    <Link href={href} className="shrink-0 text-xs font-semibold text-primary hover:underline flex items-center gap-1">
       {children} <ArrowRight size={12} />
     </Link>
   );
@@ -531,14 +531,14 @@ function EmptyState({ icon, text }: { icon: React.ReactNode; text: string }) {
   return (
     <div className="flex flex-col items-center justify-center text-center py-12 gap-3 text-slate-300 dark:text-slate-600">
       {icon}
-      <p className="text-slate-400 font-bold uppercase tracking-widest text-xs max-w-xs leading-relaxed">{text}</p>
+      <p className="text-slate-400 font-bold text-xs max-w-xs leading-relaxed">{text}</p>
     </div>
   );
 }
 
 function Avatar({ name, src }: { name: string; src?: string | null }) {
   return (
-    <div className="w-12 h-12 shrink-0 rounded-2xl bg-primary/10 overflow-hidden flex items-center justify-center text-base font-black italic text-primary">
+    <div className="w-12 h-12 shrink-0 rounded-2xl bg-primary/10 overflow-hidden flex items-center justify-center text-base font-semibold text-primary">
       {src ? <img src={src} alt="" className="w-full h-full object-cover" /> : name.charAt(0).toUpperCase()}
     </div>
   );
@@ -586,12 +586,12 @@ function KpiCard({
         {icon}
       </span>
       <p className={clsx(LABEL, "mt-4 truncate")}>{label}</p>
-      <p className="mt-1 text-3xl font-black tracking-tighter text-charcoal dark:text-white truncate">{value}</p>
-      <div className="mt-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider min-w-0">
+      <p className="mt-1 text-3xl font-semibold tracking-tight text-charcoal dark:text-white truncate">{value}</p>
+      <div className="mt-2 flex items-center gap-2 text-xs font-bold min-w-0">
         {trend && (
           <span
             className={clsx(
-              "inline-flex items-center gap-0.5 font-black shrink-0",
+              "inline-flex items-center gap-0.5 font-semibold shrink-0",
               up ? "text-emerald-600" : "text-red-600",
             )}
           >
@@ -693,7 +693,7 @@ function AttentionList({ attention }: { attention: AdminDashboardData["attention
               <p className={clsx(NAME, "text-sm")}>{row.label}</p>
               <p
                 className={clsx(
-                  "mt-0.5 text-[10px] font-bold uppercase tracking-widest truncate",
+                  "mt-0.5 text-xs font-bold truncate",
                   row.urgent ? "text-red-600" : "text-slate-400",
                 )}
               >
@@ -702,7 +702,7 @@ function AttentionList({ attention }: { attention: AdminDashboardData["attention
             </div>
             <span
               className={clsx(
-                "min-w-9 px-2.5 py-1 rounded-full text-center text-[11px] font-black border",
+                "min-w-9 px-2.5 py-1 rounded-full text-center text-[11px] font-semibold border",
                 row.urgent
                   ? "bg-red-500 text-white border-red-500"
                   : "bg-primary/10 text-primary border-primary/20",
@@ -737,7 +737,7 @@ function QuickAction({
       <span className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center group-hover:scale-110 transition-transform">
         {icon}
       </span>
-      <span className="text-[10px] font-black uppercase tracking-widest text-charcoal dark:text-white">{label}</span>
+      <span className="text-xs font-semibold text-charcoal dark:text-white">{label}</span>
       {badge ? (
         <span className="absolute top-2 right-2 min-w-5 h-5 px-1.5 rounded-full bg-primary text-white text-[11px] font-bold flex items-center justify-center">
           {badge > 99 ? "99+" : badge}
@@ -875,18 +875,18 @@ function OccupancyDonut({
           </PieChart>
         </ResponsiveContainer>
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-          <p className="text-4xl font-black text-charcoal dark:text-white leading-none">{rate}%</p>
+          <p className="text-4xl font-semibold text-charcoal dark:text-white leading-none">{rate}%</p>
           <p className={clsx(LABEL, "mt-1")}>Occupied</p>
         </div>
       </div>
       <ul className="mt-4 grid grid-cols-2 gap-2">
         {slices.map((s) => (
           <li key={s.key} className="flex items-center justify-between gap-2">
-            <span className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500">
+            <span className="flex items-center gap-2 text-xs font-semibold text-slate-500">
               <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: s.color }} />
               {s.name}
             </span>
-            <span className="text-sm font-black text-charcoal dark:text-white tabular-nums">{s.value}</span>
+            <span className="text-sm font-semibold text-charcoal dark:text-white tabular-nums">{s.value}</span>
           </li>
         ))}
       </ul>
@@ -902,11 +902,11 @@ function FloorTile({ slot }: { slot: AdminDashboardData["floor"][number] }) {
       className={clsx("rounded-2xl border-2 p-4 transition-all hover:shadow-md hover:-translate-y-0.5 min-w-0", s.tile)}
     >
       <div className="flex items-center justify-between gap-2">
-        <span className="text-sm font-black italic uppercase truncate">{slot.unitId}</span>
+        <span className="text-sm font-semibold truncate">{slot.unitId}</span>
         <span className={clsx("w-2 h-2 rounded-full shrink-0", s.dot)} />
       </div>
       <p
-        className="mt-1 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 truncate"
+        className="mt-1 text-xs font-bold text-slate-500 dark:text-slate-400 truncate"
         title={slot.shopName || undefined}
       >
         {slot.status === "OCCUPIED"
@@ -975,7 +975,7 @@ function HistoryModal({ onClose }: { onClose: () => void }) {
       >
         <div className="flex items-center justify-between p-6 md:p-8 border-b border-slate-100 dark:border-white/5">
           <div className="space-y-1">
-            <h2 id="history-title" className="text-2xl font-black text-charcoal dark:text-white uppercase tracking-tight italic">
+            <h2 id="history-title" className="font-display text-2xl font-semibold text-charcoal dark:text-white tracking-tight">
               Activity <span className="text-primary">History.</span>
             </h2>
             <p className={LABEL}>Last 50 events</p>

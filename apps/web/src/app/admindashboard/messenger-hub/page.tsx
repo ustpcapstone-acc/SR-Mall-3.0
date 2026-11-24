@@ -596,9 +596,9 @@ function MessengerHubContent() {
       <div className="mb-6 flex items-end justify-between shrink-0">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <h1 className="text-3xl font-black text-charcoal dark:text-white tracking-tight">
-              Messages & Support
-            </h1>
+            <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-charcoal dark:text-white">
+            Messages and Support
+          </h1>
           </div>
           <p className="text-sm text-slate-500 font-medium mt-1">
             Manage customer inquiries, tenant communications, and operational support channels.
@@ -645,13 +645,13 @@ function MessengerHubContent() {
             {loading ? (
               <div className="flex flex-col items-center justify-center h-40 gap-3">
                 <Loader2 size={24} className="animate-spin text-primary" />
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                <span className="text-xs font-bold text-slate-400">
                   Loading Chats
                 </span>
               </div>
             ) : filteredChats.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-40 p-6 text-center text-slate-400">
-                <p className="text-xs font-bold uppercase tracking-widest">No conversations found</p>
+                <p className="text-xs font-bold">No conversations found</p>
               </div>
             ) : (
               filteredChats.map((chat) => {
@@ -702,7 +702,7 @@ function MessengerHubContent() {
                       <div className="flex justify-between items-start mb-1">
                         <h4
                           className={`text-sm text-charcoal dark:text-white truncate ${
-                            unread > 0 ? "font-black" : "font-bold"
+                            unread > 0 ? "font-semibold" : "font-bold"
                           }`}
                         >
                           {displayName}
@@ -716,13 +716,13 @@ function MessengerHubContent() {
                         </span>
                       </div>
                       <div className="flex items-center gap-1.5 mb-1.5">
-                        <span className="text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 dark:bg-zinc-800">
+                        <span className="text-xs font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 dark:bg-zinc-800">
                           {isTenant
                             ? `TENANT • ${displayUnit || "UNIT"}`
                             : "CUSTOMER"}
                         </span>
                         {isBlocked && (
-                          <span className="text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-red-100 text-red-600 dark:bg-red-950/40 dark:text-red-400">
+                          <span className="text-xs font-semibold px-1.5 py-0.5 rounded-sm bg-red-100 text-red-600 dark:bg-red-950/40 dark:text-red-400">
                             SUSPENDED
                           </span>
                         )}
@@ -738,7 +738,7 @@ function MessengerHubContent() {
                             : chat.messages[0]?.content || "No messages yet"}
                         </p>
                         {unread > 0 && (
-                          <span className="min-w-5 h-5 px-1.5 rounded-full bg-primary text-white text-[10px] font-black flex items-center justify-center shrink-0">
+                          <span className="min-w-5 h-5 px-1.5 rounded-full bg-primary text-white text-[10px] font-semibold flex items-center justify-center shrink-0">
                             {unread > 99 ? "99+" : unread}
                           </span>
                         )}
@@ -772,7 +772,7 @@ function MessengerHubContent() {
                     </div>
                   </div>
                   <div>
-                    <h3 className="font-bold text-charcoal dark:text-white flex items-center gap-2 leading-tight">
+                    <h3 className="font-semibold text-charcoal dark:text-white flex items-center gap-2 leading-tight">
                       {activeDisplayName}
                     </h3>
                     <p className="text-[10px] font-medium text-slate-400 truncate max-w-xs">
@@ -794,13 +794,13 @@ function MessengerHubContent() {
                 {loadingMessages && messages.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-48 gap-3">
                     <Loader2 size={24} className="animate-spin text-primary" />
-                    <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                    <span className="text-xs font-bold text-slate-400">
                       Loading conversation...
                     </span>
                   </div>
                 ) : messages.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-48 text-center text-slate-400 space-y-2">
-                    <p className="text-xs font-bold uppercase tracking-widest">No messages yet</p>
+                    <p className="text-xs font-bold">No messages yet</p>
                     <p className="text-xs text-slate-500 font-medium">
                       Start the transmission by sending a response below.
                     </p>
@@ -860,19 +860,19 @@ function MessengerHubContent() {
                           </div>
 
                           <div className="flex items-center gap-1.5 mt-1 px-1">
-                            <span className="text-[9px] font-bold text-slate-400 uppercase">
+                            <span className="text-xs font-bold text-slate-400">
                               {formatMessageTime(msg.createdAt)}
                             </span>
                             {isTemporary && msg.failed ? (
                               <button
                                 type="button"
                                 onClick={() => retryMessage(msg)}
-                                className="text-[8px] font-bold text-red-500 hover:text-red-600 hover:underline uppercase"
+                                className="text-xs font-bold text-red-500 hover:text-red-600 hover:underline"
                               >
                                 Not sent · Retry
                               </button>
                             ) : isTemporary && msg.sending !== false ? (
-                              <span className="text-[8px] font-bold text-primary animate-pulse">
+                              <span className="text-xs font-bold text-primary animate-pulse">
                                 Sending...
                               </span>
                             ) : null}
@@ -888,7 +888,7 @@ function MessengerHubContent() {
                                 className="w-full h-full object-cover"
                               />
                             ) : (
-                              <span className="text-[10px] font-bold text-slate-500 uppercase">
+                              <span className="text-xs font-bold text-slate-500">
                                 {(senderName || "?").substring(0, 2).toUpperCase()}
                               </span>
                             )}
@@ -990,7 +990,7 @@ function MessengerHubContent() {
               <div className="w-20 h-20 bg-slate-100 dark:bg-zinc-800 rounded-3xl flex items-center justify-center mb-6">
                 <Send size={40} className="text-slate-400" />
               </div>
-              <p className="text-sm font-black uppercase tracking-widest text-slate-500">
+              <p className="text-sm font-semibold text-slate-500">
                 Pick a transmission to begin
               </p>
             </div>
@@ -1001,7 +1001,7 @@ function MessengerHubContent() {
         {activeChat && (
           <div className="w-80 border-l border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-zinc-900 overflow-y-auto hidden xl:block">
             <div className="p-6">
-              <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-6 flex items-center gap-2">
+              <h3 className="text-xs font-semibold text-slate-400 mb-6 flex items-center gap-2">
                 <MoreVertical size={14} /> Context Panel
               </h3>
 
@@ -1009,7 +1009,7 @@ function MessengerHubContent() {
                 {/* Profile Card */}
                 <div className="bg-white dark:bg-zinc-800 p-5 rounded-2xl border border-slate-200 dark:border-white/10 shadow-xs transition-all hover:shadow-md">
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xl uppercase overflow-hidden border border-slate-100 dark:border-white/5 shrink-0">
+                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xl overflow-hidden border border-slate-100 dark:border-white/5 shrink-0">
                       {activeOtherUser?.avatarUrl ? (
                         <img
                           src={activeOtherUser.avatarUrl}
@@ -1024,7 +1024,7 @@ function MessengerHubContent() {
                       <h4 className="font-bold text-charcoal dark:text-white truncate">
                         {activeDisplayName}
                       </h4>
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-500">
+                      <p className="text-xs font-bold text-emerald-500">
                         Verified Member
                       </p>
                     </div>
@@ -1032,18 +1032,18 @@ function MessengerHubContent() {
 
                   <div className="grid grid-cols-2 gap-2 text-center pt-4 border-t border-slate-100 dark:border-white/5">
                     <div>
-                      <p className="text-lg font-black text-charcoal dark:text-white">
+                      <p className="text-lg font-semibold text-charcoal dark:text-white">
                         {messages.length}
                       </p>
-                      <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400 mt-1">
+                      <p className="text-xs font-bold text-slate-400 mt-1">
                         Messages
                       </p>
                     </div>
                     <div>
-                      <p className="text-lg font-black uppercase text-charcoal dark:text-white">
+                      <p className="text-lg font-semibold text-charcoal dark:text-white">
                         Active
                       </p>
-                      <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400 mt-1">
+                      <p className="text-xs font-bold text-slate-400 mt-1">
                         Status
                       </p>
                     </div>
@@ -1053,7 +1053,7 @@ function MessengerHubContent() {
                 {/* Space Interest Module */}
                 {activeChat.areaSlot && (
                   <div className="bg-white dark:bg-zinc-800 p-5 rounded-2xl border border-slate-200 dark:border-white/10 shadow-xs">
-                    <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">
+                    <h4 className="text-xs font-semibold text-slate-400 mb-4">
                       Linked Inventory
                     </h4>
                     <div className="space-y-4">
@@ -1061,7 +1061,7 @@ function MessengerHubContent() {
                         <span className="text-xs font-bold text-slate-600 dark:text-slate-300">
                           Unit ID
                         </span>
-                        <span className="text-sm font-black text-charcoal dark:text-white">
+                        <span className="text-sm font-semibold text-charcoal dark:text-white">
                           {activeChat.areaSlot.unit_id}
                         </span>
                       </div>
@@ -1069,7 +1069,7 @@ function MessengerHubContent() {
                         <span className="text-xs font-bold text-slate-600 dark:text-slate-300">
                           Size
                         </span>
-                        <span className="text-[10px] font-black uppercase tracking-widest text-primary">
+                        <span className="text-xs font-semibold text-primary">
                           {activeChat.areaSlot.sqm_size} SQM
                         </span>
                       </div>
@@ -1114,7 +1114,7 @@ function MessengerHubContent() {
               </a>
               <button
                 onClick={() => setLightboxImageUrl(null)}
-                className="px-4 py-2 bg-white text-charcoal rounded-xl text-xs font-black uppercase tracking-wider transition-transform active:scale-95 shadow-lg"
+                className="px-4 py-2 bg-white text-charcoal rounded-xl text-xs font-semibold transition-transform active:scale-95 shadow-lg"
               >
                 Close
               </button>
@@ -1160,7 +1160,7 @@ export default function MessengerHub() {
         <div className="h-screen flex items-center justify-center">
           <div className="flex flex-col items-center gap-3">
             <Loader2 size={32} className="animate-spin text-primary" />
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+            <span className="text-xs font-bold text-slate-400">
               Loading Messenger...
             </span>
           </div>

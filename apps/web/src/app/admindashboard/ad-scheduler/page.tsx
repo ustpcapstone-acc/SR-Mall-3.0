@@ -366,7 +366,7 @@ export default function AdScheduler() {
     <form onSubmit={onSubmit} className="space-y-5">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-1.5">
-          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">
+          <label className="text-xs font-semibold text-slate-500 px-1">
             Campaign Title *
           </label>
           <input
@@ -380,7 +380,7 @@ export default function AdScheduler() {
           />
         </div>
         <div className="space-y-1.5">
-          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">
+          <label className="text-xs font-semibold text-slate-500 px-1">
             Priority
           </label>
           <select
@@ -402,7 +402,7 @@ export default function AdScheduler() {
       </div>
 
       <div className="space-y-1.5">
-        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">
+        <label className="text-xs font-semibold text-slate-500 px-1">
           Description
         </label>
         <input
@@ -416,7 +416,7 @@ export default function AdScheduler() {
       </div>
 
       <div className="space-y-1.5">
-        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1 flex items-center gap-2">
+        <label className="text-xs font-semibold text-slate-500 px-1 flex items-center gap-2">
           {formData.isCloudStored ? (
             <>
               <Cloud className="text-emerald-500" size={13} /> Cloud Stored
@@ -491,7 +491,7 @@ export default function AdScheduler() {
       </div>
 
       <div className="space-y-1.5">
-        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">
+        <label className="text-xs font-semibold text-slate-500 px-1">
           Click-Through URL
         </label>
         <input
@@ -506,7 +506,7 @@ export default function AdScheduler() {
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1.5">
-          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">
+          <label className="text-xs font-semibold text-slate-500 px-1">
             Start Date *
           </label>
           <input
@@ -520,7 +520,7 @@ export default function AdScheduler() {
           />
         </div>
         <div className="space-y-1.5">
-          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">
+          <label className="text-xs font-semibold text-slate-500 px-1">
             End Date *
           </label>
           <input
@@ -543,14 +543,14 @@ export default function AdScheduler() {
             setIsEditModalOpen(false);
             setFormData(EMPTY_FORM);
           }}
-          className="flex-1 py-3 text-xs font-bold text-slate-500 bg-slate-100 dark:bg-zinc-800 rounded-xl uppercase tracking-widest hover:bg-slate-200 dark:hover:bg-zinc-700 transition-all"
+          className="flex-1 py-3 text-xs font-bold text-slate-500 bg-slate-100 dark:bg-zinc-800 rounded-xl hover:bg-slate-200 dark:hover:bg-zinc-700 transition-all"
         >
           Cancel
         </button>
         <button
           type="submit"
           disabled={publishing}
-          className="flex-2 py-3 bg-primary text-white font-bold rounded-xl text-xs uppercase tracking-widest shadow-lg shadow-primary/20 hover:bg-primary-hover active:scale-95 disabled:opacity-50 transition-all"
+          className="flex-2 py-3 bg-primary text-white font-bold rounded-xl text-xs shadow-lg shadow-primary/20 hover:bg-primary-hover active:scale-95 disabled:opacity-50 transition-all"
         >
           {publishing
             ? isEdit
@@ -595,17 +595,9 @@ export default function AdScheduler() {
         {/* ─── HEADER ─── */}
         <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
           <div className="space-y-2">
-            <div className="flex items-center gap-3 text-primary mb-3">
-              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Megaphone size={18} />
-              </div>
-              <span className="text-[10px] font-black uppercase tracking-[0.4em]">
-                Advertisement Control v2.0
-              </span>
-            </div>
-            <h1 className="text-4xl md:text-5xl font-black text-charcoal dark:text-white tracking-tight leading-none italic uppercase">
-              Ad <span className="text-primary">Module</span>
-            </h1>
+            <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-charcoal dark:text-white">
+            Ad Scheduler
+          </h1>
             <p className="text-slate-500 font-medium text-lg max-w-2xl leading-relaxed">
               Deploy mall-wide hero banners and approve tenant promotional
               submissions.
@@ -623,7 +615,7 @@ export default function AdScheduler() {
                 setFormData(EMPTY_FORM);
                 setIsModalOpen(true);
               }}
-              className="flex items-center justify-center gap-3 px-6 py-3 bg-primary hover:bg-primary-hover text-white font-black rounded-2xl transition-all shadow-xl shadow-primary/30 active:scale-95 whitespace-nowrap uppercase tracking-widest text-xs"
+              className="flex items-center justify-center gap-3 px-6 py-3 bg-primary hover:bg-primary-hover text-white font-semibold rounded-2xl transition-all shadow-xl shadow-primary/30 active:scale-95 whitespace-nowrap text-xs"
             >
               <Plus size={18} /> Create Mall-Wide Ad
             </button>
@@ -667,7 +659,7 @@ export default function AdScheduler() {
               className="p-6 bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-white/5 shadow-xs"
             >
               <div className="flex items-center justify-between mb-4">
-                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                <span className="text-xs font-semibold text-slate-400">
                   {stat.label}
                 </span>
                 <div
@@ -680,7 +672,7 @@ export default function AdScheduler() {
                   {stat.icon}
                 </div>
               </div>
-              <p className="text-3xl font-black text-charcoal dark:text-white">
+              <p className="text-3xl font-semibold text-charcoal dark:text-white">
                 {loading ? (
                   <span className="animate-pulse text-slate-200 dark:text-zinc-700">
                     —
@@ -698,10 +690,10 @@ export default function AdScheduler() {
           <div className="p-6 border-b border-slate-200 dark:border-white/5 flex items-center gap-3">
             <Presentation size={18} className="text-primary" />
             <div>
-              <h2 className="font-black text-charcoal dark:text-white text-lg">
+              <h2 className="font-semibold text-charcoal dark:text-white text-lg">
                 Mall Banner Carousel
               </h2>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+              <p className="text-xs font-bold text-slate-400 mt-0.5">
                 Banners displayed on the homepage carousel
               </p>
             </div>
@@ -729,7 +721,7 @@ export default function AdScheduler() {
                   size={40}
                   className="mx-auto text-slate-300 dark:text-zinc-700 mb-4"
                 />
-                <p className="text-slate-400 font-bold uppercase tracking-widest text-xs mb-4">
+                <p className="text-slate-400 font-bold text-xs mb-4">
                   No Active Mall-Wide Ads
                 </p>
                 <button
@@ -737,7 +729,7 @@ export default function AdScheduler() {
                     setFormData(EMPTY_FORM);
                     setIsModalOpen(true);
                   }}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-primary-hover transition-all"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white font-bold text-xs rounded-xl hover:bg-primary-hover transition-all"
                 >
                   <Plus size={14} /> Create First Ad
                 </button>
@@ -783,7 +775,7 @@ export default function AdScheduler() {
                         {/* Priority Badge */}
                         <div
                           className={clsx(
-                            "absolute top-3 left-3 flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border backdrop-blur-md bg-black/40 text-white border-white/20",
+                            "absolute top-3 left-3 flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border backdrop-blur-md bg-black/40 text-white border-white/20",
                           )}
                         >
                           <span
@@ -792,7 +784,7 @@ export default function AdScheduler() {
                           {ad.priority}
                         </div>
                         {/* Status Badges */}
-                        <div className={clsx("absolute top-3 right-3 flex items-center gap-1.5 px-2.5 py-1 backdrop-blur-md rounded-full text-[9px] font-black uppercase tracking-widest shadow-md", ui.badge)}>
+                        <div className={clsx("absolute top-3 right-3 flex items-center gap-1.5 px-2.5 py-1 backdrop-blur-md rounded-full text-xs font-semibold shadow-md", ui.badge)}>
                           {status === "DEFAULT" && <ShieldCheck size={11} />}
                           {status === "DEFAULT" ? "Default" : ui.label}
                         </div>
@@ -822,7 +814,7 @@ export default function AdScheduler() {
                             {ad.title}
                           </h4>
                           {ad.isDefault && (
-                            <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[8px] font-black uppercase tracking-widest rounded-full border border-emerald-500/20 shrink-0">
+                            <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-semibold rounded-full border border-emerald-500/20 shrink-0">
                               Default
                             </span>
                           )}
@@ -834,13 +826,13 @@ export default function AdScheduler() {
                         <div className="flex items-center justify-between">
                           <span
                             className={clsx(
-                              "flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest border",
+                              "flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold border",
                               ui.pill,
                             )}
                           >
                             {ui.label}
                           </span>
-                          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                          <span className="text-xs font-bold text-slate-400 flex items-center gap-1">
                             <Clock size={10} />{" "}
                             {status === "DEFAULT"
                               ? "Always active"
@@ -866,9 +858,9 @@ export default function AdScheduler() {
                   aria-expanded={showAdHistory}
                   className="flex w-full items-center justify-between gap-3 rounded-xl px-1 py-1 text-left"
                 >
-                  <span className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                  <span className="flex items-center gap-2 text-xs font-semibold text-slate-400">
                     <History size={14} /> Banner history
-                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[9px] text-slate-500 dark:bg-white/5 dark:text-slate-400">
+                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500 dark:bg-white/5 dark:text-slate-400">
                       {expiredMallAds.length}
                     </span>
                   </span>
@@ -909,7 +901,7 @@ export default function AdScheduler() {
                             <p className="truncate text-xs font-bold text-charcoal dark:text-white">
                               {ad.title}
                             </p>
-                            <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400">
+                            <p className="text-xs font-bold text-slate-400">
                               Ended {formatPHDate(ad.endDate)} · {ad.priority}
                             </p>
                           </div>
@@ -938,10 +930,10 @@ export default function AdScheduler() {
             <div className="flex items-center gap-3">
               <Filter size={18} className="text-amber-500" />
               <div>
-                <h2 className="font-black text-charcoal dark:text-white text-lg">
+                <h2 className="font-semibold text-charcoal dark:text-white text-lg">
                   Tenant Promo Pipeline
                 </h2>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+                <p className="text-xs font-bold text-slate-400 mt-0.5">
                   Review & approve merchant promotion requests
                 </p>
               </div>
@@ -959,7 +951,7 @@ export default function AdScheduler() {
                   type="button"
                   onClick={() => setPromoTab(t.key)}
                   className={clsx(
-                    "px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-1.5",
+                    "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5",
                     promoTab === t.key ? "bg-white dark:bg-zinc-900 text-charcoal dark:text-white shadow-xs" : "text-slate-400 hover:text-charcoal dark:hover:text-white",
                   )}
                 >
@@ -1032,12 +1024,12 @@ export default function AdScheduler() {
                           <h4 className="truncate text-sm font-bold text-charcoal dark:text-white">
                             {promo.title}
                           </h4>
-                          <p className="mt-0.5 text-[10px] font-bold uppercase tracking-widest text-primary">
+                          <p className="mt-0.5 text-xs font-bold text-primary">
                             <Tag size={10} className="mr-1 inline" />
                             {promo.category} ·{" "}
                             {promo.tenant?.shopName || "Tenant"}
                           </p>
-                          <p className="mt-1 flex flex-wrap items-center gap-2 text-[9px] font-bold uppercase tracking-widest text-slate-400">
+                          <p className="mt-1 flex flex-wrap items-center gap-2 text-xs font-bold text-slate-400">
                             <Calendar size={10} />
                             {formatPHDate(promo.startDate)} —{" "}
                             {formatPHDate(promo.endDate)}
@@ -1051,7 +1043,7 @@ export default function AdScheduler() {
                       </div>
                       <span
                         className={clsx(
-                          "shrink-0 self-start rounded-lg border px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest sm:self-auto",
+                          "shrink-0 self-start rounded-lg border px-3 py-1.5 text-xs font-bold sm:self-auto",
                           rejected
                             ? "border-red-200 bg-red-50 text-red-600 dark:border-red-900/30 dark:bg-red-950/20 dark:text-red-400"
                             : "border-slate-200 bg-slate-100 text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-400",
@@ -1088,16 +1080,16 @@ export default function AdScheduler() {
                         </div>
                         <div className="space-y-2 min-w-0">
                           <h4 className="font-bold text-charcoal dark:text-white text-base truncate">{promo.title}</h4>
-                          <p className="text-xs font-bold text-primary uppercase tracking-widest flex items-center gap-1.5">
+                          <p className="text-xs font-bold text-primary flex items-center gap-1.5">
                             <Tag size={10} /> {promo.category} • {promo.tenant?.shopName || "Tenant"}
                           </p>
                           <div className="flex flex-wrap items-center gap-3">
-                            <div className="px-3 py-1.5 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-lg text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                            <div className="px-3 py-1.5 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-lg text-xs font-bold text-slate-500 flex items-center gap-1.5">
                               <Calendar size={10} /> {formatPHDate(promo.startDate)} — {formatPHDate(promo.endDate)}
                             </div>
                             <span
                               className={clsx(
-                                "px-3 py-1.5 rounded-lg border text-[10px] font-bold uppercase tracking-widest",
+                                "px-3 py-1.5 rounded-lg border text-xs font-bold",
                                 scheduled
                                   ? "bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-950/30 dark:border-blue-800/30"
                                   : "bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-800/30",
@@ -1113,7 +1105,7 @@ export default function AdScheduler() {
                           setPromoReason("");
                           setPromoAction({ promo, kind: "takedown" });
                         }}
-                        className="px-5 py-2.5 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-red-500 hover:text-white hover:border-transparent transition-all shrink-0 self-end md:self-auto"
+                        className="px-5 py-2.5 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 rounded-xl font-bold text-xs hover:bg-red-500 hover:text-white hover:border-transparent transition-all shrink-0 self-end md:self-auto"
                       >
                         Take down
                       </button>
@@ -1164,21 +1156,21 @@ export default function AdScheduler() {
                       <h4 className="font-bold text-charcoal dark:text-white text-base truncate">
                         {promo.title}
                       </h4>
-                      <p className="text-xs font-bold text-primary uppercase tracking-widest flex items-center gap-1.5">
+                      <p className="text-xs font-bold text-primary flex items-center gap-1.5">
                         <Tag size={10} /> {promo.category} •{" "}
                         {promo.tenant?.shopName || "Tenant"}
                       </p>
                       <div className="flex flex-wrap items-center gap-3">
-                        <div className="px-3 py-1.5 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-lg text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                        <div className="px-3 py-1.5 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-lg text-xs font-bold text-slate-500 flex items-center gap-1.5">
                           <Calendar size={10} />{" "}
                           {formatPHDate(promo.startDate)} — {formatPHDate(promo.endDate)}
                         </div>
                         {ended ? (
-                          <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-white/5 text-slate-500 border border-slate-200 dark:border-white/10 text-[10px] font-bold uppercase tracking-widest">
+                          <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-white/5 text-slate-500 border border-slate-200 dark:border-white/10 text-xs font-bold">
                             Ended — can&apos;t go live
                           </span>
                         ) : (
-                          <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-600 border border-amber-200 dark:border-amber-900/30 text-[10px] font-bold uppercase tracking-widest animate-pulse">
+                          <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-600 border border-amber-200 dark:border-amber-900/30 text-xs font-bold animate-pulse">
                             <Clock size={10} /> Awaiting Review
                           </span>
                         )}
@@ -1191,14 +1183,14 @@ export default function AdScheduler() {
                         setPromoReason(ended ? "The campaign dates have already passed." : "");
                         setPromoAction({ promo, kind: "reject" });
                       }}
-                      className="px-5 py-2.5 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-red-500 hover:text-white hover:border-transparent transition-all"
+                      className="px-5 py-2.5 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 rounded-xl font-bold text-xs hover:bg-red-500 hover:text-white hover:border-transparent transition-all"
                     >
                       Reject
                     </button>
                     {!ended && (
                       <button
                         onClick={() => approvePromo(promo)}
-                        className="px-5 py-2.5 bg-primary text-white rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-primary-hover hover:scale-105 shadow-lg shadow-primary/20 transition-all"
+                        className="px-5 py-2.5 bg-primary text-white rounded-xl font-bold text-xs hover:bg-primary-hover hover:scale-105 shadow-lg shadow-primary/20 transition-all"
                       >
                         Approve
                       </button>
@@ -1228,7 +1220,7 @@ export default function AdScheduler() {
           <div className="absolute inset-0 bg-black/60 backdrop-blur-xs" onClick={() => !promoBusy && setPromoAction(null)} />
           <div className="relative w-full max-w-md bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-white/10 p-6 space-y-4 animate-fade-in-up">
             <div>
-              <h3 className="text-lg font-black text-charcoal dark:text-white">
+              <h3 className="text-lg font-semibold text-charcoal dark:text-white">
                 {promoAction.kind === "takedown" ? "Take down this promo?" : "Reject this promo?"}
               </h3>
               <p className="text-sm text-slate-500 mt-1">
@@ -1237,7 +1229,7 @@ export default function AdScheduler() {
               </p>
             </div>
             <label className="block space-y-1.5">
-              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Reason (optional, sent to the tenant)</span>
+              <span className="text-xs font-semibold text-slate-500">Reason (optional, sent to the tenant)</span>
               <textarea
                 value={promoReason}
                 onChange={(e) => setPromoReason(e.target.value)}
@@ -1252,7 +1244,7 @@ export default function AdScheduler() {
                 type="button"
                 disabled={promoBusy}
                 onClick={() => setPromoAction(null)}
-                className="flex-1 py-3 text-xs font-bold text-slate-500 bg-slate-100 dark:bg-zinc-800 rounded-xl uppercase tracking-widest hover:bg-slate-200 dark:hover:bg-zinc-700 transition-all disabled:opacity-50"
+                className="flex-1 py-3 text-xs font-bold text-slate-500 bg-slate-100 dark:bg-zinc-800 rounded-xl hover:bg-slate-200 dark:hover:bg-zinc-700 transition-all disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -1260,7 +1252,7 @@ export default function AdScheduler() {
                 type="button"
                 disabled={promoBusy}
                 onClick={confirmPromoAction}
-                className="flex-1 py-3 text-xs font-bold text-white bg-red-500 rounded-xl uppercase tracking-widest hover:bg-red-600 transition-all disabled:opacity-50"
+                className="flex-1 py-3 text-xs font-bold text-white bg-red-500 rounded-xl hover:bg-red-600 transition-all disabled:opacity-50"
               >
                 {promoBusy ? "Saving…" : promoAction.kind === "takedown" ? "Take down" : "Reject"}
               </button>
@@ -1278,7 +1270,7 @@ export default function AdScheduler() {
           />
           <div className="relative w-full max-w-xl bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-white/10 p-8 animate-fade-in-up max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-black text-charcoal dark:text-white uppercase tracking-tight flex items-center gap-2">
+              <h2 className="text-xl font-semibold text-charcoal dark:text-white tracking-tight flex items-center gap-2">
                 <Plus size={18} className="text-primary" /> Create Global Mall
                 Ad
               </h2>
@@ -1306,7 +1298,7 @@ export default function AdScheduler() {
           />
           <div className="relative w-full max-w-xl bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-white/10 p-8 animate-fade-in-up max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-black text-charcoal dark:text-white uppercase tracking-tight flex items-center gap-2">
+              <h2 className="text-xl font-semibold text-charcoal dark:text-white tracking-tight flex items-center gap-2">
                 <Edit2 size={18} className="text-primary" /> Edit Ad Campaign
               </h2>
               <button

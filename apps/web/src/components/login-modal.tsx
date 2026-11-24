@@ -214,7 +214,7 @@ export const LoginModal = ({ isOpen, onClose, nextPath }: LoginModalProps) => {
                 <div className={`${isSignUp ? "w-11 h-11" : "w-14 h-14"} bg-white rounded-2xl overflow-hidden shadow-lg mb-2 p-0.5`}>
                   <img src="/images/srmall-logo/sr_logo2.jpg" alt="Logo" className="w-full h-full object-cover rounded-xl" />
                 </div>
-                <h2 className="text-white font-bold text-xs">
+                <h2 className="text-white font-semibold text-xs">
                   {isForgotPassword ? "Reset Password" : isSignUp ? "SR MALL" : "Welcome back"}
                 </h2>
               </div>

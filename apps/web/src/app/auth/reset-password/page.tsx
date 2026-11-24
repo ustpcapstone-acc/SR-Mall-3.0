@@ -142,7 +142,7 @@ function SetPasswordStep({
           <CheckCircle2 size={40} />
         </div>
         <div>
-          <h2 className="text-2xl font-semibold text-charcoal dark:text-white mb-2">Password Secured!</h2>
+          <h2 className="font-display text-2xl font-semibold text-charcoal dark:text-white mb-2">Password Secured!</h2>
           <p className="text-sm text-slate-500 font-medium">
             Your password has been updated. Redirecting you to login...
           </p>

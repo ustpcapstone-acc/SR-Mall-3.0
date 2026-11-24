@@ -62,7 +62,7 @@ export default function PaymentsPage() {
   if (!d) {
     return (
       <div className="mx-auto max-w-6xl space-y-3 p-6 sm:p-8">
-        <h1 className="font-display text-2xl font-semibold text-kumo-default">Payments</h1>
+        <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-kumo-default">Payments</h1>
         <p className="text-sm text-kumo-subtle">
           Payments belong to a space. Choose a space from the workspace menu, or{" "}
           <Link href="/tenantdashboard/rent-a-space" className="text-kumo-link hover:underline">
@@ -79,7 +79,7 @@ export default function PaymentsPage() {
   return (
     <div className="mx-auto max-w-6xl space-y-6 p-6 sm:p-8">
       <header>
-        <h1 className="font-display text-2xl font-semibold text-kumo-default">Payments</h1>
+        <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-kumo-default">Payments</h1>
         <p className="mt-1 text-sm text-kumo-subtle">Unit {d.unitId}. Rent is paid at the SR Mall management office.</p>
       </header>
 

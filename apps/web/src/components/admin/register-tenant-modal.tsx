@@ -323,10 +323,8 @@ export function RegisterTenantModal({ isOpen, onClose, onSuccess }: Props) {
           <h2
             className={clsx(
               "text-white",
-              "font-black",
-              "text-sm",
-              "uppercase",
-              "tracking-[0.2em]",
+              "font-semibold",
+              "text-sm",
             )}
           >
             Register New Tenant
@@ -388,9 +386,7 @@ export function RegisterTenantModal({ isOpen, onClose, onSuccess }: Props) {
                   className={clsx(
                     "text-[10px]",
                     "font-bold",
-                    "text-zinc-500",
-                    "uppercase",
-                    "tracking-widest",
+                    "text-zinc-500",
                     "mb-1.5",
                     "flex",
                     "items-center",
@@ -424,9 +420,7 @@ export function RegisterTenantModal({ isOpen, onClose, onSuccess }: Props) {
                   className={clsx(
                     "text-[10px]",
                     "font-bold",
-                    "text-zinc-500",
-                    "uppercase",
-                    "tracking-widest",
+                    "text-zinc-500",
                     "block",
                     "mb-1.5",
                   )}
@@ -458,9 +452,7 @@ export function RegisterTenantModal({ isOpen, onClose, onSuccess }: Props) {
                   className={clsx(
                     "text-[10px]",
                     "font-bold",
-                    "text-zinc-500",
-                    "uppercase",
-                    "tracking-widest",
+                    "text-zinc-500",
                     "block",
                     "mb-1.5",
                   )}
@@ -565,9 +557,7 @@ export function RegisterTenantModal({ isOpen, onClose, onSuccess }: Props) {
                   "bg-primary",
                   "text-white",
                   "font-bold",
-                  "text-xs",
-                  "uppercase",
-                  "tracking-widest",
+                  "text-xs",
                   "rounded-xl",
                   "shadow-lg",
                   "shadow-primary/20",
@@ -598,9 +588,7 @@ export function RegisterTenantModal({ isOpen, onClose, onSuccess }: Props) {
                   className={clsx(
                     "text-[10px]",
                     "font-bold",
-                    "text-zinc-500",
-                    "uppercase",
-                    "tracking-widest",
+                    "text-zinc-500",
                     "block",
                     "mb-1.5",
                   )}
@@ -632,9 +620,7 @@ export function RegisterTenantModal({ isOpen, onClose, onSuccess }: Props) {
                   className={clsx(
                     "text-[10px]",
                     "font-bold",
-                    "text-zinc-500",
-                    "uppercase",
-                    "tracking-widest",
+                    "text-zinc-500",
                     "block",
                     "mb-1.5",
                   )}
@@ -672,9 +658,7 @@ export function RegisterTenantModal({ isOpen, onClose, onSuccess }: Props) {
                   className={clsx(
                     "text-[10px]",
                     "font-bold",
-                    "text-zinc-500",
-                    "uppercase",
-                    "tracking-widest",
+                    "text-zinc-500",
                     "block",
                     "mb-1.5",
                   )}
@@ -710,9 +694,7 @@ export function RegisterTenantModal({ isOpen, onClose, onSuccess }: Props) {
                     "bg-zinc-800",
                     "text-zinc-300",
                     "font-bold",
-                    "text-xs",
-                    "uppercase",
-                    "tracking-widest",
+                    "text-xs",
                     "rounded-xl",
                   )}
                 >
@@ -727,9 +709,7 @@ export function RegisterTenantModal({ isOpen, onClose, onSuccess }: Props) {
                     "bg-primary",
                     "text-white",
                     "font-bold",
-                    "text-xs",
-                    "uppercase",
-                    "tracking-widest",
+                    "text-xs",
                     "rounded-xl",
                     "shadow-lg",
                     "shadow-primary/20",
@@ -749,7 +729,7 @@ export function RegisterTenantModal({ isOpen, onClose, onSuccess }: Props) {
           {step === 3 && (
             <div className={clsx("space-y-5", "animate-fade-in")}>
               <div>
-                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block mb-1.5">
+                <label className="text-xs font-bold text-zinc-500 block mb-1.5">
                   Select Slot *
                 </label>
                 <select
@@ -778,9 +758,7 @@ export function RegisterTenantModal({ isOpen, onClose, onSuccess }: Props) {
                     className={clsx(
                       "text-[10px]",
                       "font-bold",
-                      "text-zinc-500",
-                      "uppercase",
-                      "tracking-widest",
+                      "text-zinc-500",
                       "block",
                       "mb-1.5",
                     )}
@@ -804,7 +782,7 @@ export function RegisterTenantModal({ isOpen, onClose, onSuccess }: Props) {
                       "border-white/5",
                       "rounded-xl",
                       "text-sm",
-                      "font-black",
+                      "font-semibold",
                       "text-green-500",
                       "focus:border-primary",
                       "focus:outline-hidden",
@@ -816,9 +794,7 @@ export function RegisterTenantModal({ isOpen, onClose, onSuccess }: Props) {
                     className={clsx(
                       "text-[10px]",
                       "font-bold",
-                      "text-zinc-500",
-                      "uppercase",
-                      "tracking-widest",
+                      "text-zinc-500",
                       "mb-1.5",
                       "flex",
                       "items-center",
@@ -851,9 +827,7 @@ export function RegisterTenantModal({ isOpen, onClose, onSuccess }: Props) {
                   className={clsx(
                     "text-[10px]",
                     "font-bold",
-                    "text-zinc-500",
-                    "uppercase",
-                    "tracking-widest",
+                    "text-zinc-500",
                     "block",
                     "mb-1.5",
                   )}
@@ -943,8 +917,6 @@ export function RegisterTenantModal({ isOpen, onClose, onSuccess }: Props) {
                     borderRadius: "12px",
                     fontWeight: "bold",
                     fontSize: "12px",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.1em",
                     cursor: isLoading ? "not-allowed" : "pointer",
                   }}
                 >
@@ -1002,8 +974,6 @@ export function RegisterTenantModal({ isOpen, onClose, onSuccess }: Props) {
                     borderRadius: "12px",
                     fontWeight: "bold",
                     fontSize: "12px",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.1em",
                     cursor: isLoading ? "not-allowed" : "pointer",
                     boxShadow: "0 10px 15px -3px rgba(190, 30, 45, 0.3)",
                     display: "flex",

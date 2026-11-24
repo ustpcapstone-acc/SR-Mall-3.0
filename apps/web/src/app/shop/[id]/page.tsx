@@ -278,7 +278,7 @@ export default function ShopProfilePage() {
         <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-[#C51D30]/10 text-[#C51D30]">
           <AlertTriangle size={40} />
         </div>
-        <h2 className="mb-3 text-3xl font-semibold tracking-tight text-[#21191B] dark:text-white">
+        <h2 className="font-display mb-3 text-3xl font-semibold tracking-tight text-[#21191B] dark:text-white">
           Slot Vacant
         </h2>
         <p className="mb-8 max-w-sm font-medium text-[#70656A] dark:text-slate-400">
@@ -550,7 +550,7 @@ export default function ShopProfilePage() {
                     />
                   </div>
                   <div className="min-w-0 pb-0.5">
-                    <h1 className="text-2xl font-semibold leading-tight tracking-tight text-white sm:text-3xl lg:text-4xl">
+                    <h1 className="font-display text-3xl sm:text-4xl lg:text-5xl font-semibold tracking-tight text-white">
                       {shop.shop_name}
                     </h1>
                     {shop.category && (
@@ -948,7 +948,7 @@ export default function ShopProfilePage() {
               <p className="text-xs font-bold text-[#C51D30]">
                 About the shop
               </p>
-              <h2 className="mt-2 text-2xl font-bold tracking-tight text-[#21191B] dark:text-white">
+              <h2 className="font-display mt-2 text-2xl font-semibold tracking-tight text-[#21191B] dark:text-white">
                 {shop.shop_name}
               </h2>
               {shop.description ? (
@@ -963,7 +963,7 @@ export default function ShopProfilePage() {
             </div>
 
             <aside className="rounded-2xl border border-[#E8E2DE] bg-white p-5 shadow-xs dark:border-white/10 dark:bg-zinc-900 sm:p-6">
-              <h3 className="text-xs font-bold text-[#A79E98]">
+              <h3 className="text-xs font-semibold text-[#A79E98]">
                 Shop details
               </h3>
               <div className="mt-4 space-y-3">
@@ -1038,7 +1038,7 @@ export default function ShopProfilePage() {
                         </span>
                       </div>
                       <div className="space-y-2 p-4 sm:p-5">
-                        <h3 className="text-lg font-bold leading-tight text-[#21191B] dark:text-white sm:text-xl">
+                        <h3 className="text-lg font-semibold leading-tight text-[#21191B] dark:text-white sm:text-xl">
                           {sale.title}
                         </h3>
                         <p className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#8B7F76]">

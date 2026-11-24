@@ -80,7 +80,7 @@ export function ShopPromos({
                 </span>
               </div>
               <div className="space-y-2 p-4 sm:p-5">
-                <h3 className="text-lg font-bold leading-tight text-[#21191B] dark:text-white sm:text-xl">
+                <h3 className="text-lg font-semibold leading-tight text-[#21191B] dark:text-white sm:text-xl">
                   {p.title}
                 </h3>
                 {p.description?.trim() && (

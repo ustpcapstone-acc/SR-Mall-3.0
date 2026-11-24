@@ -65,7 +65,7 @@ export default function SiteConfigCMS() {
 
   if (loading)
     return (
-      <div className="p-10 text-center animate-pulse uppercase tracking-[0.2em] font-bold text-xs text-slate-400">
+      <div className="p-10 text-center animate-pulse font-bold text-xs text-slate-400">
         Initializing CMS Engine...
       </div>
     );
@@ -74,8 +74,8 @@ export default function SiteConfigCMS() {
     <div className="p-8 lg:p-10 animate-fade-in-up max-w-[1600px] mx-auto space-y-10">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-black text-charcoal dark:text-white tracking-tight">
-            Public-View CMS Control
+          <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-charcoal dark:text-white">
+            Site Settings
           </h1>
           <p className="text-sm text-slate-500 font-medium mt-1">
             Manage branding, headlines, and system maintenance mode from a
@@ -86,14 +86,14 @@ export default function SiteConfigCMS() {
         <div className="flex items-center gap-3">
           <button
             onClick={() => setDraft(config)}
-            className="flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-zinc-900 text-slate-400 dark:text-white border border-slate-100 dark:border-white/5 rounded-xl font-bold text-xs uppercase tracking-widest hover:border-primary transition-all"
+            className="flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-zinc-900 text-slate-400 dark:text-white border border-slate-100 dark:border-white/5 rounded-xl font-bold text-xs hover:border-primary transition-all"
           >
             <RefreshCcw size={14} /> Revert to Live
           </button>
           <button
             onClick={handleSave}
             disabled={isSaving}
-            className="flex items-center gap-2 px-6 py-2.5 bg-primary text-white border border-transparent rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-primary-hover shadow-lg shadow-primary/20 transition-all active:scale-95 disabled:opacity-50"
+            className="flex items-center gap-2 px-6 py-2.5 bg-primary text-white border border-transparent rounded-xl font-bold text-xs hover:bg-primary-hover shadow-lg shadow-primary/20 transition-all active:scale-95 disabled:opacity-50"
           >
             {isSaving ? (
               <>
@@ -116,14 +116,14 @@ export default function SiteConfigCMS() {
               <div className="p-2.5 bg-primary/10 rounded-xl text-primary">
                 <Type size={18} />
               </div>
-              <h3 className="font-black text-charcoal dark:text-white uppercase tracking-widest text-xs">
+              <h3 className="font-semibold text-charcoal dark:text-white text-xs">
                 Hero Section Content
               </h3>
             </div>
 
             <div className="space-y-6">
               <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">
+                <label className="text-xs font-semibold text-slate-400 block mb-2">
                   Main Headline
                 </label>
                 <textarea
@@ -137,7 +137,7 @@ export default function SiteConfigCMS() {
               </div>
 
               <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">
+                <label className="text-xs font-semibold text-slate-400 block mb-2">
                   Sub-headline Description
                 </label>
                 <textarea
@@ -152,7 +152,7 @@ export default function SiteConfigCMS() {
 
               <div className="grid grid-cols-2 gap-6">
                 <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">
+                  <label className="text-xs font-semibold text-slate-400 block mb-2">
                     Button Text
                   </label>
                   <input
@@ -165,7 +165,7 @@ export default function SiteConfigCMS() {
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">
+                  <label className="text-xs font-semibold text-slate-400 block mb-2">
                     Background Overlay (Darkness)
                   </label>
                   <input
@@ -181,7 +181,7 @@ export default function SiteConfigCMS() {
                     }
                     className="w-full h-10 mt-2 accent-primary"
                   />
-                  <div className="flex justify-between text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest">
+                  <div className="flex justify-between text-xs font-bold text-slate-400 mt-1">
                     <span>Clear</span>
                     <span>{draft.heroOverlayDark}% intensity</span>
                     <span>Solid</span>
@@ -196,7 +196,7 @@ export default function SiteConfigCMS() {
               <div className="p-2.5 bg-amber-500/10 rounded-xl text-amber-500">
                 <ToggleLeft size={18} />
               </div>
-              <h3 className="font-black text-charcoal dark:text-white uppercase tracking-widest text-xs">
+              <h3 className="font-semibold text-charcoal dark:text-white text-xs">
                 System & Maintenance
               </h3>
             </div>
@@ -210,7 +210,7 @@ export default function SiteConfigCMS() {
                   <h4 className="text-sm font-bold text-charcoal dark:text-white">
                     Maintenance Mode
                   </h4>
-                  <p className="text-[10px] font-medium text-slate-500 uppercase tracking-widest">
+                  <p className="text-xs font-medium text-slate-500">
                     Shut down public access for all visitors.
                   </p>
                 </div>
@@ -263,12 +263,12 @@ export default function SiteConfigCMS() {
 
               <div className="absolute inset-x-0 bottom-0 top-0 flex flex-col items-center justify-center text-center px-10">
                 <div className="space-y-4 max-w-xl">
-                  <span className="inline-block px-4 py-1.5 bg-primary/20 backdrop-blur-md text-white text-[9px] font-black uppercase tracking-[0.3em] rounded-full border border-white/20 animate-fade-in shadow-xl">
+                  <span className="inline-block px-4 py-1.5 bg-primary/20 backdrop-blur-md text-white text-xs font-semibold rounded-full border border-white/20 animate-fade-in shadow-xl">
                     {draft.isMaintenance
                       ? "⚠️ SYSTEM OFFLINE"
                       : "SR-MANAGE CONTENT PREVIEW"}
                   </span>
-                  <h1 className="text-3xl md:text-5xl font-black text-white tracking-tighter leading-tight drop-shadow-2xl">
+                  <h1 className="font-display text-3xl md:text-5xl font-semibold tracking-tight leading-tight text-white drop-shadow-2xl">
                     {draft.heroTitle}
                   </h1>
                   <p className="text-xs md:text-sm text-slate-200 font-medium leading-relaxed opacity-80 line-clamp-3">
@@ -277,7 +277,7 @@ export default function SiteConfigCMS() {
 
                   {!draft.isMaintenance && (
                     <div className="pt-4 flex justify-center">
-                      <button className="px-8 py-4 bg-primary text-white text-[10px] font-black rounded-full uppercase tracking-widest shadow-2xl">
+                      <button className="px-8 py-4 bg-primary text-white text-xs font-semibold rounded-full shadow-2xl">
                         {draft.primaryBtnText}
                       </button>
                     </div>
@@ -292,27 +292,27 @@ export default function SiteConfigCMS() {
                 <div className="w-16 h-16 bg-primary/20 text-primary rounded-3xl flex items-center justify-center mb-6 border border-primary/30">
                   <AlertTriangle size={32} />
                 </div>
-                <h2 className="text-2xl font-black text-white mb-2 uppercase tracking-tight">
+                <h2 className="font-display text-2xl font-semibold text-white mb-2 tracking-tight">
                   System Under Maintenance
                 </h2>
-                <p className="text-xs text-slate-400 font-medium text-center uppercase tracking-widest leading-loose">
+                <p className="text-xs text-slate-400 font-medium text-center leading-loose">
                   The public view will be hidden until you toggle this setting
                   off and republish.
                 </p>
               </div>
             )}
 
-            <div className="absolute top-6 left-6 flex items-center gap-2 bg-charcoal/80 backdrop-blur-md text-white px-4 py-2 rounded-full border border-white/10 text-[9px] font-bold uppercase tracking-widest z-30">
+            <div className="absolute top-6 left-6 flex items-center gap-2 bg-charcoal/80 backdrop-blur-md text-white px-4 py-2 rounded-full border border-white/10 text-xs font-bold z-30">
               <Eye size={12} /> {isSaving ? "Synching..." : "Live Preview"}
             </div>
           </div>
 
           <div className="bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 p-4 rounded-xl flex items-start gap-3 w-full max-w-lg">
             <CheckCircle size={18} className="text-blue-500 shrink-0" />
-            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-relaxed">
+            <p className="text-xs font-bold text-slate-500 leading-relaxed">
               You are editing a draft. Changes will only take effect on the
               production Public-View once you click the{" "}
-              <span className="text-primary font-black">Publish Changes</span>{" "}
+              <span className="text-primary font-semibold">Publish Changes</span>{" "}
               button.
             </p>
           </div>

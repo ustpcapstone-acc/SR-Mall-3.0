@@ -80,7 +80,7 @@ export default function RenewalsPage() {
   return (
     <div className="mx-auto max-w-6xl space-y-6 p-6 sm:p-8">
       <header>
-        <h1 className="font-display text-2xl font-semibold text-kumo-default">Renewals</h1>
+        <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-kumo-default">Renewals</h1>
         <p className="mt-1 max-w-2xl text-sm text-kumo-subtle">
           Each lease is paid through a date. Tenants are reminded before it, get a grace period after it, and are removed
           from the space automatically if they still have not paid when the grace period ends.

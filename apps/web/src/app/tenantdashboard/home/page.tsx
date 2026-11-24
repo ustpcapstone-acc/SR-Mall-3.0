@@ -67,7 +67,7 @@ export default function TenantHomePage() {
   return (
     <div className="mx-auto max-w-6xl space-y-8 p-6 sm:p-8">
       <header>
-        <h1 className="font-display text-2xl font-semibold text-kumo-default">{data.shopName}</h1>
+        <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-kumo-default">{data.shopName}</h1>
         <p className="mt-1 text-sm text-kumo-subtle">
           Your account at SR Mall. Each space you rent has its own workspace for its storefront, promos and payments.
         </p>

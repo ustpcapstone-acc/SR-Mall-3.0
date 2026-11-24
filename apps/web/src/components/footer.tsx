@@ -86,7 +86,7 @@ export const Footer = ({ config }: FooterProps = {}) => {
 
         {/* Opening hours */}
         <div>
-          <h3 className="text-lg font-bold mb-6">Opening Hours</h3>
+          <h3 className="text-lg font-semibold mb-6">Opening Hours</h3>
           <ul className="space-y-3 text-sm text-slate-500 dark:text-slate-400">
             {hours.map((line) => (
               <li key={line} className="flex items-start gap-3">
@@ -99,7 +99,7 @@ export const Footer = ({ config }: FooterProps = {}) => {
 
         {/* Find us */}
         <div>
-          <h3 className="text-lg font-bold mb-6">Find Us</h3>
+          <h3 className="text-lg font-semibold mb-6">Find Us</h3>
           <div className="space-y-4 text-sm text-slate-500 dark:text-slate-400">
             <div className="flex items-start gap-3">
               <MapPin size={18} className="text-primary mt-0.5 shrink-0" />

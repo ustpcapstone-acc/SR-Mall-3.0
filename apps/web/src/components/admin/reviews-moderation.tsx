@@ -62,7 +62,7 @@ interface ReviewRow {
 }
 
 const PAGE_SIZE = 10;
-const LABEL = "text-[10px] font-black uppercase tracking-widest text-slate-400";
+const LABEL = "text-xs font-semibold text-slate-400";
 const MUTE_OPTIONS = [
   { days: 1, label: "1 day" },
   { days: 3, label: "3 days" },
@@ -227,13 +227,13 @@ export function ReviewsModeration({
       return (
         <div className="p-16 text-center space-y-4 bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-[2.5rem]">
           <AlertTriangle className="mx-auto text-primary" size={28} />
-          <p className="font-black text-charcoal dark:text-white uppercase tracking-tight italic">
+          <p className="font-semibold text-charcoal dark:text-white tracking-tight">
             Couldn&apos;t load reviews
           </p>
           <p className="text-sm text-slate-500">{error}</p>
           <button
             onClick={() => load(true)}
-            className="px-6 py-3 bg-primary text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/25"
+            className="px-6 py-3 bg-primary text-white rounded-xl text-xs font-semibold shadow-lg shadow-primary/25"
           >
             Try again
           </button>
@@ -297,10 +297,10 @@ export function ReviewsModeration({
                 )}
               >
                 {t.icon}
-                <span className="text-[10px] font-black uppercase tracking-widest">{t.label}</span>
+                <span className="text-xs font-semibold">{t.label}</span>
                 <span
                   className={clsx(
-                    "min-w-6 px-1.5 py-0.5 rounded-full text-[10px] font-black text-center",
+                    "min-w-6 px-1.5 py-0.5 rounded-full text-[10px] font-semibold text-center",
                     activeBucket === t.id
                       ? "bg-white text-primary"
                       : counts[t.id] > 0 && t.id !== "published"
@@ -372,7 +372,7 @@ export function ReviewsModeration({
         {filtered.length === 0 ? (
           <div className="py-20 flex flex-col items-center gap-3 text-center text-slate-300 dark:text-slate-600">
             {activeBucket === "published" ? <MessageSquare size={28} /> : <ShieldCheck size={28} />}
-            <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">
+            <p className="text-slate-400 font-bold text-xs">
               {search || shopFilter !== "all" || ratingFilter !== "all"
                 ? "No reviews match these filters"
                 : activeBucket === "pending"
@@ -405,7 +405,7 @@ export function ReviewsModeration({
           <div className="p-4 border-t border-slate-100 dark:border-white/5 text-center">
             <button
               onClick={() => setVisible((v) => v + PAGE_SIZE)}
-              className="px-6 py-3 rounded-xl bg-slate-100 dark:bg-white/5 text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors"
+              className="px-6 py-3 rounded-xl bg-slate-100 dark:bg-white/5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors"
             >
               Show more ({filtered.length - visible} left)
             </button>
@@ -444,8 +444,8 @@ function SummaryCard({
     <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-4xl p-5 shadow-xs min-w-0">
       <span className={clsx("w-10 h-10 rounded-xl flex items-center justify-center", tone)}>{icon}</span>
       <p className={clsx(LABEL, "mt-4 truncate")}>{label}</p>
-      <p className="mt-1 text-3xl font-black tracking-tighter text-charcoal dark:text-white">{value}</p>
-      {sub && <p className="mt-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 truncate">{sub}</p>}
+      <p className="mt-1 text-3xl font-semibold tracking-tight text-charcoal dark:text-white">{value}</p>
+      {sub && <p className="mt-1 text-xs font-bold text-slate-400 truncate">{sub}</p>}
     </div>
   );
 }
@@ -514,7 +514,7 @@ function UserStatusBadge({ user }: { user: NonNullable<ReviewRow["user"]> }) {
 
   if (warnings > 0) {
     return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border whitespace-nowrap bg-amber-500/10 text-amber-600 border-amber-500/20">
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold border whitespace-nowrap bg-amber-500/10 text-amber-600 border-amber-500/20">
         <AlertTriangle size={10} />
         Warning {warnings}/2
       </span>
@@ -526,7 +526,7 @@ function UserStatusBadge({ user }: { user: NonNullable<ReviewRow["user"]> }) {
   return (
     <span
       className={clsx(
-        "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border whitespace-nowrap",
+        "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold border whitespace-nowrap",
         banned
           ? "bg-red-500/10 text-red-600 border-red-500/20"
           : "bg-amber-500/10 text-amber-600 border-amber-500/20",
@@ -571,7 +571,7 @@ function ReviewItem({
   return (
     <li className={clsx("p-5 md:p-6 transition-colors", busy && "opacity-60 pointer-events-none")}>
       <div className="flex gap-4">
-        <div className="w-11 h-11 shrink-0 rounded-[0.9rem] bg-primary/10 overflow-hidden flex items-center justify-center font-black italic text-primary">
+        <div className="w-11 h-11 shrink-0 rounded-[0.9rem] bg-primary/10 overflow-hidden flex items-center justify-center font-semibold text-primary">
           {r.user?.avatarUrl ? (
             <img src={r.user.avatarUrl} alt="" className="w-full h-full object-cover" />
           ) : (
@@ -582,13 +582,13 @@ function ReviewItem({
         <div className="flex-1 min-w-0 space-y-2">
           {/* Who · where · when */}
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <p className="font-black text-sm text-charcoal dark:text-white uppercase tracking-tight italic truncate max-w-[240px]">
+            <p className="font-semibold text-sm text-charcoal dark:text-white tracking-tight truncate max-w-[240px]">
               {name}
             </p>
             <Stars rating={r.rating} />
             {r.user && <UserStatusBadge user={r.user} />}
           </div>
-          <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+          <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-bold text-slate-400">
             <span className="inline-flex items-center gap-1 text-slate-500 dark:text-slate-300">
               <Store size={11} /> {r.tenant ? r.tenant.shopName : "Mall review"}
             </span>
@@ -618,7 +618,7 @@ function ReviewItem({
           {long && (
             <button
               onClick={() => setExpanded((v) => !v)}
-              className="text-[10px] font-black uppercase tracking-widest text-primary hover:underline"
+              className="text-xs font-semibold text-primary hover:underline"
             >
               {expanded ? "Show less" : "Read more"}
             </button>
@@ -628,14 +628,14 @@ function ReviewItem({
             <div className="flex items-start gap-2 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-300">
               <Flag size={14} className="shrink-0 mt-0.5" />
               <p className="text-xs">
-                <span className="font-black uppercase tracking-widest text-[10px]">Reported by the shop · </span>
+                <span className="font-semibold text-xs">Reported by the shop · </span>
                 {r.reportReason || "No reason given"}
               </p>
             </div>
           )}
           {r.reply && (
             <div className="pl-3 border-l-2 border-primary/40">
-              <p className="text-[10px] font-black uppercase tracking-widest text-primary">Shop reply</p>
+              <p className="text-xs font-semibold text-primary">Shop reply</p>
               <p className="text-sm text-slate-600 dark:text-slate-300 whitespace-pre-line wrap-anywhere">
                 {r.reply}
               </p>
@@ -699,7 +699,7 @@ function ActionButton({
     <button
       onClick={onClick}
       className={clsx(
-        "inline-flex items-center gap-1.5 h-9 px-3.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95",
+        "inline-flex items-center gap-1.5 h-9 px-3.5 rounded-xl text-xs font-semibold transition-all active:scale-95",
         tone === "success" && "bg-emerald-500 text-white hover:bg-emerald-600 shadow-md shadow-emerald-500/20",
         tone === "warning" && "bg-amber-500/10 text-amber-600 hover:bg-amber-500 hover:text-white",
         tone === "danger" && "bg-red-500/10 text-red-600 hover:bg-red-500 hover:text-white",
@@ -747,7 +747,7 @@ function ModerateUserMenu({
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="menu"
         aria-expanded={open}
-        className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-xl border border-slate-200 dark:border-white/10 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-charcoal dark:hover:text-white hover:border-slate-300 transition-colors"
+        className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-xl border border-slate-200 dark:border-white/10 text-xs font-semibold text-slate-500 hover:text-charcoal dark:hover:text-white hover:border-slate-300 transition-colors"
       >
         <UserX size={14} /> Moderate user
         <ChevronDown size={12} className={clsx("transition-transform", open && "rotate-180")} />
@@ -837,7 +837,7 @@ function DeleteReviewModal({
             <Trash2 size={22} />
           </div>
           <div className="space-y-1">
-            <h2 id="delete-review-title" className="text-xl font-black uppercase tracking-tight italic text-charcoal dark:text-white">
+            <h2 id="delete-review-title" className="text-xl font-semibold tracking-tight text-charcoal dark:text-white">
               Delete this review?
             </h2>
             <p className="text-sm text-slate-500">
@@ -847,7 +847,7 @@ function DeleteReviewModal({
           </div>
           <div className="p-4 rounded-2xl bg-slate-50 dark:bg-zinc-900 border border-slate-100 dark:border-white/5 space-y-2">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-black uppercase text-charcoal dark:text-white">
+              <span className="text-xs font-semibold text-charcoal dark:text-white">
                 {review.user?.name || review.user?.email || "Deleted user"}
               </span>
               <Stars rating={review.rating} />
@@ -860,14 +860,14 @@ function DeleteReviewModal({
             <button
               onClick={onCancel}
               disabled={busy}
-              className="flex-1 py-3.5 bg-slate-100 dark:bg-zinc-900 text-slate-600 dark:text-slate-400 font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-slate-200 transition-all disabled:opacity-50"
+              className="flex-1 py-3.5 bg-slate-100 dark:bg-zinc-900 text-slate-600 dark:text-slate-400 font-bold text-xs rounded-xl hover:bg-slate-200 transition-all disabled:opacity-50"
             >
               Cancel
             </button>
             <button
               onClick={onConfirm}
               disabled={busy}
-              className="flex-1 py-3.5 bg-red-600 hover:bg-red-700 text-white font-black text-xs uppercase tracking-widest rounded-xl shadow-lg shadow-red-500/20 transition-all flex items-center justify-center gap-2 disabled:opacity-70"
+              className="flex-1 py-3.5 bg-red-600 hover:bg-red-700 text-white font-semibold text-xs rounded-xl shadow-lg shadow-red-500/20 transition-all flex items-center justify-center gap-2 disabled:opacity-70"
             >
               {busy ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
               Delete

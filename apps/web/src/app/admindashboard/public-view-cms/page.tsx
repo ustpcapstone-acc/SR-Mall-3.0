@@ -685,7 +685,7 @@ export default function PublicViewCMSPage() {
             <Sparkles size={20} className="text-primary animate-pulse" />
           </div>
         </div>
-        <p className="text-xs font-black uppercase tracking-[0.3em] text-slate-400">
+        <p className="text-xs font-semibold text-slate-400">
           Loading Content Manager...
         </p>
       </div>
@@ -716,11 +716,8 @@ export default function PublicViewCMSPage() {
       {/* Premium Header */}
       <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 pb-8 border-b border-slate-200 dark:border-white/10">
         <div className="space-y-4">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-primary/10 text-primary rounded-full text-[10px] font-black uppercase tracking-widest border border-primary/20">
-            <Sparkles size={12} /> Public Site Editor
-          </div>
-          <h1 className="text-5xl font-black text-charcoal dark:text-white tracking-tighter italic uppercase leading-none">
-            Content <span className="text-primary">Management.</span>
+          <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-charcoal dark:text-white">
+            Public Site Content
           </h1>
           <p className="text-slate-500 font-medium max-w-xl text-lg">
             Manage homepage banners, event photos, sales announcements, and mall information shown to visitors.
@@ -732,14 +729,14 @@ export default function PublicViewCMSPage() {
             href="/"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-2 px-6 py-4 bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-slate-300 font-black text-[10px] uppercase tracking-widest rounded-2xl hover:bg-slate-200 dark:hover:bg-zinc-700 transition-all border border-slate-200 dark:border-white/5 shadow-xs active:scale-95"
+            className="flex items-center gap-2 px-6 py-4 bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-slate-300 font-semibold text-xs rounded-2xl hover:bg-slate-200 dark:hover:bg-zinc-700 transition-all border border-slate-200 dark:border-white/5 shadow-xs active:scale-95"
           >
             <ExternalLink size={16} /> Live Preview
           </a>
           <button
             onClick={handleSaveConfig}
             disabled={isSaving || !isDirty}
-            className="flex items-center gap-2 px-8 py-4 bg-charcoal dark:bg-white text-white dark:text-charcoal font-black text-[10px] uppercase tracking-[0.2em] rounded-2xl shadow-xl shadow-charcoal/20 dark:shadow-white/10 hover:scale-[1.02] transition-all disabled:opacity-50 active:scale-95"
+            className="flex items-center gap-2 px-8 py-4 bg-charcoal dark:bg-white text-white dark:text-charcoal font-semibold text-xs rounded-2xl shadow-xl shadow-charcoal/20 dark:shadow-white/10 hover:scale-[1.02] transition-all disabled:opacity-50 active:scale-95"
           >
             {isSaving ? (
               <Loader2 size={16} className="animate-spin" />
@@ -773,12 +770,12 @@ export default function PublicViewCMSPage() {
                 )}
               />
               <div>
-                <p className="font-black text-[11px] uppercase tracking-widest leading-none">
+                <p className="font-semibold text-xs leading-none">
                   {item.label}
                 </p>
                 <p
                   className={clsx(
-                    "text-[10px] font-medium mt-1 uppercase opacity-60",
+                    "text-xs font-medium mt-1 opacity-60",
                     activeTab === item.id ? "text-white/80" : "text-slate-400",
                   )}
                 >
@@ -818,16 +815,16 @@ export default function PublicViewCMSPage() {
                       ) : (
                         <ImageIcon size={32} className="text-slate-300" />
                       )}
-                      <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center cursor-pointer transition-opacity text-white text-[10px] font-black uppercase tracking-widest gap-1">
+                      <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center cursor-pointer transition-opacity text-white text-xs font-semibold gap-1">
                         <Upload size={18} />
                         Change
                         <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload("logoUrl", e)} />
                       </label>
                     </div>
                     <div className="space-y-3 pt-1">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Logo</p>
+                      <p className="text-xs font-semibold text-slate-400">Logo</p>
                       <div className="flex flex-wrap gap-2">
-                        <label className="cursor-pointer inline-flex items-center gap-2 h-10 px-4 bg-primary text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-md shadow-primary/20 active:scale-95 transition-all">
+                        <label className="cursor-pointer inline-flex items-center gap-2 h-10 px-4 bg-primary text-white rounded-xl text-xs font-semibold shadow-md shadow-primary/20 active:scale-95 transition-all">
                           <Upload size={14} /> Upload
                           <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload("logoUrl", e)} />
                         </label>
@@ -835,7 +832,7 @@ export default function PublicViewCMSPage() {
                           <button
                             type="button"
                             onClick={() => handleConfigChange("logoUrl", "")}
-                            className="inline-flex items-center gap-2 h-10 px-4 bg-red-500/10 text-red-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all"
+                            className="inline-flex items-center gap-2 h-10 px-4 bg-red-500/10 text-red-600 rounded-xl text-xs font-semibold hover:bg-red-500 hover:text-white transition-all"
                           >
                             <Trash2 size={14} /> Remove
                           </button>
@@ -868,7 +865,7 @@ export default function PublicViewCMSPage() {
                 {/* Theme colour */}
                 <div className="pt-6 border-t border-slate-100 dark:border-white/5 flex flex-col lg:flex-row lg:items-start gap-6">
                   <div className="flex-1 space-y-3">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Theme colour</p>
+                    <p className="text-xs font-semibold text-slate-400">Theme colour</p>
                     <div className="flex flex-wrap items-center gap-2">
                       {THEME_PRESETS.map((preset) => {
                         const selected = (config.themeColor || DEFAULT_THEME_COLOR).toUpperCase() === preset.hex;
@@ -904,7 +901,7 @@ export default function PublicViewCMSPage() {
                         <input
                           value={config.themeColor ?? ""}
                           onChange={(e) => handleConfigChange("themeColor", e.target.value)}
-                          className={clsx("cms-input w-32! py-2! font-mono uppercase", configErrors.themeColor && "border-red-500!")}
+                          className={clsx("cms-input w-32! py-2! font-mono", configErrors.themeColor && "border-red-500!")}
                           placeholder={DEFAULT_THEME_COLOR}
                           aria-label="Theme colour hex code"
                         />
@@ -914,23 +911,23 @@ export default function PublicViewCMSPage() {
                   </div>
 
                   <div className="lg:w-72 p-4 rounded-2xl bg-slate-50 dark:bg-zinc-800/60 border border-slate-100 dark:border-white/5 space-y-3">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
+                    <p className="text-xs font-semibold text-slate-400 flex items-center gap-1.5">
                       <Eye size={12} /> Preview
                     </p>
                     <div
-                      className="py-2.5 rounded-xl text-center text-[10px] font-black uppercase tracking-widest text-white"
+                      className="py-2.5 rounded-xl text-center text-xs font-semibold text-white"
                       style={{ backgroundColor: previewColor }}
                     >
                       Button
                     </div>
                     <div className="flex items-center justify-between">
                       <span
-                        className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border"
+                        className="px-2.5 py-1 rounded-full text-xs font-semibold border"
                         style={{ backgroundColor: `${previewColor}15`, color: previewColor, borderColor: `${previewColor}30` }}
                       >
                         Badge
                       </span>
-                      <span className="text-xs font-black uppercase" style={{ color: previewColor }}>
+                      <span className="text-xs font-semibold" style={{ color: previewColor }}>
                         Link
                       </span>
                     </div>
@@ -984,7 +981,7 @@ export default function PublicViewCMSPage() {
                 sub="The map on the public Location section"
                 badge={
                   config.googleMapsEmbedUrl || config.googleMapsApiKey ? (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-500/10 text-blue-600 rounded-full text-[10px] font-black uppercase tracking-widest">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-500/10 text-blue-600 rounded-full text-xs font-semibold">
                       <CheckCircle size={12} /> Connected
                     </span>
                   ) : undefined
@@ -1036,7 +1033,7 @@ export default function PublicViewCMSPage() {
               >
                 <div className="space-y-6">
                   <div className="space-y-4">
-                    <p className="text-[11px] font-black uppercase tracking-widest text-charcoal dark:text-white">
+                    <p className="text-xs font-semibold text-charcoal dark:text-white">
                       Featured Products
                     </p>
                     <Field
@@ -1061,7 +1058,7 @@ export default function PublicViewCMSPage() {
                   </div>
 
                   <div className="space-y-4 pt-6 border-t border-slate-100 dark:border-white/5">
-                    <p className="text-[11px] font-black uppercase tracking-widest text-charcoal dark:text-white">
+                    <p className="text-xs font-semibold text-charcoal dark:text-white">
                       Mall Directory
                     </p>
                     <Field
@@ -1086,7 +1083,7 @@ export default function PublicViewCMSPage() {
                   </div>
 
                   <div className="space-y-4 pt-6 border-t border-slate-100 dark:border-white/5">
-                    <p className="text-[11px] font-black uppercase tracking-widest text-charcoal dark:text-white">
+                    <p className="text-xs font-semibold text-charcoal dark:text-white">
                       Available Spaces
                     </p>
                     <Field
@@ -1111,7 +1108,7 @@ export default function PublicViewCMSPage() {
                   </div>
 
                   <div className="space-y-4 pt-6 border-t border-slate-100 dark:border-white/5">
-                    <p className="text-[11px] font-black uppercase tracking-widest text-charcoal dark:text-white">
+                    <p className="text-xs font-semibold text-charcoal dark:text-white">
                       Venue booking
                     </p>
                     <Field label="Eyebrow label">
@@ -1144,7 +1141,7 @@ export default function PublicViewCMSPage() {
                   </div>
 
                   <div className="space-y-4 pt-6 border-t border-slate-100 dark:border-white/5">
-                    <p className="text-[11px] font-black uppercase tracking-widest text-charcoal dark:text-white">
+                    <p className="text-xs font-semibold text-charcoal dark:text-white">
                       Customer Experiences
                     </p>
                     <Field label="Heading">
@@ -1166,7 +1163,7 @@ export default function PublicViewCMSPage() {
                   </div>
 
                   <div className="space-y-4 pt-6 border-t border-slate-100 dark:border-white/5">
-                    <p className="text-[11px] font-black uppercase tracking-widest text-charcoal dark:text-white">
+                    <p className="text-xs font-semibold text-charcoal dark:text-white">
                       Location
                     </p>
                     <Field label="Heading" hint="Use a line break for “Prime location.” and “Endless access.”">
@@ -1198,7 +1195,7 @@ export default function PublicViewCMSPage() {
               >
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                   <div className="md:col-span-1 space-y-4">
-                    <p className="text-[11px] font-black uppercase tracking-widest text-slate-400">
+                    <p className="text-xs font-semibold text-slate-400">
                       Visionary asset
                     </p>
                     <div className="aspect-4/5 bg-slate-100 dark:bg-zinc-800 rounded-3xl border-2 border-dashed border-slate-300 dark:border-white/10 flex items-center justify-center overflow-hidden relative group">
@@ -1211,7 +1208,7 @@ export default function PublicViewCMSPage() {
                       ) : (
                         <ImageIcon size={32} className="text-slate-400" />
                       )}
-                      <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center cursor-pointer transition-opacity text-white text-[10px] font-black uppercase tracking-widest gap-1">
+                      <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center cursor-pointer transition-opacity text-white text-xs font-semibold gap-1">
                         <Edit size={22} />
                         Change
                         <input
@@ -1267,7 +1264,7 @@ export default function PublicViewCMSPage() {
                       className="w-full h-full object-cover"
                       controls
                     />
-                    <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center cursor-pointer transition-opacity text-white text-[10px] font-black uppercase tracking-widest gap-1">
+                    <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center cursor-pointer transition-opacity text-white text-xs font-semibold gap-1">
                       <Plus size={22} />
                       Replace
                       <input
@@ -1336,7 +1333,7 @@ export default function PublicViewCMSPage() {
 
                 <div className="pt-6 border-t border-slate-100 dark:border-white/5 space-y-4">
                   <div>
-                    <p className="text-[11px] font-black uppercase tracking-widest text-charcoal dark:text-white">Find us</p>
+                    <p className="text-xs font-semibold text-charcoal dark:text-white">Find us</p>
                     <p className="text-xs text-slate-400 mt-0.5">
                       Leave a field empty to use the matching Contact information value.
                     </p>
@@ -1371,7 +1368,7 @@ export default function PublicViewCMSPage() {
                 </div>
 
                 <div className="pt-6 border-t border-slate-100 dark:border-white/5 space-y-4">
-                  <p className="text-[11px] font-black uppercase tracking-widest text-charcoal dark:text-white">Social links</p>
+                  <p className="text-xs font-semibold text-charcoal dark:text-white">Social links</p>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                     <Field label="Instagram" error={configErrors.footerInstagram}>
                       <input
@@ -1436,7 +1433,7 @@ export default function PublicViewCMSPage() {
                 {activePostSales.length === 0 ? (
                   <div className="py-20 text-center">
                     <Monitor size={48} className="mx-auto text-slate-300 mb-4" />
-                    <h3 className="text-xl font-black text-slate-400 uppercase tracking-widest">
+                    <h3 className="text-xl font-semibold text-slate-400">
                       No Active Posts
                     </h3>
                     <p className="text-slate-500 mt-2 font-medium">
@@ -1457,7 +1454,7 @@ export default function PublicViewCMSPage() {
                               <ImageIcon size={32} className="text-slate-400" />
                             </div>
                           )}
-                          <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest text-white border border-white/10">
+                          <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full text-xs font-semibold text-white border border-white/10">
                             {sale.shopName}
                           </div>
 
@@ -1473,9 +1470,9 @@ export default function PublicViewCMSPage() {
                           </label>
                         </div>
                         <div className="p-5 flex-1 flex flex-col justify-between">
-                          <h4 className="font-black text-charcoal dark:text-white uppercase tracking-tight text-sm mb-2">{sale.title}</h4>
+                          <h4 className="font-semibold text-charcoal dark:text-white tracking-tight text-sm mb-2">{sale.title}</h4>
                           <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-200 dark:border-white/10">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                            <span className="text-xs font-bold text-slate-400">
                               {formatSaleDate(new Date(sale.date || new Date()))}
                               {" · "}
                               <span className={isSaleActive(sale) ? "text-emerald-500" : "text-amber-500"}>
@@ -1500,7 +1497,7 @@ export default function PublicViewCMSPage() {
               {pastPostSales.length > 0 && (
                 <div className="space-y-6">
                   <div>
-                    <h3 className="text-sm font-black text-charcoal dark:text-white uppercase tracking-tight">
+                    <h3 className="text-sm font-semibold text-charcoal dark:text-white tracking-tight">
                       Past Shop Sales <span className="text-slate-400 font-bold normal-case tracking-normal">· no longer shown on the public page</span>
                     </h3>
                   </div>
@@ -1518,7 +1515,7 @@ export default function PublicViewCMSPage() {
                               <ImageIcon size={32} className="text-slate-400" />
                             </div>
                           )}
-                          <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest text-white border border-white/10">
+                          <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full text-xs font-semibold text-white border border-white/10">
                             {sale.shopName}
                           </div>
 
@@ -1534,9 +1531,9 @@ export default function PublicViewCMSPage() {
                           </label>
                         </div>
                         <div className="p-5 flex-1 flex flex-col justify-between">
-                          <h4 className="font-black text-charcoal dark:text-white uppercase tracking-tight text-sm mb-2">{sale.title}</h4>
+                          <h4 className="font-semibold text-charcoal dark:text-white tracking-tight text-sm mb-2">{sale.title}</h4>
                           <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-200 dark:border-white/10">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                            <span className="text-xs font-bold text-slate-400">
                               {formatSaleDate(new Date(sale.date || new Date()))}
                               {" · "}
                               <span className={isSaleActive(sale) ? "text-emerald-500" : "text-amber-500"}>
@@ -1571,7 +1568,7 @@ export default function PublicViewCMSPage() {
                 />
                 <button
                   onClick={() => openCarouselModal()}
-                  className="flex items-center gap-2 px-6 py-3 bg-primary text-white font-black text-[10px] uppercase tracking-widest rounded-2xl shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
+                  className="flex items-center gap-2 px-6 py-3 bg-primary text-white font-semibold text-xs rounded-2xl shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
                 >
                   <Plus size={16} /> New Asset
                 </button>
@@ -1584,7 +1581,7 @@ export default function PublicViewCMSPage() {
                       size={48}
                       className="text-slate-300 mx-auto mb-6"
                     />
-                    <p className="text-sm font-black text-slate-400 uppercase tracking-widest">
+                    <p className="text-sm font-semibold text-slate-400">
                       No Active Billboards Found
                     </p>
                   </div>
@@ -1623,13 +1620,13 @@ export default function PublicViewCMSPage() {
                           </button>
                         </div>
                         <div className="absolute bottom-4 left-4">
-                          <span className="px-3 py-1 bg-charcoal text-white text-[9px] font-black uppercase tracking-widest rounded-full">
+                          <span className="px-3 py-1 bg-charcoal text-white text-xs font-semibold rounded-full">
                             {item.priority} Priority
                           </span>
                         </div>
                       </div>
                       <div className="p-8 space-y-2">
-                        <h4 className="font-black text-charcoal dark:text-white uppercase tracking-tight line-clamp-1">
+                        <h4 className="font-semibold text-charcoal dark:text-white tracking-tight line-clamp-1">
                           {item.title}
                         </h4>
                         <p className="text-xs text-slate-500 font-medium line-clamp-2 leading-relaxed">
@@ -1638,7 +1635,7 @@ export default function PublicViewCMSPage() {
                         <div className="pt-4 flex items-center justify-between">
                           <span
                             className={clsx(
-                              "text-[10px] font-black uppercase tracking-widest",
+                              "text-xs font-semibold",
                               item.isActive
                                 ? "text-emerald-500"
                                 : "text-slate-400",
@@ -1682,45 +1679,45 @@ export default function PublicViewCMSPage() {
                   >
                     <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-[10px] font-black uppercase tracking-widest border border-primary/20">
+                        <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-semibold border border-primary/20">
                           {ev.eventType}
                         </span>
                         {ev.isPast ? (
-                          <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-slate-100 dark:bg-white/5 text-slate-500">
+                          <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 dark:bg-white/5 text-slate-500">
                             Ended · hidden
                           </span>
                         ) : ev.isPublic ? (
-                          <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-emerald-500/10 text-emerald-600">
+                          <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600">
                             Live on site
                           </span>
                         ) : (
-                          <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-amber-500/10 text-amber-600">
+                          <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-600">
                             Needs image
                           </span>
                         )}
                       </div>
                       <div className="flex flex-wrap items-center gap-2 shrink-0">
-                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+                        <span className="text-xs text-slate-400 font-bold">
                           {new Date(ev.eventDate).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" })}
                           {ev.eventTime ? ` · ${ev.eventTime}` : ""}
                         </span>
                         <button
                           onClick={() => openEventInfoModal(ev)}
-                          className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-widest text-slate-500 transition-colors hover:border-blue-500/30 hover:bg-blue-500/10 hover:text-blue-500 dark:border-white/10 dark:text-slate-300"
+                          className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-500 transition-colors hover:border-blue-500/30 hover:bg-blue-500/10 hover:text-blue-500 dark:border-white/10 dark:text-slate-300"
                           title="Edit event"
                         >
                           <Edit size={12} /> Edit
                         </button>
                         <button
                           onClick={() => setDeleteEventTarget(ev)}
-                          className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-widest text-slate-500 transition-colors hover:border-red-500/30 hover:bg-red-500/10 hover:text-red-500 dark:border-white/10 dark:text-slate-300"
+                          className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-500 transition-colors hover:border-red-500/30 hover:bg-red-500/10 hover:text-red-500 dark:border-white/10 dark:text-slate-300"
                           title="Delete event"
                         >
                           <Trash2 size={12} /> Delete
                         </button>
                       </div>
                     </div>
-                    <h3 className="text-xl font-black text-charcoal dark:text-white uppercase tracking-tight mb-6">
+                    <h3 className="text-xl font-semibold text-charcoal dark:text-white tracking-tight mb-6">
                       {ev.eventName || ev.eventType}
                     </h3>
                     <div className="aspect-video w-full bg-slate-100 dark:bg-zinc-800 rounded-3xl overflow-hidden relative group">
@@ -1732,7 +1729,7 @@ export default function PublicViewCMSPage() {
                       ) : (
                         <div className="w-full h-full flex flex-col items-center justify-center text-slate-400">
                           <ImageIcon size={32} className="mb-2" />
-                          <span className="text-[10px] font-black uppercase tracking-widest">
+                          <span className="text-xs font-semibold">
                             No Image Provided
                           </span>
                         </div>
@@ -1741,7 +1738,7 @@ export default function PublicViewCMSPage() {
                         <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity backdrop-blur-xs">
                           <div className="flex flex-col items-center">
                             <Plus size={24} className="text-white mb-2" />
-                            <span className="text-[10px] font-black text-white uppercase tracking-widest">
+                            <span className="text-xs font-semibold text-white">
                               {ev.imageUrl ? "Update Image" : "Upload Image"}
                             </span>
                           </div>
@@ -1760,7 +1757,7 @@ export default function PublicViewCMSPage() {
                   <>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                       {upcoming.length === 0 ? (
-                        <div className="md:col-span-2 p-10 bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-3xl flex items-center justify-center text-slate-400 font-bold uppercase tracking-widest text-xs">
+                        <div className="md:col-span-2 p-10 bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-3xl flex items-center justify-center text-slate-400 font-bold text-xs">
                           No upcoming approved events.
                         </div>
                       ) : (
@@ -1771,7 +1768,7 @@ export default function PublicViewCMSPage() {
                     {past.length > 0 && (
                       <div className="space-y-4">
                         <div className="flex items-center justify-between gap-4">
-                          <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">
+                          <h4 className="text-xs font-semibold text-slate-400">
                             Past events ({past.length}) · no longer shown on the public page
                           </h4>
                         </div>
@@ -1794,7 +1791,7 @@ export default function PublicViewCMSPage() {
                 />
                 <button
                   onClick={() => setIsLostFoundModalOpen(true)}
-                  className="flex items-center gap-2 px-6 py-3 bg-primary text-white font-black text-[10px] uppercase tracking-widest rounded-2xl shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
+                  className="flex items-center gap-2 px-6 py-3 bg-primary text-white font-semibold text-xs rounded-2xl shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
                 >
                   <Plus size={16} /> New Item
                 </button>
@@ -1835,7 +1832,7 @@ export default function PublicViewCMSPage() {
                       key={cat.id}
                       onClick={() => setLfFilter(cat.id)}
                       className={clsx(
-                        "px-5 py-2.5 rounded-full text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2.5 border",
+                        "px-5 py-2.5 rounded-full text-xs font-semibold transition-all flex items-center gap-2.5 border",
                         isSelected
                           ? "bg-primary text-white border-primary shadow-lg shadow-primary/30 scale-105"
                           : "bg-slate-100 dark:bg-zinc-800 text-slate-500 hover:text-charcoal dark:hover:text-white border-transparent"
@@ -1844,7 +1841,7 @@ export default function PublicViewCMSPage() {
                       <span>{cat.label}</span>
                       <span
                         className={clsx(
-                          "px-2 py-0.5 rounded-full text-[10px] font-black",
+                          "px-2 py-0.5 rounded-full text-[10px] font-semibold",
                           isSelected
                             ? "bg-white/20 text-white"
                             : isReport && count > 0
@@ -1880,7 +1877,7 @@ export default function PublicViewCMSPage() {
                 }).length === 0 ? (
                   <div className="py-20 text-center">
                     <Search size={48} className="mx-auto text-slate-300 mb-4" />
-                    <h3 className="text-xl font-black text-slate-400 uppercase tracking-widest">
+                    <h3 className="text-xl font-semibold text-slate-400">
                       No Items Found
                     </h3>
                   </div>
@@ -1921,19 +1918,19 @@ export default function PublicViewCMSPage() {
                             <div className="absolute top-3 left-3 flex items-center gap-1.5">
                               <span
                                 className={clsx(
-                                  "px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest text-white border border-white/10",
+                                  "px-3 py-1 rounded-full text-xs font-semibold text-white border border-white/10",
                                   item.type === "LOST" ? "bg-orange-500" : "bg-primary"
                                 )}
                               >
                                 {item.type}
                               </span>
                               {item.status === "CLAIMED" && (
-                                <span className="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest bg-emerald-500 text-white border border-white/10 shadow-xs flex items-center gap-1">
+                                <span className="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500 text-white border border-white/10 shadow-xs flex items-center gap-1">
                                   <CheckCircle size={10} /> CLAIMED
                                 </span>
                               )}
                               {item.status === "PENDING" && (
-                                <span className="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest bg-amber-500 text-white border border-white/10 shadow-xs animate-pulse">
+                                <span className="px-3 py-1 rounded-full text-xs font-semibold bg-amber-500 text-white border border-white/10 shadow-xs animate-pulse">
                                   NEW REPORT
                                 </span>
                               )}
@@ -1941,7 +1938,7 @@ export default function PublicViewCMSPage() {
                           </div>
                           <div className="p-5 flex-1 flex flex-col justify-between">
                             <div>
-                              <h4 className="font-black text-charcoal dark:text-white uppercase tracking-tight text-sm mb-1">
+                              <h4 className="font-semibold text-charcoal dark:text-white tracking-tight text-sm mb-1">
                                 {item.title}
                               </h4>
                               <p className="text-xs text-slate-500 font-medium line-clamp-2 mb-2">
@@ -1954,7 +1951,7 @@ export default function PublicViewCMSPage() {
                               )}
                               {item.user && (
                                 <p className="text-[10px] text-slate-400 font-semibold mb-2">
-                                  <span className="text-primary font-bold uppercase tracking-wider">
+                                  <span className="text-primary font-bold">
                                     Reported by:
                                   </span>{" "}
                                   {item.user.name || item.user.email}
@@ -1985,7 +1982,7 @@ export default function PublicViewCMSPage() {
                                 {item.status !== "CLAIMED" && (
                                   <button
                                     onClick={() => handleUpdateStatus(item.id, "CLAIMED")}
-                                    className="px-2.5 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-[10px] font-black uppercase tracking-wider rounded-lg transition-all shadow-xs flex items-center gap-1 shrink-0"
+                                    className="px-2.5 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-semibold rounded-lg transition-all shadow-xs flex items-center gap-1 shrink-0"
                                     title="Mark this item as Claimed"
                                   >
                                     <CheckCircle size={12} /> Claim
@@ -2011,7 +2008,7 @@ export default function PublicViewCMSPage() {
           {isDirty && (
             <div className="sticky bottom-4 z-30 mt-8 animate-fade-in-up">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 pl-6 bg-charcoal dark:bg-zinc-800 text-white rounded-2xl shadow-2xl shadow-black/20 border border-white/10">
-                <p className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest">
+                <p className="flex items-center gap-2 text-xs font-semibold">
                   <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
                   {hasConfigErrors ? "Fix the highlighted fields to save" : "You have unsaved changes"}
                 </p>
@@ -2020,7 +2017,7 @@ export default function PublicViewCMSPage() {
                     type="button"
                     onClick={handleDiscardConfig}
                     disabled={isSaving}
-                    className="h-10 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest text-white/70 hover:text-white hover:bg-white/10 transition-colors disabled:opacity-50"
+                    className="h-10 px-4 rounded-xl text-xs font-semibold text-white/70 hover:text-white hover:bg-white/10 transition-colors disabled:opacity-50"
                   >
                     Discard
                   </button>
@@ -2028,7 +2025,7 @@ export default function PublicViewCMSPage() {
                     type="button"
                     onClick={handleSaveConfig}
                     disabled={isSaving || hasConfigErrors}
-                    className="h-10 px-5 flex items-center gap-2 rounded-xl bg-primary text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/30 hover:bg-primary-hover active:scale-95 transition-all disabled:opacity-50"
+                    className="h-10 px-5 flex items-center gap-2 rounded-xl bg-primary text-white text-xs font-semibold shadow-lg shadow-primary/30 hover:bg-primary-hover active:scale-95 transition-all disabled:opacity-50"
                   >
                     {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
                     Save changes
@@ -2046,10 +2043,10 @@ export default function PublicViewCMSPage() {
           <div className="bg-white dark:bg-zinc-900 w-full max-w-2xl rounded-[3rem] border border-white/10 shadow-2xl overflow-hidden animate-scale-in">
             <div className="p-10 border-b border-slate-100 dark:border-white/5 flex items-center justify-between bg-slate-50/50 dark:bg-white/5">
               <div>
-                <h3 className="text-2xl font-black text-charcoal dark:text-white uppercase italic tracking-tighter">
+                <h3 className="text-2xl font-semibold text-charcoal dark:text-white tracking-tight">
                   Billboard <span className="text-primary">Architect.</span>
                 </h3>
-                <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1">
+                <p className="text-xs text-slate-400 font-semibold mt-1">
                   Configure asset visual and priority.
                 </p>
               </div>
@@ -2163,7 +2160,7 @@ export default function PublicViewCMSPage() {
                       )}
                     />
                   </div>
-                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                  <span className="text-xs font-semibold text-slate-400">
                     Status: {carouselForm.isActive ? "Live" : "Hidden"}
                   </span>
                 </div>
@@ -2173,7 +2170,7 @@ export default function PublicViewCMSPage() {
             <div className="p-10 bg-slate-50/50 dark:bg-white/5 border-t border-slate-100 dark:border-white/5 flex gap-4">
               <button
                 onClick={closeCarouselModal}
-                className="flex-1 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-charcoal transition-all"
+                className="flex-1 py-4 text-xs font-semibold text-slate-500 hover:text-charcoal transition-all"
               >
                 Discard Changes
               </button>
@@ -2184,7 +2181,7 @@ export default function PublicViewCMSPage() {
                     : handleCreateCarouselItem
                 }
                 disabled={isSaving}
-                className="flex-2 py-4 bg-primary text-white font-black text-[10px] uppercase tracking-[0.2em] rounded-2xl shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
+                className="flex-2 py-4 bg-primary text-white font-semibold text-xs rounded-2xl shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
               >
                 {isSaving ? (
                   <Loader2 size={16} className="animate-spin" />
@@ -2204,10 +2201,10 @@ export default function PublicViewCMSPage() {
           <div className="bg-white dark:bg-zinc-900 w-full max-w-2xl rounded-[2.5rem] border border-white/10 shadow-2xl overflow-hidden animate-scale-in flex flex-col max-h-[90vh]">
             <div className="p-6 sm:p-8 border-b border-slate-100 dark:border-white/5 flex items-center justify-between bg-slate-50/50 dark:bg-white/5 shrink-0">
               <div>
-                <h3 className="text-xl font-black text-charcoal dark:text-white uppercase italic tracking-tighter">
+                <h3 className="text-xl font-semibold text-charcoal dark:text-white tracking-tight">
                   Edit <span className="text-primary">Event.</span>
                 </h3>
-                <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1">
+                <p className="text-xs text-slate-400 font-semibold mt-1">
                   Update the event details shown on the public page
                 </p>
               </div>
@@ -2237,7 +2234,7 @@ export default function PublicViewCMSPage() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                  <label className="text-xs font-semibold text-slate-400">
                     Event Type
                   </label>
                   <CustomSelect
@@ -2261,7 +2258,7 @@ export default function PublicViewCMSPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                  <label className="text-xs font-semibold text-slate-400">
                     Event Date
                   </label>
                   <input
@@ -2280,7 +2277,7 @@ export default function PublicViewCMSPage() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                  <label className="text-xs font-semibold text-slate-400">
                     Event Time
                   </label>
                   <input
@@ -2344,14 +2341,14 @@ export default function PublicViewCMSPage() {
               <button
                 onClick={() => setIsEventInfoModalOpen(false)}
                 disabled={isSaving}
-                className="flex-1 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-charcoal transition-all disabled:opacity-50"
+                className="flex-1 py-3 text-xs font-semibold text-slate-500 hover:text-charcoal transition-all disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 onClick={handleUpdateEventInfo}
                 disabled={isSaving}
-                className="flex-2 py-3 bg-primary text-white font-black text-[10px] uppercase tracking-[0.2em] rounded-2xl shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:hover:scale-100"
+                className="flex-2 py-3 bg-primary text-white font-semibold text-xs rounded-2xl shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:hover:scale-100"
               >
                 {isSaving ? "Saving…" : "Save changes"}
               </button>
@@ -2368,7 +2365,7 @@ export default function PublicViewCMSPage() {
                 <Trash2 size={26} />
               </div>
               <div className="space-y-2">
-                <h3 className="text-xl font-black uppercase tracking-tight text-charcoal dark:text-white">
+                <h3 className="text-xl font-semibold tracking-tight text-charcoal dark:text-white">
                   Delete this event?
                 </h3>
                 <p className="text-sm font-medium leading-relaxed text-slate-500">
@@ -2385,7 +2382,7 @@ export default function PublicViewCMSPage() {
                 type="button"
                 disabled={isSaving}
                 onClick={() => setDeleteEventTarget(null)}
-                className="flex-1 rounded-2xl bg-slate-100 px-4 py-3.5 text-[10px] font-black uppercase tracking-widest text-slate-500 transition-all hover:bg-slate-200 disabled:opacity-50 dark:bg-zinc-800 dark:text-slate-300 dark:hover:bg-zinc-700"
+                className="flex-1 rounded-2xl bg-slate-100 px-4 py-3.5 text-xs font-semibold text-slate-500 transition-all hover:bg-slate-200 disabled:opacity-50 dark:bg-zinc-800 dark:text-slate-300 dark:hover:bg-zinc-700"
               >
                 Cancel
               </button>
@@ -2393,7 +2390,7 @@ export default function PublicViewCMSPage() {
                 type="button"
                 disabled={isSaving}
                 onClick={confirmDeleteEvent}
-                className="flex-1 rounded-2xl bg-red-500 px-4 py-3.5 text-[10px] font-black uppercase tracking-widest text-white shadow-xl shadow-red-500/20 transition-all hover:bg-red-600 active:scale-95 disabled:opacity-50"
+                className="flex-1 rounded-2xl bg-red-500 px-4 py-3.5 text-xs font-semibold text-white shadow-xl shadow-red-500/20 transition-all hover:bg-red-600 active:scale-95 disabled:opacity-50"
               >
                 {isSaving ? "Deleting…" : "Delete event"}
               </button>
@@ -2408,10 +2405,10 @@ export default function PublicViewCMSPage() {
           <div className="bg-white dark:bg-zinc-900 w-full max-w-2xl rounded-4xl sm:rounded-[3rem] border border-white/10 shadow-2xl overflow-hidden animate-scale-in flex flex-col max-h-[90vh]">
             <div className="p-6 sm:p-8 md:p-10 border-b border-slate-100 dark:border-white/5 flex items-center justify-between bg-slate-50/50 dark:bg-white/5 shrink-0">
               <div>
-                <h3 className="text-2xl font-black text-charcoal dark:text-white uppercase italic tracking-tighter">
+                <h3 className="text-2xl font-semibold text-charcoal dark:text-white tracking-tight">
                   Post <span className="text-primary">Item.</span>
                 </h3>
-                <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1">
+                <p className="text-xs text-slate-400 font-semibold mt-1">
                   Report a lost or found item.
                 </p>
               </div>
@@ -2493,14 +2490,14 @@ export default function PublicViewCMSPage() {
             <div className="p-6 sm:p-8 md:p-10 bg-slate-50/50 dark:bg-white/5 border-t border-slate-100 dark:border-white/5 flex gap-4 shrink-0">
               <button
                 onClick={() => setIsLostFoundModalOpen(false)}
-                className="flex-1 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-charcoal transition-all"
+                className="flex-1 py-4 text-xs font-semibold text-slate-500 hover:text-charcoal transition-all"
               >
                 Discard
               </button>
               <button
                 onClick={handleCreateLostFound}
                 disabled={isSaving || !lostFoundForm.title || !lostFoundForm.location}
-                className="flex-2 py-4 bg-primary text-white font-black text-[10px] uppercase tracking-[0.2em] rounded-2xl shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                className="flex-2 py-4 bg-primary text-white font-semibold text-xs rounded-2xl shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 {isSaving ? (
                   <Loader2 size={16} className="animate-spin" />
@@ -2568,11 +2565,11 @@ function SectionHeader({
         <div className="w-10 h-10 bg-primary/10 rounded-2xl flex items-center justify-center text-primary">
           <Icon size={20} />
         </div>
-        <h2 className="text-2xl font-black text-charcoal dark:text-white uppercase italic tracking-tighter">
+        <h2 className="font-display text-2xl font-semibold text-charcoal dark:text-white tracking-tight">
           {title}
         </h2>
       </div>
-      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 pl-[52px]">
+      <p className="text-xs font-semibold text-slate-400 pl-[52px]">
         {sub}
       </p>
     </div>
@@ -2592,7 +2589,7 @@ function InputGroup({
     <div className="space-y-4">
       <div className="flex items-center gap-2 text-slate-400">
         <Icon size={14} className="opacity-60" />
-        <label className="text-[10px] font-black uppercase tracking-widest">
+        <label className="text-xs font-semibold">
           {label}
         </label>
       </div>
@@ -2653,7 +2650,7 @@ function Field({
 }) {
   return (
     <div className={clsx("space-y-2", error && "[&_.cms-input]:border-red-500!")}>
-      <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block">{label}</label>
+      <label className="text-xs font-semibold text-slate-400 block">{label}</label>
       {children}
       {error ? <FieldError message={error} /> : hint ? <p className="text-xs text-slate-400">{hint}</p> : null}
     </div>
@@ -2683,10 +2680,10 @@ function SettingsCard({
             <Icon size={20} />
           </div>
           <div>
-            <h3 className="text-lg font-black text-charcoal dark:text-white uppercase tracking-tight italic leading-none">
+            <h3 className="text-lg font-semibold text-charcoal dark:text-white tracking-tight leading-none">
               {title}
             </h3>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mt-1.5">{sub}</p>
+            <p className="text-xs font-bold text-slate-400 mt-1.5">{sub}</p>
           </div>
         </div>
         {badge}

@@ -98,10 +98,10 @@ export function RecordCashPaymentModal({
               <PhilippinePeso size={24} />
             </div>
             <div>
-              <h2 id="cash-payment-title" className="text-xl font-black uppercase tracking-tight">
+              <h2 id="cash-payment-title" className="text-xl font-semibold tracking-tight">
                 Record Cash Payment
               </h2>
-              <p className="text-xs text-white/70 font-bold uppercase tracking-widest">
+              <p className="text-xs text-white/70 font-bold">
                 Over-the-counter settlement
               </p>
             </div>
@@ -121,19 +121,19 @@ export function RecordCashPaymentModal({
           <div className="rounded-2xl border border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-zinc-900 p-5">
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
-                <p className="text-sm font-black text-charcoal dark:text-white truncate">
+                <p className="text-sm font-semibold text-charcoal dark:text-white truncate">
                   #{invoice.invoiceNumber}
                 </p>
-                <p className="mt-1 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                <p className="mt-1 text-xs font-bold text-slate-400">
                   {invoice.month}
                   {tenantName ? ` • ${tenantName}` : ""}
                 </p>
               </div>
-              <p className="text-2xl font-black text-charcoal dark:text-white whitespace-nowrap">
+              <p className="text-2xl font-semibold text-charcoal dark:text-white whitespace-nowrap">
                 ₱{Number(invoice.amount || 0).toLocaleString()}
               </p>
             </div>
-            <div className="mt-4 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest">
+            <div className="mt-4 flex items-center gap-2 text-xs font-bold">
               <Calendar size={12} className="text-slate-400" />
               <span className="text-slate-500">Due {hasDue ? due.toLocaleDateString() : "—"}</span>
               {isPastDue && (
@@ -148,7 +148,7 @@ export function RecordCashPaymentModal({
           <div>
             <label
               htmlFor="cash-ref-no"
-              className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2"
+              className="text-xs font-semibold text-slate-400 block mb-2"
             >
               Receipt / Reference Number
             </label>
@@ -193,14 +193,14 @@ export function RecordCashPaymentModal({
               type="button"
               onClick={close}
               disabled={saving}
-              className="flex-1 py-3.5 bg-slate-100 dark:bg-zinc-900 text-slate-600 dark:text-slate-400 font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-slate-200 transition-all disabled:opacity-50"
+              className="flex-1 py-3.5 bg-slate-100 dark:bg-zinc-900 text-slate-600 dark:text-slate-400 font-bold text-xs rounded-xl hover:bg-slate-200 transition-all disabled:opacity-50"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="flex-2 py-3.5 bg-[#BE1E2D] text-white font-black text-xs uppercase tracking-widest rounded-xl shadow-xl shadow-red-500/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:hover:scale-100"
+              className="flex-2 py-3.5 bg-[#BE1E2D] text-white font-semibold text-xs rounded-xl shadow-xl shadow-red-500/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:hover:scale-100"
             >
               {saving ? (
                 <RefreshCw size={16} className="animate-spin" />

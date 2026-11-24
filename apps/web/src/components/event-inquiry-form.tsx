@@ -187,7 +187,7 @@ export const EventInquiryForm = ({
             {eyebrowText}
           </p>
 
-          <h2 className="mt-3 whitespace-pre-line font-display text-[2.75rem] font-semibold leading-[1.05] tracking-tight text-[#21191B] dark:text-white sm:text-[3.35rem] lg:text-[3.15rem] xl:text-[3.4rem]">
+          <h2 className="mt-3 whitespace-pre-line font-display text-3xl sm:text-4xl lg:text-5xl font-semibold leading-[1.05] tracking-tight text-[#21191B] dark:text-white">
             {renderEmphasis(headingText)}
           </h2>
 

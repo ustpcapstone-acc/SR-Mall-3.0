@@ -182,7 +182,7 @@ export default function TenantDashboard() {
           </div>
 
           <div className="min-w-0">
-            <h1 className="font-display text-xl sm:text-2xl font-semibold text-charcoal dark:text-white tracking-tight leading-none">
+            <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-charcoal dark:text-white">
               Overview
             </h1>
             <p className="text-[11px] text-slate-500 font-semibold mt-0.5 flex items-center gap-2 flex-wrap">

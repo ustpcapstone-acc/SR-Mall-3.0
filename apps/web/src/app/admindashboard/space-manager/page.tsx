@@ -31,7 +31,6 @@ import {
   EyeOff,
   Layers,
   Grid3x3,
-  Building,
   Store,
   Coffee,
   ShoppingBag,
@@ -350,54 +349,9 @@ export default function SpaceManagerPage() {
             )}
           >
             <div className="space-y-2">
-              <div
-                className={clsx(
-                  "flex",
-                  "items-center",
-                  "gap-3",
-                  "text-primary",
-                  "mb-3",
-                )}
-              >
-                <div
-                  className={clsx(
-                    "w-8",
-                    "h-8",
-                    "rounded-lg",
-                    "bg-primary/10",
-                    "flex",
-                    "items-center",
-                    "justify-center",
-                  )}
-                >
-                  <Building size={18} />
-                </div>
-                <span
-                  className={clsx(
-                    "text-[10px]",
-                    "font-black",
-                    "uppercase",
-                    "tracking-[0.4em]",
-                  )}
-                >
-                  Interactive Floor Plan v5.0
-                </span>
-              </div>
-              <h1
-                className={clsx(
-                  "text-4xl",
-                  "md:text-5xl",
-                  "font-black",
-                  "text-charcoal",
-                  "dark:text-white",
-                  "tracking-tight",
-                  "leading-none",
-                  "italic",
-                  "uppercase",
-                )}
-              >
-                Floor <span className="text-primary">Spaces & Map</span>
-              </h1>
+              <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-charcoal dark:text-white">
+            Floor Spaces and Map
+          </h1>
               <p
                 className={clsx(
                   "text-slate-500",
@@ -461,15 +415,13 @@ export default function SpaceManagerPage() {
                   "bg-primary",
                   "hover:bg-primary-hover",
                   "text-white",
-                  "font-black",
+                  "font-semibold",
                   "rounded-2xl",
                   "transition-all",
                   "shadow-xl",
                   "shadow-primary/30",
                   "active:scale-95",
-                  "whitespace-nowrap",
-                  "uppercase",
-                  "tracking-widest",
+                  "whitespace-nowrap",
                   "text-xs",
                 )}
               >
@@ -788,11 +740,9 @@ export default function SpaceManagerPage() {
           </div>
           <p
             className={clsx(
-              "animate-pulse",
-              "tracking-[0.5em]",
-              "uppercase",
+              "animate-pulse",
               "text-[10px]",
-              "font-black",
+              "font-semibold",
               "text-slate-400",
             )}
           >
@@ -832,7 +782,7 @@ export default function SpaceManagerPage() {
                     <h3
                       className={clsx(
                         "text-xl",
-                        "font-black",
+                        "font-semibold",
                         "text-charcoal",
                         "dark:text-white",
                       )}
@@ -893,7 +843,7 @@ export default function SpaceManagerPage() {
                   <div className="absolute -bottom-0.5 -left-0.5 w-4 h-4 border-b-2 border-l-2 border-primary rounded-bl-md pointer-events-none" />
                   <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 border-b-2 border-r-2 border-primary rounded-br-md pointer-events-none" />
                   <div className="absolute top-3 right-3 flex items-center gap-1.5 pointer-events-none z-10">
-                    <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest bg-white/80 dark:bg-slate-800/80 px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-700">
+                    <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 bg-white/80 dark:bg-slate-800/80 px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-700">
                       Floor Map Boundary
                     </span>
                   </div>
@@ -974,7 +924,7 @@ export default function SpaceManagerPage() {
                             />
                             <span
                               className={clsx(
-                                "text-[8px] px-1 py-0.5 rounded-sm font-bold",
+                                "text-xs px-1 py-0.5 rounded-sm font-bold",
                                 slot.status === "AVAILABLE"
                                   ? "bg-emerald-500 text-white"
                                   : slot.status === "OCCUPIED"
@@ -991,14 +941,14 @@ export default function SpaceManagerPage() {
                             <h4
                               className={clsx(
                                 "text-xs",
-                                "font-black",
+                                "font-semibold",
                                 "text-charcoal",
                                 "dark:text-white",
                               )}
                             >
                               {slot.unit_id}
                             </h4>
-                            <p className={clsx("text-[8px]", "text-slate-500")}>
+                            <p className={clsx("text-xs", "text-slate-500")}>
                               {slot.sqm_size}m²
                             </p>
                           </div>
@@ -1178,9 +1128,7 @@ void openDecision(slot, "reject");
                             <span
                               className={clsx(
                                 "text-[10px]",
-                                "uppercase",
-                                "font-black",
-                                "tracking-[0.3em]",
+                                "font-semibold",
                               )}
                             >
                               {slot.unit_id}
@@ -1245,10 +1193,8 @@ void openDecision(slot, "reject");
                               "py-2",
                               "bg-white",
                               "text-black",
-                              "font-black",
-                              "text-[10px]",
-                              "uppercase",
-                              "tracking-widest",
+                              "font-semibold",
+                              "text-[10px]",
                               "rounded-lg",
                               "hover:bg-primary",
                               "hover:text-white",
@@ -1292,7 +1238,7 @@ void openDecision(slot, "reject");
                             <h3
                               className={clsx(
                                 "text-xl",
-                                "font-black",
+                                "font-semibold",
                                 "text-charcoal",
                                 "dark:text-white",
                                 "tracking-tight",
@@ -1304,9 +1250,7 @@ void openDecision(slot, "reject");
                               className={clsx(
                                 "text-slate-400",
                                 "text-[10px]",
-                                "uppercase",
-                                "font-black",
-                                "tracking-widest",
+                                "font-semibold",
                                 "mt-1",
                               )}
                             >
@@ -1315,7 +1259,7 @@ void openDecision(slot, "reject");
                           </div>
                           <span
                             className={clsx(
-                              "px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase border",
+                              "px-3 py-1 rounded-full text-xs font-semibold border",
                               slot.status === "AVAILABLE"
                                 ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
                                 : slot.status === "OCCUPIED"
@@ -1350,9 +1294,7 @@ void openDecision(slot, "reject");
                               className={clsx(
                                 "text-[10px]",
                                 "text-slate-400",
-                                "uppercase",
-                                "font-black",
-                                "tracking-widest",
+                                "font-semibold",
                                 "mb-1",
                               )}
                             >
@@ -1394,9 +1336,7 @@ void openDecision(slot, "reject");
                               className={clsx(
                                 "text-[10px]",
                                 "text-slate-400",
-                                "uppercase",
-                                "font-black",
-                                "tracking-widest",
+                                "font-semibold",
                                 "mb-1",
                               )}
                             >
@@ -1462,7 +1402,7 @@ void openDecision(slot, "reject");
                           <h3
                             className={clsx(
                               "text-lg",
-                              "font-black",
+                              "font-semibold",
                               "text-charcoal",
                               "dark:text-white",
                             )}
@@ -1473,9 +1413,7 @@ void openDecision(slot, "reject");
                             className={clsx(
                               "text-[10px]",
                               "text-slate-400",
-                              "font-bold",
-                              "uppercase",
-                              "tracking-widest",
+                              "font-bold",
                             )}
                           >
                             {slot.category}
@@ -1497,9 +1435,7 @@ void openDecision(slot, "reject");
                               "text-xs",
                               "text-charcoal",
                               "dark:text-white",
-                              "tracking-widest",
-                              "font-black",
-                              "uppercase",
+                              "font-semibold",
                             )}
                           >
                             {slot.status}
@@ -1509,7 +1445,7 @@ void openDecision(slot, "reject");
                           <span
                             className={clsx(
                               "text-sm",
-                              "font-black",
+                              "font-semibold",
                               "text-charcoal",
                               "dark:text-white",
                             )}
@@ -1521,7 +1457,7 @@ void openDecision(slot, "reject");
                           <span
                             className={clsx(
                               "text-sm",
-                              "font-black",
+                              "font-semibold",
                               "text-charcoal",
                               "dark:text-white",
                             )}
@@ -1663,10 +1599,8 @@ void openDecision(slot, "approve");
                     "flex",
                     "items-center",
                     "gap-2",
-                    "text-primary",
-                    "uppercase",
-                    "tracking-[0.3em]",
-                    "font-black",
+                    "text-primary",
+                    "font-semibold",
                     "text-[10px]",
                   )}
                 >
@@ -1676,7 +1610,7 @@ void openDecision(slot, "approve");
                 <h2
                   className={clsx(
                     "text-3xl",
-                    "font-black",
+                    "font-semibold",
                     "text-charcoal",
                     "dark:text-white",
                     "tracking-tight",
@@ -1711,10 +1645,8 @@ void openDecision(slot, "approve");
                 <label
                   className={clsx(
                     "text-[10px]",
-                    "font-black",
-                    "text-slate-400",
-                    "uppercase",
-                    "tracking-[0.4em]",
+                    "font-semibold",
+                    "text-slate-400",
                   )}
                 >
                   Unit ID
@@ -1751,10 +1683,8 @@ void openDecision(slot, "approve");
                   <label
                     className={clsx(
                       "text-[10px]",
-                      "font-black",
-                      "text-slate-400",
-                      "uppercase",
-                      "tracking-[0.4em]",
+                      "font-semibold",
+                      "text-slate-400",
                     )}
                   >
                     Floor
@@ -1791,10 +1721,8 @@ void openDecision(slot, "approve");
                   <label
                     className={clsx(
                       "text-[10px]",
-                      "font-black",
-                      "text-slate-400",
-                      "uppercase",
-                      "tracking-[0.4em]",
+                      "font-semibold",
+                      "text-slate-400",
                     )}
                   >
                     Category
@@ -1838,10 +1766,8 @@ void openDecision(slot, "approve");
                   <label
                     className={clsx(
                       "text-[10px]",
-                      "font-black",
-                      "text-slate-400",
-                      "uppercase",
-                      "tracking-[0.4em]",
+                      "font-semibold",
+                      "text-slate-400",
                     )}
                   >
                     Size (SQM)
@@ -1884,10 +1810,8 @@ void openDecision(slot, "approve");
                 <label
                   className={clsx(
                     "text-[10px]",
-                    "font-black",
-                    "text-slate-400",
-                    "uppercase",
-                    "tracking-[0.4em]",
+                    "font-semibold",
+                    "text-slate-400",
                   )}
                 >
                   Status
@@ -1915,7 +1839,7 @@ void openDecision(slot, "approve");
                           })
                         }
                         className={clsx(
-                          "p-3 rounded-xl border text-[10px] font-black tracking-widest transition-all",
+                          "p-3 rounded-xl border text-xs font-semibold transition-all",
                           activeSlot?.status === status
                             ? "bg-primary border-primary text-white"
                             : "bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-400 hover:text-charcoal dark:hover:text-white",
@@ -1936,10 +1860,8 @@ void openDecision(slot, "approve");
                   <label
                     className={clsx(
                       "text-[10px]",
-                      "font-black",
-                      "text-slate-400",
-                      "uppercase",
-                      "tracking-[0.4em]",
+                      "font-semibold",
+                      "text-slate-400",
                     )}
                   >
                     Images ({activeSlot?.space_images?.length || 0}/10)
@@ -1961,9 +1883,7 @@ void openDecision(slot, "approve");
                     className={clsx(
                       "text-[10px]",
                       "text-primary",
-                      "font-black",
-                      "uppercase",
-                      "tracking-widest",
+                      "font-semibold",
                       "hover:underline",
                       "flex",
                       "items-center",
@@ -2037,15 +1957,13 @@ void openDecision(slot, "approve");
                   <label
                     className={clsx(
                       "text-[10px]",
-                      "font-black",
-                      "text-slate-400",
-                      "uppercase",
-                      "tracking-[0.4em]",
+                      "font-semibold",
+                      "text-slate-400",
                     )}
                   >
                     Integrated Features ({activeSlot?.features?.length || 0})
                   </label>
-                  <span className="text-[10px] text-slate-400 font-medium tracking-wide">
+                  <span className="text-xs text-slate-400 font-medium">
                     Shown in public modal
                   </span>
                 </div>
@@ -2094,9 +2012,7 @@ void openDecision(slot, "approve");
                       "disabled:cursor-not-allowed",
                       "text-white",
                       "text-xs",
-                      "font-black",
-                      "uppercase",
-                      "tracking-widest",
+                      "font-semibold",
                       "rounded-xl",
                       "transition-all",
                       "flex",
@@ -2176,9 +2092,7 @@ void openDecision(slot, "approve");
                     "dark:hover:bg-white/10",
                     "text-slate-500",
                     "dark:text-slate-400",
-                    "font-bold",
-                    "uppercase",
-                    "tracking-widest",
+                    "font-bold",
                     "text-xs",
                     "rounded-xl",
                     "transition-all",
@@ -2196,9 +2110,7 @@ void openDecision(slot, "approve");
                     "bg-primary",
                     "hover:bg-primary-hover",
                     "text-white",
-                    "font-black",
-                    "uppercase",
-                    "tracking-[0.3em]",
+                    "font-semibold",
                     "text-xs",
                     "rounded-xl",
                     "transition-all",

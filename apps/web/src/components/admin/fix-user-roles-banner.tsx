@@ -49,7 +49,7 @@ export function FixUserRolesBanner({ onFixed }: { onFixed?: () => void }) {
       <button
         onClick={fix}
         disabled={fixing}
-        className="shrink-0 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs uppercase tracking-widest rounded-xl transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2"
+        className="shrink-0 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-xl transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2"
       >
         {fixing ? <RefreshCw size={14} className="animate-spin" /> : <Shield size={14} />}
         Fix roles

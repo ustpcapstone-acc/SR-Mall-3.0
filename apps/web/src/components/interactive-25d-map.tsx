@@ -95,7 +95,7 @@ export default function Interactive25DMap({ onClose }: { onClose: () => void }) 
       {/* Header / Controls */}
       <div className="absolute top-0 left-0 right-0 p-6 flex items-center justify-between z-50 bg-linear-to-b from-black/80 to-transparent pointer-events-none">
         <div className="pointer-events-auto">
-          <h2 className="text-2xl font-semibold text-white tracking-tight flex items-center gap-3">
+          <h2 className="font-display text-2xl font-semibold text-white tracking-tight flex items-center gap-3">
             <Navigation className="text-primary" /> 
             2.5D Interactive Map
           </h2>

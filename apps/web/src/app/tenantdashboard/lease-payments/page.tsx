@@ -127,7 +127,7 @@ export default function LeasePayments() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div>
-            <h1 className="font-display text-xl sm:text-2xl lg:text-3xl font-semibold text-charcoal dark:text-white tracking-tight">
+            <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-charcoal dark:text-white">
               Lease &amp; Billing
             </h1>
             <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
@@ -163,7 +163,7 @@ export default function LeasePayments() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
           <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 p-4 sm:p-6 rounded-2xl sm:rounded-4xl shadow-xs flex flex-col justify-between">
             <div className="flex justify-between items-start mb-4 sm:mb-6">
-              <h3 className="text-slate-500 font-bold text-xs leading-none">
+              <h3 className="text-slate-500 font-semibold text-xs leading-none">
                 Account Standing
               </h3>
               <div className="w-8 h-8 rounded-full bg-slate-50 dark:bg-zinc-800 text-slate-500 flex items-center justify-center">
@@ -207,7 +207,7 @@ export default function LeasePayments() {
           <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 p-4 sm:p-6 rounded-2xl sm:rounded-4xl shadow-xs flex flex-col justify-between relative overflow-hidden group">
             <div className="flex justify-between items-start mb-4 sm:mb-6 relative z-10">
               <div>
-                <h3 className="text-slate-500 font-bold text-xs leading-none mb-1">
+                <h3 className="text-slate-500 font-semibold text-xs leading-none mb-1">
                   Unit Assignment
                 </h3>
                 <p className="text-lg sm:text-2xl font-semibold text-charcoal dark:text-white flex items-center gap-2">
@@ -260,7 +260,7 @@ export default function LeasePayments() {
         <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl sm:rounded-4xl shadow-xs overflow-hidden flex flex-col">
           <div className="p-4 sm:p-6 border-b border-slate-100 dark:border-white/5 flex items-center justify-between">
             <div>
-              <h2 className="font-bold text-base sm:text-lg text-charcoal dark:text-white flex items-center gap-2">
+              <h2 className="font-semibold text-base sm:text-lg text-charcoal dark:text-white flex items-center gap-2">
                 <Receipt
                   size={16}
                   className="text-slate-400 sm:w-[18px] sm:h-[18px]"
