@@ -26,6 +26,9 @@ const nextConfig: NextConfig = {
   // Dev server listens on 0.0.0.0 (see package.json), so allow this machine's
   // current LAN addresses to load dev assets from phones / other PCs.
   allowedDevOrigins: getLocalOrigins().filter((o) => !o.includes(":")),
+  // Dev logs print every server action's arguments, which includes typed
+  // passwords (sign-in, password reset). Keep them out of the terminal.
+  logging: { serverFunctions: false },
   images: {
     remotePatterns: [
       {
