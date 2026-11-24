@@ -282,6 +282,7 @@ export const FeedbackSection = ({
       <div
         id="feedback"
         className={clsx(
+          "screen-section",
           "py-16",
           "sm:py-20",
           "lg:py-24",

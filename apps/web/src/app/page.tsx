@@ -484,6 +484,7 @@ export default function PublicDigitalConcierge() {
         <section
           id="featured-products"
           className={clsx(
+            "screen-section",
             "py-12 sm:py-24 lg:py-32",
             "bg-white",
             "dark:bg-zinc-900",
@@ -596,7 +597,7 @@ export default function PublicDigitalConcierge() {
         </section>
       )}
 
-      <section className="relative overflow-hidden py-14 sm:py-20 lg:py-28 bg-slate-100 dark:bg-zinc-950 border-y border-slate-200 dark:border-white/5">
+      <section className="screen-section relative overflow-hidden py-14 sm:py-20 lg:py-28 bg-slate-100 dark:bg-zinc-950 border-y border-slate-200 dark:border-white/5">
         {/* Soft brand glow */}
         <div aria-hidden className="pointer-events-none absolute inset-0">
           <div className="absolute -top-32 left-[-10%] w-xl h-144 rounded-full bg-primary/10 dark:bg-[#BE1E2D]/10 blur-3xl" />
@@ -730,6 +731,7 @@ export default function PublicDigitalConcierge() {
       <section
         id="directory"
         className={clsx(
+          "screen-section",
           "py-16 sm:py-20 lg:py-24 bg-slate-100 dark:bg-zinc-950",
         )}
       >
@@ -1092,6 +1094,7 @@ export default function PublicDigitalConcierge() {
       <section
         id="availability"
         className={clsx(
+          "screen-section",
           "py-24 sm:py-32 lg:py-40",
           "bg-white dark:bg-black",
           "relative",
@@ -1560,7 +1563,7 @@ export default function PublicDigitalConcierge() {
       {/* Venue Booking / Event Inquiry Section */}
       <section
         id="event-inquiry"
-        className="relative scroll-mt-24 overflow-hidden bg-[#FAF7F3] dark:bg-zinc-950"
+        className="screen-section relative overflow-hidden bg-[#FAF7F3] dark:bg-zinc-950"
       >
         <EventInquiryForm
           isAuthenticated={isAuthenticated}
@@ -1582,6 +1585,7 @@ export default function PublicDigitalConcierge() {
       <section
         id="location"
         className={clsx(
+          "screen-section",
           "scroll-mt-20",
           "bg-[#FAF7F3]",
           "dark:bg-zinc-950",

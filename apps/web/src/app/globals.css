@@ -88,6 +88,20 @@
   @apply bg-white/70 dark:bg-black/40 backdrop-blur-xl border border-white/20 dark:border-white/10;
 }
 
+/* Home page sections: at least one full screen below the fixed 5rem navbar,
+   content centred vertically (taller content just grows). In-flow children
+   keep full width; decorative absolute layers are unaffected. */
+@utility screen-section {
+  min-height: calc(100svh - 5rem);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  scroll-margin-top: 5rem;
+  & > :not(.absolute):not(.fixed) {
+    width: 100%;
+  }
+}
+
 @utility no-scrollbar {
   &::-webkit-scrollbar {
     display: none;
