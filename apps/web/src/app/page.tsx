@@ -52,6 +52,7 @@ import clsx from "clsx";
 import { useChatUnread } from "@/lib/chat-unread";
 import { AboutMall } from "@/components/landing/about-mall";
 import { Reveal } from "@/components/landing/reveal";
+import { ShopsMarquee } from "@/components/landing/shops-marquee";
 
 // Below the fold or opened on demand: loaded in their own chunks so the first
 // screen downloads less JavaScript.
@@ -495,6 +496,9 @@ export default function PublicDigitalConcierge() {
           setSelectedProduct={setSelectedProduct}
         />
       </section>
+
+      {/* Shop names and promos drifting across the page */}
+      <ShopsMarquee shops={shops} promos={tenantPromos} />
 
       {/* About the mall */}
       <AboutMall
@@ -941,7 +945,9 @@ export default function PublicDigitalConcierge() {
                     className={clsx(
                       "text-sm",
                       "font-bold",
-                      "text-slate-400",
+                      "text-slate-400",
+
+
                     )}
                   >
                     Loading Premium Collection...
@@ -1011,7 +1017,9 @@ export default function PublicDigitalConcierge() {
                   <p
                     className={clsx(
                       "text-slate-500",
-                      "font-bold",
+                      "font-bold",
+
+
                       "text-sm",
                     )}
                   >
@@ -1166,7 +1174,9 @@ export default function PublicDigitalConcierge() {
                   "text-white",
                   "rounded-2xl",
                   "text-xs",
-                  "font-semibold",
+                  "font-semibold",
+
+
                   "hover:bg-primary-hover",
                   "hover:scale-105",
                   "transition-all",
@@ -1213,7 +1223,9 @@ export default function PublicDigitalConcierge() {
                   <p
                     className={clsx(
                       "text-xs",
-                      "font-semibold",
+                      "font-semibold",
+
+
                       "text-slate-400",
                     )}
                   >
@@ -1332,7 +1344,9 @@ export default function PublicDigitalConcierge() {
                           className={clsx(
                             "text-[10px]",
                             "font-semibold",
-                            "text-slate-400",
+                            "text-slate-400",
+
+
                           )}
                         >
                           Floor Area
@@ -1380,7 +1394,9 @@ export default function PublicDigitalConcierge() {
                     className={clsx(
                       "text-sm",
                       "font-bold",
-                      "text-slate-500",
+                      "text-slate-500",
+
+
                     )}
                   >
                     No spaces currently available for lease.

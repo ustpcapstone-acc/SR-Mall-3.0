@@ -108,6 +108,9 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
   const [activeNav, setActiveNav] = useState<string>("");
   // Sliding underline under the active desktop link.
   const linkRefs = useRef<Record<string, HTMLAnchorElement | null>>({});
+  // While a link click is gliding the page, the scroll highlight waits.
+  // `target` is the section being glided to (null for the top of the page).
+  const glideLock = useRef<{ target: HTMLElement | null; timer: number } | null>(null);
   const [underline, setUnderline] = useState<{ left: number; width: number } | null>(null);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -116,11 +119,12 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
   const [allShops, setAllShops] = useState<DigitalStorefront[]>([]);
 
   const navItems = [
-    { id: "products", label: "Products", href: "/products" },
+    { id: "home", label: "Home", href: "/" },
     { id: "directory", label: "Mall Directory", href: "/#directory" },
     { id: "availability", label: "Available Spaces", href: "/#availability" },
     { id: "events", label: "What's On", href: "/#events" },
     { id: "location", label: "Location", href: "/#location" },
+    { id: "products", label: "Products", href: "/products" },
   ];
 
   useEffect(() => {
@@ -131,46 +135,101 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
       else if (hash === "#events" || hash === "#event-inquiry") setActiveNav("events");
       else if (hash === "#location") setActiveNav("location");
       else if (pathname === "/products") setActiveNav("products");
-      else if (!hash) setActiveNav("");
+      else if (!hash) setActiveNav(pathname === "/" ? "home" : "");
     }
   }, [pathname]);
 
   // On the home page, section links glide to their section instead of jumping.
+  /**
+   * Hold the clicked link's highlight until the page arrives. The scroll
+   * handler releases it once the target is reached; the user scrolling by
+   * hand releases it at once; a 4s fallback covers a glide that never ends.
+   */
+  const lockHighlight = (target: HTMLElement | null) => {
+    if (glideLock.current) window.clearTimeout(glideLock.current.timer);
+    glideLock.current = { target, timer: window.setTimeout(() => (glideLock.current = null), 4000) };
+  };
+
   const onSectionLink = (e: React.MouseEvent, id: string, afterClose?: boolean) => {
-    if (pathname !== "/" || !SECTION_IDS[id]) return; // other pages: normal navigation
+    if (pathname !== "/") return; // other pages: normal navigation
+    if (id === "home") {
+      // Already home: glide back to the top.
+      e.preventDefault();
+      setActiveNav("home");
+      lockHighlight(null);
+      window.history.pushState(null, "", "/");
+      const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const toTop = () => window.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" });
+      if (afterClose) window.setTimeout(toTop, 250);
+      else toTop();
+      return;
+    }
+    if (!SECTION_IDS[id]) return;
     const el = findSection(id);
     if (!el) return;
     e.preventDefault();
     setActiveNav(id);
+    lockHighlight(el);
     window.history.pushState(null, "", `#${el.id}`);
     // Let the mobile menu close first so the page can scroll.
     if (afterClose) window.setTimeout(() => scrollToSection(el), 250);
     else scrollToSection(el);
   };
 
-  // While scrolling the home page, highlight the section in view.
+  // While scrolling the home page, highlight the section under a line 40% down
+  // the screen. Sections are looked up on every pass because some load late.
   useEffect(() => {
-    if (pathname !== "/" || typeof IntersectionObserver === "undefined") return;
-    const watched = Object.keys(SECTION_IDS)
-      .map((navId) => ({ navId, el: findSection(navId) }))
-      .filter((x): x is { navId: string; el: HTMLElement } => !!x.el);
-    if (!watched.length) return;
-    const visible = new Map<string, number>();
-    const io = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          const hit = watched.find((w) => w.el === entry.target);
-          if (!hit) continue;
-          if (entry.isIntersecting) visible.set(hit.navId, entry.intersectionRatio);
-          else visible.delete(hit.navId);
-        }
-        const best = [...visible.entries()].sort((a, b) => b[1] - a[1])[0];
-        setActiveNav((cur) => (best ? best[0] : cur === "products" ? cur : ""));
-      },
-      { rootMargin: "-80px 0px -45% 0px", threshold: [0, 0.25, 0.5, 0.75, 1] },
-    );
-    watched.forEach((w) => io.observe(w.el));
-    return () => io.disconnect();
+    if (pathname !== "/") return;
+    let frame = 0;
+    const pick = () => {
+      frame = 0;
+      // At the very bottom the last sections can't reach the line, so use the bottom of the screen.
+      const atBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4;
+      const line = atBottom ? window.innerHeight - 1 : window.innerHeight * 0.4;
+      let best: { navId: string; top: number } | null = null;
+      for (const navId of Object.keys(SECTION_IDS)) {
+        const el = findSection(navId);
+        if (!el) continue;
+        const r = el.getBoundingClientRect();
+        if (r.top <= line && r.bottom > 80 && (!best || r.top > best.top)) best = { navId, top: r.top };
+      }
+      if (best) setActiveNav(best.navId);
+      else if (window.scrollY < window.innerHeight * 0.6) setActiveNav("home");
+    };
+    const release = () => {
+      if (!glideLock.current) return;
+      window.clearTimeout(glideLock.current.timer);
+      glideLock.current = null;
+    };
+    // Has the glide reached its section (or the end of the page)?
+    const arrived = (target: HTMLElement | null) => {
+      const atBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4;
+      if (!target) return window.scrollY <= 2;
+      return atBottom || Math.abs(target.getBoundingClientRect().top - 80) < 24;
+    };
+    const onScroll = () => {
+      const lock = glideLock.current;
+      if (lock) {
+        // Still gliding to the clicked section: keep its link highlighted.
+        if (!arrived(lock.target)) return;
+        release();
+      }
+      pick(); // only five sections to measure, so no need to wait for a frame
+    };
+    // Scrolling by hand mid-glide hands control back to the highlight.
+    const onManual = () => release();
+    frame = requestAnimationFrame(pick);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    window.addEventListener("wheel", onManual, { passive: true });
+    window.addEventListener("touchstart", onManual, { passive: true });
+    return () => {
+      if (frame) cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+      window.removeEventListener("wheel", onManual);
+      window.removeEventListener("touchstart", onManual);
+    };
   }, [pathname]);
 
   // Move the underline to the active link (and keep it there on resize).

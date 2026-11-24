@@ -26,7 +26,21 @@ interface FooterProps {
 
 const DEFAULT_HOURS = "Mon–Sun: 10:00 AM – 9:00 PM";
 
+const FIND_YOUR_WAY = [
+  { href: "/tenant-directory", label: "Shops" },
+  { href: "/products", label: "Products" },
+  { href: "/available-spaces", label: "Spaces" },
+  { href: "/#events", label: "What's on" },
+  { href: "/#location", label: "Visit" },
+  { href: "/lost-and-found", label: "Lost & found" },
+  { href: "/become-a-tenant", label: "Become a tenant" },
+];
+
+const columnLabel = "text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400";
+const linkHover = "transition-colors hover:text-primary";
+
 export const Footer = ({ config }: FooterProps = {}) => {
+  const name = config?.companyName || "SR Mall";
   const address = config?.footerAddress || config?.contactAddress || "Jasaan, Misamis Oriental, 9002, Philippines";
   const phone = config?.footerPhone || config?.contactPhone || "";
   const email = config?.footerEmail || config?.contactEmail || "";
@@ -43,30 +57,31 @@ export const Footer = ({ config }: FooterProps = {}) => {
   ].filter((s): s is { href: string; label: string; icon: typeof Globe } => Boolean(s.href));
 
   const year = new Date().getFullYear();
+  // Size the big name so it always fits on one line (capitals run wider).
+  const caps = name === name.toUpperCase();
+  const watermarkSize = `${Math.min(27, 189 / Math.max(name.length, 1)) * (caps ? 0.78 : 1)}vw`;
 
   return (
-    <footer className="bg-zinc-50 dark:bg-zinc-950 text-charcoal dark:text-white pt-20 pb-10 border-t border-slate-200 dark:border-white/5 transition-colors">
-      <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-12">
+    <footer className="relative overflow-hidden bg-zinc-50 dark:bg-zinc-950 text-charcoal dark:text-white pt-20 border-t border-slate-200 dark:border-white/5 transition-colors">
+      <div className="mx-auto grid max-w-[1400px] gap-12 px-4 sm:px-6 md:grid-cols-[1.4fr_1fr_1fr_1fr] lg:px-8">
         {/* About SR Mall */}
-        <div>
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-9 h-9 bg-white rounded-lg overflow-hidden shadow-lg border border-slate-200 dark:border-white/10 flex items-center justify-center">
-              <img
-                src={config?.logoUrl || "/images/srmall-logo/sr_logo2.jpg"}
-                alt={config?.companyName || "SR Mall logo"}
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <span className="text-xl font-semibold tracking-tight text-charcoal dark:text-white">
-              {config?.companyName || "SR MALL"}
-            </span>
-          </div>
-          <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed mb-6">
+        <div className="space-y-5">
+          <Link href="/" className="group flex items-center gap-2.5" aria-label={`${name} home`}>
+            <img
+              src={config?.logoUrl || "/images/srmall-logo/sr_logo2.jpg"}
+              alt=""
+              width={40}
+              height={40}
+              className="size-10 shrink-0 rounded-[0.9rem] object-cover shadow-[0_6px_16px_-8px_var(--color-primary)] transition-transform duration-500 group-hover:-rotate-6"
+            />
+            <span className="font-display text-lg font-semibold leading-none">{name}</span>
+          </Link>
+          <p className="max-w-sm text-sm leading-relaxed text-slate-500 dark:text-slate-400">
             {config?.footerDescription ||
               "The ultimate destination for shopping, dining, and leisure in Misamis Oriental. We're committed to delivering a superior experience for all visitors."}
           </p>
           {socials.length > 0 && (
-            <div className="flex items-center gap-4">
+            <div className="flex gap-2">
               {socials.map(({ href, label, icon: Icon }) => (
                 <a
                   key={label}
@@ -75,67 +90,83 @@ export const Footer = ({ config }: FooterProps = {}) => {
                   rel="noopener noreferrer"
                   aria-label={label}
                   title={label}
-                  className="hover:text-primary transition-colors text-slate-400"
+                  className="grid size-10 place-items-center rounded-full border border-slate-200 dark:border-white/10 transition-colors hover:border-primary hover:bg-primary hover:text-white"
                 >
-                  <Icon size={20} />
+                  <Icon size={16} />
                 </a>
               ))}
             </div>
           )}
         </div>
 
-        {/* Opening hours */}
+        {/* Find your way */}
         <div>
-          <h3 className="text-lg font-semibold mb-6">Opening Hours</h3>
-          <ul className="space-y-3 text-sm text-slate-500 dark:text-slate-400">
+          <p className={columnLabel}>Find your way</p>
+          <ul className="mt-4 space-y-2.5 text-sm">
+            {FIND_YOUR_WAY.map((l) => (
+              <li key={l.href}>
+                <Link href={l.href} className={linkHover}>
+                  {l.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* Visit */}
+        <div>
+          <p className={columnLabel}>Visit</p>
+          <ul className="mt-4 space-y-3 text-sm">
+            <li className="flex gap-2.5">
+              <MapPin size={16} className="mt-0.5 shrink-0 text-primary" aria-hidden />
+              <span>{address}</span>
+            </li>
             {hours.map((line) => (
-              <li key={line} className="flex items-start gap-3">
-                <Clock size={16} className="text-primary mt-0.5 shrink-0" />
+              <li key={line} className="flex gap-2.5">
+                <Clock size={16} className="mt-0.5 shrink-0 text-primary" aria-hidden />
                 <span>{line}</span>
               </li>
             ))}
           </ul>
         </div>
 
-        {/* Find us */}
+        {/* Talk to us */}
         <div>
-          <h3 className="text-lg font-semibold mb-6">Find Us</h3>
-          <div className="space-y-4 text-sm text-slate-500 dark:text-slate-400">
-            <div className="flex items-start gap-3">
-              <MapPin size={18} className="text-primary mt-0.5 shrink-0" />
-              <span>{address}</span>
-            </div>
-            {phone && (
-              <a href={`tel:${phone.replace(/[^\d+]/g, "")}`} className="flex items-center gap-3 hover:text-primary transition-colors">
-                <Phone size={18} className="text-primary shrink-0" />
-                <span>{phone}</span>
-              </a>
-            )}
+          <p className={columnLabel}>Talk to us</p>
+          <ul className="mt-4 space-y-3 text-sm">
             {email && (
-              <a href={`mailto:${email}`} className="flex items-center gap-3 hover:text-primary transition-colors break-all">
-                <Mail size={18} className="text-primary shrink-0" />
-                <span>{email}</span>
-              </a>
+              <li className="flex gap-2.5">
+                <Mail size={16} className="mt-0.5 shrink-0 text-primary" aria-hidden />
+                <a href={`mailto:${email}`} className={`break-all ${linkHover}`}>
+                  {email}
+                </a>
+              </li>
             )}
-          </div>
+            {phone && (
+              <li className="flex gap-2.5">
+                <Phone size={16} className="mt-0.5 shrink-0 text-primary" aria-hidden />
+                <a href={`tel:${phone.replace(/[^\d+]/g, "")}`} className={linkHover}>
+                  {phone}
+                </a>
+              </li>
+            )}
+          </ul>
         </div>
       </div>
 
-      <div className="mt-20 pt-8 border-t border-slate-200 dark:border-white/10 text-center text-xs text-slate-500 space-y-2 px-4">
-        <p>
-          Want to open a store at SR Mall?{" "}
-          <Link href="/become-a-tenant" className="font-bold text-primary hover:underline">
-            Become a tenant
-          </Link>
-        </p>
-        <p>{config?.footerCopyrightText || `© ${year} ${config?.companyName || "SR Mall"}. All rights reserved.`}</p>
-        <p className="text-[11px] text-slate-400 dark:text-slate-500">
-          Designed &amp; developed by{" "}
-          <span className="font-bold text-charcoal dark:text-slate-200">Jerick Aradilla</span>,{" "}
-          <span className="font-bold text-charcoal dark:text-slate-200">Scott Dugang</span> and{" "}
-          <span className="font-bold text-charcoal dark:text-slate-200">Nielchi Juarez</span>
-        </p>
+      <div className="mx-auto mt-16 flex max-w-[1400px] flex-col gap-2 border-t border-slate-200 dark:border-white/10 px-4 pt-6 text-xs text-slate-500 dark:text-slate-400 sm:flex-row sm:justify-between sm:px-6 lg:px-8">
+        <p>{config?.footerCopyrightText || `© ${year} ${name}. All rights reserved.`}</p>
+        <p>Designed and developed by Jerick Aradilla, Scott Dugang and Nielchi Juarez</p>
       </div>
+
+      {/* Big faint name across the bottom */}
+      <p
+        aria-hidden
+        style={{ fontSize: watermarkSize }}
+        className="font-display pointer-events-none mt-6 -mb-[0.22em] select-none whitespace-nowrap text-center font-semibold leading-none text-charcoal/[0.06] dark:text-white/[0.06]"
+      >
+        {name}
+      </p>
     </footer>
   );
 };
