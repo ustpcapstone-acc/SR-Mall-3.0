@@ -87,14 +87,14 @@ export default function AdminProfileSettings() {
               ))}
             </ul>
             <p className="text-xs text-slate-500">
-              Roles are managed in <Link href="/admindashboard/user-management" className="font-bold text-primary hover:underline">User Management</Link>.
-              An admin can't remove their own admin role or delete the last admin.
+              Staff roles and accounts are managed in <Link href="/admindashboard/roles-staff" className="font-bold text-primary hover:underline">Roles &amp; Staff</Link>.
+              Only someone with access to that page can change your role.
             </p>
             <SecondaryButton
               type="button"
               onClick={() => {
                 logout();
-                router.push("/");
+                router.push("/staff-portal");
               }}
             >
               <LogOut size={14} /> Log out

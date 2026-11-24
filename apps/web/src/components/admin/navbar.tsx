@@ -15,7 +15,7 @@ export const AdminNavbar = () => {
 
   const handleLogout = () => {
     logout();
-    router.push("/");
+    router.push("/staff-portal");
   };
 
   return (

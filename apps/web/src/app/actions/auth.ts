@@ -6,6 +6,53 @@ import { getBaseUrl } from "@/utils/get-base-url";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { getCloudStorageProvider } from "@/lib/cloud-storage";
+import { accountTypeOf, PORTAL_LOGIN, type AccountType } from "@/lib/session";
+import {
+  AccessDenied,
+  currentAccount,
+  endSession,
+  forgetAccount,
+  loadAccount,
+  requireStaff,
+  staffAccess,
+  startSession,
+} from "@/lib/auth-server";
+import { staffHomePath } from "@/lib/permissions";
+
+// ─── Portals ─────────────────────────────────────────────────────────────────
+// Each account type signs in at its own page and nowhere else:
+//   /staff-portal  -> ADMIN (the superuser and staff)
+//   /tenant-portal -> TENANT
+//   /login         -> CUSTOMER
+
+/** Shown only after the password or Google check passed, so it reveals nothing to a stranger. */
+function wrongPortalError(actual: AccountType) {
+  // The staff portal is not advertised to the public.
+  if (actual === "ADMIN") return "This account can't sign in here.";
+  const where = actual === "TENANT" ? "the tenant portal" : "the customer sign-in page";
+  return `This account can't sign in here. Please use ${where} (${PORTAL_LOGIN[actual]}).`;
+}
+
+/** Where an account goes after it signs in. */
+async function homeFor(userId: string, type: AccountType) {
+  if (type === "TENANT") return "/tenantdashboard";
+  if (type === "CUSTOMER") return "/";
+  forgetAccount(userId);
+  const account = await loadAccount(userId);
+  return account ? staffHomePath(staffAccess(account)) : "/admindashboard";
+}
+
+/** Ends the signed session (the browser clears its own copy). */
+export async function logoutAction() {
+  await endSession();
+  return { success: true };
+}
+
+/** Who the signed session belongs to; the browser uses it to drop a stale local session. */
+export async function getSessionUserAction() {
+  const account = await currentAccount();
+  return account ? { id: account.id, type: account.type } : null;
+}
 
 // ─── Sign in with Google (Gmail only) ────────────────────────────────────────
 
@@ -26,7 +73,7 @@ function isAllowedEmail(email: string) {
  * belongs to, so the email comes from Google — never from the caller. (The
  * old flow trusted a magic password instead; that path is gone.)
  */
-export async function signInWithGoogleAction(accessToken: string) {
+export async function signInWithGoogleAction(accessToken: string, portal: AccountType = "CUSTOMER") {
   try {
     if (!accessToken) return { success: false as const, error: "Please sign in with Google." };
 
@@ -57,6 +104,13 @@ export async function signInWithGoogleAction(accessToken: string) {
     const googleAvatar: string | undefined = meta.avatar_url || meta.picture || undefined;
 
     let user = await prisma.user.findUnique({ where: { email }, include: { tenant: true } });
+    if (user && accountTypeOf(user.role) !== portal) {
+      return { success: false as const, error: wrongPortalError(accountTypeOf(user.role)) };
+    }
+    if (!user && portal !== "CUSTOMER") {
+      // Only /login creates accounts; staff and tenant accounts are made elsewhere.
+      return { success: false as const, error: "No account here uses this Google account." };
+    }
     if (!user) {
       // First Google sign-in → customer account.
       user = await prisma.user.create({
@@ -89,8 +143,10 @@ export async function signInWithGoogleAction(accessToken: string) {
       };
     }
 
+    await startSession(user.id, accountTypeOf(user.role));
     return {
       success: true as const,
+      redirectTo: await homeFor(user.id, accountTypeOf(user.role)),
       data: {
         id: user.id,
         name: user.name || user.email.split("@")[0],
@@ -133,12 +189,13 @@ async function passwordMatches(input: string, stored: string) {
 }
 
 /** Email + password sign-in (Google users go through signInWithGoogleAction). */
-export async function loginAction(data: { email: string; password: string }) {
+export async function loginAction(data: { email: string; password: string }, portal: AccountType = "CUSTOMER") {
   try {
     const email = (data.email || "").trim().toLowerCase();
     const user = await prisma.user.findUnique({ where: { email }, include: { tenant: true } });
 
-    if (!user) return { success: false, error: "User does not exist." };
+    // Same message for an unknown email and a wrong password.
+    if (!user) return { success: false, error: "Invalid email or password." };
 
     if (PLACEHOLDER_PASSWORDS.has(user.password)) {
       return {
@@ -158,8 +215,13 @@ export async function loginAction(data: { email: string; password: string }) {
       };
     }
 
+    const type = accountTypeOf(user.role);
+    if (type !== portal) return { success: false, error: wrongPortalError(type) };
+
+    await startSession(user.id, type);
     return {
       success: true,
+      redirectTo: await homeFor(user.id, type),
       data: {
         id: user.id,
         name: user.name || user.email.split("@")[0],
@@ -184,7 +246,6 @@ export async function signUpAction(data: {
   lastName: string;
   email: string;
   password: string;
-  role?: "CUSTOMER" | "TENANT";
 }) {
   try {
     const email = data.email.trim().toLowerCase();
@@ -214,7 +275,7 @@ export async function signUpAction(data: {
         email,
         name: fullName,
         password: hashedPassword,
-        role: data.role || "CUSTOMER", // Default to CUSTOMER for regular users
+        role: "CUSTOMER", // Tenants register through tenant onboarding; staff are made by the superuser.
       },
     });
     after(async () => {
@@ -222,6 +283,7 @@ export async function signUpAction(data: {
       await notifyNewSignup(fullName);
     });
 
+    await startSession(user.id, "CUSTOMER");
     return {
       success: true,
       data: {
@@ -257,6 +319,7 @@ export async function getUserCountAction() {
 
 export async function getAllUsersAction() {
   try {
+    await requireStaff("users");
     const users = await (prisma as any).user.findMany({
       orderBy: { createdAt: "desc" },
       select: {
@@ -266,6 +329,7 @@ export async function getAllUsersAction() {
         role: true,
         avatarUrl: true,
         isBlacklisted: true,
+        isSuperuser: true,
         createdAt: true,
       },
     });
@@ -279,22 +343,25 @@ export async function getAllUsersAction() {
 export async function toggleUserBlacklistAction(
   userId: string,
   isBlacklisted: boolean,
-  actingAdminId?: string,
+  _actingAdminId?: string,
 ) {
   try {
+    const actor = await requireStaff("users");
     if (isBlacklisted) {
-      const guard = await adminLockoutGuard(userId, actingAdminId, "blacklist");
+      const guard = await adminLockoutGuard(userId, actor.id, "blacklist");
       if (guard) return { success: false, error: guard };
     }
     await (prisma as any).user.update({
       where: { id: userId },
       data: { isBlacklisted },
     });
+    forgetAccount(userId);
     revalidatePath("/admindashboard/user-management");
     return { success: true };
   } catch (error: any) {
+    if (error instanceof AccessDenied) return { success: false, error: error.message };
     console.error("[TOGGLE_BLACKLIST_ERROR]:", error);
-    return { success: false, error: error.message };
+    return { success: false, error: "Couldn't update this account." };
   }
 }
 
@@ -319,25 +386,21 @@ async function deleteUserCascade(userId: string) {
   return true;
 }
 
-async function isAdminUser(userId?: string) {
-  if (!userId) return false;
-  const u = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
-  return u?.role === "ADMIN";
-}
-
-/** Admin: delete someone else's account. */
-export async function deleteUserAction(userId: string, adminUserId?: string) {
+/** Staff with User Management: delete a customer or tenant account. Staff accounts live on Roles & Staff. */
+export async function deleteUserAction(userId: string, _adminUserId?: string) {
   try {
-    if (!(await isAdminUser(adminUserId))) return { success: false, error: "Admin access required." };
-    if (userId === adminUserId) return { success: false, error: "You can't delete your own admin account here." };
+    const actor = await requireStaff("users");
+    if (userId === actor.id) return { success: false, error: "You can't delete your own account here." };
     const target = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
-    if (target?.role === "ADMIN" && (await prisma.user.count({ where: { role: "ADMIN" } })) <= 1) {
-      return { success: false, error: "You can't delete the last admin." };
+    if (target?.role === "ADMIN") {
+      return { success: false, error: "Staff accounts are managed on the Roles & Staff page." };
     }
     if (!(await deleteUserCascade(userId))) return { success: false, error: "User not found." };
+    forgetAccount(userId);
     revalidatePath("/admindashboard/user-management");
     return { success: true };
   } catch (error) {
+    if (error instanceof AccessDenied) return { success: false, error: error.message };
     console.error("[DELETE_USER_ERROR]:", error);
     return { success: false, error: "Failed to delete user." };
   }
@@ -348,8 +411,9 @@ export async function deleteUserAction(userId: string, adminUserId?: string) {
  * no demoting/blacklisting yourself, and never the last admin.
  */
 async function adminLockoutGuard(targetId: string, actingAdminId: string | undefined, what: "demote" | "blacklist") {
-  const target = await prisma.user.findUnique({ where: { id: targetId }, select: { role: true } });
+  const target = await prisma.user.findUnique({ where: { id: targetId }, select: { role: true, isSuperuser: true } });
   if (target?.role !== "ADMIN") return null;
+  if (target.isSuperuser) return `You can't ${what} the superuser.`;
   if (actingAdminId && actingAdminId === targetId) {
     return what === "demote" ? "You can't remove your own admin role." : "You can't blacklist your own account.";
   }
@@ -358,17 +422,26 @@ async function adminLockoutGuard(targetId: string, actingAdminId: string | undef
   return null;
 }
 
-export async function updateUserRoleAction(userId: string, newRole: string, actingAdminId?: string) {
+/**
+ * Switch an account between customer and tenant. Staff accounts are never
+ * made or removed this way: the superuser creates separate staff accounts
+ * on the Roles & Staff page.
+ */
+export async function updateUserRoleAction(userId: string, newRole: string, _actingAdminId?: string) {
   try {
+    const actor = await requireStaff("users");
+    const actingAdminId = actor.id;
+    if (newRole !== "CUSTOMER" && newRole !== "TENANT") {
+      return { success: false, error: "Staff accounts are created on the Roles & Staff page." };
+    }
     const user = await prisma.user.findUnique({
       where: { id: userId },
       include: { tenant: true },
     });
 
     if (!user) return { success: false, error: "User not found." };
-    if (user.role === "ADMIN" && newRole !== "ADMIN") {
-      const guard = await adminLockoutGuard(userId, actingAdminId, "demote");
-      if (guard) return { success: false, error: guard };
+    if (user.role === "ADMIN") {
+      return { success: false, error: "Staff accounts are managed on the Roles & Staff page." };
     }
 
     // Tenant leaving via a role change → history snapshot (before the unit is freed).
@@ -403,9 +476,11 @@ export async function updateUserRoleAction(userId: string, newRole: string, acti
       });
     });
 
+    forgetAccount(userId);
     revalidatePath("/admindashboard/user-management");
     return { success: true };
   } catch (error) {
+    if (error instanceof AccessDenied) return { success: false, error: error.message };
     return { success: false, error: "Failed to update user role." };
   }
 }
@@ -748,7 +823,7 @@ export async function deleteMyAccountAction(
     const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true, password: true, role: true } });
     if (!user) return { success: false, error: "Account not found." };
     if (user.role === "ADMIN") {
-      return { success: false, error: "Admin accounts can't be deleted from here. Ask another admin in User Management." };
+      return { success: false, error: "Staff accounts can't be deleted from here. They are managed on the Roles & Staff page." };
     }
 
     let verified = false;

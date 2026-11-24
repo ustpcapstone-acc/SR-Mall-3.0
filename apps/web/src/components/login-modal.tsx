@@ -21,6 +21,8 @@ import { useAuth } from "@/app/providers";
 import { loginAction, signUpAction } from "@/app/actions/auth";
 import { supabase } from "@/utils/supabase";
 import { motion, AnimatePresence } from "framer-motion";
+import Link from "next/link";
+import { rememberGooglePortal } from "@/lib/google-portal";
 
 const GMAIL_RE = /^[^\s@]+@gmail\.com$/i;
 
@@ -103,16 +105,14 @@ export const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
     setNotice(null);
   };
 
-  const redirectByRole = (role?: string) => {
-    if (role === "ADMIN") router.push("/admindashboard");
-    else if (role === "TENANT") router.push("/tenantdashboard");
-    else router.push("/");
-  };
+  // This modal is the customer sign-in (/login). Staff and tenants have their own portals.
+  const goTo = (path?: string) => router.push(path || "/");
 
   const handleGoogleLogin = async () => {
     setIsLoading(true);
     setError(null);
     try {
+      rememberGooglePortal("CUSTOMER");
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
@@ -141,13 +141,13 @@ export const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
         if (!res.success || !res.data) throw new Error(res.error || "Error creating account.");
         login(res.data.id, res.data.name || data.firstName, res.data.email, res.data.role);
         onClose();
-        redirectByRole(res.data.role);
+        goTo("/");
       } else {
-        const res = await loginAction({ email: data.email, password: data.password });
+        const res = await loginAction({ email: data.email, password: data.password }, "CUSTOMER");
         if (!res.success || !res.data) throw new Error(res.error || "Invalid email or password.");
         login(res.data.id, res.data.name, res.data.email, res.data.role, res.data.avatarUrl);
         onClose();
-        redirectByRole(res.data.role);
+        goTo(res.redirectTo);
       }
     } catch (err: any) {
       setError(err?.message || (isSignUp ? "Error creating account." : "Invalid email or password."));
@@ -402,6 +402,12 @@ export const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
                 <button type="button" onClick={toggleMode} className="text-primary font-bold hover:underline">
                   {isSignUp ? "Sign In" : "Sign Up"}
                 </button>
+              </p>
+              <p className="mt-3 text-center text-xs text-slate-500 font-medium">
+                Mall tenant?{" "}
+                <Link href="/tenant-portal" onClick={onClose} className="text-primary font-bold hover:underline">
+                  Sign in at the tenant portal
+                </Link>
               </p>
             </div>
           </motion.div>

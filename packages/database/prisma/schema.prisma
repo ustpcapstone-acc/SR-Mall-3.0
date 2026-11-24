@@ -20,6 +20,10 @@ model User {
   department             String?
   password               String
   role                   String                  @default("CUSTOMER")
+  /// The one account that owns the staff portal (see migration 20261124000100_staff_roles).
+  isSuperuser            Boolean                 @default(false)
+  staffRoleId            String?
+  staffRole              StaffRole?              @relation(fields: [staffRoleId], references: [id], onDelete: Restrict)
   createdAt              DateTime                @default(now())
   updatedAt              DateTime                @updatedAt
   targetConversations    Conversation[]          @relation("TargetConversations")
@@ -42,6 +46,17 @@ model User {
   chatBlocksReceived     BlockedChatUser[]       @relation("ChatBlocksReceived")
   conversationReads      ConversationRead[]
   favorites              Favorite[]
+}
+
+/// A staff-portal role: the sections (permission keys) its staff can open.
+model StaffRole {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  permissions String[] @default([])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  staff       User[]
 }
 
 model Tenant {

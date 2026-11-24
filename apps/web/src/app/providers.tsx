@@ -9,7 +9,7 @@ import React, {
   useState,
 } from "react";
 import { supabase } from "@/utils/supabase";
-import { signInWithGoogleAction } from "./actions/auth";
+import { getSessionUserAction, logoutAction } from "./actions/auth";
 
 // ─── Auth Context ─────────────────────────────────────────────────────────────
 
@@ -51,7 +51,9 @@ export const useAuth = () => {
 // once on its next load, then new sessions follow the TTL below.
 const SESSION_KEY = "srmall_session";
 const LEGACY_SESSION_KEY = "srmall_user";
-const SESSION_VERSION = 2;
+// v3: sessions are now also held in a signed server cookie, so older browser
+// sessions (which have no cookie) sign in once more.
+const SESSION_VERSION = 3;
 const SESSION_TTL_MS = 8 * 60 * 60 * 1000; // 8 hours
 
 type StoredSession = {
@@ -111,6 +113,8 @@ export const AppProviders = ({ children }: { children: React.ReactNode }) => {
     setIsAuthenticated(false);
     setUser(null);
     clearStoredSession();
+    // End the signed server session too.
+    logoutAction().catch(() => {});
     // End the Google/Supabase session as well (no-op if there is none).
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) {
@@ -203,46 +207,19 @@ export const AppProviders = ({ children }: { children: React.ReactNode }) => {
     window.addEventListener("focus", onFocus);
     document.addEventListener("visibilitychange", onVisibility);
 
-    // …then, for Google sign-ins, confirm it with the server: it verifies the
-    // Supabase access token and returns the account for that Gmail address.
-    // Email + password sign-ins have no Google session and keep the cached user.
-    // Only a browser with a valid SR-Mall session may re-hydrate this way; this
-    // keeps the expiry rule from being bypassed by Supabase's own localStorage.
-    const { data } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === "SIGNED_OUT") {
-        logout();
-        return;
-      }
-      if (event !== "SIGNED_IN" && event !== "INITIAL_SESSION") return;
-      if (!session?.access_token) return;
-      const stored = readStoredSession();
-      if (!stored) return;
+    // The server cookie is the source of truth. If this browser still shows a
+    // session the server no longer has (expired, signed out elsewhere,
+    // account suspended), drop it.
+    if (stored) {
+      getSessionUserAction()
+        .then((server) => {
+          if (!server || server.id !== stored.user.id) logout();
+        })
+        .catch(() => {});
+    }
 
-      const res = await signInWithGoogleAction(session.access_token);
-      if (res.success) {
-        // Never let a lingering Google session replace a different SR-Mall
-        // account signed in with email + password in this browser.
-        if (
-          stored.user.email?.toLowerCase() !== res.data.email?.toLowerCase()
-        ) {
-          return;
-        }
-        // Re-hydrate the profile but keep the existing expiry: loading or
-        // refreshing a page must not silently extend the 8-hour session.
-        const refreshedUser: AuthUser = {
-          id: res.data.id,
-          name: res.data.name,
-          email: res.data.email,
-          role: res.data.role,
-          avatarUrl: res.data.avatarUrl,
-        };
-        setIsAuthenticated(true);
-        setUser(refreshedUser);
-        writeStoredSession(refreshedUser, stored.expiresAt);
-      } else {
-        // Google account not allowed (non-Gmail, suspended) or expired.
-        logout();
-      }
+    const { data } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_OUT" && readStoredSession()) logout();
     });
 
     return () => {

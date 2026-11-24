@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import {
   Users,
   ShieldCheck,
@@ -400,6 +401,14 @@ export default function UserManagement() {
                               <div className="p-2 bg-primary/10 text-primary rounded-xl">
                                 <Shield size={16} />
                               </div>
+                              {item.role === "ADMIN" ? (
+                                <Link
+                                  href="/admindashboard/roles-staff"
+                                  className="text-[11px] font-bold text-charcoal dark:text-white hover:text-primary"
+                                >
+                                  Staff account (manage in Roles &amp; Staff)
+                                </Link>
+                              ) : (
                               <select
                                 value={item.role}
                                 onChange={(e) =>
@@ -410,8 +419,8 @@ export default function UserManagement() {
                               >
                                 <option value="CUSTOMER" className="bg-white dark:bg-zinc-900 text-charcoal dark:text-white">Customer Segment</option>
                                 <option value="TENANT" className="bg-white dark:bg-zinc-900 text-charcoal dark:text-white">Merchant Partner</option>
-                                <option value="ADMIN" className="bg-white dark:bg-zinc-900 text-charcoal dark:text-white">System Admin</option>
                               </select>
+                              )}
                               {isProcessing === item.id && (
                                 <Loader2
                                   size={14}
@@ -434,6 +443,7 @@ export default function UserManagement() {
                           </td>
                           <td className="px-8 py-8 text-right">
                             <div className="flex items-center justify-end gap-3 opacity-100 transition-all duration-300 lg:opacity-0 lg:group-hover/row:opacity-100">
+                              {item.role !== "ADMIN" && (
                               <button
                                 onClick={() =>
                                   setBlacklistTarget(item)
@@ -450,6 +460,7 @@ export default function UserManagement() {
                                   ? "Restore Access"
                                   : "Suspend"}
                               </button>
+                              )}
                             </div>
                           </td>
                         </tr>

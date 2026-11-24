@@ -9,14 +9,16 @@ import {
   ShieldAlert,
   Presentation,
   Palette,
-  Receipt,
   ClipboardList,
+  UserCog,
 } from "lucide-react";
 import clsx from "clsx";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/app/providers";
 import { useChatUnread } from "@/lib/chat-unread";
 import { useComplaintUnread } from "@/lib/complaint-unread";
+import { getMyStaffAccessAction } from "@/app/actions/staff";
+import { canOpen, type StaffAccess } from "@/lib/permissions";
 
 const navItems = [
   { href: "/admindashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -56,6 +58,11 @@ const navItems = [
     label: "Public-View CMS",
     icon: Palette,
   },
+  {
+    href: "/admindashboard/roles-staff",
+    label: "Roles & Staff",
+    icon: UserCog,
+  },
 ];
 
 export const AdminSidebar = () => {
@@ -65,6 +72,16 @@ export const AdminSidebar = () => {
   const unreadMessages = useChatUnread(user?.id).total;
   // Open complaints with tenant activity no admin has opened yet.
   const unreadComplaints = useComplaintUnread(user?.id);
+  // Only the sections this account's role opens (the server enforces it too).
+  const [access, setAccess] = useState<StaffAccess | null>(null);
+  useEffect(() => {
+    let alive = true;
+    getMyStaffAccessAction().then((a) => alive && setAccess(a));
+    return () => {
+      alive = false;
+    };
+  }, [user?.id]);
+  const visibleItems = access ? navItems.filter((item) => canOpen(access, item.href)) : [];
 
   return (
     <aside
@@ -88,7 +105,7 @@ export const AdminSidebar = () => {
       <div
         className={clsx(
           "flex-1",
-          "overflow-hidden",
+          "overflow-y-auto",
           "py-4",
           "px-5",
           "space-y-1",
@@ -105,11 +122,11 @@ export const AdminSidebar = () => {
               "tracking-[0.3em]",
             )}
           >
-            Admin Menu
+            Menu
           </p>
         </div>
 
-        {navItems.map((item) => {
+        {visibleItems.map((item) => {
           const isActive = pathname === item.href;
           const Icon = item.icon;
           return (

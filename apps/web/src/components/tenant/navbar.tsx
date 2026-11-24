@@ -20,7 +20,7 @@ export const TenantNavbar = ({ onMenuClick }: TenantNavbarProps) => {
 
   const handleLogout = () => {
     logout();
-    router.push("/");
+    router.push("/tenant-portal");
   };
 
   return (

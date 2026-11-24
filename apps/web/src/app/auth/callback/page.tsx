@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/utils/supabase";
 import { signInWithGoogleAction } from "@/app/actions/auth";
 import { useAuth } from "@/app/providers";
+import { takeGooglePortal } from "@/lib/google-portal";
+import { PORTAL_LOGIN } from "@/lib/session";
 
 function AuthCallbackPageContent() {
   const router = useRouter();
@@ -14,6 +16,7 @@ function AuthCallbackPageContent() {
 
   useEffect(() => {
     const handleCallback = async () => {
+      const portal = takeGooglePortal();
       try {
         const code = searchParams.get("code");
         let session = null;
@@ -45,7 +48,7 @@ function AuthCallbackPageContent() {
         }
 
         // The server verifies the token with Supabase and enforces Gmail-only.
-        const res = await signInWithGoogleAction(session.access_token);
+        const res = await signInWithGoogleAction(session.access_token, portal);
         if (!res.success) {
           await supabase.auth.signOut().catch(() => {});
           throw new Error(res.error);
@@ -53,18 +56,11 @@ function AuthCallbackPageContent() {
 
         login(res.data.id, res.data.name, res.data.email, res.data.role, res.data.avatarUrl);
 
-        // Redirect based on role
-        if (res.data.role === "ADMIN") {
-          router.push("/admindashboard");
-        } else if (res.data.role === "TENANT") {
-          router.push("/tenantdashboard");
-        } else {
-          router.push("/");
-        }
+        router.push(res.redirectTo || "/");
       } catch (err: any) {
         console.error("Auth Callback Error:", err);
         setError(err?.message || "An unexpected error occurred");
-        setTimeout(() => router.push("/"), 5000);
+        setTimeout(() => router.push(PORTAL_LOGIN[portal]), 5000);
       }
     };
 
@@ -86,7 +82,7 @@ function AuthCallbackPageContent() {
               {error}
             </p>
             <p className="text-xs text-slate-400 dark:text-slate-500">
-              Redirecting you to the home page...
+              Taking you back to sign in...
             </p>
           </div>
         ) : (
