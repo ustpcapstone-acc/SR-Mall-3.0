@@ -161,10 +161,7 @@ export const AdBanner = ({
           <div className="absolute inset-0 bg-linear-to-r from-black/80 via-black/40 to-transparent flex items-center">
             <div className="max-w-7xl mx-auto px-5 sm:px-10 w-full flex flex-col lg:flex-row lg:items-center justify-between gap-10">
               <div className="max-w-sm sm:max-w-2xl animate-fade-in-up">
-                <span className="inline-block px-3 sm:px-4 py-1 sm:py-1.5 bg-primary text-white text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.2em] mb-3 sm:mb-6 rounded-full shadow-lg shadow-primary/30">
-                  {ad.tenantId ? "Tenant Spotlight" : "Experience SR Mall"}
-                </span>
-                <h2 className="text-3xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold text-white mb-3 sm:mb-6 leading-[1.05] tracking-tight line-clamp-3">
+                <h2 className="font-display text-3xl sm:text-5xl lg:text-6xl font-semibold text-white mb-3 sm:mb-6 leading-[1.05] tracking-tight line-clamp-3">
                   {ad.title}
                 </h2>
                 <p className="text-sm sm:text-lg text-white/80 mb-6 sm:mb-10 leading-relaxed font-medium line-clamp-3">
@@ -175,13 +172,13 @@ export const AdBanner = ({
                   <button
                     suppressHydrationWarning
                     onClick={() => handleAdClick(ad)}
-                    className="px-5 sm:px-10 py-3 sm:py-5 bg-primary text-white text-[10px] sm:text-xs font-black uppercase tracking-widest rounded-full hover:bg-white hover:text-primary transition-all active:scale-95 shadow-xl shadow-primary/20"
+                    className="px-6 sm:px-8 py-3 sm:py-3.5 bg-primary text-white text-sm sm:text-base font-semibold rounded-full hover:bg-white hover:text-primary transition-colors active:scale-95"
                   >
                     {ad.linkUrl ? "Explore Now" : "View Directory"}
                   </button>
                   <Link
                     href="/lost-and-found"
-                    className="px-5 sm:px-10 py-3 sm:py-5 bg-primary text-white text-[10px] sm:text-xs font-black uppercase tracking-widest rounded-full hover:bg-white hover:text-primary transition-all active:scale-95 shadow-xl shadow-primary/20"
+                    className="px-6 sm:px-8 py-3 sm:py-3.5 border border-white/60 text-white text-sm sm:text-base font-semibold rounded-full hover:bg-white hover:text-charcoal transition-colors active:scale-95"
                   >
                     Lost and Found
                   </Link>

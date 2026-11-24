@@ -90,10 +90,7 @@ export const ShopSalesSlider = ({ shops }: { shops: any[] }) => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
           <div className="space-y-4">
-            <span className="inline-block px-4 py-1.5 bg-primary/10 text-primary text-[11px] font-bold uppercase tracking-[0.2em] rounded-full border border-primary/20">
-              Hot Deals
-            </span>
-            <h2 className="text-4xl md:text-6xl font-black text-charcoal dark:text-white tracking-tighter uppercase">
+            <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-semibold text-charcoal dark:text-white tracking-tight">
               Shop <span className="text-primary">Sales</span>
             </h2>
             <p className="text-slate-500 dark:text-slate-400 font-medium max-w-xl text-lg">
@@ -171,10 +168,10 @@ export const ShopSalesSlider = ({ shops }: { shops: any[] }) => {
 
               <div className="absolute bottom-0 left-0 w-full p-6 sm:p-12 md:p-16 flex flex-col md:flex-row md:items-end justify-between gap-6 sm:gap-8">
                 <div className="space-y-3 sm:space-y-4 max-w-2xl">
-                  <span className="inline-block px-4 py-1.5 bg-white/20 backdrop-blur-md text-white text-[10px] font-black uppercase tracking-widest rounded-full border border-white/30">
+                  <p className="text-sm font-medium text-white/80">
                     {currentSale.shopName}
-                  </span>
-                  <h3 className="text-2xl sm:text-5xl md:text-7xl font-black text-white leading-tight uppercase tracking-tighter">
+                  </p>
+                  <h3 className="font-display text-2xl sm:text-4xl md:text-5xl font-semibold text-white leading-tight tracking-tight">
                     {currentSale.title}
                   </h3>
                   <div className="flex items-center gap-3 text-white/90 font-bold text-base sm:text-lg">

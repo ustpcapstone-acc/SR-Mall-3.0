@@ -184,11 +184,8 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
               />
             </div>
             <div className="flex flex-col">
-              <span className="text-sm sm:text-xl font-black tracking-tighter text-charcoal dark:text-white leading-none">
-                {config?.companyName || "SR MALL"}
-              </span>
-              <span className="hidden xs:block text-[7px] sm:text-[9px] font-bold text-primary tracking-[0.2em] sm:tracking-[0.3em] uppercase leading-none mt-0.5">
-                Management
+              <span className="font-display text-base sm:text-xl font-semibold tracking-tight text-charcoal dark:text-white leading-none">
+                {config?.companyName || "SR Mall"}
               </span>
             </div>
           </Link>
@@ -213,15 +210,15 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
                   href={item.href}
                   onClick={() => setActiveNav(item.id)}
                   className={clsx(
-                    "relative py-1.5 px-2.5 xl:px-3 text-xs xl:text-sm tracking-wider uppercase transition-all duration-300 whitespace-nowrap rounded-xl",
+                    "relative py-1.5 px-2.5 xl:px-3 text-sm font-medium transition-colors whitespace-nowrap rounded-lg",
                     isActive
-                      ? "text-primary font-black scale-105"
-                      : "text-slate-600 dark:text-slate-300 font-bold hover:text-charcoal dark:hover:text-white",
+                      ? "text-primary"
+                      : "text-slate-600 dark:text-slate-300 hover:text-charcoal dark:hover:text-white",
                   )}
                 >
                   {item.label}
                   {isActive && (
-                    <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4 h-0.5 bg-primary rounded-full shadow-[0_0_8px_rgba(190,30,45,0.6)] animate-in fade-in zoom-in duration-300" />
+                    <span className="absolute -bottom-0.5 left-2.5 right-2.5 xl:left-3 xl:right-3 h-0.5 bg-primary rounded-full" />
                   )}
                 </Link>
               );
@@ -230,57 +227,9 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
 
           {/* Right: Actions */}
           <div className={clsx("flex items-center gap-2 sm:gap-3 shrink-0")}>
-            <div
-              className={clsx(
-                "hidden",
-                "2xl:flex",
-                "items-center",
-                "gap-2",
-                "px-3",
-                "py-1.5",
-                "rounded-full",
-                "bg-red-50",
-                "dark:bg-red-950/20",
-                "border",
-                "border-red-900/10",
-              )}
-            >
-              <span className={clsx("flex", "h-2", "w-2", "relative")}>
-                <span
-                  className={clsx(
-                    "animate-ping",
-                    "absolute",
-                    "inline-flex",
-                    "h-full",
-                    "w-full",
-                    "rounded-full",
-                    "bg-primary",
-                    "opacity-75",
-                  )}
-                ></span>
-                <span
-                  className={clsx(
-                    "relative",
-                    "inline-flex",
-                    "rounded-full",
-                    "h-2",
-                    "w-2",
-                    "bg-primary",
-                  )}
-                ></span>
-              </span>
-              <span
-                className={clsx(
-                  "text-[10px]",
-                  "font-bold",
-                  "uppercase",
-                  "tracking-wider",
-                  "text-primary",
-                )}
-              >
-                Mall is Open: 10AM - 9PM
-              </span>
-            </div>
+            <p className="hidden 2xl:block text-sm text-slate-500 dark:text-slate-400 whitespace-nowrap">
+              Open daily, {config?.footerOpeningHours?.trim() || "10 AM to 9 PM"}
+            </p>
 
             {isAuthenticated ? (
               <div
@@ -658,7 +607,7 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
                   setIsLoginOpen(true);
                   setIsMobileMenuOpen(false);
                 }}
-                className="mt-4 w-full py-4 bg-primary text-white font-black text-sm uppercase tracking-widest rounded-2xl active:scale-95 shadow-xl shadow-primary/30 transition-all"
+                className="mt-4 w-full py-4 bg-primary text-white font-semibold text-sm rounded-2xl active:scale-95 shadow-xl shadow-primary/30 transition-all"
               >
                 Sign In
               </button>

@@ -7,9 +7,7 @@ import { ShopCard } from "@/components/shop-card";
 import { AdBanner } from "@/components/ad-banner";
 import { UpcomingEventsSlider } from "@/components/upcoming-events-slider";
 import { ShopSalesSlider } from "@/components/shop-sales-slider";
-import { FeedbackSection } from "@/components/feedback-section";
-import { ChatBox } from "@/components/chat-box";
-import { EventInquiryForm } from "@/components/event-inquiry-form";
+import dynamic from "next/dynamic";
 import {
   Search,
   MapPin,
@@ -32,7 +30,6 @@ import {
   VolumeX,
 } from "lucide-react";
 import Link from "next/link";
-import { LoginModal } from "@/components/login-modal";
 import { useAuth } from "@/app/providers";
 import { spaCache } from "@/utils/cache";
 import { DigitalStorefront } from "@/types/storefront";
@@ -46,7 +43,6 @@ import {
   getPublicViewCarouselAction,
 } from "@/app/actions/cms";
 import { applyThemeColor, mapEmbedSrc, PUBLIC_CONFIG_CACHE_KEY } from "@/lib/theme";
-import SpaceDetailModal from "@/components/space-detail-modal";
 import { mergeSlotPatch, slotAccess, useLiveSlots } from "@/lib/slot-live";
 import { toast } from "sonner";
 import { ProductCard } from "@/components/product-card";
@@ -54,6 +50,16 @@ import { productHref } from "@/lib/products";
 import { useRouter } from "next/navigation";
 import clsx from "clsx";
 import { useChatUnread } from "@/lib/chat-unread";
+import { AboutMall } from "@/components/landing/about-mall";
+import { Reveal } from "@/components/landing/reveal";
+
+// Below the fold or opened on demand: loaded in their own chunks so the first
+// screen downloads less JavaScript.
+const FeedbackSection = dynamic(() => import("@/components/feedback-section").then((m) => m.FeedbackSection));
+const EventInquiryForm = dynamic(() => import("@/components/event-inquiry-form").then((m) => m.EventInquiryForm));
+const ChatBox = dynamic(() => import("@/components/chat-box").then((m) => m.ChatBox), { ssr: false });
+const LoginModal = dynamic(() => import("@/components/login-modal").then((m) => m.LoginModal), { ssr: false });
+const SpaceDetailModal = dynamic(() => import("@/components/space-detail-modal"), { ssr: false });
 
 // Directory category buttons → keywords matched against the shop's category.
 const CATEGORY_KEYWORDS: Record<string, string[]> = {
@@ -131,6 +137,23 @@ export default function PublicDigitalConcierge() {
   // Featured Campaign preview: autoplays muted (browser rule); the viewer can unmute.
   const campaignVideoRef = useRef<HTMLVideoElement>(null);
   const [campaignMuted, setCampaignMuted] = useState(true);
+  useEffect(() => {
+    // The preview only downloads and plays while it is on screen, and never
+    // starts by itself for people who ask for reduced motion.
+    const video = campaignVideoRef.current;
+    if (!video || typeof IntersectionObserver === "undefined") return;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !reduce) video.play().catch(() => {});
+        else video.pause();
+      },
+      { threshold: 0.25 },
+    );
+    io.observe(video);
+    return () => io.disconnect();
+  }, []);
+
   useEffect(() => {
     // Opening the full video silences the preview so two sounds never overlap.
     if (isVideoModalOpen && campaignVideoRef.current) {
@@ -459,7 +482,7 @@ export default function PublicDigitalConcierge() {
 
       {/* High Impact Hero Carousel */}
       {/* High Impact Hero Carousel with Search */}
-      <section className={clsx("w-full", "relative", "bg-black", "pt-20")}>
+      <section className={clsx("w-full", "relative", "bg-black", "pt-20", "hero-enter")}>
         <AdBanner
           ads={ads}
           tenantPromos={tenantPromos}
@@ -472,6 +495,13 @@ export default function PublicDigitalConcierge() {
           setSelectedProduct={setSelectedProduct}
         />
       </section>
+
+      {/* About the mall */}
+      <AboutMall
+        config={config}
+        shopCount={shops.length}
+        spacesForRent={slots.filter((sl) => sl.status === "AVAILABLE").length}
+      />
 
       {/* Upcoming Events Slider */}
       <UpcomingEventsSlider />
@@ -495,11 +525,7 @@ export default function PublicDigitalConcierge() {
             "overflow-hidden",
           )}
         >
-          {/* Subtle background element */}
-          <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none opacity-30">
-            <div className="absolute -top-24 -left-24 w-96 h-96 bg-primary/10 rounded-full blur-[100px]"></div>
-            <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-blue-500/10 rounded-full blur-[100px]"></div>
-          </div>
+          <Reveal>
 
           <div
             className={clsx("max-w-7xl", "mx-auto", "px-4", "relative", "z-10")}
@@ -507,13 +533,10 @@ export default function PublicDigitalConcierge() {
             {/* Section header — left-aligned on mobile, side-by-side on sm+ */}
             <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 sm:gap-8 mb-10 sm:mb-16 text-left">
               <div className="space-y-3">
-                <span className="text-[10px] font-black text-primary uppercase tracking-[0.4em] bg-primary/5 px-5 py-1.5 rounded-full border border-primary/10 inline-block">
-                  Top Picks
-                </span>
-                <h2 className="text-3xl sm:text-5xl lg:text-6xl font-black text-charcoal dark:text-white tracking-tighter leading-none">
+                <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-semibold text-charcoal dark:text-white tracking-tight leading-[1.05]">
                   <SectionTitleLines
                     text={config?.productsTitle || "Featured\nProducts."}
-                    accentClass="text-slate-300 dark:text-zinc-800"
+                    accentClass="text-slate-500 dark:text-slate-400"
                     breakClassName="hidden sm:block"
                   />
                 </h2>
@@ -594,30 +617,17 @@ export default function PublicDigitalConcierge() {
               </div>
             </div>
           </div>
+          </Reveal>
         </section>
       )}
 
       <section className="screen-section relative overflow-hidden py-14 sm:py-20 lg:py-28 bg-slate-100 dark:bg-zinc-950 border-y border-slate-200 dark:border-white/5">
-        {/* Soft brand glow */}
-        <div aria-hidden className="pointer-events-none absolute inset-0">
-          <div className="absolute -top-32 left-[-10%] w-xl h-144 rounded-full bg-primary/10 dark:bg-[#BE1E2D]/10 blur-3xl" />
-          <div className="absolute -bottom-40 right-[-5%] w-120 h-120 rounded-full bg-primary/5 dark:bg-[#BE1E2D]/10 blur-3xl" />
-        </div>
+        <Reveal>
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-12 items-center gap-10 lg:gap-14">
           {/* Copy */}
           <div className="lg:col-span-5 space-y-6 sm:space-y-7">
-            <span className="inline-flex items-center gap-2 pl-2 pr-3.5 py-1.5 rounded-full bg-white/70 dark:bg-white/5 border border-slate-200 dark:border-white/10 shadow-xs backdrop-blur-sm">
-              <span className="relative flex w-2 h-2">
-                <span className="absolute inset-0 rounded-full bg-primary dark:bg-[#BE1E2D] opacity-60 animate-ping" />
-                <span className="relative w-2 h-2 rounded-full bg-primary dark:bg-[#BE1E2D]" />
-              </span>
-              <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-[0.25em] text-primary dark:text-[#E04B57]">
-                {config?.videoBadge || "Featured Campaign"}
-              </span>
-            </span>
-
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-black text-charcoal dark:text-white tracking-tight leading-[1.05]">
+            <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-semibold text-charcoal dark:text-white tracking-tight leading-[1.05]">
               {config?.videoTitle || "Elevate Your Lifestyle."}
             </h2>
             <span aria-hidden className="block w-16 h-1 rounded-full bg-primary dark:bg-[#BE1E2D]" />
@@ -668,7 +678,7 @@ export default function PublicDigitalConcierge() {
                   ref={campaignVideoRef}
                   src={config?.featuredVideoUrl || "/vid/Download.mp4"}
                   className="w-full h-full object-cover scale-[1.01] group-hover:scale-105 transition-transform duration-1200 ease-out"
-                  autoPlay
+                  preload="none"
                   loop
                   muted
                   playsInline
@@ -676,16 +686,6 @@ export default function PublicDigitalConcierge() {
 
                 {/* Readability gradient */}
                 <div className="absolute inset-0 bg-linear-to-t from-black/85 via-black/10 to-black/20" />
-
-                {/* Now playing chip */}
-                <div className="absolute top-3 left-3 sm:top-5 sm:left-5 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/45 backdrop-blur-md border border-white/15">
-                  <span className="flex items-end gap-[2px] h-3" aria-hidden>
-                    <span className="w-[3px] h-1.5 bg-white rounded-xs animate-pulse" />
-                    <span className="w-[3px] h-3 bg-white rounded-xs animate-pulse [animation-delay:150ms]" />
-                    <span className="w-[3px] h-2 bg-white rounded-xs animate-pulse [animation-delay:300ms]" />
-                  </span>
-                  <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] text-white">Now playing</span>
-                </div>
 
                 {/* Centre play button */}
                 <span className="absolute inset-0 flex items-center justify-center">
@@ -700,8 +700,7 @@ export default function PublicDigitalConcierge() {
                 {/* Caption */}
                 <div className="absolute inset-x-0 bottom-0 p-4 sm:p-7 flex items-end justify-between gap-4">
                   <div className="min-w-0">
-                    <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.25em] text-white/60">SR Mall presents</p>
-                    <p className="mt-1 text-base sm:text-xl font-black text-white tracking-tight truncate">
+                    <p className="text-base sm:text-xl font-black text-white tracking-tight truncate">
                       {config?.featuredVideoTitle || "SR Mall Cinematic Experience"}
                     </p>
                   </div>
@@ -725,6 +724,7 @@ export default function PublicDigitalConcierge() {
             </div>
           </div>
         </div>
+        </Reveal>
       </section>
 
       {/* Shop Directory Section */}
@@ -735,36 +735,25 @@ export default function PublicDigitalConcierge() {
           "py-16 sm:py-20 lg:py-24 bg-slate-100 dark:bg-zinc-950",
         )}
       >
+        <Reveal>
         <div className={clsx("max-w-7xl mx-auto px-4 sm:px-6 lg:px-8")}>
           {/* Section Header */}
           <div className={clsx("relative", "mb-16", "sm:mb-20")}>
             <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8">
               <div className="max-w-2xl">
-                <span
-                  className={clsx(
-                    "inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.4em] text-primary bg-primary/10 px-6 py-2 rounded-full mb-6 border border-primary/20",
-                  )}
-                >
-                  Premium Collection
-                </span>
                 <h2
                   className={clsx(
-                    "text-4xl",
-                    "sm:text-6xl",
-                    "lg:text-7xl",
-                    "font-black",
-                    "text-charcoal",
-                    "dark:text-white",
-                    "tracking-tighter",
-                    "leading-[0.95]",
-                    "lg:leading-[0.9]",
+                    "text-3xl",
+                    "sm:text-4xl",
+                    "lg:text-5xl",
+                    "font-display", "font-semibold", "text-charcoal", "dark:text-white", "tracking-tight", "leading-[1.05]",
                     "mb-6",
                     "sm:mb-8",
                   )}
                 >
                   <SectionTitleLines
                     text={config?.directoryTitle || "Mall\nDirectory."}
-                    accentClass="text-slate-300 dark:text-zinc-800"
+                    accentClass="text-slate-500 dark:text-slate-400"
                   />
                 </h2>
                 <p
@@ -1088,6 +1077,7 @@ export default function PublicDigitalConcierge() {
             </div>
           )}
         </div>
+        </Reveal>
       </section>
 
       {/* Available Spaces Section */}
@@ -1101,13 +1091,7 @@ export default function PublicDigitalConcierge() {
           "overflow-hidden",
         )}
       >
-        {/* Professional Background Accents */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full pointer-events-none">
-          <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-primary/5 rounded-full blur-[150px] -translate-y-1/2 translate-x-1/3 opacity-50"></div>
-          <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-blue-600/5 rounded-full blur-[120px] translate-y-1/2 -translate-x-1/3 opacity-50"></div>
-          {/* Subtle Grid Pattern */}
-          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.03] dark:opacity-[0.05] invert dark:invert-0"></div>
-        </div>
+        <Reveal>
 
         <div
           className={clsx(
@@ -1135,42 +1119,17 @@ export default function PublicDigitalConcierge() {
             )}
           >
             <div className="max-w-2xl space-y-6">
-              <span
-                className={clsx(
-                  "inline-flex",
-                  "items-center",
-                  "gap-2",
-                  "text-[10px]",
-                  "sm:text-[11px]",
-                  "uppercase",
-                  "tracking-[0.3em]",
-                  "text-primary",
-                  "font-black",
-                  "bg-primary/10",
-                  "px-5",
-                  "py-2",
-                  "rounded-full",
-                  "border",
-                  "border-primary/20",
-                )}
-              >
-                Leasing Opportunities
-              </span>
               <h2
                 className={clsx(
-                  "text-4xl",
-                  "sm:text-5xl",
-                  "lg:text-7xl",
-                  "font-black",
-                  "text-charcoal",
-                  "dark:text-white",
-                  "tracking-tighter",
-                  "leading-[0.95]",
+                  "text-3xl",
+                  "sm:text-4xl",
+                  "lg:text-5xl",
+                  "font-display", "font-semibold", "text-charcoal", "dark:text-white", "tracking-tight", "leading-[1.05]",
                 )}
               >
                 <SectionTitleLines
                   text={config?.spacesTitle || "Available\nSpaces."}
-                  accentClass="text-slate-300 dark:text-zinc-800"
+                  accentClass="text-slate-500 dark:text-slate-400"
                 />
               </h2>
               <p
@@ -1537,6 +1496,7 @@ export default function PublicDigitalConcierge() {
             </div>
           )}
         </div>
+        </Reveal>
       </section>
 
       {/* Space Detail Modal */}
@@ -1555,10 +1515,10 @@ export default function PublicDigitalConcierge() {
         />
       )}
 
-      <LoginModal
+      {isLoginModalOpen && <LoginModal
         isOpen={isLoginModalOpen}
         onClose={() => setIsLoginModalOpen(false)}
-      />
+      />}
 
       {/* Venue Booking / Event Inquiry Section */}
       <section
@@ -1594,12 +1554,13 @@ export default function PublicDigitalConcierge() {
           "lg:py-28",
         )}
       >
+        <Reveal>
         <div className={clsx("max-w-7xl", "mx-auto", "px-4", "sm:px-6", "lg:px-10")}>
           <div className="max-w-2xl">
             <p className="text-[11px] font-bold uppercase tracking-[0.26em] text-[#C51D30]">
               Visit us
             </p>
-            <h2 className="mt-4 text-[2.5rem] font-black leading-[1.05] tracking-tight text-[#21191B] dark:text-white sm:text-[3.8rem] lg:text-[4.4rem]">
+            <h2 className="mt-4 font-display text-3xl font-semibold leading-[1.05] tracking-tight text-[#21191B] dark:text-white sm:text-4xl lg:text-5xl">
               <span className="whitespace-pre-line">
                 {config?.locationTitle || "Prime location.\nEndless access."}
               </span>
@@ -1633,12 +1594,11 @@ export default function PublicDigitalConcierge() {
                 <img
                   src="/images/mall/facade.webp"
                   alt="The Sophie Red Mall entrance"
+                  loading="lazy"
+                  decoding="async"
                   className="h-full w-full object-cover"
                 />
                 <div className="pointer-events-none absolute inset-0 bg-linear-to-t from-black/30 via-transparent to-transparent" />
-                <span className="absolute bottom-3 left-3 rounded-lg bg-[#1C1417] px-2.5 py-1.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-white">
-                  You are here
-                </span>
               </div>
 
               <div className="overflow-hidden rounded-2xl border border-[#E8E2DE] bg-white shadow-xs dark:border-white/10 dark:bg-zinc-900">
@@ -1683,6 +1643,7 @@ export default function PublicDigitalConcierge() {
             </div>
           </div>
         </div>
+        </Reveal>
       </section>
 
 
@@ -1703,13 +1664,13 @@ export default function PublicDigitalConcierge() {
         className={`fixed bottom-4 right-4 sm:bottom-10 sm:right-10 w-14 h-14 sm:w-20 sm:h-20 bg-primary text-white rounded-full flex items-center justify-center shadow-2xl shadow-primary/40 hover:scale-110 active:scale-95 transition-all z-50 group ${isChatOpen ? "rotate-90" : ""}`}
       >
         {isChatOpen ? <X size={32} /> : <MessageCircle size={32} />}
-        {!isChatOpen && (
+        {!isChatOpen && unreadMessages > 0 && (
           <span
             className={clsx(
               "absolute",
               "-top-2",
               "-right-2",
-              unreadMessages > 0 ? "bg-red-500" : "bg-blue-500",
+              "bg-red-500",
               "text-white",
               "text-[10px]",
               "font-bold",
@@ -1721,12 +1682,12 @@ export default function PublicDigitalConcierge() {
               unreadMessages > 0 && "animate-pulse"
             )}
           >
-            {unreadMessages > 0 ? (unreadMessages > 9 ? "9+" : unreadMessages) : "LIVE"}
+            {unreadMessages > 9 ? "9+" : unreadMessages}
           </span>
         )}
       </button>
 
-      <ChatBox
+      {isChatOpen && <ChatBox
         isOpen={isChatOpen}
         onClose={() => {
           setIsChatOpen(false);
@@ -1737,7 +1698,7 @@ export default function PublicDigitalConcierge() {
         initialShopName={chatInitialShopName}
         initialRecipient={chatRecipient}
         inquirySlotId={chatInquirySlotId}
-      />
+      />}
 
       {/* Video Modal */}
       {isVideoModalOpen && (
