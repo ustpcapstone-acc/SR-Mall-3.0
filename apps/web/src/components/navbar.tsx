@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useLayoutEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -31,6 +31,29 @@ interface NavbarProps {
     companyName?: string | null;
     [key: string]: any;
   } | null;
+}
+
+/** Home page section each nav link scrolls to ("events" falls back to the venue form). */
+const SECTION_IDS: Record<string, string[]> = {
+  directory: ["directory"],
+  availability: ["availability"],
+  events: ["events", "event-inquiry"],
+  location: ["location"],
+};
+
+function findSection(navId: string) {
+  for (const id of SECTION_IDS[navId] ?? []) {
+    const el = document.getElementById(id);
+    if (el) return el;
+  }
+  return null;
+}
+
+/** Glide to a home page section (instant for people who prefer less motion). */
+function scrollToSection(el: HTMLElement) {
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  // Sections carry scroll-margin-top for the fixed navbar, so this lands just below it.
+  el.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
 }
 
 /** Each account type's own dashboard (customers: /account). */
@@ -83,6 +106,9 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
   const pathname = usePathname();
   const { isAuthenticated, user, logout } = useAuth();
   const [activeNav, setActiveNav] = useState<string>("");
+  // Sliding underline under the active desktop link.
+  const linkRefs = useRef<Record<string, HTMLAnchorElement | null>>({});
+  const [underline, setUnderline] = useState<{ left: number; width: number } | null>(null);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -108,6 +134,58 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
       else if (!hash) setActiveNav("");
     }
   }, [pathname]);
+
+  // On the home page, section links glide to their section instead of jumping.
+  const onSectionLink = (e: React.MouseEvent, id: string, afterClose?: boolean) => {
+    if (pathname !== "/" || !SECTION_IDS[id]) return; // other pages: normal navigation
+    const el = findSection(id);
+    if (!el) return;
+    e.preventDefault();
+    setActiveNav(id);
+    window.history.pushState(null, "", `#${el.id}`);
+    // Let the mobile menu close first so the page can scroll.
+    if (afterClose) window.setTimeout(() => scrollToSection(el), 250);
+    else scrollToSection(el);
+  };
+
+  // While scrolling the home page, highlight the section in view.
+  useEffect(() => {
+    if (pathname !== "/" || typeof IntersectionObserver === "undefined") return;
+    const watched = Object.keys(SECTION_IDS)
+      .map((navId) => ({ navId, el: findSection(navId) }))
+      .filter((x): x is { navId: string; el: HTMLElement } => !!x.el);
+    if (!watched.length) return;
+    const visible = new Map<string, number>();
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          const hit = watched.find((w) => w.el === entry.target);
+          if (!hit) continue;
+          if (entry.isIntersecting) visible.set(hit.navId, entry.intersectionRatio);
+          else visible.delete(hit.navId);
+        }
+        const best = [...visible.entries()].sort((a, b) => b[1] - a[1])[0];
+        setActiveNav((cur) => (best ? best[0] : cur === "products" ? cur : ""));
+      },
+      { rootMargin: "-80px 0px -45% 0px", threshold: [0, 0.25, 0.5, 0.75, 1] },
+    );
+    watched.forEach((w) => io.observe(w.el));
+    return () => io.disconnect();
+  }, [pathname]);
+
+  // Move the underline to the active link (and keep it there on resize).
+  useLayoutEffect(() => {
+    const place = () => {
+      const el = activeNav ? linkRefs.current[activeNav] : null;
+      setUnderline(el && el.offsetWidth ? { left: el.offsetLeft + 10, width: el.offsetWidth - 20 } : null);
+    };
+    const frame = requestAnimationFrame(place);
+    window.addEventListener("resize", place);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("resize", place);
+    };
+  }, [activeNav]);
 
   // Signed in → pull the account's favourites (and merge this browser's).
   useEffect(() => {
@@ -193,6 +271,7 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
           {/* Center: Nav links - hidden on tablet/mobile */}
           <div
             className={clsx(
+              "relative",
               "hidden",
               "lg:flex",
               "items-center",
@@ -207,8 +286,14 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
               return (
                 <Link
                   key={item.id}
+                  ref={(el) => {
+                    linkRefs.current[item.id] = el;
+                  }}
                   href={item.href}
-                  onClick={() => setActiveNav(item.id)}
+                  onClick={(e) => {
+                    setActiveNav(item.id);
+                    onSectionLink(e, item.id);
+                  }}
                   className={clsx(
                     "relative py-1.5 px-2.5 xl:px-3 text-sm font-medium transition-colors whitespace-nowrap rounded-lg",
                     isActive
@@ -217,12 +302,15 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
                   )}
                 >
                   {item.label}
-                  {isActive && (
-                    <span className="absolute -bottom-0.5 left-2.5 right-2.5 xl:left-3 xl:right-3 h-0.5 bg-primary rounded-full" />
-                  )}
                 </Link>
               );
             })}
+            {/* One underline that slides to the active link. */}
+            <span
+              aria-hidden
+              className="pointer-events-none absolute -bottom-0.5 h-0.5 rounded-full bg-primary transition-[left,width,opacity] duration-300 ease-out"
+              style={{ left: underline?.left ?? 0, width: underline?.width ?? 0, opacity: underline ? 1 : 0 }}
+            />
           </div>
 
           {/* Right: Actions */}
@@ -256,7 +344,7 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
                       "bg-white",
                       "text-black",
                       "font-semibold",
-                      "text-xs",
+                      "text-xs",
                       "rounded-full",
                       "hover:bg-slate-200",
                       "transition-colors",
@@ -336,7 +424,7 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
                             "text-slate-500",
                             "dark:text-slate-400",
                             "font-medium",
-                            "tracking-tight",
+                            "tracking-tight",
                           )}
                         >
                           {user?.role?.toLowerCase()}
@@ -383,7 +471,7 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
                             className={clsx(
                               "text-[10px]",
                               "font-semibold",
-                              "text-slate-400",
+                              "text-slate-400",
                             )}
                           >
                             Account Overview
@@ -440,7 +528,7 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
                               "text-primary",
                               "hover:bg-primary/5",
                               "rounded-xl",
-                              "transition-colors",
+                              "transition-colors",
                             )}
                           >
                             <LogOut size={16} /> Sign Out
@@ -515,9 +603,10 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
                 <Link
                   key={link.id}
                   href={link.href}
-                  onClick={() => {
+                  onClick={(e) => {
                     setActiveNav(link.id);
                     setIsMobileMenuOpen(false);
+                    onSectionLink(e, link.id, true);
                   }}
                   className={clsx(
                     "flex items-center justify-between py-4 border-b border-slate-100 dark:border-white/5 text-base transition-colors",
