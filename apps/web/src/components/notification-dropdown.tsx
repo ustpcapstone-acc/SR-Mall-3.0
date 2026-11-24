@@ -129,7 +129,7 @@ export default function NotificationDropdown({ className = "" }: { className?: s
       >
         <Bell size={20} />
         {badge > 0 && (
-          <span className="absolute -top-1 -right-1 min-w-[1.25rem] h-5 px-1 bg-primary text-white text-[10px] font-black rounded-full flex items-center justify-center">
+          <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 bg-primary text-white text-[10px] font-black rounded-full flex items-center justify-center">
             {badge > 99 ? "99+" : badge}
           </span>
         )}
@@ -187,7 +187,7 @@ export default function NotificationDropdown({ className = "" }: { className?: s
               </div>
             </div>
 
-            <div className="max-h-[26rem] overflow-y-auto">
+            <div className="max-h-104 overflow-y-auto">
               {rows.length === 0 ? (
                 <div className="px-6 py-12 text-center">
                   <Bell className="w-8 h-8 text-slate-300 mx-auto mb-3" />
@@ -202,7 +202,7 @@ export default function NotificationDropdown({ className = "" }: { className?: s
                         <button
                           type="button"
                           onClick={() => openChat(row.chat)}
-                          className="w-full text-left flex items-start gap-3 px-5 py-4 transition-colors bg-primary/[0.04] hover:bg-slate-50 dark:hover:bg-zinc-800/60"
+                          className="w-full text-left flex items-start gap-3 px-5 py-4 transition-colors bg-primary/4 hover:bg-slate-50 dark:hover:bg-zinc-800/60"
                         >
                           <span className="mt-0.5">
                             <NotificationIcon type="MESSAGE" size={16} />
@@ -228,7 +228,7 @@ export default function NotificationDropdown({ className = "" }: { className?: s
                         onClick={() => open(n)}
                         className={clsx(
                           "w-full text-left flex items-start gap-3 px-5 py-4 transition-colors hover:bg-slate-50 dark:hover:bg-zinc-800/60",
-                          !n.isRead && "bg-primary/[0.04]",
+                          !n.isRead && "bg-primary/4",
                         )}
                       >
                         <span className="mt-0.5">

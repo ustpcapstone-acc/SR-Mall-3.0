@@ -93,7 +93,7 @@ export default function FinanceManager() {
 
   return (
     <>
-      <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-3xl overflow-hidden shadow-sm animate-fade-in-up mt-8">
+      <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-3xl overflow-hidden shadow-xs animate-fade-in-up mt-8">
         <div className="p-6 border-b border-slate-100 dark:border-white/5 flex items-center justify-between">
           <div>
             <h2 className="font-bold text-lg text-charcoal dark:text-white flex items-center gap-2">
@@ -251,7 +251,7 @@ export default function FinanceManager() {
           className={clsx(
             "fixed",
             "inset-0",
-            "z-[100]",
+            "z-100",
             "flex",
             "items-center",
             "justify-center",
@@ -325,7 +325,7 @@ export default function FinanceManager() {
                     "border-slate-200",
                     "dark:border-white/5",
                     "focus:border-primary",
-                    "outline-none",
+                    "outline-hidden",
                     "transition-all",
                     "text-sm",
                   )}
@@ -372,7 +372,7 @@ export default function FinanceManager() {
                       "border-slate-200",
                       "dark:border-white/5",
                       "focus:border-primary",
-                      "outline-none",
+                      "outline-hidden",
                       "transition-all",
                       "text-sm",
                     )}
@@ -411,7 +411,7 @@ export default function FinanceManager() {
                       "border-slate-200",
                       "dark:border-white/5",
                       "focus:border-primary",
-                      "outline-none",
+                      "outline-hidden",
                       "transition-all",
                       "text-sm",
                     )}
@@ -451,7 +451,7 @@ export default function FinanceManager() {
                     "border-slate-200",
                     "dark:border-white/5",
                     "focus:border-primary",
-                    "outline-none",
+                    "outline-hidden",
                     "transition-all",
                     "text-sm",
                   )}
@@ -482,7 +482,7 @@ export default function FinanceManager() {
                 <button
                   type="submit"
                   className={clsx(
-                    "flex-[2]",
+                    "flex-2",
                     "py-3",
                     "bg-primary",
                     "text-white",

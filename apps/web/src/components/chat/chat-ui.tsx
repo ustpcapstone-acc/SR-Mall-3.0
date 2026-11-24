@@ -142,12 +142,12 @@ export function ChatConfirmModal({
   }, [busy, onCancel]);
 
   return (
-    <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => !busy && onCancel()} />
+    <div className="fixed inset-0 z-300 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-xs" onClick={() => !busy && onCancel()} />
       <div
         role="dialog"
         aria-modal="true"
-        className="relative w-full max-w-sm bg-white dark:bg-zinc-950 rounded-[2rem] shadow-2xl p-7 space-y-5 animate-fade-in-up"
+        className="relative w-full max-w-sm bg-white dark:bg-zinc-950 rounded-4xl shadow-2xl p-7 space-y-5 animate-fade-in-up"
       >
         <div className="space-y-1.5">
           <h2 className="text-lg font-black uppercase tracking-tight italic text-charcoal dark:text-white">{title}</h2>

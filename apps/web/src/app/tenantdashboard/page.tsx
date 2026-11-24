@@ -172,7 +172,7 @@ export default function TenantDashboard() {
   return (
     <div className="p-3 sm:p-5 lg:p-6 space-y-4 max-w-[1600px] mx-auto pb-20 lg:pb-6">
       {/* ── HEADER CARD ── */}
-      <header className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl px-5 py-4 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <header className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl px-5 py-4 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-4 min-w-0">
           <div className="relative shrink-0">
             <div className="w-12 h-12 bg-primary/10 rounded-xl border border-primary/20 flex items-center justify-center">
@@ -245,8 +245,8 @@ export default function TenantDashboard() {
       {/* ── MAIN BENTO GRID ── */}
       <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
         {/* ── KPI CARD 1: SENTIMENT ── */}
-        <div className="col-span-1 bg-white dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-2xl p-5 shadow-sm relative overflow-hidden group hover:scale-[1.02] transition-all flex flex-col justify-between">
-          <div className="absolute -top-6 -right-6 w-24 h-24 bg-amber-500/5 blur-[40px] rounded-full pointer-events-none" />
+        <div className="col-span-1 bg-white dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-2xl p-5 shadow-xs relative overflow-hidden group hover:scale-[1.02] transition-all flex flex-col justify-between">
+          <div className="absolute -top-6 -right-6 w-24 h-24 bg-amber-500/5 blur-2xl rounded-full pointer-events-none" />
           <div className="w-9 h-9 bg-amber-500/10 text-amber-500 rounded-xl flex items-center justify-center group-hover:rotate-12 transition-transform">
             <Star size={18} />
           </div>
@@ -266,8 +266,8 @@ export default function TenantDashboard() {
         </div>
 
         {/* ── KPI CARD 2: REVIEWS ── */}
-        <div className="col-span-1 bg-white dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-2xl p-5 shadow-sm relative overflow-hidden group hover:scale-[1.02] transition-all flex flex-col justify-between">
-          <div className="absolute -top-6 -right-6 w-24 h-24 bg-primary/5 blur-[40px] rounded-full pointer-events-none" />
+        <div className="col-span-1 bg-white dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-2xl p-5 shadow-xs relative overflow-hidden group hover:scale-[1.02] transition-all flex flex-col justify-between">
+          <div className="absolute -top-6 -right-6 w-24 h-24 bg-primary/5 blur-2xl rounded-full pointer-events-none" />
           <div className="w-9 h-9 bg-primary/10 text-primary rounded-xl flex items-center justify-center group-hover:-rotate-12 transition-transform">
             <MessageSquare size={18} />
           </div>
@@ -287,7 +287,7 @@ export default function TenantDashboard() {
         </div>
 
         {/* ── STOREFRONT MANIFEST (col-span 4, row-span 2 on lg) ── */}
-        <div className="col-span-2 lg:col-span-4 lg:row-span-2 bg-white dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-2xl shadow-sm overflow-hidden group flex flex-col relative">
+        <div className="col-span-2 lg:col-span-4 lg:row-span-2 bg-white dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-2xl shadow-xs overflow-hidden group flex flex-col relative">
           <div className="absolute top-0 right-0 w-48 h-48 bg-primary/5 blur-[80px] rounded-full pointer-events-none" />
           <div className="px-6 py-4 border-b border-slate-50 dark:border-white/5 flex items-center justify-between bg-white/40 dark:bg-black/10 relative z-10">
             <div className="flex items-center gap-3">
@@ -305,7 +305,7 @@ export default function TenantDashboard() {
             </div>
             <Link
               href="/tenantdashboard/digital-storefront"
-              className="p-2 bg-white dark:bg-zinc-800 rounded-lg text-primary hover:scale-110 transition-transform shadow-sm border border-slate-100 dark:border-white/5"
+              className="p-2 bg-white dark:bg-zinc-800 rounded-lg text-primary hover:scale-110 transition-transform shadow-xs border border-slate-100 dark:border-white/5"
             >
               <ArrowRight size={16} />
             </Link>
@@ -322,7 +322,7 @@ export default function TenantDashboard() {
               </div>
               <div className="flex-1 text-center sm:text-left space-y-3 min-w-0">
                 <div>
-                  <h3 className="text-2xl sm:text-3xl lg:text-4xl font-black text-charcoal dark:text-white uppercase italic tracking-tight leading-none break-words">
+                  <h3 className="text-2xl sm:text-3xl lg:text-4xl font-black text-charcoal dark:text-white uppercase italic tracking-tight leading-none wrap-break-word">
                     {shopName || "Boutique Terminal"}
                   </h3>
                   <p className="text-xs text-slate-500 font-semibold mt-1.5 flex items-center justify-center sm:justify-start gap-1.5">
@@ -350,7 +350,7 @@ export default function TenantDashboard() {
             ].map((s) => (
               <div
                 key={s.label}
-                className="py-3 flex flex-col items-center gap-0.5 hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-colors cursor-default group/s"
+                className="py-3 flex flex-col items-center gap-0.5 hover:bg-slate-50/50 dark:hover:bg-white/2 transition-colors cursor-default group/s"
               >
                 <p className="text-xs font-black text-charcoal dark:text-white italic uppercase tracking-tight group-hover/s:text-primary transition-colors">
                   {s.value}
@@ -364,7 +364,7 @@ export default function TenantDashboard() {
         </div>
 
         {/* ── LIVE SIGNALS (col-span 2, row-span 2) ── */}
-        <div className="col-span-2 lg:row-span-2 bg-white dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-2xl shadow-sm overflow-hidden flex flex-col">
+        <div className="col-span-2 lg:row-span-2 bg-white dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-2xl shadow-xs overflow-hidden flex flex-col">
           <div className="px-5 py-3.5 border-b border-slate-50 dark:border-white/5 flex items-center justify-between bg-white/40 dark:bg-black/10">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 bg-amber-500/10 text-amber-500 rounded-lg flex items-center justify-center">
@@ -396,7 +396,7 @@ export default function TenantDashboard() {
               liveReviews.slice(0, 5).map((r, i) => (
                 <div
                   key={i}
-                  className="px-5 py-3.5 hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-all border-l-2 border-transparent hover:border-primary cursor-default"
+                  className="px-5 py-3.5 hover:bg-slate-50 dark:hover:bg-white/2 transition-all border-l-2 border-transparent hover:border-primary cursor-default"
                 >
                   <div className="flex items-start gap-3">
                     <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-black text-xs shrink-0 capitalize border border-primary/10">
@@ -444,11 +444,11 @@ export default function TenantDashboard() {
           <Link
             key={item.href}
             href={item.href}
-            className="col-span-1 bg-white dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-2xl p-4 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all group flex flex-col items-center text-center gap-3"
+            className="col-span-1 bg-white dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-2xl p-4 shadow-xs hover:shadow-lg hover:-translate-y-1 transition-all group flex flex-col items-center text-center gap-3"
           >
             <div
               className={clsx(
-                "w-10 h-10 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm",
+                "w-10 h-10 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-xs",
                 item.bg,
                 item.color,
               )}
@@ -463,7 +463,7 @@ export default function TenantDashboard() {
       </div>
 
       {/* ── PAYMENT SCHEDULE SECTION ── */}
-      <section className="bg-white dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-2xl shadow-sm p-5 sm:p-6 relative overflow-hidden group">
+      <section className="bg-white dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-2xl shadow-xs p-5 sm:p-6 relative overflow-hidden group">
         {/* Ambient background glow */}
         <div className="absolute top-0 right-0 w-72 h-72 bg-emerald-500/5 blur-[90px] rounded-full pointer-events-none" />
 

@@ -111,7 +111,7 @@ export default function SiteConfigCMS() {
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-10">
         {/* Editor Controls */}
         <div className="space-y-8 h-fit">
-          <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-[2rem] shadow-sm p-8 space-y-8">
+          <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-4xl shadow-xs p-8 space-y-8">
             <div className="flex items-center gap-3 pb-6 border-b border-slate-100 dark:border-white/5">
               <div className="p-2.5 bg-primary/10 rounded-xl text-primary">
                 <Type size={18} />
@@ -132,7 +132,7 @@ export default function SiteConfigCMS() {
                   onChange={(e) =>
                     setDraft({ ...draft, heroTitle: e.target.value })
                   }
-                  className="w-full px-5 py-4 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-2xl focus:border-primary focus:outline-none transition-colors text-sm font-bold text-charcoal dark:text-white resize-none"
+                  className="w-full px-5 py-4 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-2xl focus:border-primary focus:outline-hidden transition-colors text-sm font-bold text-charcoal dark:text-white resize-none"
                 />
               </div>
 
@@ -146,7 +146,7 @@ export default function SiteConfigCMS() {
                   onChange={(e) =>
                     setDraft({ ...draft, heroSubtitle: e.target.value })
                   }
-                  className="w-full px-5 py-4 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-2xl focus:border-primary focus:outline-none transition-colors text-sm font-medium text-slate-500 dark:text-slate-300 resize-none"
+                  className="w-full px-5 py-4 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-2xl focus:border-primary focus:outline-hidden transition-colors text-sm font-medium text-slate-500 dark:text-slate-300 resize-none"
                 />
               </div>
 
@@ -161,7 +161,7 @@ export default function SiteConfigCMS() {
                     onChange={(e) =>
                       setDraft({ ...draft, primaryBtnText: e.target.value })
                     }
-                    className="w-full px-5 py-4 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-2xl focus:border-primary focus:outline-none transition-colors text-sm font-bold text-charcoal dark:text-white"
+                    className="w-full px-5 py-4 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-2xl focus:border-primary focus:outline-hidden transition-colors text-sm font-bold text-charcoal dark:text-white"
                   />
                 </div>
                 <div>
@@ -191,7 +191,7 @@ export default function SiteConfigCMS() {
             </div>
           </div>
 
-          <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-[2rem] shadow-sm p-8 space-y-6">
+          <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-4xl shadow-xs p-8 space-y-6">
             <div className="flex items-center gap-3 pb-6 border-b border-slate-100 dark:border-white/5">
               <div className="p-2.5 bg-amber-500/10 rounded-xl text-amber-500">
                 <ToggleLeft size={18} />

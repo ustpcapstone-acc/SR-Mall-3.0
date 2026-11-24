@@ -11,7 +11,7 @@ import { AlertTriangle, Loader2, Save } from "lucide-react";
  */
 
 export const INPUT_CLASS =
-  "w-full px-4 py-3 bg-slate-50 dark:bg-zinc-800/60 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-medium text-charcoal dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all disabled:opacity-60 disabled:cursor-not-allowed";
+  "w-full px-4 py-3 bg-slate-50 dark:bg-zinc-800/60 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-medium text-charcoal dark:text-white placeholder:text-slate-400 focus:outline-hidden focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all disabled:opacity-60 disabled:cursor-not-allowed";
 
 export type SettingsTab<K extends string> = { key: K; label: string; icon: React.ComponentType<{ size?: number }> };
 
@@ -91,7 +91,7 @@ export function SettingsCard({
   footer?: React.ReactNode;
 }) {
   return (
-    <section className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-[2rem] shadow-sm overflow-hidden">
+    <section className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-4xl shadow-xs overflow-hidden">
       <div className="p-6 md:p-8 space-y-6">
         <div className="flex items-center gap-3">
           {Icon && (
@@ -109,7 +109,7 @@ export function SettingsCard({
         {children}
       </div>
       {footer && (
-        <div className="px-6 md:px-8 py-4 bg-slate-50/60 dark:bg-white/[0.02] border-t border-slate-100 dark:border-white/5 flex justify-end gap-3">
+        <div className="px-6 md:px-8 py-4 bg-slate-50/60 dark:bg-white/2 border-t border-slate-100 dark:border-white/5 flex justify-end gap-3">
           {footer}
         </div>
       )}
@@ -131,7 +131,7 @@ export function Field({
   className?: string;
 }) {
   return (
-    <div className={clsx("space-y-1.5", error && "[&_input]:!border-red-500 [&_textarea]:!border-red-500 [&_select]:!border-red-500", className)}>
+    <div className={clsx("space-y-1.5", error && "[&_input]:border-red-500! [&_textarea]:border-red-500! [&_select]:border-red-500!", className)}>
       <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block">{label}</label>
       {children}
       {error ? (

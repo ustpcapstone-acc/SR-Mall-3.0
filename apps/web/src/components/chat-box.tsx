@@ -697,7 +697,7 @@ export const ChatBox = ({
 
   return (
     <>
-      <div className="fixed inset-x-0 bottom-0 sm:inset-auto sm:bottom-32 sm:right-10 z-[100] w-full h-[85vh] sm:w-[400px] sm:h-[600px] bg-white dark:bg-zinc-900 rounded-t-[2rem] sm:rounded-[2.5rem] shadow-2xl border-0 sm:border border-slate-100 dark:border-white/5 flex flex-col overflow-hidden animate-slide-up">
+      <div className="fixed inset-x-0 bottom-0 sm:inset-auto sm:bottom-32 sm:right-10 z-100 w-full h-[85vh] sm:w-[400px] sm:h-[600px] bg-white dark:bg-zinc-900 rounded-t-4xl sm:rounded-[2.5rem] shadow-2xl border-0 sm:border border-slate-100 dark:border-white/5 flex flex-col overflow-hidden animate-slide-up">
         {/* Header */}
         <div className="px-5 py-4 bg-primary flex items-center justify-between text-white shadow-md z-10">
           <div className="flex items-center gap-3 min-w-0">
@@ -795,7 +795,7 @@ export const ChatBox = ({
                         placeholder="Search shops or admin…"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full bg-white dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl py-2.5 pl-9 pr-3 text-xs font-medium text-charcoal dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-primary shadow-sm transition-all focus:ring-2 focus:ring-primary/20"
+                        className="w-full bg-white dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl py-2.5 pl-9 pr-3 text-xs font-medium text-charcoal dark:text-white placeholder:text-slate-400 focus:outline-hidden focus:border-primary shadow-xs transition-all focus:ring-2 focus:ring-primary/20"
                       />
                     </div>
 
@@ -828,7 +828,7 @@ export const ChatBox = ({
                               onClick={() => openRow(row)}
                               className={`w-full text-left flex items-center gap-3 p-3 rounded-2xl hover:shadow-md transition-all border ${
                                 unread
-                                  ? "bg-primary/[0.05] border-primary/20"
+                                  ? "bg-primary/5 border-primary/20"
                                   : "bg-white dark:bg-zinc-800 border-slate-100 dark:border-white/5"
                               }`}
                             >
@@ -848,7 +848,7 @@ export const ChatBox = ({
                                     {row.lastMessage || "Photo"}
                                   </span>
                                   {unread && (
-                                    <span className="min-w-[1.25rem] h-5 px-1.5 rounded-full bg-primary text-white text-[10px] font-black flex items-center justify-center shrink-0">
+                                    <span className="min-w-5 h-5 px-1.5 rounded-full bg-primary text-white text-[10px] font-black flex items-center justify-center shrink-0">
                                       {row.unread > 9 ? "9+" : row.unread}
                                     </span>
                                   )}
@@ -892,7 +892,7 @@ export const ChatBox = ({
                 );
               })()
             ) : (
-              <div className="relative h-full w-full flex flex-col items-center justify-center p-6 text-center bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm z-10">
+              <div className="relative h-full w-full flex flex-col items-center justify-center p-6 text-center bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xs z-10">
                 <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
                   <MapPin size={32} className="text-primary" />
                 </div>
@@ -992,7 +992,7 @@ export const ChatBox = ({
                     <div className={`flex flex-col ${isUserSender ? "items-end" : "items-start"}`}>
                       <div className="relative group/bubble">
                         <div
-                          className={`max-w-[240px] sm:max-w-[280px] rounded-2xl ${msg.imageUrl && !msg.content?.trim() ? "p-1" : "px-4 py-2.5"} shadow-sm text-sm font-medium leading-relaxed ${
+                          className={`max-w-[240px] sm:max-w-[280px] rounded-2xl ${msg.imageUrl && !msg.content?.trim() ? "p-1" : "px-4 py-2.5"} shadow-xs text-sm font-medium leading-relaxed ${
                             isUserSender
                               ? "bg-primary text-white rounded-tr-sm"
                               : "bg-white dark:bg-zinc-800 text-charcoal dark:text-slate-300 rounded-tl-sm border border-slate-100 dark:border-white/5"
@@ -1059,7 +1059,7 @@ export const ChatBox = ({
                         setImagePreview(null);
                         setImageFile(null);
                       }}
-                      className="absolute -top-2 -right-2 w-5 h-5 bg-primary text-white rounded-full flex items-center justify-center shadow"
+                      className="absolute -top-2 -right-2 w-5 h-5 bg-primary text-white rounded-full flex items-center justify-center shadow-sm"
                     >
                       <X size={10} />
                     </button>
@@ -1121,7 +1121,7 @@ export const ChatBox = ({
                           ? "Add a caption..."
                           : "Message..."
                     }
-                    className="flex-1 px-1 sm:px-2 py-2 bg-transparent outline-none text-sm font-medium dark:text-white placeholder:text-slate-400 min-w-0 disabled:opacity-40"
+                    className="flex-1 px-1 sm:px-2 py-2 bg-transparent outline-hidden text-sm font-medium dark:text-white placeholder:text-slate-400 min-w-0 disabled:opacity-40"
                   />
                   <button
                     suppressHydrationWarning
@@ -1159,7 +1159,7 @@ export const ChatBox = ({
       {lightboxImageUrl && (
         <div
           onClick={() => setLightboxImageUrl(null)}
-          className="fixed inset-0 z-[150] flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-fade-in"
+          className="fixed inset-0 z-150 flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-fade-in"
         >
           <div
             onClick={(e) => e.stopPropagation()}

@@ -220,7 +220,7 @@ export const TenantSidebar = ({
                       "text-primary",
                       "border",
                       "border-primary/20",
-                      "shadow-sm",
+                      "shadow-xs",
                     )}
                   >
                     {linkContent}

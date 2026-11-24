@@ -91,9 +91,9 @@ export default function Interactive25DMap({ onClose }: { onClose: () => void }) 
   ];
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-md overflow-hidden">
+    <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/95 backdrop-blur-md overflow-hidden">
       {/* Header / Controls */}
-      <div className="absolute top-0 left-0 right-0 p-6 flex items-center justify-between z-50 bg-gradient-to-b from-black/80 to-transparent pointer-events-none">
+      <div className="absolute top-0 left-0 right-0 p-6 flex items-center justify-between z-50 bg-linear-to-b from-black/80 to-transparent pointer-events-none">
         <div className="pointer-events-auto">
           <h2 className="text-2xl font-black text-white tracking-tighter flex items-center gap-3">
             <Navigation className="text-primary" /> 
@@ -164,7 +164,7 @@ export default function Interactive25DMap({ onClose }: { onClose: () => void }) 
               }}
             >
               {/* Pin Pillar */}
-              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0.5 h-12 bg-gradient-to-t from-white/10 to-primary/80 origin-bottom transform rotateX(90deg)"></div>
+              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0.5 h-12 bg-linear-to-t from-white/10 to-primary/80 origin-bottom transform rotateX(90deg)"></div>
               
               {/* Pin Head */}
               <button 

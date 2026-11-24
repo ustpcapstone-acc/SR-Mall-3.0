@@ -67,7 +67,7 @@ export const DashboardThemeToggle = () => {
   return (
     <button
       onClick={() => setTheme(isDark ? "light" : "dark")}
-      className="p-2.5 rounded-xl bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-white/10 text-slate-400 hover:text-primary transition-all hover:bg-white dark:hover:bg-black hover:shadow-sm active:scale-95 cursor-pointer flex items-center justify-center group"
+      className="p-2.5 rounded-xl bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-white/10 text-slate-400 hover:text-primary transition-all hover:bg-white dark:hover:bg-black hover:shadow-xs active:scale-95 cursor-pointer flex items-center justify-center group"
       aria-label="Toggle Theme"
     >
       {isDark ? (

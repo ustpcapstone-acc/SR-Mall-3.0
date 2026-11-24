@@ -83,14 +83,14 @@ export function RecordCashPaymentModal({
   const isPastDue = invoice.status === "OVERDUE" || (hasDue && due < new Date());
 
   return (
-    <div className="fixed inset-0 z-[250] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={close} />
+    <div className="fixed inset-0 z-250 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-xs" onClick={close} />
       <form
         onSubmit={submit}
         role="dialog"
         aria-modal="true"
         aria-labelledby="cash-payment-title"
-        className="relative w-full max-w-lg bg-white dark:bg-zinc-950 rounded-[2rem] shadow-2xl overflow-hidden animate-fade-in-up"
+        className="relative w-full max-w-lg bg-white dark:bg-zinc-950 rounded-4xl shadow-2xl overflow-hidden animate-fade-in-up"
       >
         <div className="bg-[#BE1E2D] p-8 text-white relative">
           <div className="flex items-center gap-4">
@@ -167,7 +167,7 @@ export function RecordCashPaymentModal({
               aria-invalid={Boolean(error)}
               aria-describedby={error ? "cash-ref-error" : undefined}
               className={clsx(
-                "w-full px-4 py-3 bg-slate-50 dark:bg-zinc-900 border rounded-xl text-sm font-bold text-charcoal dark:text-white focus:outline-none transition-all",
+                "w-full px-4 py-3 bg-slate-50 dark:bg-zinc-900 border rounded-xl text-sm font-bold text-charcoal dark:text-white focus:outline-hidden transition-all",
                 error
                   ? "border-red-500 focus:border-red-500"
                   : "border-slate-200 dark:border-white/5 focus:border-[#BE1E2D]",
@@ -200,7 +200,7 @@ export function RecordCashPaymentModal({
             <button
               type="submit"
               disabled={saving}
-              className="flex-[2] py-3.5 bg-[#BE1E2D] text-white font-black text-xs uppercase tracking-widest rounded-xl shadow-xl shadow-red-500/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:hover:scale-100"
+              className="flex-2 py-3.5 bg-[#BE1E2D] text-white font-black text-xs uppercase tracking-widest rounded-xl shadow-xl shadow-red-500/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:hover:scale-100"
             >
               {saving ? (
                 <RefreshCw size={16} className="animate-spin" />

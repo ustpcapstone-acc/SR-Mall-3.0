@@ -170,7 +170,7 @@ export default function SiteEditorPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
         {/* Mall Hero Section */}
-        <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-[3rem] shadow-sm p-12 space-y-10">
+        <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-[3rem] shadow-xs p-12 space-y-10">
           <h2 className="font-black text-charcoal dark:text-white flex items-center gap-3 text-xl tracking-tight uppercase">
             <Layout size={24} className="text-primary" /> Landing Page Hero
           </h2>
@@ -185,7 +185,7 @@ export default function SiteEditorPage() {
                 value={config?.heroBadge || ""}
                 onChange={(e) => updateField("heroBadge", e.target.value)}
                 placeholder="e.g. Professional Mall Management System"
-                className="w-full px-5 py-4 bg-slate-50 dark:bg-zinc-800/50 border border-slate-100 dark:border-white/5 rounded-2xl focus:border-primary focus:outline-none text-sm font-bold shadow-sm"
+                className="w-full px-5 py-4 bg-slate-50 dark:bg-zinc-800/50 border border-slate-100 dark:border-white/5 rounded-2xl focus:border-primary focus:outline-hidden text-sm font-bold shadow-xs"
               />
             </div>
 
@@ -197,7 +197,7 @@ export default function SiteEditorPage() {
                 value={config?.heroTitle || ""}
                 onChange={(e) => updateField("heroTitle", e.target.value)}
                 rows={2}
-                className="w-full px-5 py-4 bg-slate-50 dark:bg-zinc-800/50 border border-slate-100 dark:border-white/5 rounded-2xl focus:border-primary focus:outline-none text-lg font-black shadow-sm resize-none tracking-tight"
+                className="w-full px-5 py-4 bg-slate-50 dark:bg-zinc-800/50 border border-slate-100 dark:border-white/5 rounded-2xl focus:border-primary focus:outline-hidden text-lg font-black shadow-xs resize-none tracking-tight"
               ></textarea>
             </div>
 
@@ -209,7 +209,7 @@ export default function SiteEditorPage() {
                 value={config?.heroSubtitle || ""}
                 onChange={(e) => updateField("heroSubtitle", e.target.value)}
                 rows={3}
-                className="w-full px-5 py-4 bg-slate-50 dark:bg-zinc-800/50 border border-slate-100 dark:border-white/5 rounded-2xl focus:border-primary focus:outline-none text-sm font-medium shadow-sm resize-none"
+                className="w-full px-5 py-4 bg-slate-50 dark:bg-zinc-800/50 border border-slate-100 dark:border-white/5 rounded-2xl focus:border-primary focus:outline-hidden text-sm font-medium shadow-xs resize-none"
               ></textarea>
             </div>
 
@@ -221,7 +221,7 @@ export default function SiteEditorPage() {
                 type="text"
                 value={config?.primaryBtnText || ""}
                 onChange={(e) => updateField("primaryBtnText", e.target.value)}
-                className="w-full px-5 py-4 bg-slate-50 dark:bg-zinc-800/50 border border-slate-100 dark:border-white/5 rounded-2xl focus:border-primary focus:outline-none text-sm font-bold shadow-sm"
+                className="w-full px-5 py-4 bg-slate-50 dark:bg-zinc-800/50 border border-slate-100 dark:border-white/5 rounded-2xl focus:border-primary focus:outline-hidden text-sm font-bold shadow-xs"
               />
             </div>
 
@@ -251,7 +251,7 @@ export default function SiteEditorPage() {
         </div>
 
         {/* Default Ad Banner Section */}
-        <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-[3rem] shadow-sm p-12 space-y-10">
+        <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-[3rem] shadow-xs p-12 space-y-10">
           <div className="flex justify-between items-center">
             <h2 className="font-black text-charcoal dark:text-white flex items-center gap-3 text-xl tracking-tight uppercase">
               <Type size={24} className="text-primary" /> Default Ad Fallback
@@ -275,7 +275,7 @@ export default function SiteEditorPage() {
                 value={config?.defaultAdTitle || ""}
                 onChange={(e) => updateField("defaultAdTitle", e.target.value)}
                 placeholder="e.g. Luxe Summer Sale"
-                className="w-full px-5 py-4 bg-slate-50 dark:bg-zinc-800/50 border border-slate-100 dark:border-white/5 rounded-2xl focus:border-primary focus:outline-none text-xl font-black shadow-sm tracking-tight"
+                className="w-full px-5 py-4 bg-slate-50 dark:bg-zinc-800/50 border border-slate-100 dark:border-white/5 rounded-2xl focus:border-primary focus:outline-hidden text-xl font-black shadow-xs tracking-tight"
               />
             </div>
 
@@ -287,7 +287,7 @@ export default function SiteEditorPage() {
                 value={config?.defaultAdDesc || ""}
                 onChange={(e) => updateField("defaultAdDesc", e.target.value)}
                 rows={3}
-                className="w-full px-5 py-4 bg-slate-50 dark:bg-zinc-800/50 border border-slate-100 dark:border-white/5 rounded-2xl focus:border-primary focus:outline-none text-sm font-medium shadow-sm resize-none"
+                className="w-full px-5 py-4 bg-slate-50 dark:bg-zinc-800/50 border border-slate-100 dark:border-white/5 rounded-2xl focus:border-primary focus:outline-hidden text-sm font-medium shadow-xs resize-none"
               ></textarea>
             </div>
 
@@ -300,7 +300,7 @@ export default function SiteEditorPage() {
                 value={config?.defaultAdCta || ""}
                 onChange={(e) => updateField("defaultAdCta", e.target.value)}
                 placeholder="e.g. View Directory"
-                className="w-full px-5 py-4 bg-slate-50 dark:bg-zinc-800/50 border border-slate-100 dark:border-white/5 rounded-2xl focus:border-primary focus:outline-none text-sm font-bold shadow-sm"
+                className="w-full px-5 py-4 bg-slate-50 dark:bg-zinc-800/50 border border-slate-100 dark:border-white/5 rounded-2xl focus:border-primary focus:outline-hidden text-sm font-bold shadow-xs"
               />
             </div>
 
@@ -319,7 +319,7 @@ export default function SiteEditorPage() {
 
               <div
                 onClick={() => adImageInputRef.current?.click()}
-                className="w-full aspect-[21/9] rounded-[2rem] overflow-hidden border-[3px] border-dashed border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800/30 flex items-center justify-center cursor-pointer group/upload relative"
+                className="w-full aspect-21/9 rounded-4xl overflow-hidden border-[3px] border-dashed border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800/30 flex items-center justify-center cursor-pointer group/upload relative"
               >
                 {config?.defaultAdImage ? (
                   <>

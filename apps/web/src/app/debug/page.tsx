@@ -35,7 +35,7 @@ export default function DebugPage() {
         {result && (
           <div className="mt-8 p-6 bg-zinc-100 dark:bg-zinc-900 rounded-lg">
             <h2 className="text-xl font-semibold mb-4">Result:</h2>
-            <pre className="text-sm overflow-auto bg-zinc-200 dark:bg-zinc-800 p-4 rounded">
+            <pre className="text-sm overflow-auto bg-zinc-200 dark:bg-zinc-800 p-4 rounded-sm">
               {JSON.stringify(result, null, 2)}
             </pre>
           </div>

@@ -25,7 +25,7 @@ const FEATURES = [
 ] as const;
 
 const FIELD =
-  "w-full rounded-xl border border-[#E6DED7] bg-white px-4 py-3 text-sm font-medium text-[#21191B] outline-none transition-all placeholder:text-[#A79E98] focus:border-[#C51D30] focus:ring-4 focus:ring-[#C51D30]/10 dark:border-white/10 dark:bg-zinc-950 dark:text-white dark:placeholder:text-slate-500";
+  "w-full rounded-xl border border-[#E6DED7] bg-white px-4 py-3 text-sm font-medium text-[#21191B] outline-hidden transition-all placeholder:text-[#A79E98] focus:border-[#C51D30] focus:ring-4 focus:ring-[#C51D30]/10 dark:border-white/10 dark:bg-zinc-950 dark:text-white dark:placeholder:text-slate-500";
 
 const FIELD_LABEL =
   "mb-2 block text-[13px] font-medium text-[#6F6468] dark:text-slate-400";
@@ -219,7 +219,7 @@ export const EventInquiryForm = ({
             <img
               src="/images/storefront_hero_placeholder_2_1774159273401.png"
               alt="SR Mall venue space"
-              className="h-56 w-full object-cover sm:h-64 lg:h-[19rem]"
+              className="h-56 w-full object-cover sm:h-64 lg:h-76"
             />
           </div>
         </div>
@@ -283,7 +283,7 @@ export const EventInquiryForm = ({
                       className={clsx(
                         "rounded-full border px-3 py-2 text-[12px] font-semibold leading-none transition-all",
                         eventType === type
-                          ? "border-[#C51D30] bg-[#C51D30] text-white shadow-sm shadow-[#C51D30]/25"
+                          ? "border-[#C51D30] bg-[#C51D30] text-white shadow-xs shadow-[#C51D30]/25"
                           : "border-[#E6DED7] bg-white text-[#4A4144] hover:border-[#C51D30]/40 hover:text-[#C51D30] dark:border-white/10 dark:bg-zinc-950 dark:text-slate-300 dark:hover:border-[#C51D30]/40",
                       )}
                     >
@@ -368,7 +368,7 @@ export const EventInquiryForm = ({
                     pickImage(e.dataTransfer.files?.[0]);
                   }}
                   className={clsx(
-                    "relative cursor-pointer overflow-hidden rounded-2xl border border-dashed outline-none transition-colors focus-visible:ring-4 focus-visible:ring-[#C51D30]/15",
+                    "relative cursor-pointer overflow-hidden rounded-2xl border border-dashed outline-hidden transition-colors focus-visible:ring-4 focus-visible:ring-[#C51D30]/15",
                     isDragging
                       ? "border-[#C51D30] bg-[#F8E9E4]"
                       : "border-[#DDD2C6] bg-[#F4EEE6] hover:border-[#C51D30]/50 dark:border-white/15 dark:bg-zinc-950",
@@ -381,11 +381,11 @@ export const EventInquiryForm = ({
                         alt="Selected event reference"
                         className="h-48 w-full object-cover"
                       />
-                      <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-3 bg-gradient-to-t from-black/65 to-transparent px-4 pb-3 pt-8 text-white">
+                      <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-3 bg-linear-to-t from-black/65 to-transparent px-4 pb-3 pt-8 text-white">
                         <span className="min-w-0 truncate text-xs font-medium">
                           {imageFile?.name}
                         </span>
-                        <span className="shrink-0 rounded-full bg-white/20 px-3 py-1 text-[11px] font-semibold backdrop-blur">
+                        <span className="shrink-0 rounded-full bg-white/20 px-3 py-1 text-[11px] font-semibold backdrop-blur-sm">
                           Change
                         </span>
                       </div>
@@ -397,7 +397,7 @@ export const EventInquiryForm = ({
                           e.stopPropagation();
                           clearImage();
                         }}
-                        className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur transition-colors hover:bg-black/65"
+                        className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-sm transition-colors hover:bg-black/65"
                       >
                         <X size={14} />
                       </button>

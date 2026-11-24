@@ -30,7 +30,7 @@ import {
 } from "@/components/complaints/complaint-view";
 
 const INPUT =
-  "w-full px-4 py-3 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-medium text-charcoal dark:text-white focus:outline-none focus:border-primary transition-all";
+  "w-full px-4 py-3 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-medium text-charcoal dark:text-white focus:outline-hidden focus:border-primary transition-all";
 
 function NewComplaintModal({ userId, onClose, onCreated }: { userId: string; onClose: () => void; onCreated: (id: string) => void }) {
   const [category, setCategory] = useState("");
@@ -66,7 +66,7 @@ function NewComplaintModal({ userId, onClose, onCreated }: { userId: string; onC
   };
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-100 bg-black/50 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
       <div
         className="w-full sm:max-w-xl max-h-[92vh] overflow-y-auto bg-white dark:bg-zinc-900 rounded-t-3xl sm:rounded-3xl border border-slate-100 dark:border-white/10 shadow-2xl p-5 sm:p-7 space-y-5"
         onClick={(e) => e.stopPropagation()}
@@ -163,7 +163,7 @@ function NewComplaintModal({ userId, onClose, onCreated }: { userId: string; onC
           <button
             onClick={submit}
             disabled={saving || uploading}
-            className="flex-[2] h-12 rounded-2xl bg-primary text-white text-xs font-black uppercase tracking-widest shadow-lg shadow-primary/25 hover:bg-primary/90 disabled:opacity-50 inline-flex items-center justify-center gap-2"
+            className="flex-2 h-12 rounded-2xl bg-primary text-white text-xs font-black uppercase tracking-widest shadow-lg shadow-primary/25 hover:bg-primary/90 disabled:opacity-50 inline-flex items-center justify-center gap-2"
           >
             {saving && <Loader2 size={14} className="animate-spin" />} Send complaint
           </button>
@@ -307,7 +307,7 @@ function TenantComplaints() {
                 onClick={() => setTab(t.key)}
                 className={clsx(
                   "flex-1 h-10 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all",
-                  tab === t.key ? "bg-white dark:bg-zinc-900 text-charcoal dark:text-white shadow-sm" : "text-slate-400",
+                  tab === t.key ? "bg-white dark:bg-zinc-900 text-charcoal dark:text-white shadow-xs" : "text-slate-400",
                 )}
               >
                 {t.label} <span className="opacity-60">({t.n})</span>

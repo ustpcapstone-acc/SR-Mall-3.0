@@ -375,7 +375,7 @@ export default function AdScheduler() {
             onChange={(e) =>
               setFormData({ ...formData, title: e.target.value })
             }
-            className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-800 text-charcoal dark:text-white rounded-xl border border-slate-200 dark:border-white/5 focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all text-sm"
+            className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-800 text-charcoal dark:text-white rounded-xl border border-slate-200 dark:border-white/5 focus:border-primary focus:ring-4 focus:ring-primary/10 outline-hidden transition-all text-sm"
             placeholder="e.g. Grand Holiday Sale..."
           />
         </div>
@@ -392,7 +392,7 @@ export default function AdScheduler() {
                 priority: e.target.value as "HIGH" | "MEDIUM" | "LOW",
               })
             }
-            className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-800 text-charcoal dark:text-white rounded-xl border border-slate-200 dark:border-white/5 focus:border-primary outline-none transition-all text-sm"
+            className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-800 text-charcoal dark:text-white rounded-xl border border-slate-200 dark:border-white/5 focus:border-primary outline-hidden transition-all text-sm"
           >
             <option value="HIGH">🔴 High — Showcase</option>
             <option value="MEDIUM">🟡 Medium — Standard</option>
@@ -410,7 +410,7 @@ export default function AdScheduler() {
           onChange={(e) =>
             setFormData({ ...formData, description: e.target.value })
           }
-          className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-800 text-charcoal dark:text-white rounded-xl border border-slate-200 dark:border-white/5 focus:border-primary outline-none transition-all text-sm"
+          className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-800 text-charcoal dark:text-white rounded-xl border border-slate-200 dark:border-white/5 focus:border-primary outline-hidden transition-all text-sm"
           placeholder="Short tagline for this campaign..."
         />
       </div>
@@ -432,7 +432,7 @@ export default function AdScheduler() {
             onChange={(e) =>
               setFormData({ ...formData, imageUrl: e.target.value })
             }
-            className="flex-1 px-4 py-3 bg-slate-50 dark:bg-zinc-800 text-charcoal dark:text-white rounded-xl border border-slate-200 dark:border-white/5 focus:border-primary outline-none transition-all text-sm disabled:opacity-60"
+            className="flex-1 px-4 py-3 bg-slate-50 dark:bg-zinc-800 text-charcoal dark:text-white rounded-xl border border-slate-200 dark:border-white/5 focus:border-primary outline-hidden transition-all text-sm disabled:opacity-60"
             placeholder={
               formData.isCloudStored
                 ? "Stored in cloud — upload to replace"
@@ -499,7 +499,7 @@ export default function AdScheduler() {
           onChange={(e) =>
             setFormData({ ...formData, linkUrl: e.target.value })
           }
-          className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-800 text-charcoal dark:text-white rounded-xl border border-slate-200 dark:border-white/5 focus:border-primary outline-none transition-all text-sm"
+          className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-800 text-charcoal dark:text-white rounded-xl border border-slate-200 dark:border-white/5 focus:border-primary outline-hidden transition-all text-sm"
           placeholder="/"
         />
       </div>
@@ -516,7 +516,7 @@ export default function AdScheduler() {
             onChange={(e) =>
               setFormData({ ...formData, startDate: e.target.value })
             }
-            className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-800 text-charcoal dark:text-white rounded-xl border border-slate-200 dark:border-white/5 focus:border-primary outline-none transition-all text-sm"
+            className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-800 text-charcoal dark:text-white rounded-xl border border-slate-200 dark:border-white/5 focus:border-primary outline-hidden transition-all text-sm"
           />
         </div>
         <div className="space-y-1.5">
@@ -530,7 +530,7 @@ export default function AdScheduler() {
             onChange={(e) =>
               setFormData({ ...formData, endDate: e.target.value })
             }
-            className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-800 text-charcoal dark:text-white rounded-xl border border-slate-200 dark:border-white/5 focus:border-primary outline-none transition-all text-sm"
+            className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-800 text-charcoal dark:text-white rounded-xl border border-slate-200 dark:border-white/5 focus:border-primary outline-hidden transition-all text-sm"
           />
         </div>
       </div>
@@ -550,7 +550,7 @@ export default function AdScheduler() {
         <button
           type="submit"
           disabled={publishing}
-          className="flex-[2] py-3 bg-primary text-white font-bold rounded-xl text-xs uppercase tracking-widest shadow-lg shadow-primary/20 hover:bg-primary-hover active:scale-95 disabled:opacity-50 transition-all"
+          className="flex-2 py-3 bg-primary text-white font-bold rounded-xl text-xs uppercase tracking-widest shadow-lg shadow-primary/20 hover:bg-primary-hover active:scale-95 disabled:opacity-50 transition-all"
         >
           {publishing
             ? isEdit
@@ -570,7 +570,7 @@ export default function AdScheduler() {
       {toast && (
         <div
           className={clsx(
-            "fixed top-24 right-8 z-[300] flex items-center gap-3 px-5 py-4 font-bold text-sm rounded-2xl shadow-2xl animate-fade-in-up",
+            "fixed top-24 right-8 z-300 flex items-center gap-3 px-5 py-4 font-bold text-sm rounded-2xl shadow-2xl animate-fade-in-up",
             toast.type === "success"
               ? "bg-emerald-500 text-white shadow-emerald-500/30"
               : "bg-red-500 text-white shadow-red-500/30",
@@ -664,7 +664,7 @@ export default function AdScheduler() {
           ].map((stat, i) => (
             <div
               key={i}
-              className="p-6 bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm"
+              className="p-6 bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-white/5 shadow-xs"
             >
               <div className="flex items-center justify-between mb-4">
                 <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
@@ -694,7 +694,7 @@ export default function AdScheduler() {
         </div>
 
         {/* ─── GLOBAL HERO ADS ─── */}
-        <div className="bg-white dark:bg-zinc-900 rounded-3xl border border-slate-200 dark:border-white/5 shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-zinc-900 rounded-3xl border border-slate-200 dark:border-white/5 shadow-xs overflow-hidden">
           <div className="p-6 border-b border-slate-200 dark:border-white/5 flex items-center gap-3">
             <Presentation size={18} className="text-primary" />
             <div>
@@ -715,10 +715,10 @@ export default function AdScheduler() {
                     key={i}
                     className="rounded-3xl overflow-hidden border border-slate-100 dark:border-white/5 animate-pulse"
                   >
-                    <div className="aspect-[16/9] bg-slate-100 dark:bg-zinc-800" />
+                    <div className="aspect-video bg-slate-100 dark:bg-zinc-800" />
                     <div className="p-5 space-y-3">
-                      <div className="h-4 w-3/4 bg-slate-100 dark:bg-zinc-800 rounded" />
-                      <div className="h-3 w-1/2 bg-slate-100 dark:bg-zinc-800 rounded" />
+                      <div className="h-4 w-3/4 bg-slate-100 dark:bg-zinc-800 rounded-sm" />
+                      <div className="h-3 w-1/2 bg-slate-100 dark:bg-zinc-800 rounded-sm" />
                     </div>
                   </div>
                 ))}
@@ -755,13 +755,13 @@ export default function AdScheduler() {
                     <div
                       key={ad.id}
                       className={clsx(
-                        "group bg-slate-50 dark:bg-zinc-950 border rounded-3xl overflow-hidden hover:-translate-y-1 transition-all duration-300 shadow-sm hover:shadow-xl",
+                        "group bg-slate-50 dark:bg-zinc-950 border rounded-3xl overflow-hidden hover:-translate-y-1 transition-all duration-300 shadow-xs hover:shadow-xl",
                         ad.isDefault
                           ? "border-emerald-500/30 dark:border-emerald-500/20 hover:border-emerald-500/50 hover:shadow-emerald-500/10"
                           : "border-slate-200 dark:border-white/5 hover:border-primary/40 hover:shadow-primary/10",
                       )}
                     >
-                      <div className="aspect-[16/9] w-full bg-slate-200 dark:bg-zinc-800 overflow-hidden relative">
+                      <div className="aspect-video w-full bg-slate-200 dark:bg-zinc-800 overflow-hidden relative">
                         {ad.imageUrl?.match(/\.(mp4|webm|mov|ogg)$/i) ||
                         ad.imageUrl?.includes("/video/upload/") ? (
                           <video
@@ -779,7 +779,7 @@ export default function AdScheduler() {
                           />
                         )}
                         {/* Overlay */}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                        <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent" />
                         {/* Priority Badge */}
                         <div
                           className={clsx(
@@ -933,7 +933,7 @@ export default function AdScheduler() {
         </div>
 
         {/* ─── PENDING TENANT PROMOS ─── */}
-        <div className="bg-white dark:bg-zinc-900 rounded-3xl border border-slate-200 dark:border-white/5 shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-zinc-900 rounded-3xl border border-slate-200 dark:border-white/5 shadow-xs overflow-hidden">
           <div className="p-6 border-b border-slate-200 dark:border-white/5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
               <Filter size={18} className="text-amber-500" />
@@ -960,7 +960,7 @@ export default function AdScheduler() {
                   onClick={() => setPromoTab(t.key)}
                   className={clsx(
                     "px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-1.5",
-                    promoTab === t.key ? "bg-white dark:bg-zinc-900 text-charcoal dark:text-white shadow-sm" : "text-slate-400 hover:text-charcoal dark:hover:text-white",
+                    promoTab === t.key ? "bg-white dark:bg-zinc-900 text-charcoal dark:text-white shadow-xs" : "text-slate-400 hover:text-charcoal dark:hover:text-white",
                   )}
                 >
                   {t.label}
@@ -984,8 +984,8 @@ export default function AdScheduler() {
                   >
                     <div className="w-40 h-24 bg-slate-100 dark:bg-zinc-800 rounded-2xl shrink-0" />
                     <div className="flex-1 space-y-3">
-                      <div className="h-5 w-1/2 bg-slate-100 dark:bg-zinc-800 rounded" />
-                      <div className="h-3 w-1/3 bg-slate-100 dark:bg-zinc-800 rounded" />
+                      <div className="h-5 w-1/2 bg-slate-100 dark:bg-zinc-800 rounded-sm" />
+                      <div className="h-3 w-1/3 bg-slate-100 dark:bg-zinc-800 rounded-sm" />
                     </div>
                   </div>
                 ))}
@@ -1224,8 +1224,8 @@ export default function AdScheduler() {
       )}
 
       {promoAction && (
-        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => !promoBusy && setPromoAction(null)} />
+        <div className="fixed inset-0 z-300 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-xs" onClick={() => !promoBusy && setPromoAction(null)} />
           <div className="relative w-full max-w-md bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-white/10 p-6 space-y-4 animate-fade-in-up">
             <div>
               <h3 className="text-lg font-black text-charcoal dark:text-white">
@@ -1244,7 +1244,7 @@ export default function AdScheduler() {
                 rows={3}
                 maxLength={300}
                 placeholder="e.g. The image is low quality — please upload a clearer version."
-                className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-800 text-charcoal dark:text-white rounded-xl border border-slate-200 dark:border-white/5 focus:border-primary outline-none text-sm resize-none"
+                className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-800 text-charcoal dark:text-white rounded-xl border border-slate-200 dark:border-white/5 focus:border-primary outline-hidden text-sm resize-none"
               />
             </label>
             <div className="flex gap-3">
@@ -1271,7 +1271,7 @@ export default function AdScheduler() {
 
       {/* ─── CREATE MODAL ─── */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-100 flex items-center justify-center p-4">
           <div
             className="absolute inset-0 bg-charcoal/40 dark:bg-black/80 backdrop-blur-md"
             onClick={() => setIsModalOpen(false)}
@@ -1296,7 +1296,7 @@ export default function AdScheduler() {
 
       {/* ─── EDIT MODAL ─── */}
       {isEditModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-100 flex items-center justify-center p-4">
           <div
             className="absolute inset-0 bg-charcoal/40 dark:bg-black/80 backdrop-blur-md"
             onClick={() => {

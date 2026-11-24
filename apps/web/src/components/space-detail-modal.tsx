@@ -197,9 +197,9 @@ export default function SpaceDetailModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 dark:bg-black/90 backdrop-blur-xl animate-in fade-in duration-500">
-      <div className="relative w-full max-w-5xl bg-white dark:bg-zinc-950 border-t sm:border border-slate-200 dark:border-white/10 rounded-t-[2rem] sm:rounded-[3rem] overflow-hidden shadow-2xl animate-in slide-in-from-bottom sm:zoom-in-95 duration-500 flex flex-col md:flex-row max-h-[96vh] sm:max-h-[90vh]">
+      <div className="relative w-full max-w-5xl bg-white dark:bg-zinc-950 border-t sm:border border-slate-200 dark:border-white/10 rounded-t-4xl sm:rounded-[3rem] overflow-hidden shadow-2xl animate-in slide-in-from-bottom sm:zoom-in-95 duration-500 flex flex-col md:flex-row max-h-[96vh] sm:max-h-[90vh]">
         {/* Mall Identity Accent Line */}
-        <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-primary via-orange-500 to-primary opacity-80" />
+        <div className="absolute top-0 left-0 right-0 h-1.5 bg-linear-to-r from-primary via-orange-500 to-primary opacity-80" />
         <button
           onClick={onClose}
           className="absolute top-5 right-5 sm:top-8 sm:right-8 z-50 p-2.5 sm:p-3 text-slate-400 dark:text-white/40 hover:text-charcoal dark:hover:text-white bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 rounded-full transition-all border border-slate-200 dark:border-white/10 backdrop-blur-md active:scale-95"
@@ -296,7 +296,7 @@ export default function SpaceDetailModal({
               </h2>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="group bg-slate-50 dark:bg-white/5 p-4 sm:p-6 rounded-2xl sm:rounded-[2rem] border border-slate-100 dark:border-white/10 hover:border-primary/20 dark:hover:border-white/20 transition-all duration-500 shadow-inner">
+                <div className="group bg-slate-50 dark:bg-white/5 p-4 sm:p-6 rounded-2xl sm:rounded-4xl border border-slate-100 dark:border-white/10 hover:border-primary/20 dark:hover:border-white/20 transition-all duration-500 shadow-inner">
                   <div className="flex items-center gap-3 text-slate-400 dark:text-white/40 mb-2 sm:mb-3 group-hover:text-primary transition-colors">
                     <Ruler size={16} className="sm:w-4.5 sm:h-4.5" />
                     <span className="text-[8px] sm:text-[9px] uppercase font-black tracking-[0.2em]">
@@ -311,7 +311,7 @@ export default function SpaceDetailModal({
                   </p>
                 </div>
 
-                <div className="group bg-slate-50 dark:bg-white/5 p-4 sm:p-6 rounded-2xl sm:rounded-[2rem] border border-slate-100 dark:border-white/10 hover:border-emerald-500/20 dark:hover:border-white/20 transition-all duration-500 shadow-inner">
+                <div className="group bg-slate-50 dark:bg-white/5 p-4 sm:p-6 rounded-2xl sm:rounded-4xl border border-slate-100 dark:border-white/10 hover:border-emerald-500/20 dark:hover:border-white/20 transition-all duration-500 shadow-inner">
                   <div className="flex items-center gap-3 text-slate-400 dark:text-white/40 mb-2 sm:mb-3 group-hover:text-emerald-500 transition-colors">
                     <CreditCard size={16} className="sm:w-4.5 sm:h-4.5" />
                     <span className="text-[8px] sm:text-[9px] uppercase font-black tracking-[0.2em]">
@@ -388,7 +388,7 @@ export default function SpaceDetailModal({
             ) : (
               <div className="space-y-3">
                 {isMyReservation && <ReservationStepper current={2} compact />}
-                <div className="w-full py-8 bg-slate-50 dark:bg-white/5 rounded-[2rem] border border-slate-100 dark:border-white/5 flex flex-col items-center gap-3 text-center">
+                <div className="w-full py-8 bg-slate-50 dark:bg-white/5 rounded-4xl border border-slate-100 dark:border-white/5 flex flex-col items-center gap-3 text-center">
                   <div className="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500 mb-1">
                     <Clock size={20} />
                   </div>
@@ -414,16 +414,16 @@ export default function SpaceDetailModal({
       </div>
 
       {confirmOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-4">
           <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/60 backdrop-blur-xs"
             onClick={() => !isReserving && setConfirmOpen(false)}
           />
           <div
             role="dialog"
             aria-modal="true"
             aria-labelledby="reserve-title"
-            className="relative w-full max-w-lg max-h-[92vh] overflow-y-auto bg-white dark:bg-zinc-950 rounded-[2rem] shadow-2xl p-5 sm:p-7 space-y-4 animate-in zoom-in-95 duration-200"
+            className="relative w-full max-w-lg max-h-[92vh] overflow-y-auto bg-white dark:bg-zinc-950 rounded-4xl shadow-2xl p-5 sm:p-7 space-y-4 animate-in zoom-in-95 duration-200"
           >
             {submitted ? (
               <div className="space-y-4 text-center py-2">

@@ -281,7 +281,7 @@ export function ReviewsModeration({
         />
       </div>
 
-      <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-[2.5rem] shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-[2.5rem] shadow-xs overflow-hidden">
         {/* Tabs + refresh */}
         <div className="p-4 md:p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-100 dark:border-white/5">
           <div className="flex gap-1 p-1.5 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/5 w-fit max-w-full overflow-x-auto">
@@ -300,7 +300,7 @@ export function ReviewsModeration({
                 <span className="text-[10px] font-black uppercase tracking-widest">{t.label}</span>
                 <span
                   className={clsx(
-                    "min-w-[1.5rem] px-1.5 py-0.5 rounded-full text-[10px] font-black text-center",
+                    "min-w-6 px-1.5 py-0.5 rounded-full text-[10px] font-black text-center",
                     activeBucket === t.id
                       ? "bg-white text-primary"
                       : counts[t.id] > 0 && t.id !== "published"
@@ -324,7 +324,7 @@ export function ReviewsModeration({
         </div>
 
         {/* Filters */}
-        <div className="px-4 md:px-5 py-4 flex flex-wrap items-center gap-3 border-b border-slate-100 dark:border-white/5 bg-slate-50/40 dark:bg-white/[0.02]">
+        <div className="px-4 md:px-5 py-4 flex flex-wrap items-center gap-3 border-b border-slate-100 dark:border-white/5 bg-slate-50/40 dark:bg-white/2">
           <div className="relative flex-1 min-w-[220px]">
             <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
             <input
@@ -332,7 +332,7 @@ export function ReviewsModeration({
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search reviewer, comment or shop…"
               aria-label="Search reviews"
-              className="w-full h-10 pl-10 pr-9 bg-white dark:bg-zinc-950/50 border border-slate-200 dark:border-white/5 rounded-xl text-sm font-medium text-charcoal dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10"
+              className="w-full h-10 pl-10 pr-9 bg-white dark:bg-zinc-950/50 border border-slate-200 dark:border-white/5 rounded-xl text-sm font-medium text-charcoal dark:text-white placeholder:text-slate-400 focus:outline-hidden focus:border-primary focus:ring-4 focus:ring-primary/10"
             />
             {search && (
               <button
@@ -441,7 +441,7 @@ function SummaryCard({
   tone: string;
 }) {
   return (
-    <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-[2rem] p-5 shadow-sm min-w-0">
+    <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-4xl p-5 shadow-xs min-w-0">
       <span className={clsx("w-10 h-10 rounded-xl flex items-center justify-center", tone)}>{icon}</span>
       <p className={clsx(LABEL, "mt-4 truncate")}>{label}</p>
       <p className="mt-1 text-3xl font-black tracking-tighter text-charcoal dark:text-white">{value}</p>
@@ -475,7 +475,7 @@ function Select({
         onChange={(e) => onChange(e.target.value)}
         aria-label={label}
         className={clsx(
-          "appearance-none bg-transparent text-sm font-bold focus:outline-none cursor-pointer truncate",
+          "appearance-none bg-transparent text-sm font-bold focus:outline-hidden cursor-pointer truncate",
           active ? "text-primary" : "text-charcoal dark:text-white",
         )}
       >
@@ -606,7 +606,7 @@ function ReviewItem({
           {comment ? (
             <p
               className={clsx(
-                "text-sm text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-line [overflow-wrap:anywhere]",
+                "text-sm text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-line wrap-anywhere",
                 !expanded && "line-clamp-2",
               )}
             >
@@ -636,7 +636,7 @@ function ReviewItem({
           {r.reply && (
             <div className="pl-3 border-l-2 border-primary/40">
               <p className="text-[10px] font-black uppercase tracking-widest text-primary">Shop reply</p>
-              <p className="text-sm text-slate-600 dark:text-slate-300 whitespace-pre-line [overflow-wrap:anywhere]">
+              <p className="text-sm text-slate-600 dark:text-slate-300 whitespace-pre-line wrap-anywhere">
                 {r.reply}
               </p>
             </div>
@@ -824,13 +824,13 @@ function DeleteReviewModal({
   }, [busy, onCancel]);
 
   return (
-    <div className="fixed inset-0 z-[250] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => !busy && onCancel()} />
+    <div className="fixed inset-0 z-250 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-xs" onClick={() => !busy && onCancel()} />
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="delete-review-title"
-        className="relative w-full max-w-md bg-white dark:bg-zinc-950 rounded-[2rem] shadow-2xl overflow-hidden animate-fade-in-up"
+        className="relative w-full max-w-md bg-white dark:bg-zinc-950 rounded-4xl shadow-2xl overflow-hidden animate-fade-in-up"
       >
         <div className="p-8 space-y-5">
           <div className="w-12 h-12 rounded-2xl bg-red-500/10 text-red-600 flex items-center justify-center">

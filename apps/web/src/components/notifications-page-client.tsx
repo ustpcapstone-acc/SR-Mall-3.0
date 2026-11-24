@@ -170,7 +170,7 @@ export default function NotificationsPageClient() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 p-1.5 bg-white dark:bg-zinc-900 rounded-2xl border border-slate-100 dark:border-white/5 w-fit max-w-full overflow-x-auto shadow-sm">
+      <div className="flex gap-1 p-1.5 bg-white dark:bg-zinc-900 rounded-2xl border border-slate-100 dark:border-white/5 w-fit max-w-full overflow-x-auto shadow-xs">
         {TABS.map((t) => (
           <button
             key={t.key}
@@ -190,7 +190,7 @@ export default function NotificationsPageClient() {
       </div>
 
       {/* List */}
-      <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-[2rem] shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-4xl shadow-xs overflow-hidden">
         {loading ? (
           <div className="py-24 flex justify-center">
             <Loader2 className="animate-spin text-primary" size={28} />
@@ -208,14 +208,14 @@ export default function NotificationsPageClient() {
             {items.map((n, i) => (
               <li key={n.id}>
                 {startsNewDay(items[i - 1]?.createdAt, n.createdAt) && (
-                  <p className="px-6 pt-5 pb-2 text-[10px] font-black uppercase tracking-widest text-slate-400 bg-slate-50/60 dark:bg-white/[0.02] border-y border-slate-100 dark:border-white/5 first:border-t-0">
+                  <p className="px-6 pt-5 pb-2 text-[10px] font-black uppercase tracking-widest text-slate-400 bg-slate-50/60 dark:bg-white/2 border-y border-slate-100 dark:border-white/5 first:border-t-0">
                     {formatDayLabel(n.createdAt)}
                   </p>
                 )}
                 <div
                   className={clsx(
                     "group flex items-start gap-4 px-6 py-4 border-b border-slate-100 dark:border-white/5 transition-colors",
-                    n.isRead ? "hover:bg-slate-50 dark:hover:bg-zinc-800/40" : "bg-primary/[0.04] hover:bg-primary/[0.07]",
+                    n.isRead ? "hover:bg-slate-50 dark:hover:bg-zinc-800/40" : "bg-primary/4 hover:bg-primary/[0.07]",
                   )}
                 >
                   <button type="button" onClick={() => open(n)} className="flex items-start gap-4 flex-1 min-w-0 text-left">
@@ -225,7 +225,7 @@ export default function NotificationsPageClient() {
                         <span className={clsx("text-sm text-charcoal dark:text-white", n.isRead ? "font-medium" : "font-black")}>{n.title}</span>
                         {!n.isRead && <span className="w-2 h-2 rounded-full bg-primary" aria-label="Unread" />}
                       </span>
-                      <span className="block text-sm text-slate-500 dark:text-slate-400 mt-0.5 [overflow-wrap:anywhere]">{n.message}</span>
+                      <span className="block text-sm text-slate-500 dark:text-slate-400 mt-0.5 wrap-anywhere">{n.message}</span>
                       <span className="flex items-center gap-2 mt-1.5">
                         <NotificationTypeLabel type={n.type} />
                         <span className="text-[10px] font-bold text-slate-400">· {timeAgo(n.createdAt)}</span>

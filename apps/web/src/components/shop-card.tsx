@@ -90,7 +90,7 @@ export const ShopCard = ({ shop, onClick, onMessage }: ShopCardProps) => {
       onMouseEnter={promoVideo ? startPreview : undefined}
       onMouseLeave={promoVideo ? stopPreview : undefined}
       className={clsx(
-        "group relative h-full bg-white dark:bg-zinc-900 rounded-[1.25rem] sm:rounded-[2rem] border border-slate-100 dark:border-white/5 overflow-hidden transition-all duration-700 shadow-sm hover:shadow-2xl hover:-translate-y-2",
+        "group relative h-full bg-white dark:bg-zinc-900 rounded-[1.25rem] sm:rounded-4xl border border-slate-100 dark:border-white/5 overflow-hidden transition-all duration-700 shadow-xs hover:shadow-2xl hover:-translate-y-2",
         !is_open && "opacity-80",
       )}
     >
@@ -104,11 +104,11 @@ export const ShopCard = ({ shop, onClick, onMessage }: ShopCardProps) => {
           }
         }}
         aria-label={`Visit ${shop_name}`}
-        className="absolute inset-0 z-10 rounded-[1.25rem] sm:rounded-[2rem] focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+        className="absolute inset-0 z-10 rounded-[1.25rem] sm:rounded-4xl focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-primary"
       />
 
       {/* Photo */}
-      <div className={clsx("aspect-[4/3] sm:aspect-[16/10] relative overflow-hidden bg-slate-100 dark:bg-black", !is_open && "grayscale-[60%]")}>
+      <div className={clsx("aspect-4/3 sm:aspect-16/10 relative overflow-hidden bg-slate-100 dark:bg-black", !is_open && "grayscale-60")}>
         {promoVideo ? (
           <>
             <video
@@ -149,7 +149,7 @@ export const ShopCard = ({ shop, onClick, onMessage }: ShopCardProps) => {
           />
         ) : logo ? (
           // No gallery photo yet: the logo on a soft background.
-          <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-zinc-900 dark:to-zinc-950">
+          <div className="absolute inset-0 flex items-center justify-center bg-linear-to-br from-slate-50 to-slate-100 dark:from-zinc-900 dark:to-zinc-950">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={logo}
@@ -160,7 +160,7 @@ export const ShopCard = ({ shop, onClick, onMessage }: ShopCardProps) => {
             />
           </div>
         ) : (
-          <div className="absolute inset-0 flex flex-col items-center justify-center p-4 sm:p-8 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-zinc-900 dark:to-zinc-950">
+          <div className="absolute inset-0 flex flex-col items-center justify-center p-4 sm:p-8 bg-linear-to-br from-slate-50 to-slate-100 dark:from-zinc-900 dark:to-zinc-950">
             <Store className="w-6 h-6 sm:w-12 sm:h-12 text-slate-200 dark:text-zinc-800 mb-2 sm:mb-4" />
             <p className="text-[8px] sm:text-[10px] font-black text-slate-300 uppercase tracking-widest text-center">
               Storefront <br />
@@ -169,13 +169,13 @@ export const ShopCard = ({ shop, onClick, onMessage }: ShopCardProps) => {
           </div>
         )}
 
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity duration-500" />
+        <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity duration-500" />
 
         {/* Status pill (same style as the slot card) */}
         <div className="absolute top-2 sm:top-6 right-2 sm:right-6">
           <div
             className={clsx(
-              "backdrop-blur-xl px-2 sm:px-4 py-1 sm:py-2 rounded-full border text-[7px] sm:text-[9px] font-black uppercase tracking-[0.1em] sm:tracking-[0.2em] shadow-2xl",
+              "backdrop-blur-xl px-2 sm:px-4 py-1 sm:py-2 rounded-full border text-[7px] sm:text-[9px] font-black uppercase tracking-widest sm:tracking-[0.2em] shadow-2xl",
               is_open
                 ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-400"
                 : "bg-zinc-800/40 border-zinc-400/40 text-zinc-200",
@@ -218,7 +218,7 @@ export const ShopCard = ({ shop, onClick, onMessage }: ShopCardProps) => {
         {/* Name + location over the photo */}
         <div className="absolute bottom-3 sm:bottom-6 left-3 sm:left-8 right-3 sm:right-8">
           {promo && (
-            <span className="inline-flex max-w-full items-center gap-1 mb-1.5 sm:mb-2.5 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full bg-primary text-white text-[7px] sm:text-[9px] font-black uppercase tracking-[0.1em] sm:tracking-[0.2em] shadow-lg shadow-primary/40">
+            <span className="inline-flex max-w-full items-center gap-1 mb-1.5 sm:mb-2.5 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full bg-primary text-white text-[7px] sm:text-[9px] font-black uppercase tracking-widest sm:tracking-[0.2em] shadow-lg shadow-primary/40">
               <Flame className="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0" fill="currentColor" />
               <span className="truncate">Promo · {promo.title}</span>
             </span>

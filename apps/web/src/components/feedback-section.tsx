@@ -285,7 +285,7 @@ export const FeedbackSection = ({
           "py-16",
           "sm:py-20",
           "lg:py-24",
-          "bg-gradient-to-b",
+          "bg-linear-to-b",
           "from-zinc-50",
           "to-white",
           "dark:from-zinc-950",
@@ -395,7 +395,7 @@ export const FeedbackSection = ({
                       </span>
                     </div>
                   </div>
-                  <p className="text-xs sm:text-sm font-bold text-slate-500 dark:text-slate-400 italic break-words [overflow-wrap:anywhere] whitespace-pre-line">
+                  <p className="text-xs sm:text-sm font-bold text-slate-500 dark:text-slate-400 italic wrap-break-word wrap-anywhere whitespace-pre-line">
                     "{myPendingReview.comment}"
                   </p>
                 </div>
@@ -427,7 +427,7 @@ export const FeedbackSection = ({
                       "dark:bg-zinc-900",
                       "rounded-xl",
                       "sm:rounded-2xl",
-                      "shadow-sm",
+                      "shadow-xs",
                       "border",
                       "border-slate-100",
                       "dark:border-white/5",
@@ -462,7 +462,7 @@ export const FeedbackSection = ({
                             "h-8",
                             "sm:w-12",
                             "sm:h-12",
-                            "bg-gradient-to-br",
+                            "bg-linear-to-br",
                             "from-primary/20",
                             "to-primary/5",
                             "dark:from-zinc-800",
@@ -501,7 +501,7 @@ export const FeedbackSection = ({
                               {review.user?.name || "Anonymous"}
                             </h4>
                             {review.user?.role === "ADMIN" && (
-                              <span className="px-1.5 py-0.5 bg-primary/10 text-primary border border-primary/20 rounded text-[8px] font-black uppercase tracking-wider shrink-0">
+                              <span className="px-1.5 py-0.5 bg-primary/10 text-primary border border-primary/20 rounded-sm text-[8px] font-black uppercase tracking-wider shrink-0">
                                 Admin
                               </span>
                             )}
@@ -564,8 +564,8 @@ export const FeedbackSection = ({
                           "dark:text-slate-300",
                           "leading-relaxed",
                           "font-medium",
-                          "break-words",
-                          "[overflow-wrap:anywhere]",
+                          "wrap-break-word",
+                          "wrap-anywhere",
                           "whitespace-pre-line",
                           "mt-2",
                         )}
@@ -578,7 +578,7 @@ export const FeedbackSection = ({
                         <p className="text-[10px] font-black uppercase tracking-widest text-primary">
                           Reply from the shop
                         </p>
-                        <p className="mt-1 text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-line [overflow-wrap:anywhere]">
+                        <p className="mt-1 text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-line wrap-anywhere">
                           {review.reply}
                         </p>
                       </div>
@@ -867,7 +867,7 @@ export const FeedbackSection = ({
                           "dark:text-white",
                           "focus:ring-2",
                           "focus:ring-primary/20",
-                          "outline-none",
+                          "outline-hidden",
                           "border",
                           "border-transparent",
                           "transition-all",
@@ -917,14 +917,14 @@ export const FeedbackSection = ({
 
       {languageWarning && (
         <div
-          className="fixed inset-0 z-[120] flex items-center justify-center bg-charcoal/80 p-4 backdrop-blur-md animate-fade-in"
+          className="fixed inset-0 z-120 flex items-center justify-center bg-charcoal/80 p-4 backdrop-blur-md animate-fade-in"
           role="dialog"
           aria-modal="true"
           aria-labelledby="language-warning-title"
           onClick={dismissLanguageWarning}
         >
           <div
-            className="w-full max-w-md overflow-hidden rounded-[2rem] border border-white/10 bg-white shadow-2xl animate-scale-in dark:bg-zinc-900"
+            className="w-full max-w-md overflow-hidden rounded-4xl border border-white/10 bg-white shadow-2xl animate-scale-in dark:bg-zinc-900"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="p-6 sm:p-8 space-y-4">
@@ -984,7 +984,7 @@ export const FeedbackSection = ({
               )}
             </div>
 
-            <div className="border-t border-slate-100 bg-slate-50/60 p-5 dark:border-white/5 dark:bg-white/[0.02]">
+            <div className="border-t border-slate-100 bg-slate-50/60 p-5 dark:border-white/5 dark:bg-white/2">
               <button
                 type="button"
                 onClick={dismissLanguageWarning}

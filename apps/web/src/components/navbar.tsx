@@ -415,7 +415,7 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
                           "dark:border-white/5",
                           "animate-fade-in-up",
                           "overflow-hidden",
-                          "z-[60]",
+                          "z-60",
                         )}
                       >
                         <div

@@ -213,8 +213,8 @@ export const MerchantApplicationModal = ({
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
-      <div className="relative w-full max-w-2xl bg-white dark:bg-zinc-950 rounded-[2rem] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-500 border border-slate-100 dark:border-white/5 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
+      <div className="relative w-full max-w-2xl bg-white dark:bg-zinc-950 rounded-4xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-500 border border-slate-100 dark:border-white/5 max-h-[90vh] overflow-y-auto">
         <button
           onClick={onClose}
           className="absolute top-6 right-6 p-2 text-slate-400 hover:text-charcoal dark:hover:text-white bg-slate-100 dark:bg-white/5 rounded-full transition-all z-10"
@@ -236,7 +236,7 @@ export const MerchantApplicationModal = ({
           ) : existingStatus && existingStatus !== "PAST" && !isSuccess ? (
             <div className="text-center py-10 space-y-6">
               <div
-                className={`w-20 h-20 rounded-[2rem] flex items-center justify-center mx-auto border ${
+                className={`w-20 h-20 rounded-4xl flex items-center justify-center mx-auto border ${
                   existingStatus === "REJECTED"
                     ? "bg-red-500/10 text-red-500 border-red-500/20"
                     : "bg-primary/10 text-primary border-primary/20"
@@ -278,7 +278,7 @@ export const MerchantApplicationModal = ({
             </div>
           ) : isSuccess ? (
             <div className="text-center py-10 space-y-6">
-              <div className="w-20 h-20 bg-emerald-500/10 text-emerald-500 rounded-[2rem] flex items-center justify-center mx-auto border border-emerald-500/20">
+              <div className="w-20 h-20 bg-emerald-500/10 text-emerald-500 rounded-4xl flex items-center justify-center mx-auto border border-emerald-500/20">
                 <CheckCircle2 size={40} />
               </div>
               <div className="space-y-2">
@@ -326,7 +326,7 @@ export const MerchantApplicationModal = ({
                   <input
                     type="text"
                     placeholder="e.g. Luxe Couture"
-                    className={`w-full px-5 py-3.5 bg-slate-50 dark:bg-white/5 border rounded-2xl text-charcoal dark:text-white font-bold focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-slate-300 ${errors.shopName && touched.shopName ? "border-red-300" : "border-slate-100 dark:border-white/5"}`}
+                    className={`w-full px-5 py-3.5 bg-slate-50 dark:bg-white/5 border rounded-2xl text-charcoal dark:text-white font-bold focus:outline-hidden focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-slate-300 ${errors.shopName && touched.shopName ? "border-red-300" : "border-slate-100 dark:border-white/5"}`}
                     value={formData.shopName}
                     onChange={(e) => handleChange("shopName", e.target.value)}
                     onBlur={() => handleBlur("shopName")}
@@ -349,7 +349,7 @@ export const MerchantApplicationModal = ({
                     <span className="text-red-500">*</span>
                   </label>
                   <select
-                    className={`w-full px-5 py-3.5 bg-slate-50 dark:bg-white/5 border rounded-2xl text-charcoal dark:text-white font-bold focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all cursor-pointer ${errors.category && touched.category ? "border-red-300" : "border-slate-100 dark:border-white/5"} ${!formData.category && "text-slate-400"}`}
+                    className={`w-full px-5 py-3.5 bg-slate-50 dark:bg-white/5 border rounded-2xl text-charcoal dark:text-white font-bold focus:outline-hidden focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all cursor-pointer ${errors.category && touched.category ? "border-red-300" : "border-slate-100 dark:border-white/5"} ${!formData.category && "text-slate-400"}`}
                     value={formData.category}
                     onChange={(e) => handleChange("category", e.target.value)}
                     onBlur={() => handleBlur("category")}
@@ -377,7 +377,7 @@ export const MerchantApplicationModal = ({
                   <textarea
                     rows={4}
                     placeholder="Describe your products, services, target audience, and what makes your business unique..."
-                    className={`w-full px-5 py-3.5 bg-slate-50 dark:bg-white/5 border rounded-2xl text-charcoal dark:text-white font-medium focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-slate-300 resize-none ${errors.description && touched.description ? "border-red-300" : "border-slate-100 dark:border-white/5"}`}
+                    className={`w-full px-5 py-3.5 bg-slate-50 dark:bg-white/5 border rounded-2xl text-charcoal dark:text-white font-medium focus:outline-hidden focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-slate-300 resize-none ${errors.description && touched.description ? "border-red-300" : "border-slate-100 dark:border-white/5"}`}
                     value={formData.description}
                     onChange={(e) =>
                       handleChange("description", e.target.value)
@@ -405,7 +405,7 @@ export const MerchantApplicationModal = ({
                     <input
                       type="email"
                       placeholder="your@email.com"
-                      className={`w-full px-5 py-3.5 bg-slate-50 dark:bg-white/5 border rounded-2xl text-charcoal dark:text-white font-bold focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-slate-300 ${errors.contactEmail && touched.contactEmail ? "border-red-300" : "border-slate-100 dark:border-white/5"}`}
+                      className={`w-full px-5 py-3.5 bg-slate-50 dark:bg-white/5 border rounded-2xl text-charcoal dark:text-white font-bold focus:outline-hidden focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-slate-300 ${errors.contactEmail && touched.contactEmail ? "border-red-300" : "border-slate-100 dark:border-white/5"}`}
                       value={formData.contactEmail}
                       onChange={(e) =>
                         handleChange("contactEmail", e.target.value)
@@ -426,7 +426,7 @@ export const MerchantApplicationModal = ({
                     <input
                       type="tel"
                       placeholder="+63 9XX XXX XXXX"
-                      className={`w-full px-5 py-3.5 bg-slate-50 dark:bg-white/5 border rounded-2xl text-charcoal dark:text-white font-bold focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-slate-300 ${errors.contactPhone && touched.contactPhone ? "border-red-300" : "border-slate-100 dark:border-white/5"}`}
+                      className={`w-full px-5 py-3.5 bg-slate-50 dark:bg-white/5 border rounded-2xl text-charcoal dark:text-white font-bold focus:outline-hidden focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-slate-300 ${errors.contactPhone && touched.contactPhone ? "border-red-300" : "border-slate-100 dark:border-white/5"}`}
                       value={formData.contactPhone}
                       onChange={(e) =>
                         handleChange("contactPhone", e.target.value)

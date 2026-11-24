@@ -732,7 +732,7 @@ export default function PublicViewCMSPage() {
             href="/"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-2 px-6 py-4 bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-slate-300 font-black text-[10px] uppercase tracking-widest rounded-2xl hover:bg-slate-200 dark:hover:bg-zinc-700 transition-all border border-slate-200 dark:border-white/5 shadow-sm active:scale-95"
+            className="flex items-center gap-2 px-6 py-4 bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-slate-300 font-black text-[10px] uppercase tracking-widest rounded-2xl hover:bg-slate-200 dark:hover:bg-zinc-700 transition-all border border-slate-200 dark:border-white/5 shadow-xs active:scale-95"
           >
             <ExternalLink size={16} /> Live Preview
           </a>
@@ -882,7 +882,7 @@ export default function PublicViewCMSPage() {
                             onClick={() => handleConfigChange("themeColor", preset.hex)}
                             className={clsx(
                               "w-9 h-9 rounded-xl border-2 transition-transform hover:scale-110",
-                              selected ? "border-charcoal dark:border-white scale-110" : "border-white dark:border-zinc-800 shadow-sm",
+                              selected ? "border-charcoal dark:border-white scale-110" : "border-white dark:border-zinc-800 shadow-xs",
                             )}
                             style={{ backgroundColor: preset.hex }}
                           />
@@ -904,7 +904,7 @@ export default function PublicViewCMSPage() {
                         <input
                           value={config.themeColor ?? ""}
                           onChange={(e) => handleConfigChange("themeColor", e.target.value)}
-                          className={clsx("cms-input !w-32 !py-2 font-mono uppercase", configErrors.themeColor && "!border-red-500")}
+                          className={clsx("cms-input w-32! py-2! font-mono uppercase", configErrors.themeColor && "border-red-500!")}
                           placeholder={DEFAULT_THEME_COLOR}
                           aria-label="Theme colour hex code"
                         />
@@ -1201,7 +1201,7 @@ export default function PublicViewCMSPage() {
                     <p className="text-[11px] font-black uppercase tracking-widest text-slate-400">
                       Visionary asset
                     </p>
-                    <div className="aspect-[4/5] bg-slate-100 dark:bg-zinc-800 rounded-3xl border-2 border-dashed border-slate-300 dark:border-white/10 flex items-center justify-center overflow-hidden relative group">
+                    <div className="aspect-4/5 bg-slate-100 dark:bg-zinc-800 rounded-3xl border-2 border-dashed border-slate-300 dark:border-white/10 flex items-center justify-center overflow-hidden relative group">
                       {config.aboutImageUrl ? (
                         <img
                           src={config.aboutImageUrl}
@@ -1432,7 +1432,7 @@ export default function PublicViewCMSPage() {
                 sub="Manage tenant promotional posts and sales announcements."
               />
 
-              <div className="bg-white dark:bg-zinc-900/50 border border-slate-100 dark:border-white/5 rounded-[2.5rem] p-6 shadow-sm">
+              <div className="bg-white dark:bg-zinc-900/50 border border-slate-100 dark:border-white/5 rounded-[2.5rem] p-6 shadow-xs">
                 {activePostSales.length === 0 ? (
                   <div className="py-20 text-center">
                     <Monitor size={48} className="mx-auto text-slate-300 mb-4" />
@@ -1504,7 +1504,7 @@ export default function PublicViewCMSPage() {
                       Past Shop Sales <span className="text-slate-400 font-bold normal-case tracking-normal">· no longer shown on the public page</span>
                     </h3>
                   </div>
-                  <div className="bg-white dark:bg-zinc-900/50 border border-slate-100 dark:border-white/5 rounded-[2.5rem] p-6 shadow-sm">
+                  <div className="bg-white dark:bg-zinc-900/50 border border-slate-100 dark:border-white/5 rounded-[2.5rem] p-6 shadow-xs">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {pastPostSales.map((sale: any) => (
                       <div key={sale.id} className={`group relative bg-slate-50 dark:bg-zinc-800/50 rounded-3xl border border-slate-200 dark:border-white/10 overflow-hidden flex flex-col ${isSaleActive(sale) ? "" : "opacity-70"}`}>
@@ -1592,9 +1592,9 @@ export default function PublicViewCMSPage() {
                   carouselItems.map((item: any) => (
                     <div
                       key={item.id}
-                      className="bg-white dark:bg-zinc-900/50 border border-slate-100 dark:border-white/5 rounded-[2.5rem] overflow-hidden group shadow-sm hover:shadow-xl transition-all"
+                      className="bg-white dark:bg-zinc-900/50 border border-slate-100 dark:border-white/5 rounded-[2.5rem] overflow-hidden group shadow-xs hover:shadow-xl transition-all"
                     >
-                      <div className="aspect-[16/9] relative">
+                      <div className="aspect-video relative">
                         <img
                           src={item.imageUrl}
                           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
@@ -1676,7 +1676,7 @@ export default function PublicViewCMSPage() {
                   <div
                     key={ev.id}
                     className={clsx(
-                      "bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-[2.5rem] p-6 shadow-sm flex flex-col justify-between",
+                      "bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-[2.5rem] p-6 shadow-xs flex flex-col justify-between",
                       ev.isPast && "opacity-70",
                     )}
                   >
@@ -1723,7 +1723,7 @@ export default function PublicViewCMSPage() {
                     <h3 className="text-xl font-black text-charcoal dark:text-white uppercase tracking-tight mb-6">
                       {ev.eventName || ev.eventType}
                     </h3>
-                    <div className="aspect-[16/9] w-full bg-slate-100 dark:bg-zinc-800 rounded-3xl overflow-hidden relative group">
+                    <div className="aspect-video w-full bg-slate-100 dark:bg-zinc-800 rounded-3xl overflow-hidden relative group">
                       {ev.imageUrl ? (
                         <img
                           src={ev.imageUrl}
@@ -1738,7 +1738,7 @@ export default function PublicViewCMSPage() {
                         </div>
                       )}
                       {!ev.isPast && (
-                        <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity backdrop-blur-sm">
+                        <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity backdrop-blur-xs">
                           <div className="flex flex-col items-center">
                             <Plus size={24} className="text-white mb-2" />
                             <span className="text-[10px] font-black text-white uppercase tracking-widest">
@@ -1859,7 +1859,7 @@ export default function PublicViewCMSPage() {
                 })}
               </div>
 
-              <div className="bg-white dark:bg-zinc-900/50 border border-slate-100 dark:border-white/5 rounded-[2.5rem] p-6 shadow-sm">
+              <div className="bg-white dark:bg-zinc-900/50 border border-slate-100 dark:border-white/5 rounded-[2.5rem] p-6 shadow-xs">
                 {lostAndFoundItems.filter((item) => {
                   if (lfFilter === "ALL") return true;
                   if (lfFilter === "CLAIMED") return item.status === "CLAIMED";
@@ -1928,12 +1928,12 @@ export default function PublicViewCMSPage() {
                                 {item.type}
                               </span>
                               {item.status === "CLAIMED" && (
-                                <span className="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest bg-emerald-500 text-white border border-white/10 shadow-sm flex items-center gap-1">
+                                <span className="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest bg-emerald-500 text-white border border-white/10 shadow-xs flex items-center gap-1">
                                   <CheckCircle size={10} /> CLAIMED
                                 </span>
                               )}
                               {item.status === "PENDING" && (
-                                <span className="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest bg-amber-500 text-white border border-white/10 shadow-sm animate-pulse">
+                                <span className="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest bg-amber-500 text-white border border-white/10 shadow-xs animate-pulse">
                                   NEW REPORT
                                 </span>
                               )}
@@ -1966,7 +1966,7 @@ export default function PublicViewCMSPage() {
                                 value={item.status}
                                 onChange={(e) => handleUpdateStatus(item.id, e.target.value)}
                                 className={clsx(
-                                  "border rounded-lg text-xs font-bold px-2.5 py-1.5 outline-none transition-all",
+                                  "border rounded-lg text-xs font-bold px-2.5 py-1.5 outline-hidden transition-all",
                                   item.status === "CLAIMED"
                                     ? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800"
                                     : item.status === "PENDING"
@@ -1985,7 +1985,7 @@ export default function PublicViewCMSPage() {
                                 {item.status !== "CLAIMED" && (
                                   <button
                                     onClick={() => handleUpdateStatus(item.id, "CLAIMED")}
-                                    className="px-2.5 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-[10px] font-black uppercase tracking-wider rounded-lg transition-all shadow-sm flex items-center gap-1 shrink-0"
+                                    className="px-2.5 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-[10px] font-black uppercase tracking-wider rounded-lg transition-all shadow-xs flex items-center gap-1 shrink-0"
                                     title="Mark this item as Claimed"
                                   >
                                     <CheckCircle size={12} /> Claim
@@ -2042,7 +2042,7 @@ export default function PublicViewCMSPage() {
 
       {/* Carousel Modal */}
       {isCarouselModalOpen && (
-        <div className="fixed inset-0 bg-charcoal/80 backdrop-blur-md z-[100] flex items-center justify-center p-6 animate-fade-in">
+        <div className="fixed inset-0 bg-charcoal/80 backdrop-blur-md z-100 flex items-center justify-center p-6 animate-fade-in">
           <div className="bg-white dark:bg-zinc-900 w-full max-w-2xl rounded-[3rem] border border-white/10 shadow-2xl overflow-hidden animate-scale-in">
             <div className="p-10 border-b border-slate-100 dark:border-white/5 flex items-center justify-between bg-slate-50/50 dark:bg-white/5">
               <div>
@@ -2184,7 +2184,7 @@ export default function PublicViewCMSPage() {
                     : handleCreateCarouselItem
                 }
                 disabled={isSaving}
-                className="flex-[2] py-4 bg-primary text-white font-black text-[10px] uppercase tracking-[0.2em] rounded-2xl shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
+                className="flex-2 py-4 bg-primary text-white font-black text-[10px] uppercase tracking-[0.2em] rounded-2xl shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
               >
                 {isSaving ? (
                   <Loader2 size={16} className="animate-spin" />
@@ -2200,7 +2200,7 @@ export default function PublicViewCMSPage() {
 
       {/* Event Info Modal */}
       {isEventInfoModalOpen && (
-        <div className="fixed inset-0 bg-charcoal/80 backdrop-blur-md z-[100] flex items-center justify-center p-4 sm:p-6 animate-fade-in">
+        <div className="fixed inset-0 bg-charcoal/80 backdrop-blur-md z-100 flex items-center justify-center p-4 sm:p-6 animate-fade-in">
           <div className="bg-white dark:bg-zinc-900 w-full max-w-2xl rounded-[2.5rem] border border-white/10 shadow-2xl overflow-hidden animate-scale-in flex flex-col max-h-[90vh]">
             <div className="p-6 sm:p-8 border-b border-slate-100 dark:border-white/5 flex items-center justify-between bg-slate-50/50 dark:bg-white/5 shrink-0">
               <div>
@@ -2351,7 +2351,7 @@ export default function PublicViewCMSPage() {
               <button
                 onClick={handleUpdateEventInfo}
                 disabled={isSaving}
-                className="flex-[2] py-3 bg-primary text-white font-black text-[10px] uppercase tracking-[0.2em] rounded-2xl shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:hover:scale-100"
+                className="flex-2 py-3 bg-primary text-white font-black text-[10px] uppercase tracking-[0.2em] rounded-2xl shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:hover:scale-100"
               >
                 {isSaving ? "Saving…" : "Save changes"}
               </button>
@@ -2361,7 +2361,7 @@ export default function PublicViewCMSPage() {
       )}
 
       {deleteEventTarget && (
-        <div className="fixed inset-0 bg-charcoal/80 backdrop-blur-md z-[100] flex items-center justify-center p-4 sm:p-6 animate-fade-in">
+        <div className="fixed inset-0 bg-charcoal/80 backdrop-blur-md z-100 flex items-center justify-center p-4 sm:p-6 animate-fade-in">
           <div className="bg-white dark:bg-zinc-900 w-full max-w-md rounded-[2.5rem] border border-white/10 shadow-2xl overflow-hidden animate-scale-in">
             <div className="p-8 space-y-5">
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-red-500/10 text-red-500">
@@ -2380,7 +2380,7 @@ export default function PublicViewCMSPage() {
                 </p>
               </div>
             </div>
-            <div className="flex gap-3 border-t border-slate-100 bg-slate-50/60 p-6 dark:border-white/5 dark:bg-white/[0.02]">
+            <div className="flex gap-3 border-t border-slate-100 bg-slate-50/60 p-6 dark:border-white/5 dark:bg-white/2">
               <button
                 type="button"
                 disabled={isSaving}
@@ -2404,8 +2404,8 @@ export default function PublicViewCMSPage() {
 
       {/* Lost and Found Modal */}
       {isLostFoundModalOpen && (
-        <div className="fixed inset-0 bg-charcoal/80 backdrop-blur-md z-[100] flex items-center justify-center p-4 sm:p-6 animate-fade-in">
-          <div className="bg-white dark:bg-zinc-900 w-full max-w-2xl rounded-[2rem] sm:rounded-[3rem] border border-white/10 shadow-2xl overflow-hidden animate-scale-in flex flex-col max-h-[90vh]">
+        <div className="fixed inset-0 bg-charcoal/80 backdrop-blur-md z-100 flex items-center justify-center p-4 sm:p-6 animate-fade-in">
+          <div className="bg-white dark:bg-zinc-900 w-full max-w-2xl rounded-4xl sm:rounded-[3rem] border border-white/10 shadow-2xl overflow-hidden animate-scale-in flex flex-col max-h-[90vh]">
             <div className="p-6 sm:p-8 md:p-10 border-b border-slate-100 dark:border-white/5 flex items-center justify-between bg-slate-50/50 dark:bg-white/5 shrink-0">
               <div>
                 <h3 className="text-2xl font-black text-charcoal dark:text-white uppercase italic tracking-tighter">
@@ -2500,7 +2500,7 @@ export default function PublicViewCMSPage() {
               <button
                 onClick={handleCreateLostFound}
                 disabled={isSaving || !lostFoundForm.title || !lostFoundForm.location}
-                className="flex-[2] py-4 bg-primary text-white font-black text-[10px] uppercase tracking-[0.2em] rounded-2xl shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                className="flex-2 py-4 bg-primary text-white font-black text-[10px] uppercase tracking-[0.2em] rounded-2xl shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 {isSaving ? (
                   <Loader2 size={16} className="animate-spin" />
@@ -2652,7 +2652,7 @@ function Field({
   children: React.ReactNode;
 }) {
   return (
-    <div className={clsx("space-y-2", error && "[&_.cms-input]:!border-red-500")}>
+    <div className={clsx("space-y-2", error && "[&_.cms-input]:border-red-500!")}>
       <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block">{label}</label>
       {children}
       {error ? <FieldError message={error} /> : hint ? <p className="text-xs text-slate-400">{hint}</p> : null}
@@ -2676,7 +2676,7 @@ function SettingsCard({
   children: React.ReactNode;
 }) {
   return (
-    <section className="bg-white dark:bg-zinc-900/50 border border-slate-100 dark:border-white/5 p-6 md:p-8 rounded-[2.5rem] shadow-sm space-y-6">
+    <section className="bg-white dark:bg-zinc-900/50 border border-slate-100 dark:border-white/5 p-6 md:p-8 rounded-[2.5rem] shadow-xs space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className={clsx("w-11 h-11 rounded-2xl flex items-center justify-center", tone)}>

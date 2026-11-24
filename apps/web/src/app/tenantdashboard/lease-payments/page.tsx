@@ -101,7 +101,7 @@ export default function LeasePayments() {
       {/* Toast */}
       {toast && (
         <div
-          className={`fixed top-6 right-4 sm:right-8 z-[300] flex items-center gap-3 px-4 sm:px-5 py-3 sm:py-4 font-bold text-sm rounded-2xl shadow-2xl animate-fade-in-up ${
+          className={`fixed top-6 right-4 sm:right-8 z-300 flex items-center gap-3 px-4 sm:px-5 py-3 sm:py-4 font-bold text-sm rounded-2xl shadow-2xl animate-fade-in-up ${
             toast.type === "success"
               ? "bg-emerald-500 text-white shadow-emerald-500/30"
               : "bg-red-500 text-white shadow-red-500/30"
@@ -160,7 +160,7 @@ export default function LeasePayments() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-          <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 p-4 sm:p-6 rounded-2xl sm:rounded-[2rem] shadow-sm flex flex-col justify-between">
+          <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 p-4 sm:p-6 rounded-2xl sm:rounded-4xl shadow-xs flex flex-col justify-between">
             <div className="flex justify-between items-start mb-4 sm:mb-6">
               <h3 className="text-slate-500 font-bold text-[10px] uppercase tracking-widest leading-none">
                 Account Standing
@@ -203,7 +203,7 @@ export default function LeasePayments() {
           </div>
 
           {/* Unit Assignment */}
-          <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 p-4 sm:p-6 rounded-2xl sm:rounded-[2rem] shadow-sm flex flex-col justify-between relative overflow-hidden group">
+          <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 p-4 sm:p-6 rounded-2xl sm:rounded-4xl shadow-xs flex flex-col justify-between relative overflow-hidden group">
             <div className="flex justify-between items-start mb-4 sm:mb-6 relative z-10">
               <div>
                 <h3 className="text-slate-500 font-bold text-[10px] uppercase tracking-widest leading-none mb-1">
@@ -256,7 +256,7 @@ export default function LeasePayments() {
         </div>
 
         {/* Payment Ledger Table */}
-        <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl sm:rounded-[2rem] shadow-sm overflow-hidden flex flex-col">
+        <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl sm:rounded-4xl shadow-xs overflow-hidden flex flex-col">
           <div className="p-4 sm:p-6 border-b border-slate-100 dark:border-white/5 flex items-center justify-between">
             <div>
               <h2 className="font-bold text-base sm:text-lg text-charcoal dark:text-white flex items-center gap-2">
@@ -381,7 +381,7 @@ export default function LeasePayments() {
                               onClick={() =>
                                 generateTenantReceiptPDF(row, storefront)
                               }
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-emerald-500/20 transition-all hover:scale-105 active:scale-95 shadow-sm shadow-emerald-500/10 cursor-pointer"
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-emerald-500/20 transition-all hover:scale-105 active:scale-95 shadow-xs shadow-emerald-500/10 cursor-pointer"
                             >
                               <Download size={10} /> Download receipt
                             </button>

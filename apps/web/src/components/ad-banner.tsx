@@ -156,7 +156,7 @@ export const AdBanner = ({
               />
             );
           })()}
-          <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent flex items-center">
+          <div className="absolute inset-0 bg-linear-to-r from-black/80 via-black/40 to-transparent flex items-center">
             <div className="max-w-7xl mx-auto px-5 sm:px-10 w-full flex flex-col lg:flex-row lg:items-center justify-between gap-10">
               <div className="max-w-xs sm:max-w-xl animate-fade-in-up">
                 <span className="inline-block px-3 sm:px-4 py-1 sm:py-1.5 bg-primary text-white text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.2em] mb-3 sm:mb-6 rounded-full shadow-lg shadow-primary/30">
@@ -189,7 +189,7 @@ export const AdBanner = ({
               {/* Search Bar - Positioned on the side within the banner */}
               <div className="hidden lg:block w-full max-w-md animate-fade-in-up delay-200">
                 <div className="relative group">
-                  <div className="absolute -inset-1 bg-gradient-to-r from-primary to-blue-600 rounded-3xl blur opacity-25 group-hover:opacity-40 transition duration-1000"></div>
+                  <div className="absolute -inset-1 bg-linear-to-r from-primary to-blue-600 rounded-3xl blur-sm opacity-25 group-hover:opacity-40 transition duration-1000"></div>
                   <div className="relative flex items-center bg-white/10 backdrop-blur-xl rounded-2xl p-2 border border-white/20 shadow-2xl">
                     <Search size={20} className="ml-4 text-white/60" />
                     <input
@@ -197,7 +197,7 @@ export const AdBanner = ({
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Search shops or products..."
-                      className="w-full px-4 py-3 bg-transparent text-white focus:outline-none text-sm font-medium placeholder:text-white/40"
+                      className="w-full px-4 py-3 bg-transparent text-white focus:outline-hidden text-sm font-medium placeholder:text-white/40"
                     />
                     <button
                       suppressHydrationWarning
@@ -210,7 +210,7 @@ export const AdBanner = ({
 
                   {/* Predictive Search Panel inside Banner */}
                   {searchQuery && (
-                    <div className="absolute top-full left-0 w-full mt-3 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-3xl shadow-3xl z-[100] overflow-hidden animate-in fade-in slide-in-from-top-2">
+                    <div className="absolute top-full left-0 w-full mt-3 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-3xl shadow-3xl z-100 overflow-hidden animate-in fade-in slide-in-from-top-2">
                       <div className="p-4 border-b border-slate-50 dark:border-white/5 flex items-center justify-between">
                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Quick Results</span>
                         <button suppressHydrationWarning onClick={() => setSearchQuery("")}>

@@ -328,7 +328,7 @@ export default function DigitalStorefrontPage() {
       {/* Toast */}
       {toast && (
         <div
-          className={`fixed top-6 right-4 sm:right-8 z-[300] flex items-center gap-3 px-4 py-3 rounded-2xl shadow-2xl text-white text-xs font-bold animate-fade-in-up ${toast.type === "success" ? "bg-emerald-500 shadow-emerald-500/30" : "bg-red-500 shadow-red-500/30"}`}
+          className={`fixed top-6 right-4 sm:right-8 z-300 flex items-center gap-3 px-4 py-3 rounded-2xl shadow-2xl text-white text-xs font-bold animate-fade-in-up ${toast.type === "success" ? "bg-emerald-500 shadow-emerald-500/30" : "bg-red-500 shadow-red-500/30"}`}
         >
           {toast.type === "success" ? (
             <CheckCircle size={15} />
@@ -350,7 +350,7 @@ export default function DigitalStorefrontPage() {
           mobile page) so the card keeps its live sizing and every element stays
           reachable; sm+ keeps the centred sheet. */}
       {previewOpen && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[200] flex items-stretch sm:items-center justify-center p-0 sm:p-6 lg:hidden">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-xs z-200 flex items-stretch sm:items-center justify-center p-0 sm:p-6 lg:hidden">
           <div className="w-full sm:max-w-md h-full sm:h-auto sm:max-h-[85vh] flex flex-col bg-white dark:bg-zinc-900 rounded-none sm:rounded-3xl overflow-hidden">
             <div className="shrink-0 flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-white/5">
               <div className="flex items-center gap-2">
@@ -396,7 +396,7 @@ export default function DigitalStorefrontPage() {
             {/* Mobile: Preview button */}
             <button
               onClick={() => setPreviewOpen(true)}
-              className="lg:hidden flex items-center gap-2 px-3 py-2.5 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-black text-slate-600 dark:text-slate-300 shadow-sm"
+              className="lg:hidden flex items-center gap-2 px-3 py-2.5 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-black text-slate-600 dark:text-slate-300 shadow-xs"
             >
               <Eye size={14} /> Preview
             </button>
@@ -436,7 +436,7 @@ export default function DigitalStorefrontPage() {
           {/* Left: Editor */}
           <div className="lg:col-span-8 space-y-4">
             {/* Tab Bar — icon-only on mobile, labeled on sm+ */}
-            <div className="flex items-center gap-1 p-1.5 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-2xl shadow-sm overflow-x-auto no-scrollbar">
+            <div className="flex items-center gap-1 p-1.5 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-2xl shadow-xs overflow-x-auto no-scrollbar">
               {TABS.map((tab) => (
                 <button
                   key={tab.id}
@@ -456,7 +456,7 @@ export default function DigitalStorefrontPage() {
 
             {/* ── Tab: Brand Identity ── */}
             {activeTab === "identity" && (
-              <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl sm:rounded-3xl shadow-sm overflow-visible animate-fade-in">
+              <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl sm:rounded-3xl shadow-xs overflow-visible animate-fade-in">
                 {/* Logo + Name section — stacks vertically on mobile */}
                 <div className="p-4 sm:p-6 lg:p-8 flex flex-col gap-5 border-b border-slate-100 dark:border-white/5">
                   {/* Logo Upload — centered on mobile */}
@@ -484,7 +484,7 @@ export default function DigitalStorefrontPage() {
                       <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-primary/20 rounded-2xl pointer-events-none">
                         <UploadCloud size={18} className="text-primary" />
                       </div>
-                      <span className="absolute -bottom-2 -right-2 bg-primary text-white text-[9px] font-black px-2 py-0.5 rounded-full shadow">
+                      <span className="absolute -bottom-2 -right-2 bg-primary text-white text-[9px] font-black px-2 py-0.5 rounded-full shadow-sm">
                         {profile.logo_url ? "Change" : "Upload"}
                       </span>
                     </div>
@@ -497,7 +497,7 @@ export default function DigitalStorefrontPage() {
                         placeholder="e.g. Rizal Fashion Hub"
                         value={profile.shop_name || ""}
                         onChange={(e) => updateField("shop_name", e.target.value)}
-                        className="w-full px-3 py-2.5 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-bold text-charcoal dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-primary transition-all"
+                        className="w-full px-3 py-2.5 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-bold text-charcoal dark:text-white placeholder:text-slate-400 focus:outline-hidden focus:border-primary transition-all"
                       />
                     </div>
                   </div>
@@ -512,7 +512,7 @@ export default function DigitalStorefrontPage() {
                       placeholder="Describe your store to customers..."
                       value={profile.description || ""}
                       onChange={(e) => updateField("description", e.target.value)}
-                      className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-medium text-charcoal dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-primary transition-all resize-none"
+                      className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-medium text-charcoal dark:text-white placeholder:text-slate-400 focus:outline-hidden focus:border-primary transition-all resize-none"
                     />
                   </div>
                 </div>
@@ -530,7 +530,7 @@ export default function DigitalStorefrontPage() {
                           placeholder="e.g. L1-105"
                           value={profile.unit_id || ""}
                           onChange={(e) => updateField("unit_id", e.target.value)}
-                          className="w-full px-4 py-3 pr-16 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-black text-charcoal dark:text-white uppercase tracking-widest placeholder:text-slate-400 focus:outline-none focus:border-primary transition-all"
+                          className="w-full px-4 py-3 pr-16 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-black text-charcoal dark:text-white uppercase tracking-widest placeholder:text-slate-400 focus:outline-hidden focus:border-primary transition-all"
                         />
                         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-black text-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded-md">
                           SYNCED
@@ -544,7 +544,7 @@ export default function DigitalStorefrontPage() {
                       <input
                         type="text"
                         placeholder="+63 9XX XXX XXXX"
-                        className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-bold text-charcoal dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-primary transition-all"
+                        className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-bold text-charcoal dark:text-white placeholder:text-slate-400 focus:outline-hidden focus:border-primary transition-all"
                       />
                     </div>
                   </div>
@@ -559,7 +559,7 @@ export default function DigitalStorefrontPage() {
                       onChange={(value) => updateField("category", value)}
                       options={STORE_CATEGORIES.map((cat) => ({ value: cat, label: cat }))}
                       ariaLabel="Store category"
-                      buttonClassName="!px-4 !py-3 !text-sm dark:!bg-zinc-800"
+                      buttonClassName="px-4! py-3! text-sm! dark:bg-zinc-800!"
                     />
                     <p className="text-[10px] text-slate-400 font-medium mt-1.5">
                       This helps customers find your store in the mall directory.
@@ -571,7 +571,7 @@ export default function DigitalStorefrontPage() {
 
             {/* ── Tab: Gallery ── */}
             {activeTab === "gallery" && (
-              <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl sm:rounded-3xl shadow-sm p-5 sm:p-6 lg:p-8 animate-fade-in space-y-5">
+              <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl sm:rounded-3xl shadow-xs p-5 sm:p-6 lg:p-8 animate-fade-in space-y-5">
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="font-black text-charcoal dark:text-white text-sm">
@@ -627,7 +627,7 @@ export default function DigitalStorefrontPage() {
                           >
                             <Trash2 size={11} />
                           </button>
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover/img:opacity-100 transition-opacity pointer-events-none" />
+                          <div className="absolute inset-0 bg-linear-to-t from-black/30 to-transparent opacity-0 group-hover/img:opacity-100 transition-opacity pointer-events-none" />
                         </div>
                       ),
                     )}
@@ -650,7 +650,7 @@ export default function DigitalStorefrontPage() {
 
             {/* ── Tab: Product Catalog ── */}
             {activeTab === "catalog" && (
-              <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl sm:rounded-3xl shadow-sm p-5 sm:p-6 lg:p-8 animate-fade-in space-y-5">
+              <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl sm:rounded-3xl shadow-xs p-5 sm:p-6 lg:p-8 animate-fade-in space-y-5">
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="font-black text-charcoal dark:text-white text-sm">
@@ -722,7 +722,7 @@ export default function DigitalStorefrontPage() {
                                 updateProduct(index, "name", e.target.value)
                               }
                               placeholder="e.g. Leather Jacket"
-                              className="w-full px-3 py-2.5 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-bold text-charcoal dark:text-white focus:outline-none focus:border-primary transition-all"
+                              className="w-full px-3 py-2.5 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-bold text-charcoal dark:text-white focus:outline-hidden focus:border-primary transition-all"
                             />
                           </div>
                           <div>
@@ -736,7 +736,7 @@ export default function DigitalStorefrontPage() {
                                 updateProduct(index, "price", e.target.value)
                               }
                               placeholder="₱ 0.00"
-                              className="w-full px-3 py-2.5 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-black text-primary focus:outline-none focus:border-primary transition-all"
+                              className="w-full px-3 py-2.5 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-black text-primary focus:outline-hidden focus:border-primary transition-all"
                             />
                           </div>
                           <div>
@@ -757,7 +757,7 @@ export default function DigitalStorefrontPage() {
                                 )
                               }
                               placeholder="e.g. 25"
-                              className="w-full px-3 py-2.5 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-bold text-charcoal dark:text-white focus:outline-none focus:border-primary transition-all"
+                              className="w-full px-3 py-2.5 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-bold text-charcoal dark:text-white focus:outline-hidden focus:border-primary transition-all"
                             />
                           </div>
                           <div>
@@ -780,7 +780,7 @@ export default function DigitalStorefrontPage() {
                               buttonClassName={
                                 product.category
                                   ? ""
-                                  : "!border-amber-300 !text-slate-400 dark:!border-amber-500/40"
+                                  : "border-amber-300! text-slate-400! dark:border-amber-500/40!"
                               }
                             />
                           </div>
@@ -812,10 +812,10 @@ export default function DigitalStorefrontPage() {
                               ariaLabel="Product availability"
                               buttonClassName={
                                 product.status === "HIDDEN"
-                                  ? "!border-slate-300 !text-slate-500 dark:!border-white/20"
+                                  ? "border-slate-300! text-slate-500! dark:border-white/20!"
                                   : isOutOfStock(product)
-                                    ? "!border-amber-300 !text-amber-600 dark:!border-amber-500/40 dark:!text-amber-400"
-                                    : "!border-emerald-300 !text-emerald-600 dark:!border-emerald-500/30 dark:!text-emerald-400"
+                                    ? "border-amber-300! text-amber-600! dark:border-amber-500/40! dark:text-amber-400!"
+                                    : "border-emerald-300! text-emerald-600! dark:border-emerald-500/30! dark:text-emerald-400!"
                               }
                             />
                             <p className="text-[10px] text-slate-400 font-medium mt-1">
@@ -842,7 +842,7 @@ export default function DigitalStorefrontPage() {
                             }
                             rows={2}
                             placeholder="Brief product description..."
-                            className="w-full px-3 py-2.5 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-medium text-slate-600 dark:text-slate-300 focus:outline-none focus:border-primary transition-all resize-none"
+                            className="w-full px-3 py-2.5 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-medium text-slate-600 dark:text-slate-300 focus:outline-hidden focus:border-primary transition-all resize-none"
                           />
                         </div>
                       </div>
@@ -869,7 +869,7 @@ export default function DigitalStorefrontPage() {
 
             {/* ── Tab: Post Sales ── */}
             {activeTab === "postsales" && (
-              <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl sm:rounded-3xl shadow-sm p-5 sm:p-6 lg:p-8 animate-fade-in space-y-5">
+              <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl sm:rounded-3xl shadow-xs p-5 sm:p-6 lg:p-8 animate-fade-in space-y-5">
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="font-black text-charcoal dark:text-white text-sm">
@@ -951,7 +951,7 @@ export default function DigitalStorefrontPage() {
                               updatePostSale(index, "title", e.target.value)
                             }
                             placeholder="e.g. 50% OFF Summer Sale!"
-                            className="w-full px-3 py-2.5 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-bold text-charcoal dark:text-white focus:outline-none focus:border-primary transition-all"
+                            className="w-full px-3 py-2.5 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-bold text-charcoal dark:text-white focus:outline-hidden focus:border-primary transition-all"
                           />
                         </div>
                         <div>
@@ -963,7 +963,7 @@ export default function DigitalStorefrontPage() {
                             value={saleEndDateInput(post)}
                             min={phToday()}
                             onChange={(e) => updatePostSale(index, "ends_at", e.target.value)}
-                            className="w-full px-3 py-2.5 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-bold text-charcoal dark:text-white focus:outline-none focus:border-primary transition-all"
+                            className="w-full px-3 py-2.5 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-bold text-charcoal dark:text-white focus:outline-hidden focus:border-primary transition-all"
                           />
                           <p className={`text-[10px] font-medium mt-1 ${isSaleActive(post) ? "text-slate-400" : "text-amber-500"}`}>
                             {isSaleActive(post)
@@ -1007,7 +1007,7 @@ export default function DigitalStorefrontPage() {
 
               {/* Preview Card */}
               <div className="bg-slate-100 dark:bg-zinc-800/50 border border-slate-200 dark:border-white/10 rounded-2xl p-5 relative overflow-hidden">
-                <div className="absolute top-4 right-[-28px] rotate-45 bg-primary text-white text-[9px] font-black px-8 py-1 shadow uppercase tracking-widest">
+                <div className="absolute top-4 right-[-28px] rotate-45 bg-primary text-white text-[9px] font-black px-8 py-1 shadow-sm uppercase tracking-widest">
                   Draft
                 </div>
                 <div className="scale-95 hover:scale-100 transition-transform duration-500 origin-top">

@@ -20,7 +20,7 @@ import {
 import { CARD, ComplaintView, PriorityBadge, StatusBadge, formatWhen } from "@/components/complaints/complaint-view";
 
 const SELECT =
-  "h-11 px-3 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-bold text-charcoal dark:text-white focus:outline-none focus:border-primary cursor-pointer";
+  "h-11 px-3 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-bold text-charcoal dark:text-white focus:outline-hidden focus:border-primary cursor-pointer";
 
 type Stats = { new: number; inProgress: number; urgentOpen: number; resolvedThisMonth: number };
 
@@ -135,13 +135,13 @@ function AdminComplaints() {
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2">
-        <div className="relative flex-1 min-w-[12rem]">
+        <div className="relative flex-1 min-w-48">
           <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search subject, shop, unit or owner"
-            className="w-full h-11 pl-10 pr-3 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-xl text-sm text-charcoal dark:text-white focus:outline-none focus:border-primary"
+            className="w-full h-11 pl-10 pr-3 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-xl text-sm text-charcoal dark:text-white focus:outline-hidden focus:border-primary"
           />
         </div>
         <select value={status} onChange={(e) => setStatus(e.target.value)} className={SELECT}>

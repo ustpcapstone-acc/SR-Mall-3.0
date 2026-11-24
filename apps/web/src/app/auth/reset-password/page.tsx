@@ -37,7 +37,7 @@ function VerifyCodeStep({
     <div className="p-8 sm:p-12 animate-fade-in-up">
       {/* Header */}
       <div className="mb-8 flex flex-col items-center">
-        <div className="w-16 h-16 bg-primary/10 text-primary rounded-3xl flex items-center justify-center mb-4 shadow-sm border border-primary/20">
+        <div className="w-16 h-16 bg-primary/10 text-primary rounded-3xl flex items-center justify-center mb-4 shadow-xs border border-primary/20">
           <KeyRound size={32} />
         </div>
         <h1 className="text-2xl font-black text-charcoal dark:text-white uppercase tracking-tight">
@@ -73,7 +73,7 @@ function VerifyCodeStep({
             if (error) setError(null);
           }}
           placeholder="_ _ _ _ _ _"
-          className="w-full px-5 py-5 bg-slate-50 dark:bg-zinc-800 rounded-2xl border-2 border-transparent focus:border-primary outline-none transition-all text-2xl font-black text-charcoal dark:text-white tracking-[0.7em] text-center placeholder:tracking-normal placeholder:text-slate-300 dark:placeholder:text-zinc-600 placeholder:text-base"
+          className="w-full px-5 py-5 bg-slate-50 dark:bg-zinc-800 rounded-2xl border-2 border-transparent focus:border-primary outline-hidden transition-all text-2xl font-black text-charcoal dark:text-white tracking-[0.7em] text-center placeholder:tracking-normal placeholder:text-slate-300 dark:placeholder:text-zinc-600 placeholder:text-base"
         />
       </div>
 
@@ -155,7 +155,7 @@ function SetPasswordStep({
     <div className="p-8 sm:p-12 animate-fade-in-up">
       {/* Header */}
       <div className="mb-8 flex flex-col items-center">
-        <div className="w-16 h-16 bg-green-500/10 text-green-500 rounded-3xl flex items-center justify-center mb-4 shadow-sm border border-green-500/20">
+        <div className="w-16 h-16 bg-green-500/10 text-green-500 rounded-3xl flex items-center justify-center mb-4 shadow-xs border border-green-500/20">
           <ShieldCheck size={32} />
         </div>
         <div className="flex items-center gap-2 mb-1">
@@ -192,7 +192,7 @@ function SetPasswordStep({
                 if (error) setError(null);
               }}
               placeholder="Minimum 6 characters"
-              className="w-full pl-11 pr-11 py-4 bg-slate-50 dark:bg-zinc-800 rounded-2xl border-2 border-transparent focus:border-primary outline-none transition-all text-sm font-bold text-charcoal dark:text-white"
+              className="w-full pl-11 pr-11 py-4 bg-slate-50 dark:bg-zinc-800 rounded-2xl border-2 border-transparent focus:border-primary outline-hidden transition-all text-sm font-bold text-charcoal dark:text-white"
             />
             <button
               type="button"
@@ -219,7 +219,7 @@ function SetPasswordStep({
                 if (error) setError(null);
               }}
               placeholder="Repeat your password"
-              className={`w-full pl-11 pr-11 py-4 bg-slate-50 dark:bg-zinc-800 rounded-2xl border-2 outline-none transition-all text-sm font-bold text-charcoal dark:text-white ${
+              className={`w-full pl-11 pr-11 py-4 bg-slate-50 dark:bg-zinc-800 rounded-2xl border-2 outline-hidden transition-all text-sm font-bold text-charcoal dark:text-white ${
                 confirmPassword && confirmPassword !== password
                   ? "border-red-400"
                   : confirmPassword && confirmPassword === password
@@ -292,7 +292,7 @@ function ResetPasswordForm() {
 // ─── Page wrapper ───────────────────────────────────────────────────────────
 export default function ResetPasswordPage() {
   return (
-    <main className="min-h-screen bg-slate-50 dark:bg-black flex items-center justify-center p-6 bg-[radial-gradient(circle_at_top_right,_#be1e2d15,_transparent_40%)]">
+    <main className="min-h-screen bg-slate-50 dark:bg-black flex items-center justify-center p-6 bg-[radial-gradient(circle_at_top_right,#be1e2d15,transparent_40%)]">
       <div className="w-full max-w-lg bg-white dark:bg-zinc-900 rounded-[2.5rem] shadow-2xl border border-slate-200 dark:border-white/5 overflow-hidden">
         <Suspense
           fallback={

@@ -402,7 +402,7 @@ export default function ShopProfilePage() {
             <button
               onClick={() => router.back()}
               aria-label="Back to directory"
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#E8E2DE] bg-white text-[#70656A] shadow-sm transition-colors hover:border-[#C51D30]/30 hover:text-[#C51D30] dark:border-white/10 dark:bg-zinc-900 dark:text-slate-300"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#E8E2DE] bg-white text-[#70656A] shadow-xs transition-colors hover:border-[#C51D30]/30 hover:text-[#C51D30] dark:border-white/10 dark:bg-zinc-900 dark:text-slate-300"
             >
               <ArrowLeft size={17} />
             </button>
@@ -446,7 +446,7 @@ export default function ShopProfilePage() {
                   className="absolute inset-0 h-full w-full object-cover transition-transform duration-1000 hover:scale-105"
                 />
               ) : (
-                <div className="absolute inset-0 overflow-hidden bg-gradient-to-br from-[#3A2E31] via-[#241C1E] to-[#120E0F]">
+                <div className="absolute inset-0 overflow-hidden bg-linear-to-br from-[#3A2E31] via-[#241C1E] to-[#120E0F]">
                   {shop.logo_url && !shop.logo_url.startsWith("blob:") && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -459,7 +459,7 @@ export default function ShopProfilePage() {
                 </div>
               )}
 
-              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-black/10" />
+              <div className="pointer-events-none absolute inset-0 bg-linear-to-t from-black/85 via-black/25 to-black/10" />
 
               {/* Favourite */}
               <button
@@ -655,7 +655,7 @@ export default function ShopProfilePage() {
         )}
 
         {/* Rounded tab bar */}
-        <div className="mt-5 flex w-full flex-wrap gap-1.5 rounded-2xl border border-[#E8E2DE] bg-white p-1.5 shadow-sm dark:border-white/10 dark:bg-zinc-900 sm:w-fit sm:flex-nowrap">
+        <div className="mt-5 flex w-full flex-wrap gap-1.5 rounded-2xl border border-[#E8E2DE] bg-white p-1.5 shadow-xs dark:border-white/10 dark:bg-zinc-900 sm:w-fit sm:flex-nowrap">
           {tabs.map((tab) => {
             const isActive = activeTab === tab.id;
             return (
@@ -693,7 +693,7 @@ export default function ShopProfilePage() {
 
         {/* Products */}
         <div className={activeTab === "products" ? "block" : "hidden"}>
-          <div className="mt-4 rounded-2xl border border-[#E8E2DE] bg-white p-3 shadow-sm dark:border-white/10 dark:bg-zinc-900 sm:p-4">
+          <div className="mt-4 rounded-2xl border border-[#E8E2DE] bg-white p-3 shadow-xs dark:border-white/10 dark:bg-zinc-900 sm:p-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <div className="relative flex-1">
                 <Search
@@ -706,7 +706,7 @@ export default function ShopProfilePage() {
                   onChange={(e) => setProductSearch(e.target.value)}
                   placeholder={`Search in ${shop.shop_name}`}
                   aria-label={`Search in ${shop.shop_name}`}
-                  className="h-12 w-full rounded-xl border border-[#E8E2DE] bg-white pl-11 pr-10 text-[13px] font-medium text-[#21191B] outline-none transition-all placeholder:text-[#A79E98] focus:border-[#C51D30] focus:ring-4 focus:ring-[#C51D30]/10 dark:border-white/10 dark:bg-zinc-950 dark:text-white"
+                  className="h-12 w-full rounded-xl border border-[#E8E2DE] bg-white pl-11 pr-10 text-[13px] font-medium text-[#21191B] outline-hidden transition-all placeholder:text-[#A79E98] focus:border-[#C51D30] focus:ring-4 focus:ring-[#C51D30]/10 dark:border-white/10 dark:bg-zinc-950 dark:text-white"
                 />
                 {productSearch && (
                   <button
@@ -776,7 +776,7 @@ export default function ShopProfilePage() {
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as SortKey)}
                   aria-label="Sort products"
-                  className="h-12 w-full appearance-none rounded-xl border border-[#E8E2DE] bg-white pl-4 pr-10 text-[12.5px] font-semibold text-[#21191B] outline-none transition-all focus:border-[#C51D30] focus:ring-4 focus:ring-[#C51D30]/10 dark:border-white/10 dark:bg-zinc-950 dark:text-white"
+                  className="h-12 w-full appearance-none rounded-xl border border-[#E8E2DE] bg-white pl-4 pr-10 text-[12.5px] font-semibold text-[#21191B] outline-hidden transition-all focus:border-[#C51D30] focus:ring-4 focus:ring-[#C51D30]/10 dark:border-white/10 dark:bg-zinc-950 dark:text-white"
                 >
                   <option value="featured">Featured</option>
                   <option value="price-asc">Price: Low to High</option>
@@ -803,7 +803,7 @@ export default function ShopProfilePage() {
                       className={clsx(
                         "rounded-full border px-3.5 py-1.5 text-[11.5px] font-semibold transition-all",
                         isActive
-                          ? "border-[#C51D30] bg-[#C51D30] text-white shadow-sm shadow-[#C51D30]/20"
+                          ? "border-[#C51D30] bg-[#C51D30] text-white shadow-xs shadow-[#C51D30]/20"
                           : "border-[#E8E2DE] bg-white text-[#70656A] hover:border-[#C51D30]/45 hover:text-[#C51D30] dark:border-white/10 dark:bg-zinc-950 dark:text-slate-300",
                       )}
                     >
@@ -858,7 +858,7 @@ export default function ShopProfilePage() {
                         });
                       }
                     }}
-                    className="group flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-[#E8E2DE] bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-[#C51D30]/25 hover:shadow-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C51D30] dark:border-white/10 dark:bg-zinc-900"
+                    className="group flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-[#E8E2DE] bg-white shadow-xs transition-all duration-300 hover:-translate-y-1 hover:border-[#C51D30]/25 hover:shadow-xl focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C51D30] dark:border-white/10 dark:bg-zinc-900"
                   >
                     <div className="relative aspect-square overflow-hidden bg-[#F4EEE6] dark:bg-zinc-800">
                       {product.image_url ? (
@@ -944,7 +944,7 @@ export default function ShopProfilePage() {
         {/* About the shop */}
         <div className={activeTab === "about" ? "block" : "hidden"}>
           <div className="mt-4 grid items-start gap-4 lg:grid-cols-[minmax(0,1.55fr)_minmax(0,0.75fr)]">
-            <div className="rounded-2xl border border-[#E8E2DE] bg-white p-5 shadow-sm dark:border-white/10 dark:bg-zinc-900 sm:p-7">
+            <div className="rounded-2xl border border-[#E8E2DE] bg-white p-5 shadow-xs dark:border-white/10 dark:bg-zinc-900 sm:p-7">
               <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#C51D30]">
                 About the shop
               </p>
@@ -962,7 +962,7 @@ export default function ShopProfilePage() {
               )}
             </div>
 
-            <aside className="rounded-2xl border border-[#E8E2DE] bg-white p-5 shadow-sm dark:border-white/10 dark:bg-zinc-900 sm:p-6">
+            <aside className="rounded-2xl border border-[#E8E2DE] bg-white p-5 shadow-xs dark:border-white/10 dark:bg-zinc-900 sm:p-6">
               <h3 className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#A79E98]">
                 Shop details
               </h3>
@@ -976,7 +976,7 @@ export default function ShopProfilePage() {
                       <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-[#A79E98]">
                         {item.label}
                       </p>
-                      <div className="mt-0.5 break-words text-[12.5px] font-semibold text-[#21191B] dark:text-slate-200">
+                      <div className="mt-0.5 wrap-break-word text-[12.5px] font-semibold text-[#21191B] dark:text-slate-200">
                         {item.value}
                       </div>
                     </div>
@@ -1017,9 +1017,9 @@ export default function ShopProfilePage() {
                   {activeSales.map((sale) => (
                     <article
                       key={sale.id}
-                      className="overflow-hidden rounded-2xl border border-[#E8E2DE] bg-white shadow-sm dark:border-white/10 dark:bg-zinc-900"
+                      className="overflow-hidden rounded-2xl border border-[#E8E2DE] bg-white shadow-xs dark:border-white/10 dark:bg-zinc-900"
                     >
-                      <div className="relative aspect-[16/10] bg-[#F4EEE6] dark:bg-zinc-800">
+                      <div className="relative aspect-16/10 bg-[#F4EEE6] dark:bg-zinc-800">
                         {sale.image_url &&
                         !sale.image_url.startsWith("blob:") ? (
                           // eslint-disable-next-line @next/next/no-img-element

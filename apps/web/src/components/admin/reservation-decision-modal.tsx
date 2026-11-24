@@ -146,13 +146,13 @@ export function ReservationDecisionModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[250] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => !busy && onClose()} />
+    <div className="fixed inset-0 z-250 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-xs" onClick={() => !busy && onClose()} />
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="reservation-decision-title"
-        className="relative w-full max-w-xl max-h-[92vh] overflow-y-auto bg-white dark:bg-zinc-950 rounded-[2rem] shadow-2xl animate-fade-in-up"
+        className="relative w-full max-w-xl max-h-[92vh] overflow-y-auto bg-white dark:bg-zinc-950 rounded-4xl shadow-2xl animate-fade-in-up"
       >
         <div
           className={clsx(
@@ -311,7 +311,7 @@ export function ReservationDecisionModal({
                     ? "e.g. Please visit the admin office on Monday at 9 AM to sign the contract."
                     : "e.g. The business permit has expired. Please reserve again with a valid permit."
                 }
-                className="w-full p-3 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-zinc-900 text-sm text-charcoal dark:text-white focus:outline-none focus:border-primary resize-none"
+                className="w-full p-3 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-zinc-900 text-sm text-charcoal dark:text-white focus:outline-hidden focus:border-primary resize-none"
               />
               <p className="flex justify-between text-[10px] text-slate-400">
                 <span>Sent to {name} by email and notification.</span>
@@ -365,7 +365,7 @@ export function ReservationDecisionModal({
                 onClick={submit}
                 disabled={busy || (!approve && !reason.trim())}
                 className={clsx(
-                  "flex-[2] py-3.5 rounded-xl text-white text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg disabled:opacity-60",
+                  "flex-2 py-3.5 rounded-xl text-white text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg disabled:opacity-60",
                   approve ? "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20" : "bg-[#BE1E2D] hover:bg-[#a01825] shadow-red-500/20",
                 )}
               >

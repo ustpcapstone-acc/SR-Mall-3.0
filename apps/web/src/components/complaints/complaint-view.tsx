@@ -33,7 +33,7 @@ import {
 } from "@/lib/complaints";
 
 export const LABEL = "text-[10px] font-black text-slate-400 uppercase tracking-widest";
-export const CARD = "bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl sm:rounded-[2rem] shadow-sm";
+export const CARD = "bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl sm:rounded-4xl shadow-xs";
 
 export function formatWhen(iso: string) {
   return new Date(iso).toLocaleString("en-PH", {
@@ -199,7 +199,7 @@ export function ComplaintView({
           <PriorityBadge priority={complaint.priority} />
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{complaint.category}</span>
         </div>
-        <h2 className="text-lg sm:text-xl font-black text-charcoal dark:text-white leading-tight break-words">{complaint.subject}</h2>
+        <h2 className="text-lg sm:text-xl font-black text-charcoal dark:text-white leading-tight wrap-break-word">{complaint.subject}</h2>
         <p className="text-[11px] text-slate-400 font-medium flex flex-wrap items-center gap-x-2 gap-y-1">
           {isAdmin && (
             <span className="inline-flex items-center gap-1 font-bold text-slate-500 dark:text-slate-300">
@@ -214,7 +214,7 @@ export function ComplaintView({
 
       {/* Admin controls */}
       {isAdmin && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 rounded-2xl bg-slate-50 dark:bg-white/[0.03] border border-slate-100 dark:border-white/5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 rounded-2xl bg-slate-50 dark:bg-white/3 border border-slate-100 dark:border-white/5">
           <div>
             <p className={clsx(LABEL, "mb-1.5")}>Status</p>
             <div className="flex flex-wrap gap-1.5">
@@ -240,7 +240,7 @@ export function ComplaintView({
             <select
               value={complaint.priority}
               onChange={(e) => setPriority(e.target.value as ComplaintPriority)}
-              className="w-full px-3 py-2 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-bold text-charcoal dark:text-white focus:outline-none focus:border-primary cursor-pointer"
+              className="w-full px-3 py-2 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-bold text-charcoal dark:text-white focus:outline-hidden focus:border-primary cursor-pointer"
             >
               {COMPLAINT_PRIORITIES.map((p) => (
                 <option key={p} value={p}>{PRIORITY_META[p].label}</option>
@@ -253,7 +253,7 @@ export function ComplaintView({
       {/* Details */}
       <div className="space-y-3">
         <p className={LABEL}>Details</p>
-        <p className="text-sm text-slate-600 dark:text-slate-300 whitespace-pre-line break-words leading-relaxed">{complaint.details}</p>
+        <p className="text-sm text-slate-600 dark:text-slate-300 whitespace-pre-line wrap-break-word leading-relaxed">{complaint.details}</p>
         {complaint.photos.length > 0 && (
           <div className="flex flex-wrap gap-2 pt-1">
             {complaint.photos.map((p) => <Photo key={p} url={p} />)}
@@ -293,7 +293,7 @@ export function ComplaintView({
                     {c.isInternal ? <Lock size={10} /> : c.authorRole === "ADMIN" ? <ShieldCheck size={10} /> : <Store size={10} />}
                     {c.isInternal ? "Internal note · admins only" : c.authorName}
                   </p>
-                  {c.message && <p className={clsx("text-sm whitespace-pre-line break-words", c.isInternal && "text-charcoal dark:text-white")}>{c.message}</p>}
+                  {c.message && <p className={clsx("text-sm whitespace-pre-line wrap-break-word", c.isInternal && "text-charcoal dark:text-white")}>{c.message}</p>}
                   {c.photoUrl && <Photo url={c.photoUrl} />}
                   <p className={clsx("text-[10px]", c.isInternal ? "text-amber-600/70" : c.mine ? "text-white/60" : "text-slate-400")}>{formatWhen(c.createdAt)}</p>
                 </div>
@@ -310,7 +310,7 @@ export function ComplaintView({
           {photoUrl && (
             <div className="relative inline-block">
               <Photo url={photoUrl} />
-              <button onClick={() => setPhotoUrl(null)} className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center shadow" aria-label="Remove photo">
+              <button onClick={() => setPhotoUrl(null)} className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center shadow-sm" aria-label="Remove photo">
                 <X size={12} />
               </button>
             </div>
@@ -322,7 +322,7 @@ export function ComplaintView({
             rows={3}
             placeholder={internal ? "Internal note — only admins can see this…" : isAdmin ? "Reply to the tenant…" : "Add a comment for the admin…"}
             className={clsx(
-              "w-full px-4 py-3 rounded-2xl text-sm border focus:outline-none transition-colors resize-none",
+              "w-full px-4 py-3 rounded-2xl text-sm border focus:outline-hidden transition-colors resize-none",
               internal
                 ? "bg-amber-50 dark:bg-amber-500/10 border-amber-300 dark:border-amber-500/30 focus:border-amber-400 text-charcoal dark:text-white"
                 : "bg-slate-50 dark:bg-zinc-800 border-slate-200 dark:border-white/10 focus:border-primary text-charcoal dark:text-white",
@@ -352,8 +352,8 @@ export function ComplaintView({
           </div>
         </div>
       ) : (
-        <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/[0.03] border border-slate-100 dark:border-white/5 text-xs text-slate-500 dark:text-slate-400 flex flex-wrap items-center gap-3">
-          <span className="flex-1 min-w-[12rem]">
+        <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/3 border border-slate-100 dark:border-white/5 text-xs text-slate-500 dark:text-slate-400 flex flex-wrap items-center gap-3">
+          <span className="flex-1 min-w-48">
             {complaint.status === "RESOLVED"
               ? "This complaint is resolved. If the problem came back, reopen it."
               : "The admin closed this complaint. File a new one if you still need help."}

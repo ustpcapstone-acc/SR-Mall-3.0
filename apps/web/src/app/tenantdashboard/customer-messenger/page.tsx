@@ -556,7 +556,7 @@ export default function CustomerMessenger() {
         </div>
       </div>
 
-      <div className="flex-1 bg-white dark:bg-zinc-900 rounded-2xl sm:rounded-[2rem] shadow-sm border border-slate-100 dark:border-white/5 flex overflow-hidden relative">
+      <div className="flex-1 bg-white dark:bg-zinc-900 rounded-2xl sm:rounded-4xl shadow-xs border border-slate-100 dark:border-white/5 flex overflow-hidden relative">
         {/* Left Column (Inbox) */}
         <div
           className={`${
@@ -574,7 +574,7 @@ export default function CustomerMessenger() {
                 placeholder="Search chats..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 lg:pl-10 pr-4 py-2 lg:py-2.5 bg-white dark:bg-zinc-800 rounded-xl border border-slate-200 dark:border-white/10 text-sm font-medium focus:border-primary outline-none"
+                className="w-full pl-9 lg:pl-10 pr-4 py-2 lg:py-2.5 bg-white dark:bg-zinc-800 rounded-xl border border-slate-200 dark:border-white/10 text-sm font-medium focus:border-primary outline-hidden"
               />
             </div>
           </div>
@@ -681,7 +681,7 @@ export default function CustomerMessenger() {
                         {lastMsg}
                       </p>
                       {unread > 0 && (
-                        <span className="min-w-[1.25rem] h-5 px-1.5 rounded-full bg-primary text-white text-[10px] font-black flex items-center justify-center shrink-0">
+                        <span className="min-w-5 h-5 px-1.5 rounded-full bg-primary text-white text-[10px] font-black flex items-center justify-center shrink-0">
                           {unread > 99 ? "99+" : unread}
                         </span>
                       )}
@@ -718,7 +718,7 @@ export default function CustomerMessenger() {
                   <>
                     <div className="flex-1 flex flex-col min-w-0">
                       {/* Chat Header */}
-                      <div className="h-14 lg:h-16 border-b border-slate-100 dark:border-white/5 flex items-center justify-between px-4 lg:px-6 shadow-sm z-10 shrink-0 bg-white dark:bg-zinc-900/50 backdrop-blur-md">
+                      <div className="h-14 lg:h-16 border-b border-slate-100 dark:border-white/5 flex items-center justify-between px-4 lg:px-6 shadow-xs z-10 shrink-0 bg-white dark:bg-zinc-900/50 backdrop-blur-md">
                         <div className="flex items-center gap-2 lg:gap-3">
                           <button
                             onClick={() => setActiveChat(null)}
@@ -815,7 +815,7 @@ export default function CustomerMessenger() {
                                 <div className="relative group/bubble">
                                   <div
                                     className={clsx(
-                                      "max-w-[280px] sm:max-w-[400px] lg:max-w-[500px] border rounded-2xl shadow-sm",
+                                      "max-w-[280px] sm:max-w-[400px] lg:max-w-[500px] border rounded-2xl shadow-xs",
                                       bubblePadding(msg),
                                       isMyMsg
                                         ? "bg-primary text-white border-primary rounded-tr-sm"
@@ -828,7 +828,7 @@ export default function CustomerMessenger() {
                                       </div>
                                     )}
                                     {msg.content && (
-                                      <p className="text-sm font-medium leading-relaxed break-words whitespace-pre-wrap">
+                                      <p className="text-sm font-medium leading-relaxed wrap-break-word whitespace-pre-wrap">
                                         {msg.content}
                                       </p>
                                     )}
@@ -895,7 +895,7 @@ export default function CustomerMessenger() {
                                 setImageFile(null);
                                 setFileInputKey((k) => k + 1);
                               }}
-                              className="absolute -top-2 -right-2 w-5 h-5 bg-primary text-white rounded-full flex items-center justify-center shadow"
+                              className="absolute -top-2 -right-2 w-5 h-5 bg-primary text-white rounded-full flex items-center justify-center shadow-sm"
                             >
                               <X size={10} />
                             </button>
@@ -936,12 +936,12 @@ export default function CustomerMessenger() {
                                   : "Reply..."
                             }
                             disabled={canBlockActive && block.blockedByMe}
-                            className="flex-1 px-2 lg:px-3 py-1.5 lg:py-2 bg-transparent outline-none text-sm font-medium dark:text-white disabled:opacity-40"
+                            className="flex-1 px-2 lg:px-3 py-1.5 lg:py-2 bg-transparent outline-hidden text-sm font-medium dark:text-white disabled:opacity-40"
                           />
                           <button
                             type="submit"
                             disabled={(!inputText.trim() && !imageFile) || isUploading || (canBlockActive && block.blockedByMe)}
-                            className="p-2 lg:p-2.5 bg-primary text-white rounded-lg hover:bg-primary-hover transition-colors shadow-sm disabled:opacity-50 flex items-center gap-1"
+                            className="p-2 lg:p-2.5 bg-primary text-white rounded-lg hover:bg-primary-hover transition-colors shadow-xs disabled:opacity-50 flex items-center gap-1"
                           >
                             {isUploading ? (
                               <Loader2 size={14} className="animate-spin" />
@@ -962,7 +962,7 @@ export default function CustomerMessenger() {
 
                         <div className="space-y-6">
                           {/* Profile Card */}
-                          <div className="bg-white dark:bg-zinc-800 p-5 rounded-2xl border border-slate-200 dark:border-white/10 shadow-sm flex flex-col items-center text-center">
+                          <div className="bg-white dark:bg-zinc-800 p-5 rounded-2xl border border-slate-200 dark:border-white/10 shadow-xs flex flex-col items-center text-center">
                             <div className="w-16 h-16 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-500 font-bold text-2xl flex items-center justify-center mb-3 overflow-hidden border border-slate-100 dark:border-white/5">
                               {otherPerson?.avatarUrl ? (
                                 <img
@@ -984,7 +984,7 @@ export default function CustomerMessenger() {
                             </p>
                           </div>
 
-                          <div className="bg-white dark:bg-zinc-800 p-5 rounded-2xl border border-slate-200 dark:border-white/10 shadow-sm">
+                          <div className="bg-white dark:bg-zinc-800 p-5 rounded-2xl border border-slate-200 dark:border-white/10 shadow-xs">
                             <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">
                               Notice
                             </h4>

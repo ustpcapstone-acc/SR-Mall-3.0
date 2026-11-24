@@ -81,8 +81,8 @@ export default function TenantDirectoryPage() {
 
       {/* Header Section */}
       <section className="pt-32 pb-12 sm:pt-40 sm:pb-20 bg-white dark:bg-zinc-950 border-b border-slate-100 dark:border-white/5 overflow-hidden relative">
-        <div className="absolute top-0 right-0 w-1/2 h-full bg-primary/5 blur-[120px] -z-0 translate-x-1/4"></div>
-        <div className="absolute bottom-0 left-0 w-1/3 h-1/2 bg-blue-500/5 blur-[100px] -z-0 -translate-x-1/4"></div>
+        <div className="absolute top-0 right-0 w-1/2 h-full bg-primary/5 blur-[120px] z-0 translate-x-1/4"></div>
+        <div className="absolute bottom-0 left-0 w-1/3 h-1/2 bg-blue-500/5 blur-[100px] z-0 -translate-x-1/4"></div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 relative z-10">
           <Link
@@ -124,12 +124,12 @@ export default function TenantDirectoryPage() {
                   placeholder="Search stores or unit IDs..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-zinc-900 border-2 border-slate-100 dark:border-white/5 rounded-2xl py-4 pl-14 pr-6 text-sm font-bold text-charcoal dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-primary transition-all shadow-sm"
+                  className="w-full bg-slate-50 dark:bg-zinc-900 border-2 border-slate-100 dark:border-white/5 rounded-2xl py-4 pl-14 pr-6 text-sm font-bold text-charcoal dark:text-white placeholder:text-slate-400 focus:outline-hidden focus:border-primary transition-all shadow-xs"
                 />
 
                 {/* Predictive Search Panel */}
                 {searchQuery && (
-                  <div className="absolute top-full left-0 w-full mt-2 sm:mt-3 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-2xl sm:rounded-3xl shadow-2xl z-[100] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300">
+                  <div className="absolute top-full left-0 w-full mt-2 sm:mt-3 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-2xl sm:rounded-3xl shadow-2xl z-100 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300">
                     <div className="p-3 sm:p-4 border-b border-slate-50 dark:border-white/5 flex justify-between items-center">
                       <span className="text-[8px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">
                         Recommended Matches

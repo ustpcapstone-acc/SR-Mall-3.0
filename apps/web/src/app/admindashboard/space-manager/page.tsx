@@ -535,7 +535,7 @@ export default function SpaceManagerPage() {
                   "text-charcoal",
                   "dark:text-white",
                   "font-medium",
-                  "focus:outline-none",
+                  "focus:outline-hidden",
                   "focus:border-primary",
                   "focus:ring-4",
                   "focus:ring-primary/10",
@@ -804,7 +804,7 @@ export default function SpaceManagerPage() {
           {viewMode === "floorplan" ? (
             <div
               className={clsx(
-                "relative bg-white dark:bg-[#161b26] rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm",
+                "relative bg-white dark:bg-[#161b26] rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs",
                 isFullscreen ? "h-screen" : "h-[600px]",
               )}
             >
@@ -818,7 +818,7 @@ export default function SpaceManagerPage() {
                   "z-20",
                   "bg-white/95",
                   "dark:bg-[#161b26]/95",
-                  "backdrop-blur-sm",
+                  "backdrop-blur-xs",
                   "border-b",
                   "border-slate-200",
                   "dark:border-slate-800",
@@ -974,7 +974,7 @@ export default function SpaceManagerPage() {
                             />
                             <span
                               className={clsx(
-                                "text-[8px] px-1 py-0.5 rounded font-bold",
+                                "text-[8px] px-1 py-0.5 rounded-sm font-bold",
                                 slot.status === "AVAILABLE"
                                   ? "bg-emerald-500 text-white"
                                   : slot.status === "OCCUPIED"
@@ -1064,7 +1064,7 @@ void openDecision(slot, "reject");
                             className={clsx(
                               "p-2",
                               "bg-white/20",
-                              "backdrop-blur-sm",
+                              "backdrop-blur-xs",
                               "rounded-lg",
                               "hover:bg-white",
                               "transition-all",
@@ -1082,7 +1082,7 @@ void openDecision(slot, "reject");
                             className={clsx(
                               "p-2",
                               "bg-white/20",
-                              "backdrop-blur-sm",
+                              "backdrop-blur-xs",
                               "rounded-lg",
                               "hover:bg-white/30",
                               "transition-all",
@@ -1095,7 +1095,7 @@ void openDecision(slot, "reject");
                             className={clsx(
                               "p-2",
                               "bg-red-500/20",
-                              "backdrop-blur-sm",
+                              "backdrop-blur-xs",
                               "rounded-lg",
                               "hover:bg-red-500/30",
                               "transition-all",
@@ -1122,7 +1122,7 @@ void openDecision(slot, "reject");
                 <div
                   key={slot.id}
                   className={clsx(
-                    "group glass-premium dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-[2rem] overflow-hidden hover:border-primary/40 transition-all duration-500 hover:shadow-2xl hover:shadow-primary/5",
+                    "group glass-premium dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-4xl overflow-hidden hover:border-primary/40 transition-all duration-500 hover:shadow-2xl hover:shadow-primary/5",
                     viewMode === "list"
                       ? "flex items-center p-6 gap-8"
                       : "flex flex-col",
@@ -1193,7 +1193,7 @@ void openDecision(slot, "reject");
                           className={clsx(
                             "absolute",
                             "inset-0",
-                            "bg-gradient-to-t",
+                            "bg-linear-to-t",
                             "from-black/60",
                             "to-transparent",
                             "opacity-0",
@@ -1618,7 +1618,7 @@ void openDecision(slot, "approve");
       {/* Slide-over Editor */}
       {isEditing && (
         <div
-          className={clsx("fixed", "inset-0", "z-[60]", "flex", "justify-end")}
+          className={clsx("fixed", "inset-0", "z-60", "flex", "justify-end")}
         >
           <div
             className={clsx(
@@ -1733,7 +1733,7 @@ void openDecision(slot, "approve");
                     "rounded-xl",
                     "text-charcoal",
                     "dark:text-white",
-                    "focus:outline-none",
+                    "focus:outline-hidden",
                     "focus:border-primary",
                     "transition-all",
                   )}
@@ -1771,7 +1771,7 @@ void openDecision(slot, "approve");
                       "rounded-xl",
                       "text-charcoal",
                       "dark:text-white",
-                      "focus:outline-none",
+                      "focus:outline-hidden",
                       "focus:border-primary",
                       "transition-all",
                     )}
@@ -1811,7 +1811,7 @@ void openDecision(slot, "approve");
                       "rounded-xl",
                       "text-charcoal",
                       "dark:text-white",
-                      "focus:outline-none",
+                      "focus:outline-hidden",
                       "focus:border-primary",
                       "transition-all",
                     )}
@@ -1860,7 +1860,7 @@ void openDecision(slot, "approve");
                       "rounded-xl",
                       "text-charcoal",
                       "dark:text-white",
-                      "focus:outline-none",
+                      "focus:outline-hidden",
                       "focus:border-primary",
                       "transition-all",
                     )}
@@ -1915,7 +1915,7 @@ void openDecision(slot, "approve");
                           })
                         }
                         className={clsx(
-                          "p-3 rounded-xl border text-[10px] font-black tracking-[0.1em] transition-all",
+                          "p-3 rounded-xl border text-[10px] font-black tracking-widest transition-all",
                           activeSlot?.status === status
                             ? "bg-primary border-primary text-white"
                             : "bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-400 hover:text-charcoal dark:hover:text-white",
@@ -2076,7 +2076,7 @@ void openDecision(slot, "approve");
                       "text-charcoal",
                       "dark:text-white",
                       "placeholder:text-slate-400",
-                      "focus:outline-none",
+                      "focus:outline-hidden",
                       "focus:border-primary",
                       "transition-all",
                     )}
@@ -2134,7 +2134,7 @@ void openDecision(slot, "approve");
                         )}
                       >
                         <div className="flex items-center gap-3 flex-1 min-w-0 pr-2">
-                          <div className="w-2 h-2 rounded-full bg-primary flex-shrink-0 shadow-[0_0_8px_rgba(190,30,45,0.4)]" />
+                          <div className="w-2 h-2 rounded-full bg-primary shrink-0 shadow-[0_0_8px_rgba(190,30,45,0.4)]" />
                           <span className="text-xs font-semibold text-charcoal dark:text-white truncate">
                             {feat}
                           </span>

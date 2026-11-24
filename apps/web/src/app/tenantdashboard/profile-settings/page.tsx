@@ -277,9 +277,9 @@ export default function TenantProfileSettings() {
       </SettingsShell>
 
       {closeOpen && (
-        <div className="fixed inset-0 z-[250] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => !closing && setCloseOpen(false)} />
-          <div role="dialog" aria-modal="true" className="relative w-full max-w-md bg-white dark:bg-zinc-950 rounded-[2rem] shadow-2xl p-7 space-y-5 animate-fade-in-up">
+        <div className="fixed inset-0 z-250 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-xs" onClick={() => !closing && setCloseOpen(false)} />
+          <div role="dialog" aria-modal="true" className="relative w-full max-w-md bg-white dark:bg-zinc-950 rounded-4xl shadow-2xl p-7 space-y-5 animate-fade-in-up">
             <div>
               <h2 className="text-lg font-black text-charcoal dark:text-white">Close {shop.shopName}?</h2>
               <p className="text-sm text-slate-500 mt-1">

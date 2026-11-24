@@ -81,7 +81,7 @@ export function CustomSelect<T extends string = string>({
         aria-expanded={open}
         aria-label={ariaLabel}
         className={clsx(
-          "flex w-full items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-left text-xs font-bold text-charcoal outline-none transition-all",
+          "flex w-full items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-left text-xs font-bold text-charcoal outline-hidden transition-all",
           "focus:border-primary focus:ring-2 focus:ring-primary/15",
           "disabled:cursor-not-allowed disabled:opacity-50",
           "dark:border-white/10 dark:bg-zinc-900 dark:text-white",
@@ -105,7 +105,7 @@ export function CustomSelect<T extends string = string>({
           role="listbox"
           aria-label={ariaLabel}
           className={clsx(
-            "absolute left-0 right-0 z-[120] mt-2 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-zinc-900",
+            "absolute left-0 right-0 z-120 mt-2 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-zinc-900",
             menuClassName,
           )}
         >

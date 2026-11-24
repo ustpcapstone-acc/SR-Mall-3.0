@@ -31,7 +31,7 @@ export const ProductDetailModal = ({
       className={clsx(
         "fixed",
         "inset-0",
-        "z-[100]",
+        "z-100",
         "flex",
         "items-end",
         "sm:items-center",
@@ -49,7 +49,7 @@ export const ProductDetailModal = ({
           "sm:max-w-4xl",
           "bg-white",
           "dark:bg-zinc-900",
-          "rounded-t-[2rem]",
+          "rounded-t-4xl",
           "sm:rounded-[3rem]",
           "overflow-y-auto",
           "max-h-[95svh]",

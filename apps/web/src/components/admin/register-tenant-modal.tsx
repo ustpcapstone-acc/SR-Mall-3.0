@@ -257,7 +257,7 @@ export function RegisterTenantModal({ isOpen, onClose, onSuccess }: Props) {
       className={clsx(
         "fixed",
         "inset-0",
-        "z-[200]",
+        "z-200",
         "flex",
         "items-center",
         "justify-center",
@@ -270,7 +270,7 @@ export function RegisterTenantModal({ isOpen, onClose, onSuccess }: Props) {
           "absolute",
           "inset-0",
           "bg-black/60",
-          "backdrop-blur-sm",
+          "backdrop-blur-xs",
           "animate-fade-in",
           "pointer-events-none",
         )}
@@ -413,7 +413,7 @@ export function RegisterTenantModal({ isOpen, onClose, onSuccess }: Props) {
                     "border-white/5",
                     "rounded-xl",
                     "focus:border-primary",
-                    "focus:outline-none",
+                    "focus:outline-hidden",
                     "text-sm",
                     "font-medium",
                   )}
@@ -447,7 +447,7 @@ export function RegisterTenantModal({ isOpen, onClose, onSuccess }: Props) {
                     "border-white/5",
                     "rounded-xl",
                     "focus:border-primary",
-                    "focus:outline-none",
+                    "focus:outline-hidden",
                     "text-sm",
                     "font-medium",
                   )}
@@ -483,7 +483,7 @@ export function RegisterTenantModal({ isOpen, onClose, onSuccess }: Props) {
                         "border-white/5",
                         "rounded-xl",
                         "focus:border-primary",
-                        "focus:outline-none",
+                        "focus:outline-hidden",
                         "text-sm",
                         "font-mono",
                         "font-bold",
@@ -621,7 +621,7 @@ export function RegisterTenantModal({ isOpen, onClose, onSuccess }: Props) {
                     "border-white/5",
                     "rounded-xl",
                     "focus:border-primary",
-                    "focus:outline-none",
+                    "focus:outline-hidden",
                     "text-sm",
                     "font-medium",
                   )}
@@ -653,7 +653,7 @@ export function RegisterTenantModal({ isOpen, onClose, onSuccess }: Props) {
                     "border-white/5",
                     "rounded-xl",
                     "focus:border-primary",
-                    "focus:outline-none",
+                    "focus:outline-hidden",
                     "text-sm",
                     "font-medium",
                     "text-white",
@@ -695,7 +695,7 @@ export function RegisterTenantModal({ isOpen, onClose, onSuccess }: Props) {
                     "border-white/5",
                     "rounded-xl",
                     "focus:border-primary",
-                    "focus:outline-none",
+                    "focus:outline-hidden",
                     "text-sm",
                     "font-medium",
                   )}
@@ -755,7 +755,7 @@ export function RegisterTenantModal({ isOpen, onClose, onSuccess }: Props) {
                 <select
                   value={slotId}
                   onChange={(e) => handleSlotChange(e.target.value)}
-                  className="w-full px-4 py-3 bg-zinc-800 border border-white/5 rounded-xl focus:border-primary focus:outline-none text-sm font-medium text-white"
+                  className="w-full px-4 py-3 bg-zinc-800 border border-white/5 rounded-xl focus:border-primary focus:outline-hidden text-sm font-medium text-white"
                 >
                   <option value="">
                     {slotsLoading ? "Loading slots..." : "Choose unit..."}
@@ -807,7 +807,7 @@ export function RegisterTenantModal({ isOpen, onClose, onSuccess }: Props) {
                       "font-black",
                       "text-green-500",
                       "focus:border-primary",
-                      "focus:outline-none",
+                      "focus:outline-hidden",
                     )}
                   />
                 </div>

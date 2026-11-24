@@ -109,7 +109,7 @@ export default function ProductPage() {
         </nav>
 
         {error ? (
-          <div className="py-24 text-center space-y-4 bg-white dark:bg-zinc-900 rounded-[2rem] border border-slate-100 dark:border-white/5">
+          <div className="py-24 text-center space-y-4 bg-white dark:bg-zinc-900 rounded-4xl border border-slate-100 dark:border-white/5">
             <ShoppingBag size={48} className="mx-auto text-slate-300" />
             <p className="text-lg font-black text-charcoal dark:text-white">{error}</p>
             <p className="text-sm text-slate-500">It may have been removed or hidden by the shop.</p>
@@ -124,11 +124,11 @@ export default function ProductPage() {
         ) : (
           <>
             {/* Product */}
-            <section className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-10 p-4 sm:p-6 bg-white dark:bg-zinc-900 rounded-[2rem] border border-slate-100 dark:border-white/5 shadow-sm">
-              <div className="relative aspect-square rounded-[1.5rem] overflow-hidden bg-slate-100 dark:bg-zinc-800">
+            <section className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-10 p-4 sm:p-6 bg-white dark:bg-zinc-900 rounded-4xl border border-slate-100 dark:border-white/5 shadow-xs">
+              <div className="relative aspect-square rounded-3xl overflow-hidden bg-slate-100 dark:bg-zinc-800">
                 {p.image_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={p.image_url} alt={p.name} className={clsx("w-full h-full object-cover", out && "grayscale-[40%]")} />
+                  <img src={p.image_url} alt={p.name} className={clsx("w-full h-full object-cover", out && "grayscale-40")} />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-slate-300">
                     <ShoppingBag size={80} />
@@ -148,7 +148,7 @@ export default function ProductPage() {
                       <Tag size={10} /> {p.category}
                     </span>
                   )}
-                  <h1 className="text-2xl sm:text-3xl font-black text-charcoal dark:text-white leading-tight break-words">{p.name}</h1>
+                  <h1 className="text-2xl sm:text-3xl font-black text-charcoal dark:text-white leading-tight wrap-break-word">{p.name}</h1>
                   {shop.reviewCount > 0 && (
                     <p className="flex items-center gap-1.5 text-xs text-slate-500">
                       <Star size={13} className="fill-amber-400 text-amber-400" />
@@ -190,7 +190,7 @@ export default function ProductPage() {
             </section>
 
             {/* Shop profile */}
-            <section className="p-5 sm:p-6 bg-white dark:bg-zinc-900 rounded-[2rem] border border-slate-100 dark:border-white/5 shadow-sm">
+            <section className="p-5 sm:p-6 bg-white dark:bg-zinc-900 rounded-4xl border border-slate-100 dark:border-white/5 shadow-xs">
               <div className="flex flex-col md:flex-row md:items-center gap-5">
                 <div className="flex items-center gap-4 md:pr-6 md:border-r border-slate-100 dark:border-white/5 min-w-0">
                   <div className="w-16 h-16 rounded-full overflow-hidden bg-slate-100 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 shrink-0 flex items-center justify-center">
@@ -260,7 +260,7 @@ export default function ProductPage() {
             </section>
 
             {/* Details */}
-            <section className="p-5 sm:p-6 bg-white dark:bg-zinc-900 rounded-[2rem] border border-slate-100 dark:border-white/5 shadow-sm space-y-3">
+            <section className="p-5 sm:p-6 bg-white dark:bg-zinc-900 rounded-4xl border border-slate-100 dark:border-white/5 shadow-xs space-y-3">
               <h2 className="text-xs font-black uppercase tracking-widest text-slate-400">Product details</h2>
               <dl className="grid grid-cols-[7rem_1fr] gap-y-2 text-sm">
                 <dt className="text-slate-400 font-bold">Category</dt>

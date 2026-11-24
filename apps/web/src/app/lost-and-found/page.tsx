@@ -211,7 +211,7 @@ export default function LostAndFoundPage() {
                 <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full blur-2xl -translate-y-12 translate-x-12"></div>
               </div>
 
-              <nav className="bg-white/50 dark:bg-zinc-900/50 backdrop-blur-sm rounded-[2rem] p-3 border border-slate-100 dark:border-white/5 shadow-sm">
+              <nav className="bg-white/50 dark:bg-zinc-900/50 backdrop-blur-xs rounded-4xl p-3 border border-slate-100 dark:border-white/5 shadow-xs">
                 {[
                   { id: "found", label: "Found Items", icon: Package },
                   { id: "lost", label: "Lost Items", icon: Search },
@@ -241,7 +241,7 @@ export default function LostAndFoundPage() {
 
               <button
                 onClick={() => logout()}
-                className="w-full flex items-center gap-4 px-8 py-5 rounded-[2rem] bg-red-50 dark:bg-red-950/20 text-red-600 border border-red-100 dark:border-red-900/20 hover:bg-red-600 hover:text-white transition-all group/logout shadow-sm hover:shadow-red-200 dark:shadow-none"
+                className="w-full flex items-center gap-4 px-8 py-5 rounded-4xl bg-red-50 dark:bg-red-950/20 text-red-600 border border-red-100 dark:border-red-900/20 hover:bg-red-600 hover:text-white transition-all group/logout shadow-xs hover:shadow-red-200 dark:shadow-none"
               >
                 <div className="w-10 h-10 rounded-2xl bg-white dark:bg-zinc-900 group-hover/logout:bg-red-500 flex items-center justify-center transition-all">
                   <LogOut size={18} className="group-hover/logout:text-white" />
@@ -409,7 +409,7 @@ export default function LostAndFoundPage() {
                             <select 
                               value={reportForm.type}
                               onChange={e => setReportForm({...reportForm, type: e.target.value as any})}
-                              className="w-full bg-slate-50 dark:bg-black border-2 border-slate-100 dark:border-white/5 rounded-2xl py-4 px-6 text-sm font-bold text-charcoal dark:text-white focus:outline-none focus:border-primary transition-all">
+                              className="w-full bg-slate-50 dark:bg-black border-2 border-slate-100 dark:border-white/5 rounded-2xl py-4 px-6 text-sm font-bold text-charcoal dark:text-white focus:outline-hidden focus:border-primary transition-all">
                               <option value="LOST">I lost something</option>
                               <option value="FOUND">I found something</option>
                             </select>
@@ -424,7 +424,7 @@ export default function LostAndFoundPage() {
                               required
                               value={reportForm.title}
                               onChange={e => setReportForm({...reportForm, title: e.target.value})}
-                              className="w-full bg-slate-50 dark:bg-black border-2 border-slate-100 dark:border-white/5 rounded-2xl py-4 px-6 text-sm font-bold text-charcoal dark:text-white focus:outline-none focus:border-primary transition-all"
+                              className="w-full bg-slate-50 dark:bg-black border-2 border-slate-100 dark:border-white/5 rounded-2xl py-4 px-6 text-sm font-bold text-charcoal dark:text-white focus:outline-hidden focus:border-primary transition-all"
                               placeholder="E.g. Black leather wallet with ID"
                             />
                           </div>
@@ -436,7 +436,7 @@ export default function LostAndFoundPage() {
                             <textarea
                               value={reportForm.description}
                               onChange={e => setReportForm({...reportForm, description: e.target.value})}
-                              className="w-full bg-slate-50 dark:bg-black border-2 border-slate-100 dark:border-white/5 rounded-2xl py-4 px-6 text-sm font-bold text-charcoal dark:text-white focus:outline-none focus:border-primary transition-all min-h-[100px] resize-none"
+                              className="w-full bg-slate-50 dark:bg-black border-2 border-slate-100 dark:border-white/5 rounded-2xl py-4 px-6 text-sm font-bold text-charcoal dark:text-white focus:outline-hidden focus:border-primary transition-all min-h-[100px] resize-none"
                               placeholder="Any specific markings, contents, etc..."
                             />
                           </div>
@@ -450,7 +450,7 @@ export default function LostAndFoundPage() {
                               required
                               value={reportForm.date}
                               onChange={e => setReportForm({...reportForm, date: e.target.value})}
-                              className="w-full bg-slate-50 dark:bg-black border-2 border-slate-100 dark:border-white/5 rounded-2xl py-4 px-6 text-sm font-bold text-charcoal dark:text-white focus:outline-none focus:border-primary transition-all"
+                              className="w-full bg-slate-50 dark:bg-black border-2 border-slate-100 dark:border-white/5 rounded-2xl py-4 px-6 text-sm font-bold text-charcoal dark:text-white focus:outline-hidden focus:border-primary transition-all"
                             />
                           </div>
 
@@ -462,7 +462,7 @@ export default function LostAndFoundPage() {
                               type="time"
                               value={reportForm.time}
                               onChange={e => setReportForm({...reportForm, time: e.target.value})}
-                              className="w-full bg-slate-50 dark:bg-black border-2 border-slate-100 dark:border-white/5 rounded-2xl py-4 px-6 text-sm font-bold text-charcoal dark:text-white focus:outline-none focus:border-primary transition-all"
+                              className="w-full bg-slate-50 dark:bg-black border-2 border-slate-100 dark:border-white/5 rounded-2xl py-4 px-6 text-sm font-bold text-charcoal dark:text-white focus:outline-hidden focus:border-primary transition-all"
                             />
                           </div>
 
@@ -475,7 +475,7 @@ export default function LostAndFoundPage() {
                               required
                               value={reportForm.location}
                               onChange={e => setReportForm({...reportForm, location: e.target.value})}
-                              className="w-full bg-slate-50 dark:bg-black border-2 border-slate-100 dark:border-white/5 rounded-2xl py-4 px-6 text-sm font-bold text-charcoal dark:text-white focus:outline-none focus:border-primary transition-all"
+                              className="w-full bg-slate-50 dark:bg-black border-2 border-slate-100 dark:border-white/5 rounded-2xl py-4 px-6 text-sm font-bold text-charcoal dark:text-white focus:outline-hidden focus:border-primary transition-all"
                               placeholder="E.g. Food Court"
                             />
                           </div>

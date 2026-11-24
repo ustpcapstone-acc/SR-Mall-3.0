@@ -1,12 +1,21 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter, Source_Serif_4, Geist_Mono } from "next/font/google";
 import { AuthProvider } from "./providers";
 import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// Typography: Inter for all interface text (formal, highly legible);
+// Source Serif 4 for display headings on public pages (`font-display`).
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
+  display: "swap",
+});
+
+const sourceSerif = Source_Serif_4({
+  variable: "--font-serif",
+  subsets: ["latin"],
+  display: "swap",
 });
 
 const geistMono = Geist_Mono({
@@ -39,12 +48,14 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${inter.variable} ${sourceSerif.variable} ${geistMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col">
+      {/* isolate: Kumo pop-ups portal to <body> and need their own stacking context. */}
+      <body className="min-h-full flex flex-col isolate">
         <ThemeProvider
-          attribute="class"
+          // "class" drives the app's dark: styles; "data-mode" drives Kumo components.
+          attribute={["class", "data-mode"]}
           defaultTheme="light"
           enableSystem
           disableTransitionOnChange

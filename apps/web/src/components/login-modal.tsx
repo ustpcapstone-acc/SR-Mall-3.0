@@ -58,7 +58,7 @@ function GoogleIcon({ size = 18 }: { size?: number }) {
 }
 
 const INPUT =
-  "w-full bg-slate-50 dark:bg-zinc-800 rounded-2xl border-2 border-transparent focus:border-primary outline-none transition-all text-sm font-bold text-charcoal dark:text-white";
+  "w-full bg-slate-50 dark:bg-zinc-800 rounded-2xl border-2 border-transparent focus:border-primary outline-hidden transition-all text-sm font-bold text-charcoal dark:text-white";
 const LABEL = "text-[10px] font-black text-slate-500 uppercase tracking-widest px-1";
 
 export const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
@@ -186,7 +186,7 @@ export const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
   return createPortal(
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[100] overflow-y-auto overscroll-contain">
+        <div className="fixed inset-0 z-100 overflow-y-auto overscroll-contain">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -343,7 +343,7 @@ export const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
                             type="button"
                             onClick={() => setShowPassword(!showPassword)}
                             aria-label={showPassword ? "Hide password" : "Show password"}
-                            className="absolute right-4 top-1/2 -translate-y-1/2 p-2 text-slate-400 hover:text-primary transition-colors focus:outline-none"
+                            className="absolute right-4 top-1/2 -translate-y-1/2 p-2 text-slate-400 hover:text-primary transition-colors focus:outline-hidden"
                           >
                             {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                           </button>

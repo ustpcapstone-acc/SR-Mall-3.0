@@ -205,7 +205,7 @@ export default function AdminDashboard() {
             onClick={() => load(true)}
             disabled={refreshing}
             aria-label="Refresh dashboard"
-            className="p-4 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-2xl text-slate-400 hover:text-primary transition-all shadow-sm active:scale-95 disabled:opacity-50"
+            className="p-4 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-2xl text-slate-400 hover:text-primary transition-all shadow-xs active:scale-95 disabled:opacity-50"
           >
             <RefreshCw size={20} className={refreshing ? "animate-spin" : ""} />
           </button>
@@ -488,7 +488,7 @@ function Card({ className, children }: { className?: string; children: React.Rea
   return (
     <div
       className={clsx(
-        "bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-[2.5rem] p-6 md:p-8 shadow-sm",
+        "bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-[2.5rem] p-6 md:p-8 shadow-xs",
         className,
       )}
     >
@@ -538,7 +538,7 @@ function EmptyState({ icon, text }: { icon: React.ReactNode; text: string }) {
 
 function Avatar({ name, src }: { name: string; src?: string | null }) {
   return (
-    <div className="w-12 h-12 shrink-0 rounded-[1rem] bg-primary/10 overflow-hidden flex items-center justify-center text-base font-black italic text-primary">
+    <div className="w-12 h-12 shrink-0 rounded-2xl bg-primary/10 overflow-hidden flex items-center justify-center text-base font-black italic text-primary">
       {src ? <img src={src} alt="" className="w-full h-full object-cover" /> : name.charAt(0).toUpperCase()}
     </div>
   );
@@ -575,7 +575,7 @@ function KpiCard({
     <Link
       href={href}
       title={sub ? `${label}: ${value} · ${sub}` : `${label}: ${value}`}
-      className="group min-w-0 bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-[2rem] p-5 shadow-sm hover:shadow-xl hover:-translate-y-0.5 transition-all"
+      className="group min-w-0 bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-4xl p-5 shadow-xs hover:shadow-xl hover:-translate-y-0.5 transition-all"
     >
       <span
         className={clsx(
@@ -679,11 +679,11 @@ function AttentionList({ attention }: { attention: AdminDashboardData["attention
         <li key={row.key}>
           <Link
             href={row.href}
-            className="flex items-center gap-4 px-3 py-4 rounded-2xl hover:bg-slate-50/80 dark:hover:bg-white/[0.02] transition-colors group"
+            className="flex items-center gap-4 px-3 py-4 rounded-2xl hover:bg-slate-50/80 dark:hover:bg-white/2 transition-colors group"
           >
             <span
               className={clsx(
-                "w-12 h-12 shrink-0 rounded-[1rem] flex items-center justify-center group-hover:scale-110 transition-transform",
+                "w-12 h-12 shrink-0 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform",
                 row.urgent ? TONES.red : "bg-primary/10 text-primary",
               )}
             >
@@ -702,7 +702,7 @@ function AttentionList({ attention }: { attention: AdminDashboardData["attention
             </div>
             <span
               className={clsx(
-                "min-w-[2.25rem] px-2.5 py-1 rounded-full text-center text-[11px] font-black border",
+                "min-w-9 px-2.5 py-1 rounded-full text-center text-[11px] font-black border",
                 row.urgent
                   ? "bg-red-500 text-white border-red-500"
                   : "bg-primary/10 text-primary border-primary/20",
@@ -739,7 +739,7 @@ function QuickAction({
       </span>
       <span className="text-[10px] font-black uppercase tracking-widest text-charcoal dark:text-white">{label}</span>
       {badge ? (
-        <span className="absolute top-2 right-2 min-w-[1.25rem] h-5 px-1.5 rounded-full bg-primary text-white text-[11px] font-bold flex items-center justify-center">
+        <span className="absolute top-2 right-2 min-w-5 h-5 px-1.5 rounded-full bg-primary text-white text-[11px] font-bold flex items-center justify-center">
           {badge > 99 ? "99+" : badge}
         </span>
       ) : null}
@@ -965,13 +965,13 @@ function HistoryModal({ onClose }: { onClose: () => void }) {
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-[250] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+    <div className="fixed inset-0 z-250 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-xs" onClick={onClose} />
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="history-title"
-        className="relative w-full max-w-2xl max-h-[85vh] bg-white dark:bg-zinc-900 rounded-[2rem] shadow-2xl flex flex-col border border-slate-200 dark:border-white/10 overflow-hidden animate-fade-in-up"
+        className="relative w-full max-w-2xl max-h-[85vh] bg-white dark:bg-zinc-900 rounded-4xl shadow-2xl flex flex-col border border-slate-200 dark:border-white/10 overflow-hidden animate-fade-in-up"
       >
         <div className="flex items-center justify-between p-6 md:p-8 border-b border-slate-100 dark:border-white/5">
           <div className="space-y-1">

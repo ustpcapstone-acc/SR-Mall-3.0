@@ -119,7 +119,7 @@ export const AdminSidebar = () => {
               className={clsx(
                 "flex items-center gap-4 px-5 py-3 rounded-[1.25rem] transition-all font-bold text-sm relative group",
                 isActive
-                  ? "bg-primary/10 text-primary border border-primary/20 shadow-sm"
+                  ? "bg-primary/10 text-primary border border-primary/20 shadow-xs"
                   : "text-slate-500 hover:bg-slate-50 dark:hover:bg-white/5 dark:text-slate-400 dark:hover:text-white",
               )}
             >

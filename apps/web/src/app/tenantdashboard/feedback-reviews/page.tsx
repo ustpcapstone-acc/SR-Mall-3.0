@@ -34,7 +34,7 @@ type ReviewItem = TenantReviewsData["reviews"][number];
 const PAGE_SIZE = 10;
 const REPLY_MAX = 1000;
 const LABEL = "text-[10px] font-bold text-slate-400 uppercase tracking-widest";
-const CARD = "bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl sm:rounded-[2rem] shadow-sm";
+const CARD = "bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl sm:rounded-4xl shadow-xs";
 
 const SORTS: { value: TenantReviewSort; label: string }[] = [
   { value: "newest", label: "Newest" },
@@ -347,7 +347,7 @@ export default function FeedbackReviews() {
                       value={sort}
                       onChange={(e) => setSort(e.target.value as TenantReviewSort)}
                       aria-label="Sort reviews"
-                      className="appearance-none bg-transparent text-xs font-bold text-charcoal dark:text-white focus:outline-none cursor-pointer"
+                      className="appearance-none bg-transparent text-xs font-bold text-charcoal dark:text-white focus:outline-hidden cursor-pointer"
                     >
                       {SORTS.map((o) => (
                         <option key={o.value} value={o.value}>
@@ -401,7 +401,7 @@ export default function FeedbackReviews() {
                   <button
                     onClick={loadMore}
                     disabled={loadingMore}
-                    className="px-6 py-2 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-slate-50 dark:hover:bg-zinc-700 transition-colors shadow-sm flex items-center gap-2 disabled:opacity-60"
+                    className="px-6 py-2 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-slate-50 dark:hover:bg-zinc-700 transition-colors shadow-xs flex items-center gap-2 disabled:opacity-60"
                   >
                     {loadingMore && <Loader2 size={14} className="animate-spin" />}
                     Load more ({data!.matching - reviews.length} left)
@@ -516,7 +516,7 @@ function ReviewRow({
   };
 
   return (
-    <div className="p-4 sm:p-6 hover:bg-slate-50/60 dark:hover:bg-white/[0.02] transition-colors">
+    <div className="p-4 sm:p-6 hover:bg-slate-50/60 dark:hover:bg-white/2 transition-colors">
       <div className="flex items-start gap-3">
         <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-slate-100 dark:bg-zinc-800 overflow-hidden flex items-center justify-center text-slate-500 font-bold shrink-0">
           {review.user.avatarUrl ? (
@@ -554,7 +554,7 @@ function ReviewRow({
           </div>
 
           {hasComment ? (
-            <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-line [overflow-wrap:anywhere]">
+            <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-line wrap-anywhere">
               {review.comment}
             </p>
           ) : (
@@ -576,7 +576,7 @@ function ReviewRow({
                 autoFocus
                 rows={3}
                 placeholder="Thank the customer or answer their feedback. Your reply is public."
-                className="w-full p-3 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-zinc-800 text-sm text-charcoal dark:text-white focus:outline-none focus:border-primary resize-none"
+                className="w-full p-3 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-zinc-800 text-sm text-charcoal dark:text-white focus:outline-hidden focus:border-primary resize-none"
               />
               <div className="flex items-center gap-2">
                 <span className="text-[10px] text-slate-400 tabular-nums">
@@ -630,7 +630,7 @@ function ReviewRow({
                   </button>
                 </div>
               </div>
-              <p className="mt-1 text-sm text-slate-600 dark:text-slate-300 whitespace-pre-line [overflow-wrap:anywhere]">
+              <p className="mt-1 text-sm text-slate-600 dark:text-slate-300 whitespace-pre-line wrap-anywhere">
                 {review.reply}
               </p>
             </div>
@@ -679,14 +679,14 @@ function ReportModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[250] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => !busy && onClose()} />
+    <div className="fixed inset-0 z-250 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-xs" onClick={() => !busy && onClose()} />
       <form
         onSubmit={submit}
         role="dialog"
         aria-modal="true"
         aria-labelledby="report-title"
-        className="relative w-full max-w-md bg-white dark:bg-zinc-950 rounded-[2rem] shadow-2xl p-7 space-y-5 animate-fade-in-up"
+        className="relative w-full max-w-md bg-white dark:bg-zinc-950 rounded-4xl shadow-2xl p-7 space-y-5 animate-fade-in-up"
       >
         <div className="space-y-1.5">
           <h2 id="report-title" className="text-lg font-black text-charcoal dark:text-white">
@@ -720,7 +720,7 @@ function ReportModal({
             autoFocus
             placeholder="e.g. Not a real customer, offensive language, meant for another shop…"
             className={clsx(
-              "w-full p-3 rounded-xl border bg-slate-50 dark:bg-zinc-900 text-sm text-charcoal dark:text-white focus:outline-none resize-none",
+              "w-full p-3 rounded-xl border bg-slate-50 dark:bg-zinc-900 text-sm text-charcoal dark:text-white focus:outline-hidden resize-none",
               error ? "border-red-500" : "border-slate-200 dark:border-white/10 focus:border-primary",
             )}
           />

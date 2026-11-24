@@ -47,7 +47,7 @@ export function ReservationStepper({
                 ? "border-emerald-500/25 bg-emerald-500/5"
                 : active
                   ? "border-primary/30 bg-primary/5 ring-1 ring-primary/10"
-                  : "border-slate-100 bg-slate-50/70 dark:border-white/5 dark:bg-white/[0.02]",
+                  : "border-slate-100 bg-slate-50/70 dark:border-white/5 dark:bg-white/2",
             )}
           >
             <span

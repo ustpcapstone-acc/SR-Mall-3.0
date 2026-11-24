@@ -164,10 +164,10 @@ export const ShopSalesSlider = ({ shops }: { shops: any[] }) => {
               )}
               
               {/* Exact style requested by user */}
-              <div className="absolute inset-0 transition-opacity duration-1000 bg-gradient-to-b from-transparent via-transparent to-black/5 dark:to-black/60" />
+              <div className="absolute inset-0 transition-opacity duration-1000 bg-linear-to-b from-transparent via-transparent to-black/5 dark:to-black/60" />
               
               {/* Additional dark overlay for better readability if needed, but keeping user's requested style primary */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+              <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/20 to-transparent" />
 
               <div className="absolute bottom-0 left-0 w-full p-6 sm:p-12 md:p-16 flex flex-col md:flex-row md:items-end justify-between gap-6 sm:gap-8">
                 <div className="space-y-3 sm:space-y-4 max-w-2xl">

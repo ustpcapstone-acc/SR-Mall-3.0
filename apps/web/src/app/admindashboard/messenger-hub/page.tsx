@@ -606,7 +606,7 @@ function MessengerHubContent() {
         </div>
       </div>
 
-      <div className="flex-1 bg-white dark:bg-zinc-900 rounded-[2rem] shadow-sm border border-slate-100 dark:border-white/5 flex overflow-hidden">
+      <div className="flex-1 bg-white dark:bg-zinc-900 rounded-4xl shadow-xs border border-slate-100 dark:border-white/5 flex overflow-hidden">
         {/* Left Column (Inbox) */}
         <div className="w-80 border-r border-slate-100 dark:border-white/5 flex flex-col bg-slate-50/50 dark:bg-zinc-900">
           <div className="p-5 border-b border-slate-100 dark:border-white/5 space-y-4">
@@ -620,7 +620,7 @@ function MessengerHubContent() {
                 placeholder="Search conversations..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-zinc-800 rounded-xl border border-slate-200 dark:border-white/10 text-sm font-medium focus:border-primary outline-none"
+                className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-zinc-800 rounded-xl border border-slate-200 dark:border-white/10 text-sm font-medium focus:border-primary outline-hidden"
               />
             </div>
             {/* Filter Tabs */}
@@ -631,7 +631,7 @@ function MessengerHubContent() {
                   onClick={() => setFilter(f)}
                   className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider whitespace-nowrap transition-colors ${
                     filter === f
-                      ? "bg-charcoal text-white dark:bg-white dark:text-black shadow-sm"
+                      ? "bg-charcoal text-white dark:bg-white dark:text-black shadow-xs"
                       : "bg-white dark:bg-zinc-800 text-slate-500 border border-slate-200 dark:border-white/10 hover:border-slate-300"
                   }`}
                 >
@@ -722,7 +722,7 @@ function MessengerHubContent() {
                             : "CUSTOMER"}
                         </span>
                         {isBlocked && (
-                          <span className="text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-red-100 text-red-600 dark:bg-red-950/40 dark:text-red-400">
+                          <span className="text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-red-100 text-red-600 dark:bg-red-950/40 dark:text-red-400">
                             SUSPENDED
                           </span>
                         )}
@@ -738,7 +738,7 @@ function MessengerHubContent() {
                             : chat.messages[0]?.content || "No messages yet"}
                         </p>
                         {unread > 0 && (
-                          <span className="min-w-[1.25rem] h-5 px-1.5 rounded-full bg-primary text-white text-[10px] font-black flex items-center justify-center shrink-0">
+                          <span className="min-w-5 h-5 px-1.5 rounded-full bg-primary text-white text-[10px] font-black flex items-center justify-center shrink-0">
                             {unread > 99 ? "99+" : unread}
                           </span>
                         )}
@@ -756,7 +756,7 @@ function MessengerHubContent() {
           {activeChat ? (
             <>
               {/* Chat Header */}
-              <div className="h-16 border-b border-slate-100 dark:border-white/5 flex items-center justify-between px-6 shadow-sm z-10 transition-all bg-white dark:bg-zinc-900/50 backdrop-blur-md">
+              <div className="h-16 border-b border-slate-100 dark:border-white/5 flex items-center justify-between px-6 shadow-xs z-10 transition-all bg-white dark:bg-zinc-900/50 backdrop-blur-md">
                 <div className="flex items-center gap-3">
                   <div className="relative">
                     <div className="w-9 h-9 rounded-full bg-slate-100 dark:bg-zinc-800 flex items-center justify-center font-bold text-sm overflow-hidden border border-slate-200 dark:border-white/10">
@@ -839,7 +839,7 @@ function MessengerHubContent() {
                         <div className={`flex flex-col ${isFromAdmin ? "items-end" : "items-start"}`}>
                           <div className="relative group/bubble">
                             <div
-                              className={`max-w-[280px] sm:max-w-[400px] lg:max-w-[500px] ${bubblePadding(msg)} shadow-sm rounded-2xl relative ${
+                              className={`max-w-[280px] sm:max-w-[400px] lg:max-w-[500px] ${bubblePadding(msg)} shadow-xs rounded-2xl relative ${
                                 isFromAdmin
                                   ? "bg-primary text-white rounded-tr-sm"
                                   : "bg-white dark:bg-zinc-800 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 rounded-tl-sm"
@@ -852,7 +852,7 @@ function MessengerHubContent() {
                               )}
 
                               {msg.content && (
-                                <p className="text-sm font-medium leading-relaxed break-words whitespace-pre-wrap">
+                                <p className="text-sm font-medium leading-relaxed wrap-break-word whitespace-pre-wrap">
                                   {msg.content}
                                 </p>
                               )}
@@ -919,7 +919,7 @@ function MessengerHubContent() {
                     <img
                       src={imagePreview}
                       alt="Preview"
-                      className="h-20 rounded-xl border border-slate-200 dark:border-white/10 object-cover shadow-sm"
+                      className="h-20 rounded-xl border border-slate-200 dark:border-white/10 object-cover shadow-xs"
                     />
                     <button
                       type="button"
@@ -928,7 +928,7 @@ function MessengerHubContent() {
                         setImageFile(null);
                         setFileInputKey((k) => k + 1);
                       }}
-                      className="absolute -top-2 -right-2 w-5 h-5 bg-primary text-white rounded-full flex items-center justify-center shadow hover:scale-110 transition-transform"
+                      className="absolute -top-2 -right-2 w-5 h-5 bg-primary text-white rounded-full flex items-center justify-center shadow-sm hover:scale-110 transition-transform"
                     >
                       <X size={10} />
                     </button>
@@ -969,12 +969,12 @@ function MessengerHubContent() {
                           : "Type a reply..."
                     }
                     disabled={block.blockedByMe}
-                    className="flex-1 px-3 py-2 bg-transparent outline-none text-sm font-medium disabled:opacity-40"
+                    className="flex-1 px-3 py-2 bg-transparent outline-hidden text-sm font-medium disabled:opacity-40"
                   />
                   <button
                     type="submit"
                     disabled={(!replyText.trim() && !imageFile) || isSending || block.blockedByMe}
-                    className="p-2.5 bg-primary text-white rounded-lg hover:bg-primary-hover transition-colors disabled:opacity-50 shadow-sm flex items-center justify-center"
+                    className="p-2.5 bg-primary text-white rounded-lg hover:bg-primary-hover transition-colors disabled:opacity-50 shadow-xs flex items-center justify-center"
                   >
                     {isSending ? (
                       <Loader2 size={16} className="animate-spin" />
@@ -1007,7 +1007,7 @@ function MessengerHubContent() {
 
               <div className="space-y-6">
                 {/* Profile Card */}
-                <div className="bg-white dark:bg-zinc-800 p-5 rounded-2xl border border-slate-200 dark:border-white/10 shadow-sm transition-all hover:shadow-md">
+                <div className="bg-white dark:bg-zinc-800 p-5 rounded-2xl border border-slate-200 dark:border-white/10 shadow-xs transition-all hover:shadow-md">
                   <div className="flex items-center gap-3 mb-4">
                     <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xl uppercase overflow-hidden border border-slate-100 dark:border-white/5 shrink-0">
                       {activeOtherUser?.avatarUrl ? (
@@ -1052,7 +1052,7 @@ function MessengerHubContent() {
 
                 {/* Space Interest Module */}
                 {activeChat.areaSlot && (
-                  <div className="bg-white dark:bg-zinc-800 p-5 rounded-2xl border border-slate-200 dark:border-white/10 shadow-sm">
+                  <div className="bg-white dark:bg-zinc-800 p-5 rounded-2xl border border-slate-200 dark:border-white/10 shadow-xs">
                     <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">
                       Linked Inventory
                     </h4>

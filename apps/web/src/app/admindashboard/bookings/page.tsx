@@ -269,7 +269,7 @@ export default function MasterBookingsPage() {
           <div className="h-10 w-px bg-slate-200 dark:bg-white/10 hidden md:block mx-2" />
           <button
             onClick={() => loadData(true)}
-            className="p-4 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-2xl text-slate-400 hover:text-primary transition-all shadow-sm"
+            className="p-4 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-2xl text-slate-400 hover:text-primary transition-all shadow-xs"
           >
             <Monitor size={20} />
           </button>
@@ -277,7 +277,7 @@ export default function MasterBookingsPage() {
       </div>
 
       {/* Modern Tabs */}
-      <div className="bg-white dark:bg-zinc-900/50 p-2 rounded-[2rem] border border-slate-200 dark:border-white/5 flex gap-2 w-fit overflow-x-auto custom-scrollbar shadow-sm">
+      <div className="bg-white dark:bg-zinc-900/50 p-2 rounded-4xl border border-slate-200 dark:border-white/5 flex gap-2 w-fit overflow-x-auto custom-scrollbar shadow-xs">
         {tabs.map((tab) => (
           <button
             key={tab.id}
@@ -362,7 +362,7 @@ export default function MasterBookingsPage() {
                             </p>
                           </div>
                         </div>
-                        <span className="px-2 py-1 bg-primary text-white text-[8px] font-black uppercase tracking-widest rounded mb-3 inline-block">
+                        <span className="px-2 py-1 bg-primary text-white text-[8px] font-black uppercase tracking-widest rounded-sm mb-3 inline-block">
                           {inq.eventType}
                         </span>
                         <h3 className="text-xl font-black text-charcoal dark:text-white uppercase tracking-tight leading-tight italic">
@@ -423,7 +423,7 @@ export default function MasterBookingsPage() {
               <h2 className="text-xl font-black text-charcoal dark:text-white uppercase italic tracking-tighter">
                 Strategic <span className="text-primary">Schedule.</span>
               </h2>
-              <div className="bg-white dark:bg-zinc-900 rounded-[3rem] p-10 border border-slate-100 dark:border-white/5 shadow-sm">
+              <div className="bg-white dark:bg-zinc-900 rounded-[3rem] p-10 border border-slate-100 dark:border-white/5 shadow-xs">
                 <div className="flex items-center justify-between mb-10">
                   <button
                     onClick={handlePrevMonth}
@@ -459,7 +459,7 @@ export default function MasterBookingsPage() {
                   {blanks.map((b) => (
                     <div
                       key={`b-${b}`}
-                      className="aspect-square bg-slate-50/50 dark:bg-white/[0.02] rounded-2xl"
+                      className="aspect-square bg-slate-50/50 dark:bg-white/2 rounded-2xl"
                     />
                   ))}
                   {days.map((d) => {
@@ -513,7 +513,7 @@ export default function MasterBookingsPage() {
         )}
         {activeTab === "reservation" && (
           <div className="space-y-8">
-            <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-[2.5rem] shadow-sm overflow-hidden">
+            <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-[2.5rem] shadow-xs overflow-hidden">
               <div className="overflow-x-auto custom-scrollbar">
                 <table className="w-full text-left border-collapse">
                   <thead>
@@ -556,7 +556,7 @@ export default function MasterBookingsPage() {
                       reservedSlots.map((res) => (
                         <tr
                           key={res.id}
-                          className="hover:bg-slate-50/80 dark:hover:bg-white/[0.02] transition-colors group/row"
+                          className="hover:bg-slate-50/80 dark:hover:bg-white/2 transition-colors group/row"
                         >
                           <td className="px-8 py-6">
                             <div className="flex items-center gap-4">
@@ -613,7 +613,7 @@ export default function MasterBookingsPage() {
                             <div className="space-y-1.5">
                               <div
                                 className={clsx(
-                                  "inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-black uppercase tracking-wider border shadow-sm",
+                                  "inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-black uppercase tracking-wider border shadow-xs",
                                   res.isUrgent
                                     ? "bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 border-red-500/30 animate-pulse"
                                     : res.isWarning
@@ -671,7 +671,7 @@ export default function MasterBookingsPage() {
 
       {/* Shared Modals */}
       {modalInquiry && (
-        <div className="fixed inset-0 bg-charcoal/80 backdrop-blur-md z-[100] flex items-center justify-center p-6 animate-fade-in">
+        <div className="fixed inset-0 bg-charcoal/80 backdrop-blur-md z-100 flex items-center justify-center p-6 animate-fade-in">
           <div className="bg-white dark:bg-zinc-900 rounded-[3rem] p-10 max-w-lg w-full shadow-2xl relative border border-white/10 animate-scale-in">
             <button
               onClick={() => setModalInquiry(null)}
@@ -682,7 +682,7 @@ export default function MasterBookingsPage() {
             <div className="flex items-center gap-4 mb-8">
               <div
                 className={clsx(
-                  "w-16 h-16 rounded-[1.5rem] flex items-center justify-center shadow-lg",
+                  "w-16 h-16 rounded-3xl flex items-center justify-center shadow-lg",
                   modalAction === "ACCEPTED"
                     ? "bg-emerald-500 text-white shadow-emerald-500/20"
                     : "bg-red-500 text-white shadow-red-500/20",
@@ -718,7 +718,7 @@ export default function MasterBookingsPage() {
                       ? "Policy failure documentation required..."
                       : "Optional internal guidance..."
                   }
-                  className="w-full bg-slate-50 dark:bg-black border border-slate-200 dark:border-white/5 rounded-3xl p-6 text-sm font-bold text-charcoal dark:text-white focus:ring-2 focus:ring-primary/20 transition-all min-h-[160px] resize-none outline-none"
+                  className="w-full bg-slate-50 dark:bg-black border border-slate-200 dark:border-white/5 rounded-3xl p-6 text-sm font-bold text-charcoal dark:text-white focus:ring-2 focus:ring-primary/20 transition-all min-h-[160px] resize-none outline-hidden"
                 />
               </div>
 
@@ -748,7 +748,7 @@ export default function MasterBookingsPage() {
 
       {selectedCalendarDate && (
         <div
-          className="fixed inset-0 bg-charcoal/80 backdrop-blur-sm z-[100] flex items-center justify-center p-6 animate-fade-in"
+          className="fixed inset-0 bg-charcoal/80 backdrop-blur-xs z-100 flex items-center justify-center p-6 animate-fade-in"
           onClick={() => setSelectedCalendarDate(null)}
         >
           <div
@@ -777,7 +777,7 @@ export default function MasterBookingsPage() {
               {calendarModalEvents.map((ev) => (
                 <div
                   key={ev.id}
-                  className="p-6 rounded-[2rem] bg-slate-50 dark:bg-black border border-slate-100 dark:border-white/5 group hover:border-primary/50 transition-all"
+                  className="p-6 rounded-4xl bg-slate-50 dark:bg-black border border-slate-100 dark:border-white/5 group hover:border-primary/50 transition-all"
                 >
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-[9px] font-black text-primary uppercase tracking-widest">

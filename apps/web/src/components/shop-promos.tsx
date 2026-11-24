@@ -59,9 +59,9 @@ export function ShopPromos({
           return (
             <article
               key={p.id}
-              className="overflow-hidden rounded-2xl border border-[#E8E2DE] bg-white shadow-sm dark:border-white/10 dark:bg-zinc-900"
+              className="overflow-hidden rounded-2xl border border-[#E8E2DE] bg-white shadow-xs dark:border-white/10 dark:bg-zinc-900"
             >
-              <div className="relative aspect-[16/10] bg-black">
+              <div className="relative aspect-16/10 bg-black">
                 {isVideo ? (
                   <video
                     src={p.promoVideo!}
@@ -116,9 +116,9 @@ export function ShopPromos({
           return (
             <article
               key={p.id}
-              className="bg-white dark:bg-zinc-900 rounded-[1.25rem] sm:rounded-[2rem] border border-slate-100 dark:border-white/5 overflow-hidden shadow-sm"
+              className="bg-white dark:bg-zinc-900 rounded-[1.25rem] sm:rounded-4xl border border-slate-100 dark:border-white/5 overflow-hidden shadow-xs"
             >
-              <div className="aspect-[16/10] relative bg-black">
+              <div className="aspect-16/10 relative bg-black">
                 {isVideo ? (
                   <video
                     src={p.promoVideo!}

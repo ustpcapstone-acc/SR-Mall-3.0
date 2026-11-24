@@ -69,8 +69,8 @@ export default function AvailableSpacesPage() {
 
       {/* Header Section */}
       <section className="pt-32 pb-12 sm:pt-40 sm:pb-20 bg-white dark:bg-zinc-950 border-b border-slate-100 dark:border-white/5 overflow-hidden relative">
-        <div className="absolute top-0 right-0 w-1/2 h-full bg-primary/5 blur-[120px] -z-0 translate-x-1/4"></div>
-        <div className="absolute bottom-0 left-0 w-1/3 h-1/2 bg-blue-500/5 blur-[100px] -z-0 -translate-x-1/4"></div>
+        <div className="absolute top-0 right-0 w-1/2 h-full bg-primary/5 blur-[120px] z-0 translate-x-1/4"></div>
+        <div className="absolute bottom-0 left-0 w-1/3 h-1/2 bg-blue-500/5 blur-[100px] z-0 -translate-x-1/4"></div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 relative z-10">
           <Link
@@ -111,7 +111,7 @@ export default function AvailableSpacesPage() {
                   placeholder="Search unit IDs (e.g. A-101)..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-zinc-900 border-2 border-slate-100 dark:border-white/5 rounded-2xl py-4 pl-14 pr-6 text-sm font-bold text-charcoal dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-primary transition-all shadow-sm"
+                  className="w-full bg-slate-50 dark:bg-zinc-900 border-2 border-slate-100 dark:border-white/5 rounded-2xl py-4 pl-14 pr-6 text-sm font-bold text-charcoal dark:text-white placeholder:text-slate-400 focus:outline-hidden focus:border-primary transition-all shadow-xs"
                 />
               </div>
             </div>
@@ -122,7 +122,7 @@ export default function AvailableSpacesPage() {
       {/* Reservation process */}
       <section className="pt-10 sm:pt-14">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="mx-auto max-w-4xl rounded-[2rem] border border-slate-100 dark:border-white/5 bg-white dark:bg-zinc-950 p-5 sm:p-7 shadow-sm">
+          <div className="mx-auto max-w-4xl rounded-4xl border border-slate-100 dark:border-white/5 bg-white dark:bg-zinc-950 p-5 sm:p-7 shadow-xs">
             {isAuthenticated && user?.role === "TENANT" && (
               <div className="mb-4 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-left dark:border-amber-500/20 dark:bg-amber-500/10">
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400">
@@ -196,11 +196,11 @@ export default function AvailableSpacesPage() {
                     }
                     aria-disabled={!access.open}
                     className={clsx(
-                      "group relative bg-white dark:bg-zinc-900 rounded-[1.25rem] sm:rounded-[2rem] border border-slate-100 dark:border-white/5 overflow-hidden transition-all duration-700 shadow-sm",
-                      access.open ? "cursor-pointer hover:shadow-2xl hover:-translate-y-2" : "cursor-not-allowed opacity-75 grayscale-[35%]",
+                      "group relative bg-white dark:bg-zinc-900 rounded-[1.25rem] sm:rounded-4xl border border-slate-100 dark:border-white/5 overflow-hidden transition-all duration-700 shadow-xs",
+                      access.open ? "cursor-pointer hover:shadow-2xl hover:-translate-y-2" : "cursor-not-allowed opacity-75 grayscale-35",
                     )}
                   >
-                    <div className="aspect-[4/3] sm:aspect-[16/10] relative overflow-hidden bg-slate-100 dark:bg-black">
+                    <div className="aspect-4/3 sm:aspect-16/10 relative overflow-hidden bg-slate-100 dark:bg-black">
                       {slot.space_images && slot.space_images[0] ? (
                         <img
                           src={slot.space_images[0]}
@@ -208,7 +208,7 @@ export default function AvailableSpacesPage() {
                           className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
                         />
                       ) : (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center p-4 sm:p-8 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-zinc-900 dark:to-zinc-950">
+                        <div className="absolute inset-0 flex flex-col items-center justify-center p-4 sm:p-8 bg-linear-to-br from-slate-50 to-slate-100 dark:from-zinc-900 dark:to-zinc-950">
                           <ShoppingBag className="w-6 h-6 sm:w-12 sm:h-12 text-slate-200 dark:text-zinc-800 mb-2 sm:mb-4" />
                           <p className="text-[8px] sm:text-[10px] font-black text-slate-300 uppercase tracking-widest text-center">
                             Premium Unit <br />
@@ -217,12 +217,12 @@ export default function AvailableSpacesPage() {
                         </div>
                       )}
 
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity duration-500"></div>
+                      <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity duration-500"></div>
                       
                       <div className="absolute top-2 sm:top-6 right-2 sm:right-6">
                         <div
                           className={clsx(
-                            "backdrop-blur-xl px-2 sm:px-4 py-1 sm:py-2 rounded-full border text-[7px] sm:text-[9px] font-black uppercase tracking-[0.1em] sm:tracking-[0.2em] transition-all shadow-2xl",
+                            "backdrop-blur-xl px-2 sm:px-4 py-1 sm:py-2 rounded-full border text-[7px] sm:text-[9px] font-black uppercase tracking-widest sm:tracking-[0.2em] transition-all shadow-2xl",
                             slot.status === "AVAILABLE"
                               ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-400"
                               : access.mine

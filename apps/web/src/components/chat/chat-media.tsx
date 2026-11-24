@@ -65,7 +65,7 @@ export function ChatImage({ url, onOpen }: { url: string; onOpen: (url: string) 
     <button
       type="button"
       onClick={() => onOpen(url)}
-      className="relative block w-52 sm:w-60 rounded-xl overflow-hidden bg-slate-100 dark:bg-zinc-800 group/img focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+      className="relative block w-52 sm:w-60 rounded-xl overflow-hidden bg-slate-100 dark:bg-zinc-800 group/img focus:outline-hidden focus-visible:ring-2 focus-visible:ring-primary/50"
       title="View full size"
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}

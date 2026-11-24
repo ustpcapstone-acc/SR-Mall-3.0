@@ -32,7 +32,7 @@ export const ProductCard = ({
       onClick={() => onClick(product)}
       style={style}
       className={clsx(
-        "group relative aspect-[3/4] bg-white dark:bg-zinc-900 rounded-[2rem] overflow-hidden",
+        "group relative aspect-3/4 bg-white dark:bg-zinc-900 rounded-4xl overflow-hidden",
         "border-2 border-slate-100 dark:border-white/5 hover:border-primary/30",
         "shadow-lg hover:shadow-[0_30px_60px_-15px_rgba(190,30,45,0.25)]",
         "transition-all duration-700 cursor-pointer",
@@ -55,7 +55,7 @@ export const ProductCard = ({
       </div>
 
       {/* Overlays */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent opacity-60 group-hover:opacity-80 transition-opacity duration-700 z-10" />
+      <div className="absolute inset-0 bg-linear-to-t from-black via-black/20 to-transparent opacity-60 group-hover:opacity-80 transition-opacity duration-700 z-10" />
       <div className="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity duration-700 z-11" />
 
       {/* Out of stock */}

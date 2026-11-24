@@ -560,7 +560,7 @@ export default function PublicDigitalConcierge() {
                   onClick={() => sessionStorage.setItem("scroll_to_featured", "true")}
                   className={clsx(
                     "w-[62%] sm:w-full shrink-0 snap-center",
-                    "group relative aspect-[3/4] bg-white dark:bg-zinc-900 rounded-[2rem] overflow-hidden",
+                    "group relative aspect-3/4 bg-white dark:bg-zinc-900 rounded-4xl overflow-hidden",
                     "border-2 border-slate-100 dark:border-white/5 hover:border-primary/30",
                     "shadow-lg hover:shadow-[0_30px_60px_-15px_rgba(190,30,45,0.25)]",
                     "transition-all duration-700 cursor-pointer",
@@ -568,7 +568,7 @@ export default function PublicDigitalConcierge() {
                 >
                   {/* Background/Overlay */}
                   <div className="absolute inset-0 bg-slate-50 dark:bg-zinc-950 flex items-center justify-center">
-                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent opacity-60 group-hover:opacity-80 transition-opacity duration-700 z-10" />
+                    <div className="absolute inset-0 bg-linear-to-t from-black via-black/20 to-transparent opacity-60 group-hover:opacity-80 transition-opacity duration-700 z-10" />
                     <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-white dark:bg-zinc-800 text-primary flex items-center justify-center group-hover:scale-110 group-hover:bg-primary group-hover:text-white transition-all duration-500 shadow-xl z-20 border border-slate-100 dark:border-white/5">
                       <ArrowRight size={32} />
                     </div>
@@ -599,14 +599,14 @@ export default function PublicDigitalConcierge() {
       <section className="relative overflow-hidden py-14 sm:py-20 lg:py-28 bg-slate-100 dark:bg-zinc-950 border-y border-slate-200 dark:border-white/5">
         {/* Soft brand glow */}
         <div aria-hidden className="pointer-events-none absolute inset-0">
-          <div className="absolute -top-32 left-[-10%] w-[36rem] h-[36rem] rounded-full bg-primary/10 dark:bg-[#BE1E2D]/10 blur-3xl" />
-          <div className="absolute -bottom-40 right-[-5%] w-[30rem] h-[30rem] rounded-full bg-primary/5 dark:bg-[#BE1E2D]/10 blur-3xl" />
+          <div className="absolute -top-32 left-[-10%] w-xl h-144 rounded-full bg-primary/10 dark:bg-[#BE1E2D]/10 blur-3xl" />
+          <div className="absolute -bottom-40 right-[-5%] w-120 h-120 rounded-full bg-primary/5 dark:bg-[#BE1E2D]/10 blur-3xl" />
         </div>
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-12 items-center gap-10 lg:gap-14">
           {/* Copy */}
           <div className="lg:col-span-5 space-y-6 sm:space-y-7">
-            <span className="inline-flex items-center gap-2 pl-2 pr-3.5 py-1.5 rounded-full bg-white/70 dark:bg-white/5 border border-slate-200 dark:border-white/10 shadow-sm backdrop-blur">
+            <span className="inline-flex items-center gap-2 pl-2 pr-3.5 py-1.5 rounded-full bg-white/70 dark:bg-white/5 border border-slate-200 dark:border-white/10 shadow-xs backdrop-blur-sm">
               <span className="relative flex w-2 h-2">
                 <span className="absolute inset-0 rounded-full bg-primary dark:bg-[#BE1E2D] opacity-60 animate-ping" />
                 <span className="relative w-2 h-2 rounded-full bg-primary dark:bg-[#BE1E2D]" />
@@ -633,7 +633,7 @@ export default function PublicDigitalConcierge() {
                 className="group inline-flex items-center justify-center gap-3 pl-2 pr-6 py-2 rounded-full bg-primary dark:bg-[#BE1E2D] text-white font-bold text-sm sm:text-base shadow-xl shadow-primary/25 dark:shadow-[#BE1E2D]/25 hover:bg-primary/90 dark:hover:bg-[#9E1B26] active:scale-95 transition-all"
               >
                 <span className="w-10 h-10 rounded-full bg-white/15 flex items-center justify-center group-hover:bg-white/25 transition-colors">
-                  <Play size={16} className="fill-current translate-x-[1px]" />
+                  <Play size={16} className="fill-current translate-x-px" />
                 </span>
                 Watch Full Campaign
               </button>
@@ -660,13 +660,13 @@ export default function PublicDigitalConcierge() {
                 }
               }}
               aria-label="Play the full campaign video"
-              className="group relative block w-full text-left cursor-pointer rounded-[1.75rem] sm:rounded-[2.25rem] p-1.5 sm:p-2 bg-white/60 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 shadow-2xl shadow-black/10 dark:shadow-black/50 focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/30"
+              className="group relative block w-full text-left cursor-pointer rounded-[1.75rem] sm:rounded-[2.25rem] p-1.5 sm:p-2 bg-white/60 dark:bg-white/4 border border-slate-200 dark:border-white/10 shadow-2xl shadow-black/10 dark:shadow-black/50 focus:outline-hidden focus-visible:ring-4 focus-visible:ring-primary/30"
             >
               <div className="relative aspect-video overflow-hidden rounded-[1.4rem] sm:rounded-[1.8rem] bg-black">
                 <video
                   ref={campaignVideoRef}
                   src={config?.featuredVideoUrl || "/vid/Download.mp4"}
-                  className="w-full h-full object-cover scale-[1.01] group-hover:scale-105 transition-transform duration-[1200ms] ease-out"
+                  className="w-full h-full object-cover scale-[1.01] group-hover:scale-105 transition-transform duration-1200 ease-out"
                   autoPlay
                   loop
                   muted
@@ -674,14 +674,14 @@ export default function PublicDigitalConcierge() {
                 />
 
                 {/* Readability gradient */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-black/20" />
+                <div className="absolute inset-0 bg-linear-to-t from-black/85 via-black/10 to-black/20" />
 
                 {/* Now playing chip */}
                 <div className="absolute top-3 left-3 sm:top-5 sm:left-5 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/45 backdrop-blur-md border border-white/15">
                   <span className="flex items-end gap-[2px] h-3" aria-hidden>
-                    <span className="w-[3px] h-1.5 bg-white rounded-sm animate-pulse" />
-                    <span className="w-[3px] h-3 bg-white rounded-sm animate-pulse [animation-delay:150ms]" />
-                    <span className="w-[3px] h-2 bg-white rounded-sm animate-pulse [animation-delay:300ms]" />
+                    <span className="w-[3px] h-1.5 bg-white rounded-xs animate-pulse" />
+                    <span className="w-[3px] h-3 bg-white rounded-xs animate-pulse [animation-delay:150ms]" />
+                    <span className="w-[3px] h-2 bg-white rounded-xs animate-pulse [animation-delay:300ms]" />
                   </span>
                   <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] text-white">Now playing</span>
                 </div>
@@ -712,7 +712,7 @@ export default function PublicDigitalConcierge() {
                     aria-pressed={!campaignMuted}
                     aria-label={campaignMuted ? "Turn sound on" : "Turn sound off"}
                     title={campaignMuted ? "Turn sound on" : "Turn sound off"}
-                    className="relative z-20 shrink-0 inline-flex items-center gap-1.5 h-9 sm:h-10 pl-2.5 pr-3.5 rounded-full bg-white text-charcoal hover:bg-primary hover:text-white dark:hover:bg-[#BE1E2D] shadow-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+                    className="relative z-20 shrink-0 inline-flex items-center gap-1.5 h-9 sm:h-10 pl-2.5 pr-3.5 rounded-full bg-white text-charcoal hover:bg-primary hover:text-white dark:hover:bg-[#BE1E2D] shadow-lg transition-colors focus:outline-hidden focus-visible:ring-2 focus-visible:ring-white/70"
                   >
                     {campaignMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
                     <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest">
@@ -803,12 +803,12 @@ export default function PublicDigitalConcierge() {
                     placeholder="Search stores, brands, or unit IDs..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full bg-white dark:bg-zinc-900 border-2 border-slate-100 dark:border-white/5 rounded-[1.5rem] py-5 pl-14 pr-6 text-sm font-bold text-charcoal dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all shadow-xl shadow-slate-200/50 dark:shadow-none"
+                    className="w-full bg-white dark:bg-zinc-900 border-2 border-slate-100 dark:border-white/5 rounded-3xl py-5 pl-14 pr-6 text-sm font-bold text-charcoal dark:text-white placeholder:text-slate-400 focus:outline-hidden focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all shadow-xl shadow-slate-200/50 dark:shadow-none"
                   />
 
                   {/* Predictive Search Panel */}
                   {searchQuery && (
-                    <div className="absolute top-full left-0 w-full mt-2 sm:mt-3 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-2xl sm:rounded-3xl shadow-2xl z-[100] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div className="absolute top-full left-0 w-full mt-2 sm:mt-3 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-2xl sm:rounded-3xl shadow-2xl z-100 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300">
                       <div className="p-3 sm:p-4 border-b border-slate-50 dark:border-white/5 flex justify-between items-center">
                         <span className="text-[8px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">
                           Recommended Matches
@@ -889,7 +889,7 @@ export default function PublicDigitalConcierge() {
             )}
           >
             {/* Scroll Indication for Mobile */}
-            <div className="lg:hidden absolute right-0 top-0 bottom-4 w-8 bg-gradient-to-l from-slate-100 dark:from-zinc-950 to-transparent pointer-events-none z-20"></div>
+            <div className="lg:hidden absolute right-0 top-0 bottom-4 w-8 bg-linear-to-l from-slate-100 dark:from-zinc-950 to-transparent pointer-events-none z-20"></div>
             {[
               { id: "All Categories", label: "All", icon: <ShoppingBag size={16} /> },
               { id: "food", label: "Food & Drinks", icon: <Coffee size={16} /> },
@@ -980,9 +980,9 @@ export default function PublicDigitalConcierge() {
                   {/* View All Shops — same shape as ShopCard / slot card */}
                   <Link
                     href="/tenant-directory"
-                    className="w-[85%] sm:w-full shrink-0 snap-center group relative bg-white dark:bg-zinc-900 rounded-[2rem] border border-slate-100 dark:border-white/5 overflow-hidden transition-all duration-700 shadow-sm hover:shadow-2xl hover:-translate-y-2"
+                    className="w-[85%] sm:w-full shrink-0 snap-center group relative bg-white dark:bg-zinc-900 rounded-4xl border border-slate-100 dark:border-white/5 overflow-hidden transition-all duration-700 shadow-xs hover:shadow-2xl hover:-translate-y-2"
                   >
-                    <div className="aspect-[4/3] sm:aspect-[16/10] relative overflow-hidden bg-gradient-to-br from-slate-50 to-slate-100 dark:from-zinc-900 dark:to-zinc-950 flex items-center justify-center">
+                    <div className="aspect-4/3 sm:aspect-16/10 relative overflow-hidden bg-linear-to-br from-slate-50 to-slate-100 dark:from-zinc-900 dark:to-zinc-950 flex items-center justify-center">
                       <div className="w-14 h-14 sm:w-20 sm:h-20 rounded-full bg-white dark:bg-zinc-800 text-primary flex items-center justify-center shadow-xl group-hover:bg-primary group-hover:text-white group-hover:scale-110 transition-all duration-500">
                         <ArrowRight size={28} />
                       </div>
@@ -1053,7 +1053,7 @@ export default function PublicDigitalConcierge() {
                 onClick={handleLoadMore}
                 disabled={isLoadingMore}
                 className={clsx(
-                  "inline-flex items-center gap-2 sm:gap-3 px-6 sm:px-8 py-3 sm:py-4 bg-zinc-100 dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-xl sm:rounded-2xl text-primary font-bold uppercase text-xs tracking-wider sm:tracking-[0.2em] hover:bg-slate-200 dark:hover:bg-zinc-800 hover:border-primary transition-all active:scale-95 disabled:opacity-70 shadow-sm",
+                  "inline-flex items-center gap-2 sm:gap-3 px-6 sm:px-8 py-3 sm:py-4 bg-zinc-100 dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-xl sm:rounded-2xl text-primary font-bold uppercase text-xs tracking-wider sm:tracking-[0.2em] hover:bg-slate-200 dark:hover:bg-zinc-800 hover:border-primary transition-all active:scale-95 disabled:opacity-70 shadow-xs",
                 )}
               >
                 {isLoadingMore ? (
@@ -1284,14 +1284,14 @@ export default function PublicDigitalConcierge() {
                     aria-disabled={!access.open}
                     className={clsx(
                       "w-[85%] sm:w-full",
-                      "shrink-0 snap-center group relative bg-white dark:bg-zinc-900 rounded-[2rem] border border-slate-100 dark:border-white/5 overflow-hidden transition-all duration-700 shadow-sm animate-fade-in-up",
-                      access.open ? "cursor-pointer hover:shadow-2xl hover:-translate-y-2" : "cursor-not-allowed opacity-75 grayscale-[35%]",
+                      "shrink-0 snap-center group relative bg-white dark:bg-zinc-900 rounded-4xl border border-slate-100 dark:border-white/5 overflow-hidden transition-all duration-700 shadow-xs animate-fade-in-up",
+                      access.open ? "cursor-pointer hover:shadow-2xl hover:-translate-y-2" : "cursor-not-allowed opacity-75 grayscale-35",
                     )}
                     style={{ animationDelay: `${idx * 100}ms` }}
                   >
                     <div
                       className={clsx(
-                        "aspect-[16/10]",
+                        "aspect-16/10",
                         "relative",
                         "overflow-hidden",
                         "bg-slate-100",
@@ -1305,7 +1305,7 @@ export default function PublicDigitalConcierge() {
                           className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
                         />
                       ) : (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center p-8 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-zinc-900 dark:to-zinc-950">
+                        <div className="absolute inset-0 flex flex-col items-center justify-center p-8 bg-linear-to-br from-slate-50 to-slate-100 dark:from-zinc-900 dark:to-zinc-950">
                           <ShoppingBag className="w-12 h-12 text-slate-200 dark:text-zinc-800 mb-4" />
                           <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest text-center">
                             Premium Unit <br />
@@ -1315,7 +1315,7 @@ export default function PublicDigitalConcierge() {
                       )}
 
                       {/* Professional Glassmorphism Overlay */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity duration-500"></div>
+                      <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity duration-500"></div>
 
                       <div className={clsx("absolute", "top-6", "right-6")}>
                         <div
@@ -1444,11 +1444,11 @@ export default function PublicDigitalConcierge() {
                   href="/available-spaces"
                   className={clsx(
                     "w-[85%] sm:w-full shrink-0 snap-center",
-                    "group relative bg-white dark:bg-zinc-900 rounded-[2rem] border border-slate-100 dark:border-white/5 overflow-hidden transition-all duration-700 cursor-pointer shadow-sm hover:shadow-2xl hover:-translate-y-2",
+                    "group relative bg-white dark:bg-zinc-900 rounded-4xl border border-slate-100 dark:border-white/5 overflow-hidden transition-all duration-700 cursor-pointer shadow-xs hover:shadow-2xl hover:-translate-y-2",
                   )}
                 >
-                  <div className={clsx("aspect-[16/10]", "relative", "overflow-hidden", "bg-slate-50", "dark:bg-zinc-950", "flex items-center justify-center")}>
-                    <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-60 group-hover:opacity-100 transition-opacity" />
+                  <div className={clsx("aspect-16/10", "relative", "overflow-hidden", "bg-slate-50", "dark:bg-zinc-950", "flex items-center justify-center")}>
+                    <div className="absolute inset-0 bg-linear-to-br from-primary/5 to-transparent opacity-60 group-hover:opacity-100 transition-opacity" />
                     <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-white dark:bg-zinc-800 text-primary flex items-center justify-center group-hover:scale-110 group-hover:bg-primary group-hover:text-white transition-all duration-500 shadow-xl z-10 border border-slate-100 dark:border-white/5">
                       <ArrowRight size={32} />
                     </div>
@@ -1501,7 +1501,7 @@ export default function PublicDigitalConcierge() {
                 onClick={handleLoadMoreSlots}
                 disabled={isLoadingMoreSlots}
                 className={clsx(
-                  "inline-flex items-center gap-2 sm:gap-3 px-6 sm:px-8 py-3 sm:py-4 bg-zinc-100 dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-xl sm:rounded-2xl text-primary font-bold uppercase text-xs tracking-wider sm:tracking-[0.2em] hover:bg-slate-200 dark:hover:bg-zinc-800 hover:border-primary transition-all active:scale-95 disabled:opacity-70 shadow-sm",
+                  "inline-flex items-center gap-2 sm:gap-3 px-6 sm:px-8 py-3 sm:py-4 bg-zinc-100 dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-xl sm:rounded-2xl text-primary font-bold uppercase text-xs tracking-wider sm:tracking-[0.2em] hover:bg-slate-200 dark:hover:bg-zinc-800 hover:border-primary transition-all active:scale-95 disabled:opacity-70 shadow-xs",
                 )}
               >
                 {isLoadingMoreSlots ? (
@@ -1608,7 +1608,7 @@ export default function PublicDigitalConcierge() {
 
           <div className="mt-10 grid gap-4 md:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] md:gap-5 lg:gap-6">
             {/* Interactive Google Map */}
-            <div className="relative min-h-[22rem] overflow-hidden rounded-[1.75rem] border border-[#E8E2DE] bg-[#F4EEE6] shadow-[0_18px_40px_-32px_rgba(33,25,27,0.4)] dark:border-white/10 dark:bg-zinc-900 sm:min-h-[26rem] md:min-h-0">
+            <div className="relative min-h-88 overflow-hidden rounded-[1.75rem] border border-[#E8E2DE] bg-[#F4EEE6] shadow-[0_18px_40px_-32px_rgba(33,25,27,0.4)] dark:border-white/10 dark:bg-zinc-900 sm:min-h-104 md:min-h-0">
               <iframe
                 title="Map to SR Mall"
                 src={mapEmbedSrc(config)}
@@ -1624,20 +1624,20 @@ export default function PublicDigitalConcierge() {
 
             {/* Mall photo, contact card and directions */}
             <div className="flex flex-col gap-4">
-              <div className="relative aspect-[16/10] overflow-hidden rounded-[1.75rem] border border-[#E8E2DE] shadow-[0_18px_40px_-32px_rgba(33,25,27,0.4)] dark:border-white/10">
+              <div className="relative aspect-16/10 overflow-hidden rounded-[1.75rem] border border-[#E8E2DE] shadow-[0_18px_40px_-32px_rgba(33,25,27,0.4)] dark:border-white/10">
                 {/* Existing SR Mall building photo. */}
                 <img
                   src="/images/mall/facade.webp"
                   alt="The Sophie Red Mall entrance"
                   className="h-full w-full object-cover"
                 />
-                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
+                <div className="pointer-events-none absolute inset-0 bg-linear-to-t from-black/30 via-transparent to-transparent" />
                 <span className="absolute bottom-3 left-3 rounded-lg bg-[#1C1417] px-2.5 py-1.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-white">
                   You are here
                 </span>
               </div>
 
-              <div className="overflow-hidden rounded-2xl border border-[#E8E2DE] bg-white shadow-sm dark:border-white/10 dark:bg-zinc-900">
+              <div className="overflow-hidden rounded-2xl border border-[#E8E2DE] bg-white shadow-xs dark:border-white/10 dark:bg-zinc-900">
                 <div className="flex items-start gap-3 border-b border-[#E8E2DE] p-4 dark:border-white/10">
                   <MapPin
                     size={20}

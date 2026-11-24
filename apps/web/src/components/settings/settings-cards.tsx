@@ -340,7 +340,7 @@ export function NotificationsCard({ userId, role }: { userId: string; role: "ADM
                           >
                             <span
                               className={clsx(
-                                "absolute top-1 left-1 w-5 h-5 rounded-full bg-white shadow transition-transform",
+                                "absolute top-1 left-1 w-5 h-5 rounded-full bg-white shadow-sm transition-transform",
                                 enabled ? "translate-x-5" : "translate-x-0",
                               )}
                             />
@@ -418,9 +418,9 @@ export function DeleteAccountCard({
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-[250] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => !busy && setOpen(false)} />
-          <div role="dialog" aria-modal="true" className="relative w-full max-w-md bg-white dark:bg-zinc-950 rounded-[2rem] shadow-2xl p-7 space-y-5 animate-fade-in-up">
+        <div className="fixed inset-0 z-250 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-xs" onClick={() => !busy && setOpen(false)} />
+          <div role="dialog" aria-modal="true" className="relative w-full max-w-md bg-white dark:bg-zinc-950 rounded-4xl shadow-2xl p-7 space-y-5 animate-fade-in-up">
             <div className="flex items-start gap-3">
               <span className="w-11 h-11 rounded-2xl bg-red-500/10 text-red-600 flex items-center justify-center shrink-0">
                 <AlertTriangle size={20} />

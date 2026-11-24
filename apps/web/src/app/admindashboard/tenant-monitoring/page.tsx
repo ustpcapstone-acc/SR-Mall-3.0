@@ -977,7 +977,7 @@ export default function TenantMonitoring() {
       {toast && (
         <div
           className={clsx(
-            "fixed top-24 right-8 z-[300] flex items-center gap-3 px-5 py-4 font-bold text-sm rounded-2xl shadow-2xl animate-fade-in-up",
+            "fixed top-24 right-8 z-300 flex items-center gap-3 px-5 py-4 font-bold text-sm rounded-2xl shadow-2xl animate-fade-in-up",
             toast.type === "success"
               ? "bg-emerald-500 text-white shadow-emerald-500/30"
               : "bg-red-500 text-white shadow-red-500/30",
@@ -1010,7 +1010,7 @@ export default function TenantMonitoring() {
           className={clsx(
             "fixed",
             "inset-0",
-            "z-[250]",
+            "z-250",
             "flex",
             "items-center",
             "justify-center",
@@ -1022,7 +1022,7 @@ export default function TenantMonitoring() {
               "absolute",
               "inset-0",
               "bg-black/60",
-              "backdrop-blur-sm",
+              "backdrop-blur-xs",
             )}
             onClick={() => setIsEditModalOpen(false)}
           />
@@ -1033,7 +1033,7 @@ export default function TenantMonitoring() {
               "max-w-lg",
               "bg-white",
               "dark:bg-zinc-950",
-              "rounded-[2rem]",
+              "rounded-4xl",
               "shadow-2xl",
               "overflow-hidden",
               "animate-fade-in-up",
@@ -1077,7 +1077,7 @@ export default function TenantMonitoring() {
                       shopName: e.target.value,
                     })
                   }
-                  className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-xl text-sm font-bold focus:border-primary focus:outline-none transition-all"
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-xl text-sm font-bold focus:border-primary focus:outline-hidden transition-all"
                 />
               </div>
 
@@ -1094,7 +1094,7 @@ export default function TenantMonitoring() {
                         unitId: e.target.value,
                       })
                     }
-                    className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-xl text-sm font-bold focus:border-primary focus:outline-none transition-all"
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-xl text-sm font-bold focus:border-primary focus:outline-hidden transition-all"
                   >
                     <option value={editingTenant.unitId}>
                       {editingTenant.unitId} (Current)
@@ -1118,7 +1118,7 @@ export default function TenantMonitoring() {
                         status: e.target.value,
                       })
                     }
-                    className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-xl text-sm font-bold focus:border-primary focus:outline-none transition-all"
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-xl text-sm font-bold focus:border-primary focus:outline-hidden transition-all"
                   >
                     <option value="ACTIVE">ACTIVE</option>
                     <option value="PENDING">PENDING</option>
@@ -1142,7 +1142,7 @@ export default function TenantMonitoring() {
                       rentCost: Number(e.target.value),
                     })
                   }
-                  className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-xl text-sm font-black text-emerald-500 focus:border-primary focus:outline-none transition-all"
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-xl text-sm font-black text-emerald-500 focus:border-primary focus:outline-hidden transition-all"
                 />
               </div>
 
@@ -1159,7 +1159,7 @@ export default function TenantMonitoring() {
                     })
                   }
                   rows={3}
-                  className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-xl text-sm font-medium focus:border-primary focus:outline-none transition-all resize-none"
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-xl text-sm font-medium focus:border-primary focus:outline-hidden transition-all resize-none"
                   placeholder="e.g. Luxury Footwear Provider"
                 />
               </div>
@@ -1174,7 +1174,7 @@ export default function TenantMonitoring() {
                 <button
                   onClick={handleSaveEdit}
                   disabled={saving}
-                  className="flex-[2] py-3.5 bg-primary text-white font-black text-xs uppercase tracking-widest rounded-xl shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
+                  className="flex-2 py-3.5 bg-primary text-white font-black text-xs uppercase tracking-widest rounded-xl shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
                 >
                   {saving ? (
                     <RefreshCw size={16} className="animate-spin" />
@@ -1196,7 +1196,7 @@ export default function TenantMonitoring() {
           className={clsx(
             "fixed",
             "inset-0",
-            "z-[250]",
+            "z-250",
             "flex",
             "items-center",
             "justify-center",
@@ -1208,7 +1208,7 @@ export default function TenantMonitoring() {
               "absolute",
               "inset-0",
               "bg-black/60",
-              "backdrop-blur-sm",
+              "backdrop-blur-xs",
             )}
             onClick={() => setIsBillModalOpen(false)}
           />
@@ -1219,7 +1219,7 @@ export default function TenantMonitoring() {
               "max-w-lg",
               "bg-white",
               "dark:bg-zinc-950",
-              "rounded-[2rem]",
+              "rounded-4xl",
               "shadow-2xl",
               "overflow-hidden",
               "animate-fade-in-up",
@@ -1263,7 +1263,7 @@ export default function TenantMonitoring() {
                       amount: Number(e.target.value),
                     })
                   }
-                  className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-xl text-sm font-black text-emerald-500 focus:border-[#BE1E2D] focus:outline-none transition-all"
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-xl text-sm font-black text-emerald-500 focus:border-[#BE1E2D] focus:outline-hidden transition-all"
                 />
               </div>
 
@@ -1282,7 +1282,7 @@ export default function TenantMonitoring() {
                       })
                     }
                     placeholder="e.g. Nov 2026"
-                    className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-xl text-sm font-bold focus:border-[#BE1E2D] focus:outline-none transition-all"
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-xl text-sm font-bold focus:border-[#BE1E2D] focus:outline-hidden transition-all"
                   />
                 </div>
                 <div>
@@ -1298,7 +1298,7 @@ export default function TenantMonitoring() {
                         dueDate: e.target.value,
                       })
                     }
-                    className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-xl text-sm font-bold focus:border-[#BE1E2D] focus:outline-none transition-all"
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-xl text-sm font-bold focus:border-[#BE1E2D] focus:outline-hidden transition-all"
                   />
                 </div>
               </div>
@@ -1316,7 +1316,7 @@ export default function TenantMonitoring() {
                     })
                   }
                   rows={2}
-                  className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-xl text-sm font-medium focus:border-[#BE1E2D] focus:outline-none transition-all resize-none"
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-xl text-sm font-medium focus:border-[#BE1E2D] focus:outline-hidden transition-all resize-none"
                 />
               </div>
 
@@ -1330,7 +1330,7 @@ export default function TenantMonitoring() {
                 <button
                   onClick={handleSubmitBill}
                   disabled={saving}
-                  className="flex-[2] py-3.5 bg-[#BE1E2D] text-white font-black text-xs uppercase tracking-widest rounded-xl shadow-xl shadow-red-500/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
+                  className="flex-2 py-3.5 bg-[#BE1E2D] text-white font-black text-xs uppercase tracking-widest rounded-xl shadow-xl shadow-red-500/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
                 >
                   {saving ? (
                     <RefreshCw size={16} className="animate-spin" />
@@ -1362,14 +1362,14 @@ export default function TenantMonitoring() {
 
       {/* Tenant Documents Modal */}
       {isDocumentsModalOpen && selectedTenant && (
-        <div className="fixed inset-0 z-[250] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-250 flex items-center justify-center p-4">
           <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/60 backdrop-blur-xs"
             onClick={() => setIsDocumentsModalOpen(false)}
           />
-          <div className="relative w-full max-w-2xl bg-white dark:bg-zinc-950 rounded-[2rem] shadow-2xl overflow-hidden animate-fade-in-up flex flex-col max-h-[90vh]">
+          <div className="relative w-full max-w-2xl bg-white dark:bg-zinc-950 rounded-4xl shadow-2xl overflow-hidden animate-fade-in-up flex flex-col max-h-[90vh]">
             {/* Header */}
-            <div className="bg-gradient-to-r from-slate-900 to-slate-800 dark:from-zinc-900 dark:to-zinc-950 p-6 text-white relative shrink-0 border-b border-white/10">
+            <div className="bg-linear-to-r from-slate-900 to-slate-800 dark:from-zinc-900 dark:to-zinc-950 p-6 text-white relative shrink-0 border-b border-white/10">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-primary/20 text-primary rounded-2xl flex items-center justify-center border border-primary/30">
                   <FileText size={24} />
@@ -1502,7 +1502,7 @@ export default function TenantMonitoring() {
                                   </span>
                                   <span
                                     className={clsx(
-                                      "text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded",
+                                      "text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-sm",
                                       inv.status === "PAID"
                                         ? "bg-emerald-500/20 text-emerald-600"
                                         : inv.status === "OVERDUE"
@@ -1534,7 +1534,7 @@ export default function TenantMonitoring() {
                                 <button
                                   onClick={() => handleDownloadReceipt(inv, selectedTenant)}
                                   disabled={generatingDoc === `receipt-${inv.id}`}
-                                  className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-[9px] font-black uppercase tracking-widest shadow-sm transition-all hover:scale-105 active:scale-95 inline-flex items-center gap-1.5 disabled:opacity-50"
+                                  className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-[9px] font-black uppercase tracking-widest shadow-xs transition-all hover:scale-105 active:scale-95 inline-flex items-center gap-1.5 disabled:opacity-50"
                                 >
                                   <Download size={12} /> Official Receipt
                                 </button>
@@ -1606,12 +1606,12 @@ export default function TenantMonitoring() {
 
       {/* Delete Tenant Confirmation Modal */}
       {tenantToDelete && (
-        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-300 flex items-center justify-center p-4">
           <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/60 backdrop-blur-xs"
             onClick={() => !isDeletingTenant && setTenantToDelete(null)}
           />
-          <div className="relative w-full max-w-md bg-white dark:bg-zinc-950 rounded-[2rem] shadow-2xl overflow-hidden animate-fade-in-up border border-red-200 dark:border-red-900/30">
+          <div className="relative w-full max-w-md bg-white dark:bg-zinc-950 rounded-4xl shadow-2xl overflow-hidden animate-fade-in-up border border-red-200 dark:border-red-900/30">
             <div className="p-6 text-center space-y-4">
               <div className="w-16 h-16 bg-red-500/10 text-red-600 rounded-3xl flex items-center justify-center mx-auto border border-red-500/20">
                 <Trash2 size={32} />
@@ -1735,14 +1735,14 @@ export default function TenantMonitoring() {
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="p-4 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-2xl shadow-sm hidden sm:flex items-center gap-4">
+            <div className="p-4 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-2xl shadow-xs hidden sm:flex items-center gap-4">
               <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center text-emerald-500">
                 <TrendingUp size={20} />
               </div>
               <div>
                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
                   Est. Revenue{" "}
-                  <span className="text-[8px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-500 font-bold">
+                  <span className="text-[8px] px-1.5 py-0.5 rounded-sm bg-emerald-500/10 text-emerald-500 font-bold">
                     {tfDetails.periodBadge}
                   </span>
                 </p>
@@ -1763,8 +1763,8 @@ export default function TenantMonitoring() {
         {/* Executive Summary Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-10">
           <div className="group relative p-1">
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-[2rem] blur-xl opacity-0 group-hover:opacity-10 transition-opacity"></div>
-            <div className="relative p-6 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-[1.8rem] shadow-sm overflow-hidden h-full">
+            <div className="absolute inset-0 bg-linear-to-br from-blue-500 to-indigo-600 rounded-4xl blur-xl opacity-0 group-hover:opacity-10 transition-opacity"></div>
+            <div className="relative p-6 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-[1.8rem] shadow-xs overflow-hidden h-full">
               <div className="flex items-start justify-between mb-8">
                 <div className="w-12 h-12 bg-blue-500/10 rounded-2xl flex items-center justify-center text-blue-500 group-hover:scale-110 transition-transform">
                   <Store size={22} />
@@ -1792,8 +1792,8 @@ export default function TenantMonitoring() {
           </div>
 
           <div className="group relative p-1">
-            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-[2rem] blur-xl opacity-0 group-hover:opacity-10 transition-opacity"></div>
-            <div className="relative p-6 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-[1.8rem] shadow-sm overflow-hidden h-full">
+            <div className="absolute inset-0 bg-linear-to-br from-emerald-500 to-teal-600 rounded-4xl blur-xl opacity-0 group-hover:opacity-10 transition-opacity"></div>
+            <div className="relative p-6 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-[1.8rem] shadow-xs overflow-hidden h-full">
               <div className="flex items-start justify-between mb-8">
                 <div className="w-12 h-12 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-500 group-hover:scale-110 transition-transform">
                   <PhilippinePeso size={22} />
@@ -1801,7 +1801,7 @@ export default function TenantMonitoring() {
                 <div className="flex flex-col items-end">
                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">
                     Collected{" "}
-                    <span className="text-[8px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 font-bold">
+                    <span className="text-[8px] px-1.5 py-0.5 rounded-sm bg-emerald-500/10 text-emerald-600 font-bold">
                       {tfDetails.periodBadge}
                     </span>
                   </span>
@@ -1829,8 +1829,8 @@ export default function TenantMonitoring() {
           </div>
 
           <div className="group relative p-1">
-            <div className="absolute inset-0 bg-gradient-to-br from-amber-500 to-orange-600 rounded-[2rem] blur-xl opacity-0 group-hover:opacity-10 transition-opacity"></div>
-            <div className="relative p-6 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-[1.8rem] shadow-sm overflow-hidden h-full">
+            <div className="absolute inset-0 bg-linear-to-br from-amber-500 to-orange-600 rounded-4xl blur-xl opacity-0 group-hover:opacity-10 transition-opacity"></div>
+            <div className="relative p-6 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-[1.8rem] shadow-xs overflow-hidden h-full">
               <div className="flex items-start justify-between mb-8">
                 <div className="w-12 h-12 bg-amber-500/10 rounded-2xl flex items-center justify-center text-amber-500 group-hover:scale-110 transition-transform">
                   <Clock size={22} />
@@ -1855,8 +1855,8 @@ export default function TenantMonitoring() {
           </div>
 
           <div className="group relative p-1">
-            <div className="absolute inset-0 bg-gradient-to-br from-red-500 to-pink-600 rounded-[2rem] blur-xl opacity-0 group-hover:opacity-10 transition-opacity"></div>
-            <div className="relative p-6 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-[1.8rem] shadow-sm overflow-hidden h-full">
+            <div className="absolute inset-0 bg-linear-to-br from-red-500 to-pink-600 rounded-4xl blur-xl opacity-0 group-hover:opacity-10 transition-opacity"></div>
+            <div className="relative p-6 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-[1.8rem] shadow-xs overflow-hidden h-full">
               <div className="flex items-start justify-between mb-8">
                 <div className="w-12 h-12 bg-red-500/10 rounded-2xl flex items-center justify-center text-red-500 group-hover:scale-110 transition-transform">
                   <AlertTriangle size={22} />
@@ -1882,8 +1882,8 @@ export default function TenantMonitoring() {
 
           {/* Paid Tenants Card */}
           <div className="group relative p-1">
-            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-[2rem] blur-xl opacity-0 group-hover:opacity-10 transition-opacity"></div>
-            <div className="relative p-6 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-[1.8rem] shadow-sm overflow-hidden h-full">
+            <div className="absolute inset-0 bg-linear-to-br from-emerald-500 to-teal-600 rounded-4xl blur-xl opacity-0 group-hover:opacity-10 transition-opacity"></div>
+            <div className="relative p-6 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-[1.8rem] shadow-xs overflow-hidden h-full">
               <div className="flex items-start justify-between mb-8">
                 <div className="w-12 h-12 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-500 group-hover:scale-110 transition-transform">
                   <CheckCircle size={22} />
@@ -1909,8 +1909,8 @@ export default function TenantMonitoring() {
 
           {/* Total Tenants Card */}
           <div className="group relative p-1">
-            <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-[2rem] blur-xl opacity-0 group-hover:opacity-10 transition-opacity"></div>
-            <div className="relative p-6 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-[1.8rem] shadow-sm overflow-hidden h-full">
+            <div className="absolute inset-0 bg-linear-to-br from-indigo-500 to-purple-600 rounded-4xl blur-xl opacity-0 group-hover:opacity-10 transition-opacity"></div>
+            <div className="relative p-6 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-[1.8rem] shadow-xs overflow-hidden h-full">
               <div className="flex items-start justify-between mb-8">
                 <div className="w-12 h-12 bg-indigo-500/10 rounded-2xl flex items-center justify-center text-indigo-500 group-hover:scale-110 transition-transform">
                   <Users size={22} />
@@ -1936,7 +1936,7 @@ export default function TenantMonitoring() {
         </div>
 
         {/* Control Bar */}
-        <div className="mb-6 p-4 md:p-5 bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-[2rem] shadow-sm space-y-4">
+        <div className="mb-6 p-4 md:p-5 bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-4xl shadow-xs space-y-4">
           {/* Row 1 — search + view + export */}
           <div className="flex flex-col md:flex-row md:items-center gap-3">
             <div className="relative flex-1 min-w-0 group">
@@ -1950,7 +1950,7 @@ export default function TenantMonitoring() {
                 aria-label="Search tenants"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full h-12 pl-11 pr-10 bg-slate-50 dark:bg-zinc-950/50 border border-slate-200 dark:border-white/5 rounded-2xl text-sm font-medium text-charcoal dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all"
+                className="w-full h-12 pl-11 pr-10 bg-slate-50 dark:bg-zinc-950/50 border border-slate-200 dark:border-white/5 rounded-2xl text-sm font-medium text-charcoal dark:text-white placeholder:text-slate-400 focus:outline-hidden focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all"
               />
               {searchQuery && (
                 <button
@@ -2054,7 +2054,7 @@ export default function TenantMonitoring() {
                       <select
                         value={reportMonth}
                         onChange={(e) => setReportMonth(Number(e.target.value))}
-                        className="px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#161b26] text-charcoal dark:text-white font-medium focus:outline-none focus:border-[#BE1E2D]"
+                        className="px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#161b26] text-charcoal dark:text-white font-medium focus:outline-hidden focus:border-[#BE1E2D]"
                       >
                         {MONTH_NAMES.map((m, idx) => (
                           <option key={m} value={idx}>
@@ -2065,7 +2065,7 @@ export default function TenantMonitoring() {
                       <select
                         value={reportYear}
                         onChange={(e) => setReportYear(Number(e.target.value))}
-                        className="px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#161b26] text-charcoal dark:text-white font-medium focus:outline-none focus:border-[#BE1E2D]"
+                        className="px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#161b26] text-charcoal dark:text-white font-medium focus:outline-hidden focus:border-[#BE1E2D]"
                       >
                         {[2024, 2025, 2026, 2027, 2028].map((yr) => (
                           <option key={yr} value={yr}>
@@ -2077,7 +2077,7 @@ export default function TenantMonitoring() {
                     <button
                       onClick={handleExportMonthlyReport}
                       disabled={isExporting}
-                      className="w-full py-2 bg-[#BE1E2D] hover:bg-[#a01825] text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all active:scale-95 disabled:opacity-50"
+                      className="w-full py-2 bg-[#BE1E2D] hover:bg-[#a01825] text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition-all active:scale-95 disabled:opacity-50"
                     >
                       <Download size={14} />
                       Download {MONTH_NAMES[reportMonth]} {reportYear} PDF
@@ -2100,7 +2100,7 @@ export default function TenantMonitoring() {
                     <select
                       value={reportYearFilter}
                       onChange={(e) => setReportYearFilter(Number(e.target.value))}
-                      className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#161b26] text-charcoal dark:text-white font-medium focus:outline-none focus:border-[#BE1E2D]"
+                      className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#161b26] text-charcoal dark:text-white font-medium focus:outline-hidden focus:border-[#BE1E2D]"
                     >
                       {[2024, 2025, 2026, 2027, 2028].map((yr) => (
                         <option key={yr} value={yr}>
@@ -2111,7 +2111,7 @@ export default function TenantMonitoring() {
                     <button
                       onClick={handleExportYearlyReport}
                       disabled={isExporting}
-                      className="w-full py-2 bg-[#BE1E2D] hover:bg-[#a01825] text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all active:scale-95 disabled:opacity-50"
+                      className="w-full py-2 bg-[#BE1E2D] hover:bg-[#a01825] text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition-all active:scale-95 disabled:opacity-50"
                     >
                       <Download size={14} />
                       Download {reportYearFilter} Annual PDF
@@ -2270,7 +2270,7 @@ export default function TenantMonitoring() {
                   "border",
                   "border-slate-200",
                   "dark:border-white/5",
-                  "shadow-sm",
+                  "shadow-xs",
                   "overflow-hidden",
                 )}
               >
@@ -2644,7 +2644,7 @@ export default function TenantMonitoring() {
                         </span>
                         <span
                           className={clsx(
-                            "px-2 py-0.5 rounded text-[9px] font-bold uppercase",
+                            "px-2 py-0.5 rounded-sm text-[9px] font-bold uppercase",
                             (
                               PAYMENT_CONFIG[
                               tenant.paymentStatus as keyof typeof PAYMENT_CONFIG
@@ -2667,7 +2667,7 @@ export default function TenantMonitoring() {
 
             {/* Pagination */}
             {filteredTenants.length > 0 && (
-              <div className="mt-6 flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm dark:border-white/5 dark:bg-zinc-900 sm:flex-row sm:items-center sm:justify-between">
+              <div className="mt-6 flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-xs dark:border-white/5 dark:bg-zinc-900 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
                     Rows
@@ -2681,8 +2681,8 @@ export default function TenantMonitoring() {
                     }))}
                     ariaLabel="Tenants per page"
                     className="w-20"
-                    buttonClassName="!px-3 !py-1.5"
-                    menuClassName="!bottom-full !mb-2 !mt-0"
+                    buttonClassName="px-3! py-1.5!"
+                    menuClassName="bottom-full! mb-2! mt-0!"
                   />
                 </div>
 
@@ -2750,7 +2750,7 @@ export default function TenantMonitoring() {
             className={clsx(
               "fixed",
               "inset-0",
-              "z-[60]",
+              "z-60",
               "flex",
               "justify-end",
             )}
@@ -3459,7 +3459,7 @@ export default function TenantMonitoring() {
                                     </p>
                                     <span
                                       className={clsx(
-                                        "text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded",
+                                        "text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-sm",
                                         inv.status === "PAID"
                                           ? "bg-emerald-500/20 text-emerald-600"
                                           : inv.status === "OVERDUE"
@@ -3866,7 +3866,7 @@ function FilterSelect({
         aria-controls={listId}
         aria-label={`${label}: ${selected?.label}`}
         className={clsx(
-          "flex items-center gap-2 h-10 pl-3.5 pr-3 rounded-xl border transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+          "flex items-center gap-2 h-10 pl-3.5 pr-3 rounded-xl border transition-all focus:outline-hidden focus-visible:ring-2 focus-visible:ring-primary/40",
           active
             ? "bg-primary/10 border-primary/30 dark:bg-primary/15"
             : "bg-white dark:bg-zinc-900 border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20",

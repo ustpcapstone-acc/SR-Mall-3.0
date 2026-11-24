@@ -161,7 +161,7 @@ export default function UserManagement() {
         <div className="flex items-center gap-4">
           <button
             onClick={loadUsers}
-            className="p-4 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-2xl text-slate-400 hover:text-primary transition-all shadow-sm active:scale-95"
+            className="p-4 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-2xl text-slate-400 hover:text-primary transition-all shadow-xs active:scale-95"
           >
             <RefreshCcw size={20} className={loading ? "animate-spin" : ""} />
           </button>
@@ -171,7 +171,7 @@ export default function UserManagement() {
       <FixUserRolesBanner onFixed={loadUsers} />
 
       {/* Navigation Matrix */}
-      <div className="flex items-center gap-2 bg-slate-100/50 dark:bg-white/5 p-2 rounded-[2rem] w-fit border border-slate-200 dark:border-white/5">
+      <div className="flex items-center gap-2 bg-slate-100/50 dark:bg-white/5 p-2 rounded-4xl w-fit border border-slate-200 dark:border-white/5">
         <button
           onClick={() => setActiveTab("users")}
           className={clsx(
@@ -228,8 +228,8 @@ export default function UserManagement() {
 
       {activeTab === "users" && (
         <div className="space-y-8 animate-fade-in">
-          <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-[3rem] shadow-sm overflow-hidden">
-            <div className="p-8 border-b border-slate-100 dark:border-white/5 bg-slate-50/30 dark:bg-white/[0.02] flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-[3rem] shadow-xs overflow-hidden">
+            <div className="p-8 border-b border-slate-100 dark:border-white/5 bg-slate-50/30 dark:bg-white/2 flex flex-col md:flex-row md:items-center justify-between gap-6">
               <div className="flex items-center gap-4">
                 <div className="w-14 h-14 bg-primary/10 rounded-[1.25rem] flex items-center justify-center text-primary shadow-inner">
                   <ShieldCheck size={28} />
@@ -254,7 +254,7 @@ export default function UserManagement() {
                       className={clsx(
                         "px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap",
                         roleFilter === role
-                          ? "bg-white dark:bg-zinc-800 text-charcoal dark:text-white shadow-sm"
+                          ? "bg-white dark:bg-zinc-800 text-charcoal dark:text-white shadow-xs"
                           : "text-slate-400 hover:text-charcoal dark:hover:text-white"
                       )}
                     >
@@ -275,13 +275,13 @@ export default function UserManagement() {
                     onChange={(e) => setSearchQuery(e.target.value)}
                     onFocus={() => setIsSearchFocused(true)}
                     placeholder="FILTER IDENTITY..."
-                    className="pl-12 pr-6 py-4 bg-white dark:bg-black border border-slate-200 dark:border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest w-full md:w-72 focus:ring-4 focus:ring-primary/10 transition-all outline-none relative z-10"
+                    className="pl-12 pr-6 py-4 bg-white dark:bg-black border border-slate-200 dark:border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest w-full md:w-72 focus:ring-4 focus:ring-primary/10 transition-all outline-hidden relative z-10"
                   />
 
                   {/* Recommended Matches Dropdown */}
                   {isSearchFocused && searchQuery.length > 0 && (
                     <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl overflow-hidden z-50 animate-fade-in-up">
-                      <div className="p-3 border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.02]">
+                      <div className="p-3 border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/2">
                         <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Recommended Matches</p>
                       </div>
                       <div className="max-h-60 overflow-y-auto custom-scrollbar">
@@ -293,7 +293,7 @@ export default function UserManagement() {
                           filteredUsers.slice(0, 5).map((u) => (
                             <div
                               key={u.id}
-                              className="px-4 py-3 hover:bg-slate-50 dark:hover:bg-white/[0.02] cursor-pointer flex items-center gap-3 transition-colors border-b border-slate-50 dark:border-white/5 last:border-0"
+                              className="px-4 py-3 hover:bg-slate-50 dark:hover:bg-white/2 cursor-pointer flex items-center gap-3 transition-colors border-b border-slate-50 dark:border-white/5 last:border-0"
                               onClick={() => {
                                 setSelectedUser(u);
                                 setSearchQuery("");
@@ -331,7 +331,7 @@ export default function UserManagement() {
               ) : (
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="bg-slate-50/50 dark:bg-white/[0.02]">
+                    <tr className="bg-slate-50/50 dark:bg-white/2">
                       <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">
                         User Details
                       </th>
@@ -359,7 +359,7 @@ export default function UserManagement() {
                       filteredUsers.map((item) => (
                         <tr
                           key={item.id}
-                          className="hover:bg-slate-50/80 dark:hover:bg-white/[0.02] transition-colors group/row"
+                          className="hover:bg-slate-50/80 dark:hover:bg-white/2 transition-colors group/row"
                         >
                           <td
                             className="px-8 py-8 cursor-pointer"
@@ -368,7 +368,7 @@ export default function UserManagement() {
                             <div className="flex items-center gap-5">
                               <div
                                 className={clsx(
-                                  "w-14 h-14 rounded-[1.5rem] font-black text-lg flex items-center justify-center border transition-all shadow-sm",
+                                  "w-14 h-14 rounded-3xl font-black text-lg flex items-center justify-center border transition-all shadow-xs",
                                   item.isBlacklisted
                                     ? "bg-red-500 text-white border-red-400"
                                     : "bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-slate-400 border-transparent",
@@ -406,7 +406,7 @@ export default function UserManagement() {
                                   handleRoleChange(item.id, e.target.value)
                                 }
                                 disabled={isProcessing === item.id}
-                                className="bg-transparent text-[11px] font-black uppercase tracking-widest text-charcoal dark:text-white hover:text-primary transition-colors cursor-pointer outline-none border-none p-0 focus:ring-0"
+                                className="bg-transparent text-[11px] font-black uppercase tracking-widest text-charcoal dark:text-white hover:text-primary transition-colors cursor-pointer outline-hidden border-none p-0 focus:ring-0"
                               >
                                 <option value="CUSTOMER" className="bg-white dark:bg-zinc-900 text-charcoal dark:text-white">Customer Segment</option>
                                 <option value="TENANT" className="bg-white dark:bg-zinc-900 text-charcoal dark:text-white">Merchant Partner</option>
@@ -474,7 +474,7 @@ export default function UserManagement() {
 
       {blacklistTarget && (
         <div
-          className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in"
+          className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fade-in"
           onClick={() => !isProcessing && setBlacklistTarget(null)}
         >
           <div
@@ -544,7 +544,7 @@ export default function UserManagement() {
               </div>
             </div>
 
-            <div className="flex gap-3 border-t border-slate-100 bg-slate-50/60 p-6 dark:border-white/5 dark:bg-white/[0.02]">
+            <div className="flex gap-3 border-t border-slate-100 bg-slate-50/60 p-6 dark:border-white/5 dark:bg-white/2">
               <button
                 type="button"
                 disabled={isProcessing === blacklistTarget.id}
@@ -580,7 +580,7 @@ export default function UserManagement() {
       )}
 
       {selectedUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in" onClick={() => setSelectedUser(null)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fade-in" onClick={() => setSelectedUser(null)}>
           <div
             className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-[3rem] w-full max-w-lg shadow-2xl overflow-hidden animate-fade-in-up"
             onClick={(e) => e.stopPropagation()}
@@ -591,7 +591,7 @@ export default function UserManagement() {
               </h3>
               <button
                 onClick={() => setSelectedUser(null)}
-                className="w-10 h-10 rounded-full bg-slate-100 dark:bg-zinc-800 text-slate-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all shadow-sm"
+                className="w-10 h-10 rounded-full bg-slate-100 dark:bg-zinc-800 text-slate-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all shadow-xs"
               >
                 <X size={16} strokeWidth={3} />
               </button>
@@ -599,7 +599,7 @@ export default function UserManagement() {
 
             <div className="p-8 space-y-8">
               <div className="flex items-center gap-6">
-                <div className={clsx("w-20 h-20 rounded-[2rem] font-black text-3xl flex items-center justify-center border-4 shadow-xl transition-all",
+                <div className={clsx("w-20 h-20 rounded-4xl font-black text-3xl flex items-center justify-center border-4 shadow-xl transition-all",
                   selectedUser.isBlacklisted ? "bg-red-500/10 text-red-500 border-red-500/20" : "bg-primary/10 text-primary border-primary/20"
                 )}>
                   {selectedUser.name ? selectedUser.name.charAt(0).toUpperCase() : "U"}
@@ -620,23 +620,23 @@ export default function UserManagement() {
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <div className="p-5 bg-slate-50 dark:bg-white/[0.02] rounded-3xl border border-slate-100 dark:border-white/5">
+                <div className="p-5 bg-slate-50 dark:bg-white/2 rounded-3xl border border-slate-100 dark:border-white/5">
                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-1"><Shield size={10} /> Privilege Level</p>
                   <p className="text-sm font-black text-charcoal dark:text-white uppercase">{selectedUser.role}</p>
                 </div>
-                <div className="p-5 bg-slate-50 dark:bg-white/[0.02] rounded-3xl border border-slate-100 dark:border-white/5">
+                <div className="p-5 bg-slate-50 dark:bg-white/2 rounded-3xl border border-slate-100 dark:border-white/5">
                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-1"><Activity size={10} /> Security Status</p>
                   <p className={clsx("text-sm font-black uppercase", selectedUser.isBlacklisted ? "text-red-500" : "text-emerald-500")}>
                     {selectedUser.isBlacklisted ? "Blacklisted" : "Active"}
                   </p>
                 </div>
-                <div className="p-5 bg-slate-50 dark:bg-white/[0.02] rounded-3xl border border-slate-100 dark:border-white/5">
+                <div className="p-5 bg-slate-50 dark:bg-white/2 rounded-3xl border border-slate-100 dark:border-white/5">
                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Created At</p>
                   <p className="text-sm font-bold text-charcoal dark:text-white">
                     {selectedUser.createdAt ? new Date(selectedUser.createdAt).toLocaleDateString() : "Unknown"}
                   </p>
                 </div>
-                <div className="p-5 bg-slate-50 dark:bg-white/[0.02] rounded-3xl border border-slate-100 dark:border-white/5">
+                <div className="p-5 bg-slate-50 dark:bg-white/2 rounded-3xl border border-slate-100 dark:border-white/5">
                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Last Login</p>
                   <p className="text-sm font-bold text-charcoal dark:text-white">
                     {selectedUser.lastLogin ? new Date(selectedUser.lastLogin).toLocaleDateString() : "N/A"}
@@ -645,7 +645,7 @@ export default function UserManagement() {
               </div>
             </div>
 
-            <div className="p-6 bg-slate-50 dark:bg-white/[0.02] border-t border-slate-100 dark:border-white/5 flex justify-end">
+            <div className="p-6 bg-slate-50 dark:bg-white/2 border-t border-slate-100 dark:border-white/5 flex justify-end">
               <button onClick={() => setSelectedUser(null)} className="px-8 py-4 bg-charcoal dark:bg-white text-white dark:text-black rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl hover:scale-105 active:scale-95 transition-all">
                 Acknowledge
               </button>

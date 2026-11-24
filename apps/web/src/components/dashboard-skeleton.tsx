@@ -21,7 +21,7 @@ export function DashboardSkeleton() {
         {Array.from({ length: 4 }).map((_, i) => (
           <div
             key={i}
-            className="h-28 rounded-[2rem] border border-slate-200 dark:border-white/5 bg-white dark:bg-zinc-900/50 p-6 space-y-3"
+            className="h-28 rounded-4xl border border-slate-200 dark:border-white/5 bg-white dark:bg-zinc-900/50 p-6 space-y-3"
           >
             <div className={`${block} h-3 w-24 rounded-lg`} />
             <div className={`${block} h-7 w-16 rounded-xl`} />
@@ -29,7 +29,7 @@ export function DashboardSkeleton() {
         ))}
       </div>
 
-      <div className="rounded-[2rem] border border-slate-200 dark:border-white/5 bg-white dark:bg-zinc-900/50 p-6 space-y-4">
+      <div className="rounded-4xl border border-slate-200 dark:border-white/5 bg-white dark:bg-zinc-900/50 p-6 space-y-4">
         {Array.from({ length: 6 }).map((_, i) => (
           <div key={i} className="flex items-center gap-4">
             <div className={`${block} h-10 w-10 rounded-full shrink-0`} />

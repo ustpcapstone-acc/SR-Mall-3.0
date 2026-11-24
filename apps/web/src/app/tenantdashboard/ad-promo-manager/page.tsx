@@ -56,7 +56,7 @@ function Toast({
   if (!toast) return null;
   return (
     <div
-      className={`fixed top-6 right-4 sm:right-8 z-[300] flex items-center gap-3 px-4 py-3 rounded-2xl shadow-2xl text-white text-xs font-bold animate-fade-in-up max-w-xs ${toast.type === "success" ? "bg-emerald-500 shadow-emerald-500/30" : "bg-red-500 shadow-red-500/30"}`}
+      className={`fixed top-6 right-4 sm:right-8 z-300 flex items-center gap-3 px-4 py-3 rounded-2xl shadow-2xl text-white text-xs font-bold animate-fade-in-up max-w-xs ${toast.type === "success" ? "bg-emerald-500 shadow-emerald-500/30" : "bg-red-500 shadow-red-500/30"}`}
     >
       {toast.type === "success" ? (
         <CheckCircle size={14} />
@@ -282,7 +282,7 @@ export default function AdPromoManager() {
           ].map((s, i) => (
             <div
               key={i}
-              className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl p-4 shadow-sm flex items-center gap-3"
+              className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl p-4 shadow-xs flex items-center gap-3"
             >
               <div
                 className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0 ${s.iconBg}`}
@@ -306,7 +306,7 @@ export default function AdPromoManager() {
           {/* Submit Form */}
           <form
             onSubmit={handleSubmit}
-            className="lg:col-span-4 bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl sm:rounded-3xl shadow-sm overflow-hidden h-fit"
+            className="lg:col-span-4 bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl sm:rounded-3xl shadow-xs overflow-hidden h-fit"
           >
             <div className="px-5 sm:px-6 py-4 border-b border-slate-100 dark:border-white/5 flex items-center gap-3">
               <div className="w-8 h-8 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
@@ -334,7 +334,7 @@ export default function AdPromoManager() {
                   onChange={(e) => setTitle(e.target.value)}
                   type="text"
                   placeholder="e.g. 50% Off Flash Sale"
-                  className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-medium text-charcoal dark:text-white focus:outline-none focus:border-primary transition-all"
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-medium text-charcoal dark:text-white focus:outline-hidden focus:border-primary transition-all"
                 />
               </div>
 
@@ -348,7 +348,7 @@ export default function AdPromoManager() {
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Brief description of your promotion..."
-                  className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-medium text-charcoal dark:text-white focus:outline-none focus:border-primary transition-all resize-none"
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-medium text-charcoal dark:text-white focus:outline-hidden focus:border-primary transition-all resize-none"
                 />
               </div>
 
@@ -360,7 +360,7 @@ export default function AdPromoManager() {
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
-                  className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-medium text-charcoal dark:text-white focus:outline-none focus:border-primary transition-all appearance-none"
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-medium text-charcoal dark:text-white focus:outline-hidden focus:border-primary transition-all appearance-none"
                 >
                   {CATEGORIES.map((c) => (
                     <option key={c}>{c}</option>
@@ -379,7 +379,7 @@ export default function AdPromoManager() {
                     type="date"
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-medium text-charcoal dark:text-white focus:outline-none focus:border-primary transition-all"
+                    className="w-full px-3 py-2.5 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-medium text-charcoal dark:text-white focus:outline-hidden focus:border-primary transition-all"
                   />
                 </div>
                 <div>
@@ -391,7 +391,7 @@ export default function AdPromoManager() {
                     type="date"
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-medium text-charcoal dark:text-white focus:outline-none focus:border-primary transition-all"
+                    className="w-full px-3 py-2.5 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-medium text-charcoal dark:text-white focus:outline-hidden focus:border-primary transition-all"
                   />
                 </div>
               </div>
@@ -520,7 +520,7 @@ export default function AdPromoManager() {
                   return (
                     <div
                       key={promo.id}
-                      className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all group"
+                      className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl overflow-hidden shadow-xs hover:shadow-md transition-all group"
                     >
                       <div className="flex gap-4 p-4 sm:p-5">
                         {/* Thumbnail */}

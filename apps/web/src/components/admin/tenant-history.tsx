@@ -92,7 +92,7 @@ export function TenantHistory({ rows, loading }: { rows: TenantHistoryRow[]; loa
   const unpaidTotal = filtered.reduce((n, r) => n + (r.outstanding || 0), 0);
 
   return (
-    <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-[2rem] shadow-sm overflow-hidden">
+    <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-4xl shadow-xs overflow-hidden">
       {/* Header + controls */}
       <div className="p-5 sm:p-6 border-b border-slate-100 dark:border-white/5 space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -123,13 +123,13 @@ export function TenantHistory({ rows, loading }: { rows: TenantHistoryRow[]; loa
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search shop, owner, email or unit…"
-              className="w-full h-10 pl-9 pr-3 rounded-xl bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 text-sm text-charcoal dark:text-white outline-none focus:border-primary"
+              className="w-full h-10 pl-9 pr-3 rounded-xl bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 text-sm text-charcoal dark:text-white outline-hidden focus:border-primary"
             />
           </div>
           <select
             value={reason}
             onChange={(e) => setReason(e.target.value)}
-            className="h-10 px-3 rounded-xl bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 text-sm text-charcoal dark:text-white outline-none focus:border-primary"
+            className="h-10 px-3 rounded-xl bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 text-sm text-charcoal dark:text-white outline-hidden focus:border-primary"
           >
             <option value="ALL">All reasons</option>
             {Object.entries(REASONS).map(([k, v]) => (
@@ -139,7 +139,7 @@ export function TenantHistory({ rows, loading }: { rows: TenantHistoryRow[]; loa
           <select
             value={year}
             onChange={(e) => setYear(e.target.value)}
-            className="h-10 px-3 rounded-xl bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 text-sm text-charcoal dark:text-white outline-none focus:border-primary"
+            className="h-10 px-3 rounded-xl bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 text-sm text-charcoal dark:text-white outline-hidden focus:border-primary"
           >
             <option value="ALL">All years</option>
             {years.map((y) => (
@@ -171,7 +171,7 @@ export function TenantHistory({ rows, loading }: { rows: TenantHistoryRow[]; loa
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="bg-slate-50/60 dark:bg-white/[0.02] text-[10px] font-black uppercase tracking-widest text-slate-400">
+              <tr className="bg-slate-50/60 dark:bg-white/2 text-[10px] font-black uppercase tracking-widest text-slate-400">
                 <th className="px-6 py-4">Shop</th>
                 <th className="px-6 py-4">Unit / Floor</th>
                 <th className="px-6 py-4">Stayed</th>
@@ -182,7 +182,7 @@ export function TenantHistory({ rows, loading }: { rows: TenantHistoryRow[]; loa
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-white/5">
               {filtered.map((r) => (
-                <tr key={r.id} className="hover:bg-slate-50/70 dark:hover:bg-white/[0.02]">
+                <tr key={r.id} className="hover:bg-slate-50/70 dark:hover:bg-white/2">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-zinc-800 overflow-hidden flex items-center justify-center font-black text-slate-500 shrink-0">
@@ -235,10 +235,10 @@ export function TenantHistory({ rows, loading }: { rows: TenantHistoryRow[]; loa
 
       {/* Details */}
       {selected && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setSelected(null)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs" onClick={() => setSelected(null)}>
           <div
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-lg bg-white dark:bg-zinc-900 rounded-[2rem] border border-slate-200 dark:border-white/10 shadow-2xl overflow-hidden"
+            className="w-full max-w-lg bg-white dark:bg-zinc-900 rounded-4xl border border-slate-200 dark:border-white/10 shadow-2xl overflow-hidden"
           >
             <div className="p-6 border-b border-slate-100 dark:border-white/5 flex items-start justify-between gap-3">
               <div className="flex items-center gap-3 min-w-0">
@@ -286,7 +286,7 @@ export function TenantHistory({ rows, loading }: { rows: TenantHistoryRow[]; loa
                   ["Total paid", peso(selected.totalPaid)],
                   ["Unpaid balance", selected.outstanding > 0 ? peso(selected.outstanding) : "None"],
                 ].map(([k, v]) => (
-                  <div key={k} className="p-3 rounded-2xl bg-slate-50 dark:bg-white/[0.03] border border-slate-100 dark:border-white/5">
+                  <div key={k} className="p-3 rounded-2xl bg-slate-50 dark:bg-white/3 border border-slate-100 dark:border-white/5">
                     <dt className="text-[10px] font-black uppercase tracking-widest text-slate-400">{k}</dt>
                     <dd className={clsx("mt-0.5 font-bold", k === "Unpaid balance" && selected.outstanding > 0 ? "text-amber-600" : "text-charcoal dark:text-white")}>{v}</dd>
                   </div>
@@ -294,7 +294,7 @@ export function TenantHistory({ rows, loading }: { rows: TenantHistoryRow[]; loa
               </dl>
 
               <div className="grid grid-cols-2 gap-3 text-sm">
-                <div className="p-3 rounded-2xl bg-slate-50 dark:bg-white/[0.03] border border-slate-100 dark:border-white/5">
+                <div className="p-3 rounded-2xl bg-slate-50 dark:bg-white/3 border border-slate-100 dark:border-white/5">
                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Rating when they left</p>
                   <p className="mt-0.5 font-bold text-charcoal dark:text-white inline-flex items-center gap-1">
                     {selected.reviewCount ? (
@@ -307,7 +307,7 @@ export function TenantHistory({ rows, loading }: { rows: TenantHistoryRow[]; loa
                     )}
                   </p>
                 </div>
-                <div className="p-3 rounded-2xl bg-slate-50 dark:bg-white/[0.03] border border-slate-100 dark:border-white/5 min-w-0">
+                <div className="p-3 rounded-2xl bg-slate-50 dark:bg-white/3 border border-slate-100 dark:border-white/5 min-w-0">
                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Owner</p>
                   <p className="mt-0.5 font-bold text-charcoal dark:text-white truncate">{selected.ownerName || "—"}</p>
                   {selected.ownerEmail && (

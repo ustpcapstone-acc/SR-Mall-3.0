@@ -195,7 +195,7 @@ export default function MerchantRequestsPage() {
                           <button
                             type="button"
                             onClick={() => setOpenSelectId(openSelectId === req.id ? null : req.id)}
-                            className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2 text-xs font-bold text-charcoal dark:text-white flex items-center justify-between transition-all outline-none focus:border-primary hover:bg-slate-100 dark:hover:bg-white/10"
+                            className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2 text-xs font-bold text-charcoal dark:text-white flex items-center justify-between transition-all outline-hidden focus:border-primary hover:bg-slate-100 dark:hover:bg-white/10"
                           >
                             <span>
                               {selectedUnits[req.id]
