@@ -42,7 +42,6 @@ import {
   PhilippinePeso,
   Activity,
   PieChart as PieChartIcon,
-  ArrowUpRight,
   ArrowDownRight,
   ShieldCheck,
   ShieldAlert,
@@ -1761,25 +1760,21 @@ export default function TenantMonitoring() {
         </div>
 
         {/* Executive Summary Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
           <div className="group relative p-1">
             <div className="absolute inset-0 bg-linear-to-br from-blue-500 to-indigo-600 rounded-4xl blur-xl opacity-0 group-hover:opacity-10 transition-opacity"></div>
             <div className="relative p-6 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-[1.8rem] shadow-xs overflow-hidden h-full">
-              <div className="flex items-start justify-between mb-8">
+              <div className="flex flex-col items-center text-center gap-3 mb-5">
                 <div className="w-12 h-12 bg-blue-500/10 rounded-2xl flex items-center justify-center text-blue-500 group-hover:scale-110 transition-transform">
                   <Store size={22} />
                 </div>
-                <div className="flex flex-col items-end">
+                <div className="flex flex-col items-center gap-1">
                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
                     Active Units
                   </span>
-                  <div className="flex items-center gap-1 text-emerald-500">
-                    <ArrowUpRight size={10} />
-                    <span className="text-[10px] font-bold">4% MoM</span>
-                  </div>
                 </div>
               </div>
-              <p className="text-4xl font-black text-charcoal dark:text-white tracking-tighter">
+              <p className="text-3xl 2xl:text-4xl font-black text-charcoal dark:text-white tracking-tight tabular-nums text-center whitespace-nowrap">
                 {stats.active}
               </p>
               <div className="mt-2 h-1 w-full bg-slate-100 dark:bg-zinc-800 rounded-full overflow-hidden">
@@ -1794,31 +1789,27 @@ export default function TenantMonitoring() {
           <div className="group relative p-1">
             <div className="absolute inset-0 bg-linear-to-br from-emerald-500 to-teal-600 rounded-4xl blur-xl opacity-0 group-hover:opacity-10 transition-opacity"></div>
             <div className="relative p-6 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-[1.8rem] shadow-xs overflow-hidden h-full">
-              <div className="flex items-start justify-between mb-8">
+              <div className="flex flex-col items-center text-center gap-3 mb-5">
                 <div className="w-12 h-12 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-500 group-hover:scale-110 transition-transform">
                   <PhilippinePeso size={22} />
                 </div>
-                <div className="flex flex-col items-end">
+                <div className="flex flex-col items-center gap-1">
                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">
                     Collected{" "}
                     <span className="text-[8px] px-1.5 py-0.5 rounded-sm bg-emerald-500/10 text-emerald-600 font-bold">
                       {tfDetails.periodBadge}
                     </span>
                   </span>
-                  <div className="flex items-center gap-1 text-emerald-500">
-                    <ArrowUpRight size={10} />
-                    <span className="text-[10px] font-bold">12% New</span>
-                  </div>
                 </div>
               </div>
-              <p className="text-4xl font-black text-charcoal dark:text-white tracking-tighter">
+              <p className="text-3xl 2xl:text-4xl font-black text-charcoal dark:text-white tracking-tight tabular-nums text-center whitespace-nowrap">
                 ₱
                 {(stats.collectedRevenue * multiplier).toLocaleString("en-PH", {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
                 })}
               </p>
-              <p className="text-[10px] font-bold text-slate-500 uppercase mt-1">
+              <p className="text-[10px] font-bold text-slate-500 uppercase mt-1 text-center tabular-nums">
                 Pending: ₱
                 {(stats.pendingRevenue * multiplier).toLocaleString("en-PH", {
                   minimumFractionDigits: 2,
@@ -1831,11 +1822,11 @@ export default function TenantMonitoring() {
           <div className="group relative p-1">
             <div className="absolute inset-0 bg-linear-to-br from-amber-500 to-orange-600 rounded-4xl blur-xl opacity-0 group-hover:opacity-10 transition-opacity"></div>
             <div className="relative p-6 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-[1.8rem] shadow-xs overflow-hidden h-full">
-              <div className="flex items-start justify-between mb-8">
+              <div className="flex flex-col items-center text-center gap-3 mb-5">
                 <div className="w-12 h-12 bg-amber-500/10 rounded-2xl flex items-center justify-center text-amber-500 group-hover:scale-110 transition-transform">
                   <Clock size={22} />
                 </div>
-                <div className="flex flex-col items-end">
+                <div className="flex flex-col items-center gap-1">
                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
                     Pipeline
                   </span>
@@ -1845,10 +1836,10 @@ export default function TenantMonitoring() {
                   </div>
                 </div>
               </div>
-              <p className="text-4xl font-black text-charcoal dark:text-white tracking-tighter">
+              <p className="text-3xl 2xl:text-4xl font-black text-charcoal dark:text-white tracking-tight tabular-nums text-center whitespace-nowrap">
                 {stats.pending}
               </p>
-              <p className="text-[10px] font-bold text-slate-500 uppercase mt-1">
+              <p className="text-[10px] font-bold text-slate-500 uppercase mt-1 text-center tabular-nums">
                 Awaiting Onboarding
               </p>
             </div>
@@ -1857,11 +1848,11 @@ export default function TenantMonitoring() {
           <div className="group relative p-1">
             <div className="absolute inset-0 bg-linear-to-br from-red-500 to-pink-600 rounded-4xl blur-xl opacity-0 group-hover:opacity-10 transition-opacity"></div>
             <div className="relative p-6 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-[1.8rem] shadow-xs overflow-hidden h-full">
-              <div className="flex items-start justify-between mb-8">
+              <div className="flex flex-col items-center text-center gap-3 mb-5">
                 <div className="w-12 h-12 bg-red-500/10 rounded-2xl flex items-center justify-center text-red-500 group-hover:scale-110 transition-transform">
                   <AlertTriangle size={22} />
                 </div>
-                <div className="flex flex-col items-end">
+                <div className="flex flex-col items-center gap-1">
                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
                     Deficits
                   </span>
@@ -1871,10 +1862,10 @@ export default function TenantMonitoring() {
                   </div>
                 </div>
               </div>
-              <p className="text-4xl font-black text-charcoal dark:text-white tracking-tighter">
+              <p className="text-3xl 2xl:text-4xl font-black text-charcoal dark:text-white tracking-tight tabular-nums text-center whitespace-nowrap">
                 {stats.overdue}
               </p>
-              <p className="text-[10px] font-bold text-slate-500 uppercase mt-1">
+              <p className="text-[10px] font-bold text-slate-500 uppercase mt-1 text-center tabular-nums">
                 Urgent Action Items
               </p>
             </div>
@@ -1884,11 +1875,11 @@ export default function TenantMonitoring() {
           <div className="group relative p-1">
             <div className="absolute inset-0 bg-linear-to-br from-emerald-500 to-teal-600 rounded-4xl blur-xl opacity-0 group-hover:opacity-10 transition-opacity"></div>
             <div className="relative p-6 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-[1.8rem] shadow-xs overflow-hidden h-full">
-              <div className="flex items-start justify-between mb-8">
+              <div className="flex flex-col items-center text-center gap-3 mb-5">
                 <div className="w-12 h-12 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-500 group-hover:scale-110 transition-transform">
                   <CheckCircle size={22} />
                 </div>
-                <div className="flex flex-col items-end">
+                <div className="flex flex-col items-center gap-1">
                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
                     Paid Tenants
                   </span>
@@ -1898,10 +1889,10 @@ export default function TenantMonitoring() {
                   </div>
                 </div>
               </div>
-              <p className="text-4xl font-black text-charcoal dark:text-white tracking-tighter">
+              <p className="text-3xl 2xl:text-4xl font-black text-charcoal dark:text-white tracking-tight tabular-nums text-center whitespace-nowrap">
                 {stats.paidTenants}
               </p>
-              <p className="text-[10px] font-bold text-slate-500 uppercase mt-1">
+              <p className="text-[10px] font-bold text-slate-500 uppercase mt-1 text-center tabular-nums">
                 Settled Accounts
               </p>
             </div>
@@ -1911,11 +1902,11 @@ export default function TenantMonitoring() {
           <div className="group relative p-1">
             <div className="absolute inset-0 bg-linear-to-br from-indigo-500 to-purple-600 rounded-4xl blur-xl opacity-0 group-hover:opacity-10 transition-opacity"></div>
             <div className="relative p-6 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-[1.8rem] shadow-xs overflow-hidden h-full">
-              <div className="flex items-start justify-between mb-8">
+              <div className="flex flex-col items-center text-center gap-3 mb-5">
                 <div className="w-12 h-12 bg-indigo-500/10 rounded-2xl flex items-center justify-center text-indigo-500 group-hover:scale-110 transition-transform">
                   <Users size={22} />
                 </div>
-                <div className="flex flex-col items-end">
+                <div className="flex flex-col items-center gap-1">
                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
                     Total Tenants
                   </span>
@@ -1925,10 +1916,10 @@ export default function TenantMonitoring() {
                   </div>
                 </div>
               </div>
-              <p className="text-4xl font-black text-charcoal dark:text-white tracking-tighter">
+              <p className="text-3xl 2xl:text-4xl font-black text-charcoal dark:text-white tracking-tight tabular-nums text-center whitespace-nowrap">
                 {stats.total}
               </p>
-              <p className="text-[10px] font-bold text-slate-500 uppercase mt-1">
+              <p className="text-[10px] font-bold text-slate-500 uppercase mt-1 text-center tabular-nums">
                 All Merchants
               </p>
             </div>
