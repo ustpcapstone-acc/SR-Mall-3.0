@@ -4,6 +4,7 @@ import { existsSync } from "fs";
 import { join } from "path";
 import { validateImageFile } from "@/lib/cloud-storage";
 import { PERMIT_FOLDER, PERMIT_MAX_BYTES, PERMIT_TYPES } from "@/lib/reservation-window";
+import { TENANT_DOC_FOLDER } from "@/lib/tenant-onboarding";
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,8 +17,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
-    // Business permits (space reservations): PDF / JPG / PNG up to 10 MB.
-    const isPermit = folder === PERMIT_FOLDER;
+    // Business permits (space reservations) and tenant onboarding documents:
+    // PDF / JPG / PNG up to 10 MB.
+    const isPermit = folder === PERMIT_FOLDER || folder === TENANT_DOC_FOLDER;
     if (isPermit) {
       if (!PERMIT_TYPES.includes(file.type)) {
         return NextResponse.json({ error: "Please upload a PDF, JPG or PNG file." }, { status: 400 });

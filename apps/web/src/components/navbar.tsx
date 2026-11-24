@@ -501,6 +501,12 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
                 <div className="flex items-center gap-2">
                   <PublicThemeToggle />
                 </div>
+                <Link
+                  href="/become-a-tenant"
+                  className="hidden xl:inline-flex items-center px-5 py-2.5 rounded-full border border-primary/40 text-primary font-bold text-sm hover:bg-primary/10 transition-colors"
+                >
+                  Become a Tenant
+                </Link>
                 <button
                   suppressHydrationWarning
                   onClick={() => setIsLoginOpen(true)}
@@ -625,6 +631,17 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
                 Sign Out
                 <LogOut size={16} className="text-red-400" />
               </button>
+            )}
+
+            {!isAuthenticated && (
+              <Link
+                href="/become-a-tenant"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="flex items-center justify-between py-4 border-b border-slate-100 dark:border-white/5 text-base font-bold text-primary"
+              >
+                Become a Tenant
+                <ChevronDown size={16} className="-rotate-90 text-primary/40" />
+              </Link>
             )}
 
             {!isAuthenticated && (

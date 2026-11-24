@@ -46,6 +46,7 @@ model User {
   chatBlocksReceived     BlockedChatUser[]       @relation("ChatBlocksReceived")
   conversationReads      ConversationRead[]
   favorites              Favorite[]
+  spaceStaff             SpaceStaff?
 }
 
 /// A staff-portal role: the sections (permission keys) its staff can open.
@@ -60,27 +61,35 @@ model StaffRole {
 }
 
 model Tenant {
-  id          String        @id @default(uuid())
-  shopName    String
-  unitId      String
-  isOpen      Boolean       @default(true)
-  description String?
-  logoUrl     String?
-  galleryUrls String[]      @default([])
-  category    String        @default("Fashion")
-  phone        String?
-  openingHours String?
-  userId      String        @unique
-  status      String        @default("ACTIVE")
-  products    Json          @default("[]")
-  postSales   Json          @default("[]")
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  promos      TenantPromo[]
-  invoices    Invoice[]
-  reviews     Review[]
-  favoritedBy Favorite[]
+  id              String        @id @default(uuid())
+  shopName        String
+  unitId          String
+  isOpen          Boolean       @default(true)
+  description     String?
+  logoUrl         String?
+  galleryUrls     String[]      @default([])
+  category        String        @default("Fashion")
+  phone           String?
+  openingHours    String?
+  /// Registered business name (shopName is the trade name shoppers see).
+  companyName     String?
+  businessAddress String?
+  /// Uploaded business documents from tenant onboarding (lib/tenant-onboarding.ts).
+  documents       Json          @default("[]")
+  userId          String        @unique
+  status          String        @default("ACTIVE")
+  products        Json          @default("[]")
+  postSales       Json          @default("[]")
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  promos          TenantPromo[]
+  invoices        Invoice[]
+  reviews         Review[]
+  favoritedBy     Favorite[]
+  leases          Lease[]
+  rentRequests    RentRequest[]
+  SpaceStaff      SpaceStaff[]
 }
 
 /// A customer's favourite shop.
@@ -97,22 +106,30 @@ model Favorite {
 }
 
 model Invoice {
-  id              String   @id @default(uuid())
-  invoiceNumber   String   @unique
-  month           String
-  amount          Float
-  status          String   @default("PENDING")
-  dueDate         DateTime
-  description     String?
-  depositSlipUrl  String?
-  storageKey      String?
-  referenceNo     String?
+  id             String    @id @default(uuid())
+  invoiceNumber  String    @unique
+  month          String
+  amount         Float
+  status         String    @default("PENDING")
+  dueDate        DateTime
+  description    String?
+  depositSlipUrl String?
+  storageKey     String?
+  referenceNo    String?
   /// Set by the "Invoice_set_paid_at" trigger when status becomes PAID
-  paidAt          DateTime?
-  tenantId        String
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  paidAt         DateTime?
+  /// E-invoice details (migration 20261124000300_leasing).
+  leaseId        String?
+  unitId         String?
+  periodStart    DateTime?
+  periodEnd      DateTime?
+  lineItems      Json      @default("[]")
+  paymentMethod  String?
+  lease          Lease?    @relation(fields: [leaseId], references: [id], onDelete: SetNull)
+  tenantId       String
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  tenant         Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 }
 
 model AreaSlot {
@@ -172,17 +189,17 @@ model TenantPromo {
 }
 
 model Conversation {
-  id          String    @id @default(uuid())
+  id          String             @id @default(uuid())
   type        String
   userId      String
   targetId    String
   spaceSlotId String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  areaSlot    AreaSlot? @relation(fields: [spaceSlotId], references: [id])
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  areaSlot    AreaSlot?          @relation(fields: [spaceSlotId], references: [id])
   reads       ConversationRead[]
-  target      User      @relation("TargetConversations", fields: [targetId], references: [id], onDelete: Cascade)
-  user        User      @relation("UserConversations", fields: [userId], references: [id], onDelete: Cascade)
+  target      User               @relation("TargetConversations", fields: [targetId], references: [id], onDelete: Cascade)
+  user        User               @relation("UserConversations", fields: [userId], references: [id], onDelete: Cascade)
   messages    Message[]
 }
 
@@ -290,78 +307,78 @@ model Notification {
 }
 
 model Review {
-  id         String   @id @default(uuid())
-  userId     String
-  tenantId   String?  // Optional: Null means it's a general mall review
-  rating     Int
-  comment    String?
-  isApproved Boolean  @default(false)
-  isSpam     Boolean  @default(false)
+  id           String    @id @default(uuid())
+  userId       String
+  tenantId     String? // Optional: Null means it's a general mall review
+  rating       Int
+  comment      String?
+  isApproved   Boolean   @default(false)
+  isSpam       Boolean   @default(false)
   /// The shop's public reply (one per review)
   reply        String?
   repliedAt    DateTime?
   /// Set when the shop reports the review to the mall admin
   reportedAt   DateTime?
   reportReason String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tenant     Tenant?  @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant       Tenant?   @relation(fields: [tenantId], references: [id], onDelete: SetNull)
 
   @@index([tenantId, createdAt])
 }
 
 model PublicViewConfig {
-  id                    String   @id @default(uuid())
-  logoUrl               String?
-  contactEmail          String?
-  contactPhone          String?
-  contactAddress        String?
-  heroTitle             String?
-  heroSubtitle          String?
-  heroBgUrl             String?
-  heroBadge             String?
-  heroOverlayDark       Int      @default(40)
-  adminId               String?
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
-  aboutDescription      String?
-  aboutImageUrl         String?
-  aboutTitle            String?
-  companyName           String?
-  contactDescription    String?
-  contactTitle          String?
-  featuredVideoUrl      String?
-  videoDescription      String?
-  videoTitle            String?
-  productsTitle         String?
-  productsDescription   String?
-  videoCtaLabel         String?
-  directoryTitle        String?
-  directoryDescription  String?
-  spacesTitle           String?
-  spacesDescription     String?
-  venueEyebrow          String?
-  venueTitle            String?
-  venueDescription      String?
-  reviewsTitle          String?
-  reviewsDescription    String?
-  locationTitle         String?
-  themeColor            String?
-  googleMapsEmbedUrl    String?
-  googleMapsApiKey      String?
+  id                     String   @id @default(uuid())
+  logoUrl                String?
+  contactEmail           String?
+  contactPhone           String?
+  contactAddress         String?
+  heroTitle              String?
+  heroSubtitle           String?
+  heroBgUrl              String?
+  heroBadge              String?
+  heroOverlayDark        Int      @default(40)
+  adminId                String?
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+  aboutDescription       String?
+  aboutImageUrl          String?
+  aboutTitle             String?
+  companyName            String?
+  contactDescription     String?
+  contactTitle           String?
+  featuredVideoUrl       String?
+  videoDescription       String?
+  videoTitle             String?
+  productsTitle          String?
+  productsDescription    String?
+  videoCtaLabel          String?
+  directoryTitle         String?
+  directoryDescription   String?
+  spacesTitle            String?
+  spacesDescription      String?
+  venueEyebrow           String?
+  venueTitle             String?
+  venueDescription       String?
+  reviewsTitle           String?
+  reviewsDescription     String?
+  locationTitle          String?
+  themeColor             String?
+  googleMapsEmbedUrl     String?
+  googleMapsApiKey       String?
   paymentGatewayProvider String?
-  paymentGatewayApiKey  String?
-  footerDescription     String?
-  footerInstagram       String?
-  footerFacebook        String?
-  footerWebsite         String?
-  footerCopyrightText   String?
-  footerAddress         String?
-  footerPhone           String?
-  footerEmail           String?
-  footerOpeningHours    String?
-  admin                 User?    @relation(fields: [adminId], references: [id])
+  paymentGatewayApiKey   String?
+  footerDescription      String?
+  footerInstagram        String?
+  footerFacebook         String?
+  footerWebsite          String?
+  footerCopyrightText    String?
+  footerAddress          String?
+  footerPhone            String?
+  footerEmail            String?
+  footerOpeningHours     String?
+  admin                  User?    @relation(fields: [adminId], references: [id])
 }
 
 model PublicViewCarousel {
@@ -382,21 +399,21 @@ model PublicViewCarousel {
 }
 
 model EventInquiry {
-  id        String   @id @default(uuid())
-  userId    String
-  eventType String
-  eventDate DateTime
-  eventTime String
-  eventName String?
-  message   String?
-  imageUrl  String?
-  storageKey String?
-  status    String   @default("PENDING")
-  fbAccount String?
+  id            String   @id @default(uuid())
+  userId        String
+  eventType     String
+  eventDate     DateTime
+  eventTime     String
+  eventName     String?
+  message       String?
+  imageUrl      String?
+  storageKey    String?
+  status        String   @default("PENDING")
+  fbAccount     String?
   contactNumber String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model PasswordResetToken {
@@ -411,7 +428,7 @@ model PasswordResetToken {
 
 model LostAndFoundItem {
   id          String   @id @default(uuid())
-  type        String   // "LOST" or "FOUND"
+  type        String // "LOST" or "FOUND"
   title       String
   description String?
   location    String
@@ -513,4 +530,92 @@ model SpaceReservation {
 
   @@index([unitId, status])
   @@index([userId])
+}
+
+/// A space a tenant rents. endDate = rent paid through = next renewal due date.
+/// One ACTIVE lease per unit (partial unique index in migration 20261124000300).
+model Lease {
+  id          String       @id @default(uuid())
+  tenantId    String
+  unitId      String
+  startDate   DateTime
+  endDate     DateTime
+  monthlyRent Float
+  status      String       @default("ACTIVE")
+  noticesSent String[]     @default([])
+  endedAt     DateTime?
+  endReason   String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  invoices    Invoice[]
+  SpaceRole   SpaceRole[]
+  SpaceStaff  SpaceStaff[]
+
+  @@index([tenantId])
+  @@index([status, endDate])
+}
+
+/// A tenant asking to rent a space; approved after on-site payment.
+model RentRequest {
+  id           String    @id @default(uuid())
+  tenantId     String
+  unitId       String
+  months       Int       @default(12)
+  note         String?
+  status       String    @default("PENDING")
+  adminComment String?
+  decidedById  String?
+  decidedAt    DateTime?
+  leaseId      String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  tenant       Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([tenantId])
+}
+
+/// Renewal settings (single row "singleton").
+model LeaseSettings {
+  id               String   @id @default("singleton")
+  reminderDays     Int[]    @default([7, 1])
+  graceDays        Int      @default(7)
+  finalWarningDays Int      @default(1)
+  updatedAt        DateTime @updatedAt
+}
+
+/// A tenant-defined role for one space: the sections its staff can open
+/// (keys in apps/web/src/lib/tenant-permissions.ts).
+model SpaceRole {
+  id          String       @id @default(uuid())
+  leaseId     String
+  name        String
+  permissions String[]     @default([])
+  isDefault   Boolean      @default(false)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  lease       Lease        @relation(fields: [leaseId], references: [id], onDelete: Cascade)
+  staff       SpaceStaff[]
+
+  @@unique([leaseId, name])
+}
+
+/// A tenant staff account (User.role = TENANT_STAFF) working in one space.
+model SpaceStaff {
+  id        String    @id @default(uuid())
+  userId    String    @unique
+  tenantId  String
+  leaseId   String
+  roleId    String
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  lease     Lease     @relation(fields: [leaseId], references: [id], onDelete: Cascade)
+  role      SpaceRole @relation(fields: [roleId], references: [id], onDelete: Restrict)
+
+  @@index([leaseId])
+  @@index([tenantId])
 }

@@ -7,6 +7,7 @@
 export type StaffPermission =
   | "dashboard"
   | "bookings"
+  | "leasing"
   | "spaces"
   | "messages"
   | "complaints"
@@ -27,6 +28,7 @@ type Section = {
 export const STAFF_SECTIONS: Section[] = [
   { key: "dashboard", label: "Dashboard", description: "Mall overview, sales and finance summary.", paths: ["/admindashboard"] },
   { key: "bookings", label: "Bookings", description: "Space reservations and merchant requests.", paths: ["/admindashboard/bookings", "/admindashboard/merchant-requests"] },
+  { key: "leasing", label: "Leasing", description: "Rent requests, renewals and e-invoices.", paths: ["/admindashboard/rent-requests", "/admindashboard/renewals"] },
   { key: "spaces", label: "Floor Spaces & Map", description: "Units, floor map and availability.", paths: ["/admindashboard/space-manager"] },
   { key: "messages", label: "Messages", description: "Chats with tenants and customers.", paths: ["/admindashboard/messenger-hub", "/admindashboard/messages"] },
   { key: "complaints", label: "Complaints", description: "Tenant complaints and their replies.", paths: ["/admindashboard/complaints"] },

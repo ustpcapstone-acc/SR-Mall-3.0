@@ -14,6 +14,7 @@ import {
   type AccountType,
 } from "@/lib/session";
 import { ALL_PERMISSIONS, isStaffPermission, type StaffAccess, type StaffPermission } from "@/lib/permissions";
+import { isSpacePermission, type SpacePermission } from "@/lib/tenant-permissions";
 
 export type Account = {
   id: string;
@@ -22,6 +23,11 @@ export type Account = {
   isSuperuser: boolean;
   roleName: string | null;
   permissions: StaffPermission[];
+  /**
+   * Set for tenant staff (User.role TENANT_STAFF): the one space they work in.
+   * ownerUserId is the tenant owner they act for in the dashboard.
+   */
+  tenantStaff: { tenantId: string; leaseId: string; ownerUserId: string; roleName: string; permissions: SpacePermission[] } | null;
 };
 
 // Short in-process cache so page loads and prefetches don't each hit the
@@ -45,14 +51,27 @@ export async function loadAccount(userId: string): Promise<Account | null> {
       isBlacklisted: true,
       isSuperuser: true,
       staffRole: { select: { name: true, permissions: true } },
+      spaceStaff: {
+        select: {
+          isActive: true,
+          tenantId: true,
+          leaseId: true,
+          lease: { select: { status: true } },
+          role: { select: { name: true, permissions: true } },
+          tenant: { select: { userId: true } },
+        },
+      },
     },
   });
+  // Tenant staff only work while they are active and their space is still rented.
+  const ss = u?.role === "TENANT_STAFF" ? u.spaceStaff : null;
+  const staffOk = !!ss && ss.isActive && ss.lease.status === "ACTIVE";
   const type = u ? accountTypeOf(u.role) : null;
   const value: Account | null = u
     ? {
         id: u.id,
         type: type!,
-        isBlacklisted: u.isBlacklisted,
+        isBlacklisted: u.isBlacklisted || (u.role === "TENANT_STAFF" && !staffOk),
         isSuperuser: type === "ADMIN" && u.isSuperuser,
         roleName: u.staffRole?.name ?? null,
         permissions:
@@ -61,10 +80,28 @@ export async function loadAccount(userId: string): Promise<Account | null> {
             : u.isSuperuser
               ? [...ALL_PERMISSIONS]
               : (u.staffRole?.permissions ?? []).filter(isStaffPermission),
+        tenantStaff:
+          ss && staffOk
+            ? {
+                tenantId: ss.tenantId,
+                leaseId: ss.leaseId,
+                ownerUserId: ss.tenant.userId,
+                roleName: ss.role.name,
+                permissions: ss.role.permissions.filter(isSpacePermission),
+              }
+            : null,
       }
     : null;
   cache.set(userId, { at: Date.now(), value });
   return value;
+}
+
+/**
+ * The user id the browser works with. Tenant staff act for the tenant owner,
+ * so the dashboard pages load the owner's store.
+ */
+export function actingUserId(account: Account) {
+  return account.tenantStaff?.ownerUserId ?? account.id;
 }
 
 export function staffAccess(account: Account): StaffAccess {

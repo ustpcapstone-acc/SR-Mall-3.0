@@ -11,6 +11,8 @@ import {
   Palette,
   ClipboardList,
   UserCog,
+  FileText,
+  RefreshCw,
 } from "lucide-react";
 import clsx from "clsx";
 import { useState, useEffect } from "react";
@@ -23,6 +25,8 @@ import { canOpen, type StaffAccess } from "@/lib/permissions";
 const navItems = [
   { href: "/admindashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admindashboard/bookings", label: "Bookings", icon: Calendar },
+  { href: "/admindashboard/rent-requests", label: "Rent Requests", icon: FileText },
+  { href: "/admindashboard/renewals", label: "Renewals", icon: RefreshCw },
   {
     href: "/admindashboard/space-manager",
     label: "Floor Spaces & Map",

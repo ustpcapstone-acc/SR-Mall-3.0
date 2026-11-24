@@ -1,85 +1,28 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@srmall/database";
-import { notify } from "@/lib/notify";
-import { atMidnight, leaseEndDate } from "@/lib/lease";
+import { runRenewalSweep } from "@/lib/leasing-server";
 import { runWeeklyDigest } from "@/lib/weekly-digest";
 import { processExpiredMerchantApplicationsAction } from "@/app/actions/tenant";
 import { processExpiredEventBookingsAction } from "@/app/actions/inquiry";
 
 /**
- * Daily lease-expiry sweep.
+ * Daily leasing sweep (Vercel cron, see vercel.json).
  *
- * The lease term rule (one year from the tenant record's creation) lives in
- * `lib/lease.ts`, shared with the admin dashboard.
+ * Renewals: reminders before each lease's due date, the due-day notice,
+ * grace-period notices and, once grace runs out, removal from the space. The
+ * schedule (reminder days, grace days, final warning) is set by staff on the
+ * Renewals page; the rules live in lib/leasing.ts and lib/leasing-server.ts.
  *
- * Fires at the 30 / 7 / 1 day milestones (and once a day after expiry) for
- * both the admin and the tenant, respecting each side's EXPIRING_CONTRACTS
- * preference. Re-runs on the same day are suppressed by `dedupeHours`.
+ * Because this removes tenants, it only runs for Vercel's cron (or anyone
+ * holding CRON_SECRET) when that variable is set.
  */
-const MILESTONES = [30, 7, 1];
-
-export async function GET() {
+export async function GET(req: Request) {
+  const secret = process.env.CRON_SECRET;
+  if (secret && req.headers.get("authorization") !== `Bearer ${secret}`) {
+    return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+  }
   try {
-    const today = atMidnight(new Date());
-
-    const tenants = await prisma.tenant.findMany({
-      include: {
-        user: { select: { id: true, name: true } },
-      },
-    });
-
-    let flagged = 0;
-
-    for (const tenant of tenants) {
-      if (!tenant.user) continue;
-
-      const end = leaseEndDate(new Date(tenant.createdAt));
-      const days = Math.round(
-        (end.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
-      );
-
-      if (days > MILESTONES[0]) continue;
-
-      const milestone = MILESTONES.find((m) => days <= m) ?? 1;
-      const expired = days <= 0;
-      const unitLabel = `Unit ${tenant.unitId}`;
-
-      const adminTitle = expired
-        ? "Lease Expired — Renewal Required"
-        : `Lease Expiring in ${milestone} Day${milestone === 1 ? "" : "s"}`;
-      const adminMessage = expired
-        ? `${tenant.shopName} (${unitLabel}) passed its lease end date on ${end.toLocaleDateString()}. Renewal or removal is required.`
-        : `${tenant.shopName} (${unitLabel}) lease ends ${end.toLocaleDateString()} — ${days} day${
-            days === 1 ? "" : "s"
-          } left before renewal is due.`;
-
-      const tenantTitle = expired
-        ? "Your Lease Has Expired"
-        : `Your Lease Expires in ${milestone} Day${milestone === 1 ? "" : "s"}`;
-      const tenantMessage = expired
-        ? `The lease for ${tenant.shopName} (${unitLabel}) ended on ${end.toLocaleDateString()}. Contact the management office to renew.`
-        : `Your lease for ${tenant.shopName} (${unitLabel}) ends on ${end.toLocaleDateString()} — ${days} day${
-            days === 1 ? "" : "s"
-          } remaining. Reach out to the management office to renew.`;
-
-      await notify("EXPIRING_CONTRACTS", {
-        roles: ["ADMIN"],
-        title: adminTitle,
-        message: adminMessage,
-        link: "/admindashboard/tenant-monitoring",
-        dedupeHours: 20,
-      });
-
-      await notify("EXPIRING_CONTRACTS", {
-        recipients: [tenant.user.id],
-        title: tenantTitle,
-        message: tenantMessage,
-        link: "/tenantdashboard/lease-payments",
-        dedupeHours: 20,
-      });
-
-      flagged++;
-    }
+    const today = new Date();
+    const renewals = await runRenewalSweep(today);
 
     // 72-hour auto-rejection sweep — merchant applications and event bookings
     // that sat in PENDING for 3+ days flip to REJECTED through the same
@@ -100,7 +43,7 @@ export async function GET() {
 
     return NextResponse.json({
       success: true,
-      tenantsFlagged: flagged,
+      renewals,
       autoRejected: {
         merchantApplications: merchantApplications.rejected,
         eventBookings: eventBookings.rejected,
@@ -108,7 +51,7 @@ export async function GET() {
       digest,
     });
   } catch (error) {
-    console.error("Lease expiry cron error:", error);
+    console.error("Leasing cron error:", error);
     return NextResponse.json(
       { success: false, error: "Internal Server Error" },
       { status: 500 },

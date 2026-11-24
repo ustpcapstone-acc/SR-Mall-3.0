@@ -9,6 +9,7 @@ import { getCloudStorageProvider } from "@/lib/cloud-storage";
 import { accountTypeOf, PORTAL_LOGIN, type AccountType } from "@/lib/session";
 import {
   AccessDenied,
+  actingUserId,
   currentAccount,
   endSession,
   forgetAccount,
@@ -18,6 +19,7 @@ import {
   startSession,
 } from "@/lib/auth-server";
 import { staffHomePath } from "@/lib/permissions";
+import { staffHome } from "@/lib/tenant-permissions";
 
 // ─── Portals ─────────────────────────────────────────────────────────────────
 // Each account type signs in at its own page and nowhere else:
@@ -35,7 +37,14 @@ function wrongPortalError(actual: AccountType) {
 
 /** Where an account goes after it signs in. */
 async function homeFor(userId: string, type: AccountType) {
-  if (type === "TENANT") return "/tenantdashboard";
+  if (type === "TENANT") {
+    forgetAccount(userId);
+    const account = await loadAccount(userId);
+    if (account?.tenantStaff) return staffHome(account.tenantStaff.permissions);
+    // No space yet: land on the Home workspace instead of an empty store.
+    const spaces = await prisma.lease.count({ where: { tenant: { userId }, status: "ACTIVE" } });
+    return spaces ? "/tenantdashboard" : "/tenantdashboard/home";
+  }
   if (type === "CUSTOMER") return "/";
   forgetAccount(userId);
   const account = await loadAccount(userId);
@@ -51,7 +60,7 @@ export async function logoutAction() {
 /** Who the signed session belongs to; the browser uses it to drop a stale local session. */
 export async function getSessionUserAction() {
   const account = await currentAccount();
-  return account ? { id: account.id, type: account.type } : null;
+  return account ? { id: actingUserId(account), type: account.type } : null;
 }
 
 // ─── Sign in with Google (Gmail only) ────────────────────────────────────────
@@ -106,6 +115,9 @@ export async function signInWithGoogleAction(accessToken: string, portal: Accoun
     let user = await prisma.user.findUnique({ where: { email }, include: { tenant: true } });
     if (user && accountTypeOf(user.role) !== portal) {
       return { success: false as const, error: wrongPortalError(accountTypeOf(user.role)) };
+    }
+    if (user?.role === "TENANT_STAFF") {
+      return { success: false as const, error: "Store staff sign in with their email and password." };
     }
     if (!user && portal !== "CUSTOMER") {
       // Only /login creates accounts; staff and tenant accounts are made elsewhere.
@@ -218,12 +230,23 @@ export async function loginAction(data: { email: string; password: string }, por
     const type = accountTypeOf(user.role);
     if (type !== portal) return { success: false, error: wrongPortalError(type) };
 
+    // Tenant staff: only while active in a rented space; they act for the owner.
+    let actingId = user.id;
+    if (user.role === "TENANT_STAFF") {
+      forgetAccount(user.id);
+      const account = await loadAccount(user.id);
+      if (!account?.tenantStaff) {
+        return { success: false, error: "Your staff access is turned off. Ask the store owner to turn it back on." };
+      }
+      actingId = account.tenantStaff.ownerUserId;
+    }
+
     await startSession(user.id, type);
     return {
       success: true,
       redirectTo: await homeFor(user.id, type),
       data: {
-        id: user.id,
+        id: actingId,
         name: user.name || user.email.split("@")[0],
         email: user.email,
         role: user.role,
@@ -442,6 +465,9 @@ export async function updateUserRoleAction(userId: string, newRole: string, _act
     if (!user) return { success: false, error: "User not found." };
     if (user.role === "ADMIN") {
       return { success: false, error: "Staff accounts are managed on the Roles & Staff page." };
+    }
+    if (user.role === "TENANT_STAFF") {
+      return { success: false, error: "This is a store staff account. The store owner manages it on their Staff page." };
     }
 
     // Tenant leaving via a role change → history snapshot (before the unit is freed).

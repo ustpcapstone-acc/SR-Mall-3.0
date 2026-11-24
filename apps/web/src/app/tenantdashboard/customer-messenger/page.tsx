@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { Suspense, useState, useEffect, useRef, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   Search,
   Filter,
@@ -50,7 +51,28 @@ import {
 } from "@/components/chat/chat-ui";
 import { toast } from "sonner";
 
-export default function CustomerMessenger() {
+/**
+ * ?inbox=mall    -> chats with the mall office (Home workspace)
+ * ?inbox=customers -> chats with shoppers (space workspace)
+ * no parameter   -> everything (links from notifications)
+ */
+type Inbox = "mall" | "customers" | "all";
+
+export default function CustomerMessengerPage() {
+  return (
+    <Suspense fallback={null}>
+      <InboxRoute />
+    </Suspense>
+  );
+}
+
+function InboxRoute() {
+  const param = useSearchParams().get("inbox");
+  const inbox: Inbox = param === "mall" || param === "customers" ? param : "all";
+  return <CustomerMessenger key={inbox} inbox={inbox} />;
+}
+
+function CustomerMessenger({ inbox }: { inbox: Inbox }) {
   const { user, isAuthenticated } = useAuth();
   const [conversations, setConversations] = useState<any[]>([]);
   const [activeChat, setActiveChat] = useState<any>(null);
@@ -110,11 +132,13 @@ export default function CustomerMessenger() {
     try {
       const { getTenantConversations, getPortalAdminAction } =
         await import("@/app/actions/chat-queries");
-      const data = await getTenantConversations(user.id);
+      const all = await getTenantConversations(user.id);
+      const data =
+        inbox === "all" ? all : all.filter((c) => (c.type === "ADMIN") === (inbox === "mall"));
 
       // If Admin is missing, fetch and inject
       const hasAdmin = data.some((c) => c.type === "ADMIN");
-      if (!hasAdmin) {
+      if (!hasAdmin && inbox !== "customers") {
         const admin = await getPortalAdminAction();
         if (admin) {
           data.unshift({
@@ -144,7 +168,7 @@ export default function CustomerMessenger() {
     } catch (err) {
       console.error("Failed to fetch tenant conversations:", err);
     }
-  }, [user?.id]);
+  }, [user?.id, inbox]);
 
   useEffect(() => {
     fetchConversations();
@@ -548,10 +572,14 @@ export default function CustomerMessenger() {
             Communication
           </p>
           <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-charcoal dark:text-white tracking-tight">
-            Customer Messenger
+            {inbox === "mall" ? "Mall Office Messages" : inbox === "customers" ? "Customer Messages" : "Messages"}
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
-            Direct communication with customers and Mall Admin.
+            {inbox === "mall"
+              ? "Your conversation with the SR Mall management office."
+              : inbox === "customers"
+                ? "Chats with shoppers about your store."
+                : "Direct communication with customers and Mall Admin."}
           </p>
         </div>
       </div>

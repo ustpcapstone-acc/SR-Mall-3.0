@@ -2,11 +2,12 @@ import { NextResponse, type NextRequest } from "next/server";
 import { SESSION_COOKIE, verifySession, type AccountType } from "@/lib/session";
 import { canOpen, staffHomePath } from "@/lib/permissions";
 import { loadAccount, staffAccess } from "@/lib/auth-server";
+import { staffCanOpen, staffHome } from "@/lib/tenant-permissions";
 
 /**
  * Keeps each dashboard behind its own portal:
  *   /admindashboard, /admin  -> staff accounts, and only the sections their role allows
- *   /tenantdashboard         -> tenant accounts
+ *   /tenantdashboard         -> tenant accounts (tenant staff: their role's sections)
  * Server actions also check access themselves; this is the first gate.
  */
 const AREAS: { prefix: string; type: AccountType; login: string }[] = [
@@ -41,6 +42,22 @@ export async function proxy(request: NextRequest) {
       // Avoid a loop if even the home page is off limits.
       if (home === pathname) return toLogin();
       return NextResponse.redirect(new URL(home, request.url));
+    }
+  }
+  // Tenant staff: only the sections of their space that their role opens, and
+  // only the customer inbox (the mall-office inbox belongs to the owner).
+  const staff = area.type === "TENANT" ? account.tenantStaff : null;
+  if (staff) {
+    const home = staffHome(staff.permissions);
+    const isMessenger = pathname.startsWith("/tenantdashboard/customer-messenger");
+    if (!staffCanOpen(staff.permissions, pathname)) {
+      if (home.split("?")[0] === pathname) return toLogin();
+      return NextResponse.redirect(new URL(home, request.url));
+    }
+    if (isMessenger && request.method === "GET" && request.nextUrl.searchParams.get("inbox") !== "customers") {
+      const url = request.nextUrl.clone();
+      url.searchParams.set("inbox", "customers");
+      return NextResponse.redirect(url);
     }
   }
   return NextResponse.next();

@@ -70,7 +70,8 @@ export async function verifySession(token: string | undefined | null): Promise<S
 /** Account type stored in User.role, narrowed. Old "USER" rows count as customers. */
 export function accountTypeOf(role: string | null | undefined): AccountType {
   if (role === "ADMIN") return "ADMIN";
-  if (role === "TENANT") return "TENANT";
+  // Tenant staff sign in at the tenant portal too (lib/tenant-permissions.ts).
+  if (role === "TENANT" || role === "TENANT_STAFF") return "TENANT";
   return "CUSTOMER";
 }
 

@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { Mail, Phone, MapPin, Instagram, Facebook, Globe, Clock } from "lucide-react";
 
 interface FooterProps {
@@ -120,6 +122,12 @@ export const Footer = ({ config }: FooterProps = {}) => {
       </div>
 
       <div className="mt-20 pt-8 border-t border-slate-200 dark:border-white/10 text-center text-xs text-slate-500 space-y-2 px-4">
+        <p>
+          Want to open a store at SR Mall?{" "}
+          <Link href="/become-a-tenant" className="font-bold text-primary hover:underline">
+            Become a tenant
+          </Link>
+        </p>
         <p>{config?.footerCopyrightText || `© ${year} ${config?.companyName || "SR Mall"}. All rights reserved.`}</p>
         <p className="text-[11px] text-slate-400 dark:text-slate-500">
           Designed &amp; developed by{" "}

@@ -1,6 +1,5 @@
 "use client";
 import Link from "next/link";
-// @ts-ignore
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
@@ -10,57 +9,40 @@ import {
   Receipt,
   Star,
   ClipboardList,
+  Building2,
+  Users,
   X,
 } from "lucide-react";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { Select } from "@cloudflare/kumo";
+import { toast } from "sonner";
+import { getWorkspacesAction, setWorkspaceAction, type WorkspaceSpace } from "@/app/actions/workspace";
+import { staffCanOpen } from "@/lib/tenant-permissions";
 import { useAuth } from "@/app/providers";
 import { useChatUnread } from "@/lib/chat-unread";
 import { useComplaintUnread } from "@/lib/complaint-unread";
 import clsx from "clsx";
 
-const navItems = [
-  {
-    href: "/tenantdashboard",
-    label: "Overview",
-    icon: LayoutDashboard,
-    mobileLabel: "Home",
-  },
-  {
-    href: "/tenantdashboard/digital-storefront",
-    label: "Storefront",
-    icon: Store,
-    mobileLabel: "Store",
-  },
-  {
-    href: "/tenantdashboard/ad-promo-manager",
-    label: "Ads & Promo",
-    icon: Presentation,
-    mobileLabel: "Ads",
-  },
-  {
-    href: "/tenantdashboard/customer-messenger",
-    label: "Messages",
-    icon: MessageSquare,
-    mobileLabel: "Chat",
-  },
-  {
-    href: "/tenantdashboard/lease-payments",
-    label: "Payments",
-    icon: Receipt,
-    mobileLabel: "Pay",
-  },
-  {
-    href: "/tenantdashboard/feedback-reviews",
-    label: "Reviews",
-    icon: Star,
-    mobileLabel: "Stars",
-  },
-  {
-    href: "/tenantdashboard/complaints",
-    label: "Complaints",
-    icon: ClipboardList,
-    mobileLabel: "Complaints",
-  },
+type NavItem = { href: string; label: string; icon: typeof LayoutDashboard; mobileLabel: string };
+
+/** Home workspace: the tenant account. */
+const homeItems: NavItem[] = [
+  { href: "/tenantdashboard/home", label: "Dashboard", icon: LayoutDashboard, mobileLabel: "Home" },
+  { href: "/tenantdashboard/rent-a-space", label: "Rent a Space", icon: Building2, mobileLabel: "Rent" },
+  { href: "/tenantdashboard/customer-messenger?inbox=mall", label: "Messages", icon: MessageSquare, mobileLabel: "Chat" },
+];
+
+/** A space workspace: one rented space. */
+const spaceItems: NavItem[] = [
+  { href: "/tenantdashboard", label: "Overview", icon: LayoutDashboard, mobileLabel: "Home" },
+  { href: "/tenantdashboard/digital-storefront", label: "Storefront", icon: Store, mobileLabel: "Store" },
+  { href: "/tenantdashboard/ad-promo-manager", label: "Ads & Promo", icon: Presentation, mobileLabel: "Ads" },
+  { href: "/tenantdashboard/customer-messenger?inbox=customers", label: "Messages", icon: MessageSquare, mobileLabel: "Chat" },
+  { href: "/tenantdashboard/payments", label: "Payments", icon: Receipt, mobileLabel: "Pay" },
+  { href: "/tenantdashboard/feedback-reviews", label: "Reviews", icon: Star, mobileLabel: "Stars" },
+  { href: "/tenantdashboard/complaints", label: "Complaints", icon: ClipboardList, mobileLabel: "Complaints" },
+  { href: "/tenantdashboard/staff", label: "Staff", icon: Users, mobileLabel: "Staff" },
 ];
 
 interface TenantSidebarProps {
@@ -74,7 +56,42 @@ export const TenantSidebar = ({
 }: TenantSidebarProps = {}) => {
   const { user } = useAuth();
   const pathname = usePathname();
+  const router = useRouter();
   const [isMobile, setIsMobile] = useState(false);
+
+  // Workspaces: Home, plus one per rented space.
+  const [ws, setWs] = useState<{
+    current: string;
+    spaces: WorkspaceSpace[];
+    staffPermissions: string[] | null;
+    staffRole: string | null;
+  } | null>(null);
+  useEffect(() => {
+    let alive = true;
+    getWorkspacesAction().then((res) => alive && res.success && setWs(res.data));
+    return () => {
+      alive = false;
+    };
+  }, [user?.id, pathname]);
+  const switchTo = async (id: string) => {
+    if (!ws || id === ws.current) return;
+    const res = await setWorkspaceAction(id);
+    if (!res.success) return toast.error(res.error);
+    setWs({ ...ws, current: id });
+    onMobileClose?.();
+    router.push(res.redirectTo);
+    router.refresh();
+  };
+  const staffPerms = ws?.staffPermissions ?? null;
+  const navItems = staffPerms
+    ? spaceItems.filter((item) => staffCanOpen(staffPerms, item.href.split("?")[0]))
+    : (ws ? ws.current === "home" : pathname.startsWith("/tenantdashboard/home") || pathname.startsWith("/tenantdashboard/rent-a-space"))
+      ? homeItems
+      : spaceItems;
+  const wsItems: Record<string, string> = {
+    home: "Home",
+    ...Object.fromEntries((ws?.spaces ?? []).map((sp) => [sp.id, `Unit ${sp.unitId}`])),
+  };
 
   // Live unread chat count (same source as the bell's Messages tab).
   const unreadMessages = useChatUnread(user?.id).total;
@@ -144,11 +161,34 @@ export const TenantSidebar = ({
                 "font-sans",
               )}
             >
-              Business Console
+              Workspace
             </p>
+            {ws && staffPerms && (
+              <p className="mt-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
+                {ws.spaces[0] ? `Unit ${ws.spaces[0].unitId}` : "Your space"}
+                {ws.staffRole && <span className="block text-xs font-normal text-slate-500">{ws.staffRole}</span>}
+              </p>
+            )}
+            {ws && !staffPerms && (
+              <Select
+                aria-label="Workspace"
+                value={ws.current}
+                items={wsItems}
+                onValueChange={(v) => switchTo((v as string) || "home")}
+                className="mt-2 w-full"
+              >
+                <Select.Option value="home">Home</Select.Option>
+                {ws.spaces.map((sp) => (
+                  <Select.Option key={sp.id} value={sp.id}>
+                    Unit {sp.unitId}
+                    {sp.floor ? `, ${sp.floor} floor` : ""}
+                  </Select.Option>
+                ))}
+              </Select>
+            )}
           </div>
           {navItems.map((item) => {
-            const isActive = pathname === item.href;
+            const isActive = pathname === item.href.split("?")[0];
             const Icon = item.icon;
             const linkContent = (
               <>
