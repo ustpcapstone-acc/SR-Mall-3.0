@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { skipDuplicateCron } from "@/lib/cron-guard";
 import { runAllSweeps } from "@/lib/sweeps";
 
 export const dynamic = "force-dynamic";
@@ -12,7 +13,9 @@ export const dynamic = "force-dynamic";
  *   3. Event Booking        — auto-rejected after 72 hours pending
  */
 
-export async function GET() {
+export async function GET(req: Request) {
+  const skip = skipDuplicateCron(req);
+  if (skip) return skip;
   try {
     const result = await runAllSweeps();
     return NextResponse.json({ success: true, ...result });
@@ -22,6 +25,6 @@ export async function GET() {
   }
 }
 
-export async function POST() {
-  return GET();
+export async function POST(req: Request) {
+  return GET(req);
 }

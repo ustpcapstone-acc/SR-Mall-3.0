@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
+import { skipDuplicateCron } from "@/lib/cron-guard";
 import { prisma } from "@srmall/database";
 import { emailBaseUrl } from "@/utils/get-base-url";
 import { notify, resolveChannels } from "@/lib/notify";
 
 export async function GET(req: Request) {
+  const skip = skipDuplicateCron(req);
+  if (skip) return skip;
   try {
     // Note: In production, you should secure this endpoint so only Vercel Cron or authorized agents can call it.
     // e.g., if (req.headers.get('Authorization') !== `Bearer ${process.env.CRON_SECRET}`) return new NextResponse('Unauthorized', { status: 401 });

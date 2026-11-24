@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { skipDuplicateCron } from "@/lib/cron-guard";
 import { runRenewalSweep } from "@/lib/leasing-server";
 import { runWeeklyDigest } from "@/lib/weekly-digest";
 import { processExpiredMerchantApplicationsAction } from "@/app/actions/tenant";
@@ -16,6 +17,8 @@ import { processExpiredEventBookingsAction } from "@/app/actions/inquiry";
  * holding CRON_SECRET) when that variable is set.
  */
 export async function GET(req: Request) {
+  const skip = skipDuplicateCron(req);
+  if (skip) return skip;
   const secret = process.env.CRON_SECRET;
   if (secret && req.headers.get("authorization") !== `Bearer ${secret}`) {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
