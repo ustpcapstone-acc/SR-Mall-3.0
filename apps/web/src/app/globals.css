@@ -7,14 +7,17 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme {
-  --color-primary: rgb(var(--color-primary));
-  --color-primary-hover: rgb(var(--color-primary-hover));
+  /* Colours read raw "R G B" variables defined below (and overridden at
+     runtime by the CMS theme colour, see lib/theme.ts). They must not reuse
+     the --color-* names, or they would refer to themselves. */
+  --color-primary: rgb(var(--crimson-rgb));
+  --color-primary-hover: rgb(var(--crimson-hover-rgb));
 
-  --color-secondary: rgb(var(--color-secondary));
-  --color-accent: rgb(var(--color-accent));
-  --color-charcoal: rgb(var(--color-charcoal));
-  --color-background: rgb(var(--color-background));
-  --color-foreground: rgb(var(--color-foreground));
+  --color-secondary: rgb(var(--slate-rgb));
+  --color-accent: rgb(var(--charcoal-rgb));
+  --color-charcoal: rgb(var(--charcoal-rgb));
+  --color-background: rgb(var(--background-rgb));
+  --color-foreground: rgb(var(--foreground-rgb));
 
   --font-sans: var(--font-inter), Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-display: var(--font-serif), 'Source Serif 4', Georgia, 'Times New Roman', serif;
@@ -130,16 +133,6 @@
   html.dark optgroup {
     background-color: #18181b; /* zinc-900 */
     color: #f8fafc;
-  }
-
-  :root {
-    --color-primary: var(--crimson-rgb);
-    --color-primary-hover: var(--crimson-hover-rgb);
-    --color-secondary: var(--slate-rgb);
-    --color-accent: var(--charcoal-rgb);
-    --color-background: var(--background-rgb);
-    --color-foreground: var(--foreground-rgb);
-    --color-charcoal: var(--charcoal-rgb);
   }
 
   body {

@@ -1,8 +1,8 @@
 /**
  * Public-site theme colour (CMS → General Settings → Branding).
  *
- * The brand colour is exposed as the `--color-primary` / `--crimson-rgb` CSS
- * variables (see tailwind.config.js). Public pages call `applyThemeColor`
+ * The brand colour is the `--crimson-rgb` / `--crimson-hover-rgb` CSS
+ * variables ("R G B"); globals.css builds `--color-primary` from them. Public pages call `applyThemeColor`
  * with the CMS value; the admin and tenant dashboards call it with `null`
  * so a custom public colour never leaks into the back office.
  */
@@ -21,9 +21,7 @@ export function applyThemeColor(hex?: string | null) {
   const [r, g, b] = rgb(color);
   const [rh, gh, bh] = [r, g, b].map((c) => Math.max(0, c - 25));
   const root = document.documentElement.style;
-  root.setProperty("--color-primary", `${r} ${g} ${b}`);
   root.setProperty("--crimson-rgb", `${r} ${g} ${b}`);
-  root.setProperty("--color-primary-hover", `${rh} ${gh} ${bh}`);
   root.setProperty("--crimson-hover-rgb", `${rh} ${gh} ${bh}`);
 }
 
