@@ -299,7 +299,7 @@ export default function DigitalStorefrontPage() {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center space-y-4">
         <Loader2 className="w-8 h-8 text-primary animate-spin" />
-        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+        <p className="text-xs font-bold text-slate-400">
           Loading storefront...
         </p>
       </div>
@@ -355,7 +355,7 @@ export default function DigitalStorefrontPage() {
             <div className="shrink-0 flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-white/5">
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-                <span className="text-xs font-black text-charcoal dark:text-white uppercase tracking-widest">
+                <span className="text-xs font-semibold text-charcoal dark:text-white">
                   Live Preview
                 </span>
               </div>
@@ -380,10 +380,7 @@ export default function DigitalStorefrontPage() {
             (Save was being pushed past the edge). sm+ keeps the original row. */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
           <div className="min-w-0">
-            <p className="text-[10px] sm:text-xs font-black text-primary uppercase tracking-[0.3em] mb-1">
-              Store Management
-            </p>
-            <h1 className="text-2xl sm:text-3xl font-black text-charcoal dark:text-white tracking-tight leading-none">
+            <h1 className="font-display text-2xl sm:text-3xl font-semibold text-charcoal dark:text-white tracking-tight leading-none">
               Digital Storefront
             </h1>
             <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1.5">
@@ -396,7 +393,7 @@ export default function DigitalStorefrontPage() {
             {/* Mobile: Preview button */}
             <button
               onClick={() => setPreviewOpen(true)}
-              className="lg:hidden flex items-center gap-2 px-3 py-2.5 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-black text-slate-600 dark:text-slate-300 shadow-xs"
+              className="lg:hidden flex items-center gap-2 px-3 py-2.5 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 shadow-xs"
             >
               <Eye size={14} /> Preview
             </button>
@@ -418,7 +415,7 @@ export default function DigitalStorefrontPage() {
             <button
               onClick={handleSave}
               disabled={saving || uploading}
-              className="flex items-center gap-2 px-4 sm:px-6 py-2.5 bg-primary text-white rounded-xl font-black text-xs uppercase tracking-widest shadow-lg shadow-primary/20 hover:bg-primary/90 active:scale-95 transition-all disabled:opacity-60"
+              className="flex items-center gap-2 px-4 sm:px-6 py-2.5 bg-primary text-white rounded-xl font-semibold text-xs shadow-lg shadow-primary/20 hover:bg-primary/90 active:scale-95 transition-all disabled:opacity-60"
             >
               {uploading ? (
                 <><Loader2 size={14} className="animate-spin" /><span className="hidden sm:inline">Uploading...</span><span className="sm:hidden">...</span></>
@@ -477,19 +474,19 @@ export default function DigitalStorefrontPage() {
                         ) : (
                           <div className="text-center p-2">
                             <Camera size={20} className="mx-auto mb-1 text-slate-400 group-hover:text-primary transition-colors" />
-                            <p className="text-[9px] font-black text-slate-400 uppercase leading-snug">Logo</p>
+                            <p className="text-xs font-semibold text-slate-400 leading-snug">Logo</p>
                           </div>
                         )}
                       </div>
                       <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-primary/20 rounded-2xl pointer-events-none">
                         <UploadCloud size={18} className="text-primary" />
                       </div>
-                      <span className="absolute -bottom-2 -right-2 bg-primary text-white text-[9px] font-black px-2 py-0.5 rounded-full shadow-sm">
+                      <span className="absolute -bottom-2 -right-2 bg-primary text-white text-xs font-semibold px-2 py-0.5 rounded-full shadow-sm">
                         {profile.logo_url ? "Change" : "Upload"}
                       </span>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1.5">
+                      <label className="text-xs font-semibold text-slate-400 block mb-1.5">
                         Business Name
                       </label>
                       <input
@@ -504,7 +501,7 @@ export default function DigitalStorefrontPage() {
 
                   {/* Description — full width below */}
                   <div>
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1.5">
+                    <label className="text-xs font-semibold text-slate-400 block mb-1.5">
                       Brand Bio / Description
                     </label>
                     <textarea
@@ -521,7 +518,7 @@ export default function DigitalStorefrontPage() {
                 <div className="p-4 sm:p-6 lg:p-8 space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-1.5">
+                      <label className="text-xs font-semibold text-slate-400 flex items-center gap-1.5 mb-1.5">
                         <MapPin size={11} /> Unit / Location
                       </label>
                       <div className="relative">
@@ -530,15 +527,15 @@ export default function DigitalStorefrontPage() {
                           placeholder="e.g. L1-105"
                           value={profile.unit_id || ""}
                           onChange={(e) => updateField("unit_id", e.target.value)}
-                          className="w-full px-4 py-3 pr-16 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-black text-charcoal dark:text-white uppercase tracking-widest placeholder:text-slate-400 focus:outline-hidden focus:border-primary transition-all"
+                          className="w-full px-4 py-3 pr-16 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-semibold text-charcoal dark:text-white placeholder:text-slate-400 focus:outline-hidden focus:border-primary transition-all"
                         />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-black text-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded-md">
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded-md">
                           SYNCED
                         </span>
                       </div>
                     </div>
                     <div>
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-1.5">
+                      <label className="text-xs font-semibold text-slate-400 flex items-center gap-1.5 mb-1.5">
                         <Phone size={11} /> Contact Number
                       </label>
                       <input
@@ -551,7 +548,7 @@ export default function DigitalStorefrontPage() {
 
                   {/* Store Category */}
                   <div>
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-1.5">
+                    <label className="text-xs font-semibold text-slate-400 flex items-center gap-1.5 mb-1.5">
                       <Tag size={11} /> Store Category
                     </label>
                     <CustomSelect
@@ -574,14 +571,14 @@ export default function DigitalStorefrontPage() {
               <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl sm:rounded-3xl shadow-xs p-5 sm:p-6 lg:p-8 animate-fade-in space-y-5">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="font-black text-charcoal dark:text-white text-sm">
+                    <h3 className="font-semibold text-charcoal dark:text-white text-sm">
                       Store Gallery
                     </h3>
                     <p className="text-[10px] text-slate-400 font-medium mt-0.5">
                       Upload photos of your store space and products
                     </p>
                   </div>
-                  <span className="text-[10px] font-black text-slate-400">
+                  <span className="text-[10px] font-semibold text-slate-400">
                     {profile.gallery_urls?.length || 0} / 10
                   </span>
                 </div>
@@ -594,7 +591,7 @@ export default function DigitalStorefrontPage() {
                   <div className="w-12 h-12 bg-white dark:bg-zinc-800 shadow-md rounded-2xl flex items-center justify-center text-primary mb-3 group-hover:scale-110 transition-transform">
                     <UploadCloud size={22} />
                   </div>
-                  <p className="text-sm font-black text-charcoal dark:text-white">
+                  <p className="text-sm font-semibold text-charcoal dark:text-white">
                     Click to upload photos
                   </p>
                   <p className="text-[10px] text-slate-400 font-medium mt-1">
@@ -653,7 +650,7 @@ export default function DigitalStorefrontPage() {
               <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl sm:rounded-3xl shadow-xs p-5 sm:p-6 lg:p-8 animate-fade-in space-y-5">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="font-black text-charcoal dark:text-white text-sm">
+                    <h3 className="font-semibold text-charcoal dark:text-white text-sm">
                       Product Catalog
                     </h3>
                     <p className="text-[10px] text-slate-400 font-medium mt-0.5">
@@ -662,7 +659,7 @@ export default function DigitalStorefrontPage() {
                   </div>
                   <button
                     onClick={addProduct}
-                    className="flex items-center gap-1.5 px-3 py-2 bg-primary text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-primary/90 transition-colors shadow-md shadow-primary/20"
+                    className="flex items-center gap-1.5 px-3 py-2 bg-primary text-white rounded-xl text-xs font-semibold hover:bg-primary/90 transition-colors shadow-md shadow-primary/20"
                   >
                     <Plus size={13} /> Add Item
                   </button>
@@ -701,7 +698,7 @@ export default function DigitalStorefrontPage() {
                               size={18}
                               className="mx-auto text-slate-300 group-hover/img:text-primary transition-colors"
                             />
-                            <p className="text-[9px] text-slate-400 font-bold mt-1 uppercase">
+                            <p className="text-xs text-slate-400 font-bold mt-1">
                               Photo
                             </p>
                           </div>
@@ -712,7 +709,7 @@ export default function DigitalStorefrontPage() {
                       <div className="flex-1 space-y-3">
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                           <div>
-                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">
+                            <label className="text-xs font-semibold text-slate-400 block mb-1">
                               Product Name
                             </label>
                             <input
@@ -726,7 +723,7 @@ export default function DigitalStorefrontPage() {
                             />
                           </div>
                           <div>
-                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1 mb-1">
+                            <label className="text-xs font-semibold text-slate-400 flex items-center gap-1 mb-1">
                               <Tag size={9} /> Price
                             </label>
                             <input
@@ -736,11 +733,11 @@ export default function DigitalStorefrontPage() {
                                 updateProduct(index, "price", e.target.value)
                               }
                               placeholder="₱ 0.00"
-                              className="w-full px-3 py-2.5 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-black text-primary focus:outline-hidden focus:border-primary transition-all"
+                              className="w-full px-3 py-2.5 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-semibold text-primary focus:outline-hidden focus:border-primary transition-all"
                             />
                           </div>
                           <div>
-                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1 mb-1">
+                            <label className="text-xs font-semibold text-slate-400 flex items-center gap-1 mb-1">
                               <Package size={9} /> Stock
                             </label>
                             <input
@@ -761,7 +758,7 @@ export default function DigitalStorefrontPage() {
                             />
                           </div>
                           <div>
-                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1 mb-1">
+                            <label className="text-xs font-semibold text-slate-400 flex items-center gap-1 mb-1">
                               <ShoppingBag size={9} /> Category
                             </label>
                             <CustomSelect
@@ -785,7 +782,7 @@ export default function DigitalStorefrontPage() {
                             />
                           </div>
                           <div className="col-span-2 sm:col-span-2">
-                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1 mb-1">
+                            <label className="text-xs font-semibold text-slate-400 flex items-center gap-1 mb-1">
                               <Eye size={9} /> Status
                             </label>
                             <CustomSelect
@@ -828,7 +825,7 @@ export default function DigitalStorefrontPage() {
                           </div>
                         </div>
                         <div>
-                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">
+                          <label className="text-xs font-semibold text-slate-400 block mb-1">
                             Description
                           </label>
                           <textarea
@@ -855,7 +852,7 @@ export default function DigitalStorefrontPage() {
                         size={36}
                         className="mx-auto text-slate-200 dark:text-zinc-700 mb-3"
                       />
-                      <p className="text-sm font-black text-slate-400">
+                      <p className="text-sm font-semibold text-slate-400">
                         No products listed
                       </p>
                       <p className="text-xs text-slate-400 font-medium mt-1">
@@ -872,7 +869,7 @@ export default function DigitalStorefrontPage() {
               <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl sm:rounded-3xl shadow-xs p-5 sm:p-6 lg:p-8 animate-fade-in space-y-5">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="font-black text-charcoal dark:text-white text-sm">
+                    <h3 className="font-semibold text-charcoal dark:text-white text-sm">
                       Shop Sales & Promos
                     </h3>
                     <p className="text-[10px] text-slate-400 font-medium mt-0.5">
@@ -881,7 +878,7 @@ export default function DigitalStorefrontPage() {
                   </div>
                   <button
                     onClick={addPostSale}
-                    className="flex items-center gap-1.5 px-3 py-2 bg-primary text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-primary/90 transition-colors shadow-md shadow-primary/20"
+                    className="flex items-center gap-1.5 px-3 py-2 bg-primary text-white rounded-xl text-xs font-semibold hover:bg-primary/90 transition-colors shadow-md shadow-primary/20"
                   >
                     <Plus size={13} /> Add Post
                   </button>
@@ -931,7 +928,7 @@ export default function DigitalStorefrontPage() {
                               size={18}
                               className="mx-auto text-slate-300 group-hover/img:text-primary transition-colors"
                             />
-                            <p className="text-[9px] text-slate-400 font-bold mt-1 uppercase">
+                            <p className="text-xs text-slate-400 font-bold mt-1">
                               Media
                             </p>
                           </div>
@@ -941,7 +938,7 @@ export default function DigitalStorefrontPage() {
                       {/* Fields */}
                       <div className="flex-1 space-y-3">
                         <div>
-                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">
+                          <label className="text-xs font-semibold text-slate-400 block mb-1">
                             Sale Title / Announcement
                           </label>
                           <input
@@ -955,7 +952,7 @@ export default function DigitalStorefrontPage() {
                           />
                         </div>
                         <div>
-                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">
+                          <label className="text-xs font-semibold text-slate-400 block mb-1">
                             Ends on
                           </label>
                           <input
@@ -981,7 +978,7 @@ export default function DigitalStorefrontPage() {
                         size={36}
                         className="mx-auto text-slate-200 dark:text-zinc-700 mb-3"
                       />
-                      <p className="text-sm font-black text-slate-400">
+                      <p className="text-sm font-semibold text-slate-400">
                         No posts yet
                       </p>
                       <p className="text-xs text-slate-400 font-medium mt-1">
@@ -1000,14 +997,14 @@ export default function DigitalStorefrontPage() {
               {/* Preview Label */}
               <div className="flex items-center gap-2.5 px-5 py-3.5 bg-charcoal dark:bg-zinc-900 border border-white/5 rounded-2xl">
                 <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-                <span className="text-[10px] font-black text-white/70 uppercase tracking-widest">
+                <span className="text-xs font-semibold text-white/70">
                   Live Public Preview
                 </span>
               </div>
 
               {/* Preview Card */}
               <div className="bg-slate-100 dark:bg-zinc-800/50 border border-slate-200 dark:border-white/10 rounded-2xl p-5 relative overflow-hidden">
-                <div className="absolute top-4 right-[-28px] rotate-45 bg-primary text-white text-[9px] font-black px-8 py-1 shadow-sm uppercase tracking-widest">
+                <div className="absolute top-4 right-[-28px] rotate-45 bg-primary text-white text-xs font-semibold px-8 py-1 shadow-sm">
                   Draft
                 </div>
                 <div className="scale-95 hover:scale-100 transition-transform duration-500 origin-top">
@@ -1023,7 +1020,7 @@ export default function DigitalStorefrontPage() {
                   <Store size={18} />
                 </div>
                 <div>
-                  <p className="text-xs font-black text-charcoal dark:text-white">
+                  <p className="text-xs font-semibold text-charcoal dark:text-white">
                     {profile.is_open ? "Store is Open" : "Store is Closed"}
                   </p>
                   <p className="text-[10px] text-slate-400 font-medium mt-0.5">
@@ -1046,10 +1043,10 @@ export default function DigitalStorefrontPage() {
                   className="text-emerald-500 animate-spin-slow"
                 />
                 <div>
-                  <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">
+                  <p className="text-xs font-semibold text-emerald-600">
                     PostgreSQL Active
                   </p>
-                  <p className="text-[9px] text-emerald-600/60 font-medium">
+                  <p className="text-xs text-emerald-600/60 font-medium">
                     Real-time persistence enabled
                   </p>
                 </div>

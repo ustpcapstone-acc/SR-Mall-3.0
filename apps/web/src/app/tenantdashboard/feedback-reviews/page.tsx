@@ -33,7 +33,7 @@ type ReviewItem = TenantReviewsData["reviews"][number];
 
 const PAGE_SIZE = 10;
 const REPLY_MAX = 1000;
-const LABEL = "text-[10px] font-bold text-slate-400 uppercase tracking-widest";
+const LABEL = "text-xs font-bold text-slate-400";
 const CARD = "bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl sm:rounded-4xl shadow-xs";
 
 const SORTS: { value: TenantReviewSort; label: string }[] = [
@@ -171,7 +171,7 @@ export default function FeedbackReviews() {
           <p className="text-sm text-slate-500">{error}</p>
           <button
             onClick={() => load()}
-            className="px-5 py-2.5 bg-primary text-white rounded-xl text-xs font-bold uppercase tracking-widest"
+            className="px-5 py-2.5 bg-primary text-white rounded-xl text-xs font-bold"
           >
             Try again
           </button>
@@ -196,8 +196,7 @@ export default function FeedbackReviews() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 sm:gap-4">
           <div>
-            <p className="text-[10px] sm:text-xs font-bold text-primary uppercase tracking-widest mb-1">Reputation</p>
-            <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-charcoal dark:text-white tracking-tight">
+            <h1 className="font-display text-xl sm:text-2xl lg:text-3xl font-semibold text-charcoal dark:text-white tracking-tight">
               Feedback & Reviews
             </h1>
             <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
@@ -268,7 +267,7 @@ export default function FeedbackReviews() {
           <div className="space-y-4 sm:space-y-6">
             <div className={clsx(CARD, "p-4 sm:p-6 text-center")}>
               <h2 className={clsx(LABEL, "mb-3 sm:mb-4")}>Overall score</h2>
-              <p className="text-4xl lg:text-5xl font-black text-charcoal dark:text-white mb-2">
+              <p className="text-4xl lg:text-5xl font-semibold text-charcoal dark:text-white mb-2">
                 {stats ? (stats.total ? stats.average.toFixed(1) : "—") : "…"}
               </p>
               <div className="flex justify-center mb-2">
@@ -283,7 +282,7 @@ export default function FeedbackReviews() {
               <div className="flex items-center justify-between mb-4 sm:mb-5">
                 <h2 className={LABEL}>Rating breakdown</h2>
                 {rating !== null && (
-                  <button onClick={() => setRating(null)} className="text-[10px] font-bold uppercase tracking-widest text-primary hover:underline">
+                  <button onClick={() => setRating(null)} className="text-xs font-bold text-primary hover:underline">
                     Show all
                   </button>
                 )}
@@ -333,7 +332,7 @@ export default function FeedbackReviews() {
                   </ToggleChip>
                 )}
                 {hasFilters && (
-                  <button onClick={clearFilters} className="px-2 text-[10px] font-bold uppercase tracking-widest text-primary hover:underline">
+                  <button onClick={clearFilters} className="px-2 text-xs font-bold text-primary hover:underline">
                     Clear
                   </button>
                 )}
@@ -401,7 +400,7 @@ export default function FeedbackReviews() {
                   <button
                     onClick={loadMore}
                     disabled={loadingMore}
-                    className="px-6 py-2 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-slate-50 dark:hover:bg-zinc-700 transition-colors shadow-xs flex items-center gap-2 disabled:opacity-60"
+                    className="px-6 py-2 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 font-bold text-xs rounded-xl hover:bg-slate-50 dark:hover:bg-zinc-700 transition-colors shadow-xs flex items-center gap-2 disabled:opacity-60"
                   >
                     {loadingMore && <Loader2 size={14} className="animate-spin" />}
                     Load more ({data!.matching - reviews.length} left)
@@ -452,7 +451,7 @@ function SummaryCard({
         <p className={clsx(LABEL, "truncate")}>{label}</p>
         <span className={clsx("w-8 h-8 rounded-lg flex items-center justify-center shrink-0", tone)}>{icon}</span>
       </div>
-      <p className="mt-2 text-2xl sm:text-3xl font-black text-charcoal dark:text-white">{value}</p>
+      <p className="mt-2 text-2xl sm:text-3xl font-semibold text-charcoal dark:text-white">{value}</p>
       {sub && <div className="mt-1 text-[11px] text-slate-500 truncate">{sub}</div>}
     </div>
   );
@@ -537,7 +536,7 @@ function ReviewRow({
             <div className="flex items-center gap-2">
               <StarRating value={review.rating} size={14} />
               {review.reportedAt ? (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 text-[9px] font-bold uppercase tracking-widest">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 text-xs font-bold">
                   <Flag size={10} /> Reported
                 </span>
               ) : (
@@ -605,7 +604,7 @@ function ReviewRow({
           ) : review.reply ? (
             <div className="mt-2 p-3 rounded-xl bg-primary/5 border border-primary/10">
               <div className="flex items-center justify-between gap-2">
-                <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-primary">
+                <p className="flex items-center gap-1.5 text-xs font-bold text-primary">
                   <CornerDownRight size={12} /> Your reply
                   {review.repliedAt && <span className="normal-case tracking-normal font-medium text-slate-400">· {timeAgo(review.repliedAt)}</span>}
                 </p>
@@ -689,7 +688,7 @@ function ReportModal({
         className="relative w-full max-w-md bg-white dark:bg-zinc-950 rounded-4xl shadow-2xl p-7 space-y-5 animate-fade-in-up"
       >
         <div className="space-y-1.5">
-          <h2 id="report-title" className="text-lg font-black text-charcoal dark:text-white">
+          <h2 id="report-title" className="text-lg font-semibold text-charcoal dark:text-white">
             Report this review?
           </h2>
           <p className="text-sm text-slate-500">
@@ -735,14 +734,14 @@ function ReportModal({
             type="button"
             onClick={onClose}
             disabled={busy}
-            className="flex-1 py-3 bg-slate-100 dark:bg-zinc-900 text-slate-600 dark:text-slate-400 font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-slate-200 disabled:opacity-50"
+            className="flex-1 py-3 bg-slate-100 dark:bg-zinc-900 text-slate-600 dark:text-slate-400 font-bold text-xs rounded-xl hover:bg-slate-200 disabled:opacity-50"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={busy}
-            className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white font-bold text-xs uppercase tracking-widest rounded-xl flex items-center justify-center gap-2 disabled:opacity-70"
+            className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 disabled:opacity-70"
           >
             {busy ? <Loader2 size={14} className="animate-spin" /> : <Flag size={14} />}
             Send report

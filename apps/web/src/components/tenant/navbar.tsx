@@ -41,15 +41,15 @@ export const TenantNavbar = ({ onMenuClick }: TenantNavbarProps) => {
           <Link href="/tenantdashboard">
             <div className="flex items-center gap-2 sm:gap-3 cursor-pointer">
               <div className="w-9 h-9 sm:w-10 sm:h-10 bg-primary rounded-lg flex items-center justify-center shrink-0">
-                <span className="text-white font-black text-lg sm:text-xl">
+                <span className="text-white font-semibold text-lg sm:text-xl">
                   S
                 </span>
               </div>
               <div className="hidden sm:flex flex-col whitespace-nowrap">
-                <h1 className="text-charcoal dark:text-white font-black text-base lg:text-lg tracking-tighter leading-none mb-0.5 mt-0.5">
+                <h1 className="text-charcoal dark:text-white font-semibold text-base lg:text-lg tracking-tight leading-none mb-0.5 mt-0.5">
                   SR-MANAGE
                 </h1>
-                <span className="text-[9px] lg:text-[10px] text-primary font-black uppercase tracking-[0.2em] leading-none">
+                <span className="text-xs text-primary font-semibold leading-none">
                   Tenant Portal
                 </span>
               </div>
@@ -73,7 +73,7 @@ export const TenantNavbar = ({ onMenuClick }: TenantNavbarProps) => {
               onClick={() => setIsProfileOpen(!isProfileOpen)}
               className="flex items-center gap-2 px-2 sm:px-3 py-1.5 bg-slate-50 dark:bg-white/5 rounded-full border border-slate-100 dark:border-slate-800 transition-all hover:shadow-lg"
             >
-              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold text-xs sm:text-sm shadow-inner tracking-wider overflow-hidden border border-slate-100 dark:border-white/5">
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold text-xs sm:text-sm shadow-inner overflow-hidden border border-slate-100 dark:border-white/5">
                 {user?.avatarUrl ? (
                   <img src={user.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
                 ) : (
@@ -84,7 +84,7 @@ export const TenantNavbar = ({ onMenuClick }: TenantNavbarProps) => {
                 <span className="text-xs font-bold text-charcoal dark:text-white">
                   {user?.name?.split(" ")[0] || "Tenant"}
                 </span>
-                <span className="text-[9px] text-slate-400 font-medium tracking-tight">
+                <span className="text-xs text-slate-400 font-medium tracking-tight">
                   Account
                 </span>
               </div>
@@ -97,7 +97,7 @@ export const TenantNavbar = ({ onMenuClick }: TenantNavbarProps) => {
             {isProfileOpen && (
               <div className="absolute top-full right-0 mt-3 w-52 bg-white dark:bg-[#161b26] rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-800 py-2 animate-fade-in-up">
                 <div className="px-4 py-2 border-b border-slate-50 dark:border-slate-800 mb-1">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                  <p className="text-xs font-bold text-slate-400">
                     Menu
                   </p>
                 </div>

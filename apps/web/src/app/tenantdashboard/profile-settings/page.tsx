@@ -190,7 +190,7 @@ export default function TenantProfileSettings() {
                   rounded="rounded-2xl"
                   onUpload={myShop.uploadLogo}
                 />
-                <div className="flex flex-wrap gap-2 text-[10px] font-black uppercase tracking-widest">
+                <div className="flex flex-wrap gap-2 text-xs font-semibold">
                   <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 dark:bg-white/5 text-slate-500">
                     <MapPin size={12} /> Unit {shop.unitId && !/PENDING|UNASSIGNED/.test(shop.unitId) ? shop.unitId : "not assigned"}
                   </span>
@@ -260,7 +260,7 @@ export default function TenantProfileSettings() {
                 <button
                   type="button"
                   onClick={() => setCloseOpen(true)}
-                  className="inline-flex items-center gap-2 h-11 px-5 rounded-xl bg-red-500/10 text-red-600 text-[11px] font-black uppercase tracking-widest hover:bg-red-600 hover:text-white transition-colors"
+                  className="inline-flex items-center gap-2 h-11 px-5 rounded-xl bg-red-500/10 text-red-600 text-xs font-semibold hover:bg-red-600 hover:text-white transition-colors"
                 >
                   <Power size={14} /> Close my shop
                 </button>
@@ -281,7 +281,7 @@ export default function TenantProfileSettings() {
           <div className="absolute inset-0 bg-black/60 backdrop-blur-xs" onClick={() => !closing && setCloseOpen(false)} />
           <div role="dialog" aria-modal="true" className="relative w-full max-w-md bg-white dark:bg-zinc-950 rounded-4xl shadow-2xl p-7 space-y-5 animate-fade-in-up">
             <div>
-              <h2 className="text-lg font-black text-charcoal dark:text-white">Close {shop.shopName}?</h2>
+              <h2 className="text-lg font-semibold text-charcoal dark:text-white">Close {shop.shopName}?</h2>
               <p className="text-sm text-slate-500 mt-1">
                 Customers won&apos;t see or message your shop. You&apos;ll need the mall admin to reopen it.
               </p>
@@ -297,7 +297,7 @@ export default function TenantProfileSettings() {
                 type="button"
                 onClick={closeShop}
                 disabled={closing || typedName.trim() !== shop.shopName.trim()}
-                className="flex-1 inline-flex items-center justify-center gap-2 h-11 rounded-xl bg-red-600 hover:bg-red-700 text-white text-[11px] font-black uppercase tracking-widest disabled:opacity-50"
+                className="flex-1 inline-flex items-center justify-center gap-2 h-11 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-semibold disabled:opacity-50"
               >
                 {closing ? <Loader2 size={14} className="animate-spin" /> : <Power size={14} />} Close shop
               </button>

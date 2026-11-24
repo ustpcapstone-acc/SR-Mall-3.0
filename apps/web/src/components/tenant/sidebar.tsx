@@ -153,11 +153,9 @@ export const TenantSidebar = ({
             <p
               className={clsx(
                 "text-[10px]",
-                "font-black",
+                "font-semibold",
                 "text-slate-400",
-                "dark:text-slate-400",
-                "uppercase",
-                "tracking-[0.3em]",
+                "dark:text-slate-400",
                 "font-sans",
               )}
             >
@@ -204,8 +202,7 @@ export const TenantSidebar = ({
                 </div>
                 <span
                   className={clsx(
-                    "tracking-tight",
-                    "uppercase",
+                    "tracking-tight",
                     "text-[11px]",
                     "lg:text-xs",
                     "flex-1"
@@ -216,7 +213,7 @@ export const TenantSidebar = ({
                 {(() => {
                   const badge = item.icon === MessageSquare ? unreadMessages : item.icon === ClipboardList ? unreadComplaints : 0;
                   return badge > 0 ? (
-                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[9px] font-black text-white mr-4 lg:mr-5 shadow-md">
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-semibold text-white mr-4 lg:mr-5 shadow-md">
                       {badge > 9 ? "9+" : badge}
                     </span>
                   ) : null;

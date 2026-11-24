@@ -1,15 +1,19 @@
 """
-Typography normalizer for Tailwind class strings in .tsx files.
+Typography normalizer for Tailwind class strings in .tsx files (rebuild style:
+formal and readable, no all-caps micro labels).
 
 Only touches double-quoted or backtick strings whose every token looks like a
-Tailwind class. Rules (the formal, readable style of the rebuild):
+Tailwind class. Rules:
   - drop `uppercase`
   - drop wide letter spacing: tracking-wide/wider/widest/[0.xem] (any variant prefix)
   - tracking-tighter -> tracking-tight
   - font-black -> font-semibold (and drop `italic` in the same string)
   - text-[7px]..text-[9px] -> text-xs; text-[10px]/[11px] -> text-xs when the
     string was uppercase or tracked (caps read larger than lowercase)
-Usage: python normalize_type.py FILE...   (prints a per-file change count)
+Then tidies "text-xs sm:text-xs" and clsx entries left empty.
+
+Skip files that use "uppercase" as an inline style value (textTransform).
+Usage: python scripts/normalize-type.py FILE...   (prints a per-file change count)
 """
 import re
 import sys
@@ -18,6 +22,8 @@ CLASS_TOKEN = re.compile(r"^[!a-z0-9:\-\[\]/.%#()_,&>*+=@]+$", re.I)
 STRING = re.compile(r'"([^"\n]*)"|`([^`$\n]*)`')
 WIDE = re.compile(r"^((?:[a-z0-9\-\[\]]+:)*)tracking-(wide|wider|widest|\[0?\.\d+em\])$")
 TINY = re.compile(r"^((?:[a-z0-9\-\[\]]+:)*)text-\[(\d+(?:\.\d+)?)px\]$")
+DUP_XS = re.compile(r'(\btext-xs\b[^"`\n]*?)\s(?:sm|md|lg|xl):text-xs\b')
+EMPTY_ENTRY = re.compile(r'\n[ \t]*"",[ \t]*(?=\r?\n)')
 
 
 def transform(value: str) -> str:
@@ -70,6 +76,8 @@ def process(path: str) -> int:
         return f"{quote}{new}{quote}"
 
     out = STRING.sub(repl, src)
+    out = DUP_XS.sub(r"\1", out)
+    out = EMPTY_ENTRY.sub("", out)
     if out != src:
         open(path, "w", encoding="utf-8", newline="").write(out)
     return changes

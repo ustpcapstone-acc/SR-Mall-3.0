@@ -32,7 +32,7 @@ import {
   type ComplaintStatus,
 } from "@/lib/complaints";
 
-export const LABEL = "text-[10px] font-black text-slate-400 uppercase tracking-widest";
+export const LABEL = "text-xs font-semibold text-slate-400";
 export const CARD = "bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl sm:rounded-4xl shadow-xs";
 
 export function formatWhen(iso: string) {
@@ -48,7 +48,7 @@ export function formatWhen(iso: string) {
 export function StatusBadge({ status }: { status: ComplaintStatus }) {
   const m = STATUS_META[status] ?? STATUS_META.NEW;
   return (
-    <span className={clsx("inline-flex items-center px-2 py-0.5 rounded-full border text-[9px] font-black uppercase tracking-widest", m.badge)}>
+    <span className={clsx("inline-flex items-center px-2 py-0.5 rounded-full border text-xs font-semibold", m.badge)}>
       {m.label}
     </span>
   );
@@ -57,7 +57,7 @@ export function StatusBadge({ status }: { status: ComplaintStatus }) {
 export function PriorityBadge({ priority }: { priority: ComplaintPriority }) {
   const m = PRIORITY_META[priority] ?? PRIORITY_META.NORMAL;
   return (
-    <span className={clsx("inline-flex items-center px-2 py-0.5 rounded-full border text-[9px] font-black uppercase tracking-widest", m.badge)}>
+    <span className={clsx("inline-flex items-center px-2 py-0.5 rounded-full border text-xs font-semibold", m.badge)}>
       {m.label}
     </span>
   );
@@ -190,16 +190,16 @@ export function ComplaintView({
       {/* Header */}
       <div className="space-y-3">
         {onBack && (
-          <button onClick={onBack} className="lg:hidden inline-flex items-center gap-1.5 text-[11px] font-black uppercase tracking-widest text-slate-400 hover:text-primary">
+          <button onClick={onBack} className="lg:hidden inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-primary">
             <ArrowLeft size={14} /> All complaints
           </button>
         )}
         <div className="flex flex-wrap items-center gap-2">
           <StatusBadge status={complaint.status} />
           <PriorityBadge priority={complaint.priority} />
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{complaint.category}</span>
+          <span className="text-xs font-bold text-slate-400">{complaint.category}</span>
         </div>
-        <h2 className="text-lg sm:text-xl font-black text-charcoal dark:text-white leading-tight wrap-break-word">{complaint.subject}</h2>
+        <h2 className="text-lg sm:text-xl font-semibold text-charcoal dark:text-white leading-tight wrap-break-word">{complaint.subject}</h2>
         <p className="text-[11px] text-slate-400 font-medium flex flex-wrap items-center gap-x-2 gap-y-1">
           {isAdmin && (
             <span className="inline-flex items-center gap-1 font-bold text-slate-500 dark:text-slate-300">
@@ -224,7 +224,7 @@ export function ComplaintView({
                   disabled={busyStatus || complaint.status === s}
                   onClick={() => setStatus(s)}
                   className={clsx(
-                    "px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-colors",
+                    "px-3 py-1.5 rounded-xl text-xs font-semibold border transition-colors",
                     complaint.status === s
                       ? "bg-primary text-white border-primary"
                       : "bg-white dark:bg-zinc-900 text-slate-500 border-slate-200 dark:border-white/10 hover:border-primary hover:text-primary",
@@ -272,7 +272,7 @@ export function ComplaintView({
         <div className="space-y-3">
           {complaint.comments.map((c) =>
             c.authorRole === "SYSTEM" ? (
-              <div key={c.id} className="flex items-center gap-2 justify-center text-[10px] font-bold text-slate-400 uppercase tracking-widest py-1">
+              <div key={c.id} className="flex items-center gap-2 justify-center text-xs font-bold text-slate-400 py-1">
                 <span className="h-px flex-1 bg-slate-100 dark:bg-white/5" />
                 <span className="text-center">{c.message} · {formatWhen(c.createdAt)}</span>
                 <span className="h-px flex-1 bg-slate-100 dark:bg-white/5" />
@@ -289,7 +289,7 @@ export function ComplaintView({
                         : "bg-slate-100 dark:bg-zinc-800 text-charcoal dark:text-white",
                   )}
                 >
-                  <p className={clsx("text-[10px] font-black uppercase tracking-widest flex items-center gap-1", c.isInternal ? "text-amber-600 dark:text-amber-400" : c.mine ? "text-white/70" : "text-slate-400")}>
+                  <p className={clsx("text-xs font-semibold flex items-center gap-1", c.isInternal ? "text-amber-600 dark:text-amber-400" : c.mine ? "text-white/70" : "text-slate-400")}>
                     {c.isInternal ? <Lock size={10} /> : c.authorRole === "ADMIN" ? <ShieldCheck size={10} /> : <Store size={10} />}
                     {c.isInternal ? "Internal note · admins only" : c.authorName}
                   </p>
@@ -329,13 +329,13 @@ export function ComplaintView({
             )}
           />
           <div className="flex flex-wrap items-center gap-2">
-            <label className={clsx("inline-flex items-center gap-1.5 h-10 px-3 rounded-xl border border-slate-200 dark:border-white/10 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-primary hover:border-primary cursor-pointer", uploading && "opacity-60 pointer-events-none")}>
+            <label className={clsx("inline-flex items-center gap-1.5 h-10 px-3 rounded-xl border border-slate-200 dark:border-white/10 text-xs font-semibold text-slate-500 hover:text-primary hover:border-primary cursor-pointer", uploading && "opacity-60 pointer-events-none")}>
               {uploading ? <Loader2 size={14} className="animate-spin" /> : <Camera size={14} />}
               {uploading ? "Uploading…" : "Photo"}
               <input type="file" accept="image/*" hidden onChange={onPickPhoto} />
             </label>
             {isAdmin && (
-              <label className="inline-flex items-center gap-2 h-10 px-3 rounded-xl border border-slate-200 dark:border-white/10 text-[10px] font-black uppercase tracking-widest text-slate-500 cursor-pointer select-none">
+              <label className="inline-flex items-center gap-2 h-10 px-3 rounded-xl border border-slate-200 dark:border-white/10 text-xs font-semibold text-slate-500 cursor-pointer select-none">
                 <input type="checkbox" checked={internal} onChange={(e) => setInternal(e.target.checked)} className="accent-amber-500" />
                 <Lock size={12} /> Internal note
               </label>
@@ -344,7 +344,7 @@ export function ComplaintView({
             <button
               onClick={send}
               disabled={sending || uploading || (!message.trim() && !photoUrl)}
-              className="inline-flex items-center gap-1.5 h-10 px-5 rounded-xl bg-primary text-white text-[10px] font-black uppercase tracking-widest shadow-md shadow-primary/20 hover:bg-primary/90 disabled:opacity-50 transition-colors"
+              className="inline-flex items-center gap-1.5 h-10 px-5 rounded-xl bg-primary text-white text-xs font-semibold shadow-md shadow-primary/20 hover:bg-primary/90 disabled:opacity-50 transition-colors"
             >
               {sending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
               {internal ? "Save note" : "Send"}
@@ -362,7 +362,7 @@ export function ComplaintView({
             <button
               onClick={reopen}
               disabled={busyStatus}
-              className="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl border border-slate-200 dark:border-white/10 text-[10px] font-black uppercase tracking-widest text-charcoal dark:text-white hover:border-primary hover:text-primary disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl border border-slate-200 dark:border-white/10 text-xs font-semibold text-charcoal dark:text-white hover:border-primary hover:text-primary disabled:opacity-50"
             >
               <RotateCcw size={13} /> Reopen
             </button>
@@ -376,7 +376,7 @@ export function ComplaintView({
           <button
             onClick={() => setStatus("RESOLVED")}
             disabled={busyStatus}
-            className="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-[10px] font-black uppercase tracking-widest hover:bg-emerald-500/10 disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-semibold hover:bg-emerald-500/10 disabled:opacity-50"
           >
             <CheckCircle2 size={13} /> Mark as resolved
           </button>

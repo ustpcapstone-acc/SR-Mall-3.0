@@ -73,7 +73,7 @@ function NewComplaintModal({ userId, onClose, onCreated }: { userId: string; onC
       >
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-lg font-black text-charcoal dark:text-white">New complaint</h2>
+            <h2 className="text-lg font-semibold text-charcoal dark:text-white">New complaint</h2>
             <p className="text-xs text-slate-400 mt-0.5">Sent straight to the mall admin. You'll be notified when they reply.</p>
           </div>
           <button onClick={onClose} className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-zinc-800 flex items-center justify-center text-slate-500" aria-label="Close">
@@ -119,7 +119,7 @@ function NewComplaintModal({ userId, onClose, onCreated }: { userId: string; onC
                 type="button"
                 onClick={() => setPriority(p)}
                 className={clsx(
-                  "h-11 rounded-xl border text-[11px] font-black uppercase tracking-widest transition-colors",
+                  "h-11 rounded-xl border text-xs font-semibold transition-colors",
                   priority === p
                     ? p === "URGENT"
                       ? "bg-red-500 text-white border-red-500"
@@ -149,7 +149,7 @@ function NewComplaintModal({ userId, onClose, onCreated }: { userId: string; onC
             {photos.length < MAX_PHOTOS && (
               <label className={clsx("w-20 h-20 rounded-xl border-2 border-dashed border-slate-200 dark:border-zinc-700 flex flex-col items-center justify-center text-slate-400 hover:border-primary hover:text-primary cursor-pointer", uploading && "opacity-60 pointer-events-none")}>
                 {uploading ? <Loader2 size={18} className="animate-spin" /> : <Camera size={18} />}
-                <span className="text-[9px] font-bold uppercase mt-1">{uploading ? "Uploading" : "Add"}</span>
+                <span className="text-xs font-bold mt-1">{uploading ? "Uploading" : "Add"}</span>
                 <input type="file" accept="image/*" multiple hidden onChange={addPhotos} />
               </label>
             )}
@@ -157,13 +157,13 @@ function NewComplaintModal({ userId, onClose, onCreated }: { userId: string; onC
         </div>
 
         <div className="flex gap-2 pt-2">
-          <button onClick={onClose} className="flex-1 h-12 rounded-2xl border border-slate-200 dark:border-white/10 text-xs font-black uppercase tracking-widest text-slate-500">
+          <button onClick={onClose} className="flex-1 h-12 rounded-2xl border border-slate-200 dark:border-white/10 text-xs font-semibold text-slate-500">
             Cancel
           </button>
           <button
             onClick={submit}
             disabled={saving || uploading}
-            className="flex-2 h-12 rounded-2xl bg-primary text-white text-xs font-black uppercase tracking-widest shadow-lg shadow-primary/25 hover:bg-primary/90 disabled:opacity-50 inline-flex items-center justify-center gap-2"
+            className="flex-2 h-12 rounded-2xl bg-primary text-white text-xs font-semibold shadow-lg shadow-primary/25 hover:bg-primary/90 disabled:opacity-50 inline-flex items-center justify-center gap-2"
           >
             {saving && <Loader2 size={14} className="animate-spin" />} Send complaint
           </button>
@@ -190,7 +190,7 @@ function ComplaintRow({ c, active, onClick }: { c: ComplaintSummary; active: boo
             <StatusBadge status={c.status} />
             {c.priority === "URGENT" && <PriorityBadge priority={c.priority} />}
           </div>
-          <p className={clsx("text-sm text-charcoal dark:text-white truncate", c.unread ? "font-black" : "font-bold")}>{c.subject}</p>
+          <p className={clsx("text-sm text-charcoal dark:text-white truncate", c.unread ? "font-semibold" : "font-bold")}>{c.subject}</p>
           <p className="text-[11px] text-slate-400 truncate">
             {c.category} · {formatWhen(c.lastActivityAt)}
           </p>
@@ -277,8 +277,7 @@ function TenantComplaints() {
     <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10 py-4 sm:py-6 lg:py-10 space-y-4 sm:space-y-6 lg:space-y-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-[10px] sm:text-xs font-bold text-primary uppercase tracking-widest mb-1">Support</p>
-          <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-charcoal dark:text-white tracking-tight">Complaints</h1>
+          <h1 className="font-display text-xl sm:text-2xl lg:text-3xl font-semibold text-charcoal dark:text-white tracking-tight">Complaints</h1>
           <p className="text-xs sm:text-sm text-slate-400 font-medium mt-1">Report a problem to the mall admin and follow it here — no need to go to the office.</p>
         </div>
         <div className="flex gap-2">
@@ -287,7 +286,7 @@ function TenantComplaints() {
           </button>
           <button
             onClick={() => setShowNew(true)}
-            className="inline-flex items-center gap-2 h-11 px-5 rounded-2xl bg-primary text-white text-[11px] font-black uppercase tracking-widest shadow-lg shadow-primary/25 hover:bg-primary/90"
+            className="inline-flex items-center gap-2 h-11 px-5 rounded-2xl bg-primary text-white text-xs font-semibold shadow-lg shadow-primary/25 hover:bg-primary/90"
           >
             <Plus size={15} /> New complaint
           </button>
@@ -306,7 +305,7 @@ function TenantComplaints() {
                 key={t.key}
                 onClick={() => setTab(t.key)}
                 className={clsx(
-                  "flex-1 h-10 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all",
+                  "flex-1 h-10 rounded-xl text-xs font-semibold transition-all",
                   tab === t.key ? "bg-white dark:bg-zinc-900 text-charcoal dark:text-white shadow-xs" : "text-slate-400",
                 )}
               >
@@ -320,7 +319,7 @@ function TenantComplaints() {
           ) : shown.length === 0 ? (
             <div className={clsx(CARD, "py-14 px-6 text-center")}>
               <ClipboardList size={36} className="mx-auto text-slate-200 dark:text-zinc-700 mb-3" />
-              <p className="text-sm font-black text-slate-400">{tab === "open" ? "No open complaints" : "No resolved complaints yet"}</p>
+              <p className="text-sm font-semibold text-slate-400">{tab === "open" ? "No open complaints" : "No resolved complaints yet"}</p>
               {tab === "open" && <p className="text-xs text-slate-400 mt-1">Something wrong with your unit? Tap “New complaint”.</p>}
             </div>
           ) : (
@@ -341,7 +340,7 @@ function TenantComplaints() {
           ) : (
             <div className={clsx(CARD, "py-24 px-6 text-center")}>
               <MessageSquare size={36} className="mx-auto text-slate-200 dark:text-zinc-700 mb-3" />
-              <p className="text-sm font-black text-slate-400">Select a complaint to see the conversation</p>
+              <p className="text-sm font-semibold text-slate-400">Select a complaint to see the conversation</p>
             </div>
           )}
         </div>

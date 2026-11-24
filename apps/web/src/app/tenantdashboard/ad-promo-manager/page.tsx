@@ -241,10 +241,7 @@ export default function AdPromoManager() {
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10 py-6 sm:py-8 lg:py-10 space-y-6">
         {/* ── Header ── */}
         <div>
-          <p className="text-[10px] sm:text-xs font-black text-primary uppercase tracking-[0.3em] mb-1">
-            Marketing
-          </p>
-          <h1 className="text-2xl sm:text-3xl font-black text-charcoal dark:text-white tracking-tight leading-none">
+          <h1 className="font-display text-2xl sm:text-3xl font-semibold text-charcoal dark:text-white tracking-tight leading-none">
             Ad &amp; Promo Manager
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1.5">
@@ -290,7 +287,7 @@ export default function AdPromoManager() {
                 <s.icon size={16} />
               </div>
               <div>
-                <p className="text-xl sm:text-2xl font-black text-charcoal dark:text-white leading-none">
+                <p className="text-xl sm:text-2xl font-semibold text-charcoal dark:text-white leading-none">
                   {loading ? "—" : s.value}
                 </p>
                 <p className="text-[10px] text-slate-400 font-medium mt-0.5">
@@ -313,7 +310,7 @@ export default function AdPromoManager() {
                 <Plus size={16} />
               </div>
               <div>
-                <h2 className="font-black text-sm text-charcoal dark:text-white">
+                <h2 className="font-semibold text-sm text-charcoal dark:text-white">
                   New Promo Request
                 </h2>
                 <p className="text-[10px] text-slate-400 font-medium">
@@ -325,7 +322,7 @@ export default function AdPromoManager() {
             <div className="p-5 sm:p-6 space-y-4">
               {/* Title */}
               <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1.5">
+                <label className="text-xs font-semibold text-slate-400 block mb-1.5">
                   Promo Title *
                 </label>
                 <input
@@ -340,7 +337,7 @@ export default function AdPromoManager() {
 
               {/* Description */}
               <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1.5">
+                <label className="text-xs font-semibold text-slate-400 block mb-1.5">
                   Description
                 </label>
                 <textarea
@@ -354,7 +351,7 @@ export default function AdPromoManager() {
 
               {/* Category */}
               <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1.5">
+                <label className="text-xs font-semibold text-slate-400 block mb-1.5">
                   Category
                 </label>
                 <select
@@ -371,7 +368,7 @@ export default function AdPromoManager() {
               {/* Date Range */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1 mb-1.5">
+                  <label className="text-xs font-semibold text-slate-400 flex items-center gap-1 mb-1.5">
                     <Calendar size={10} /> Start
                   </label>
                   <input
@@ -383,7 +380,7 @@ export default function AdPromoManager() {
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1 mb-1.5">
+                  <label className="text-xs font-semibold text-slate-400 flex items-center gap-1 mb-1.5">
                     <Calendar size={10} /> End
                   </label>
                   <input
@@ -398,7 +395,7 @@ export default function AdPromoManager() {
 
               {/* Media Upload */}
               <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1.5">
+                <label className="text-xs font-semibold text-slate-400 block mb-1.5">
                   Banner Media *
                 </label>
                 <div className="relative border-2 border-dashed border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden min-h-[140px] group hover:border-primary transition-all cursor-pointer">
@@ -428,12 +425,12 @@ export default function AdPromoManager() {
                       <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                         <div className="text-center text-white">
                           <UploadCloud size={22} className="mx-auto mb-1" />
-                          <p className="text-[10px] font-black uppercase tracking-widest">
+                          <p className="text-xs font-semibold">
                             Change Media
                           </p>
                         </div>
                       </div>
-                      <div className="absolute top-2 left-2 flex items-center gap-1.5 bg-black/60 text-white text-[9px] font-black px-2 py-1 rounded-md uppercase tracking-widest">
+                      <div className="absolute top-2 left-2 flex items-center gap-1.5 bg-black/60 text-white text-xs font-semibold px-2 py-1 rounded-md">
                         {mediaType === "VIDEO" ? (
                           <Video size={10} />
                         ) : (
@@ -462,7 +459,7 @@ export default function AdPromoManager() {
               <button
                 type="submit"
                 disabled={isSubmitting || !hasMedia || !title}
-                className="w-full py-3.5 bg-primary text-white rounded-xl font-black text-xs uppercase tracking-widest shadow-lg shadow-primary/20 hover:bg-primary/90 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full py-3.5 bg-primary text-white rounded-xl font-semibold text-xs shadow-lg shadow-primary/20 hover:bg-primary/90 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {isSubmitting ? (
                   <Loader2 size={15} className="animate-spin" />
@@ -472,7 +469,7 @@ export default function AdPromoManager() {
                 {isSubmitting ? "Submitting..." : "Submit Promotion"}
               </button>
 
-              <p className="text-[9px] text-slate-400 font-medium text-center leading-relaxed">
+              <p className="text-xs text-slate-400 font-medium text-center leading-relaxed">
                 Your promotion will go live after admin approval. Usually
                 reviewed within 24 hours.
               </p>
@@ -482,10 +479,10 @@ export default function AdPromoManager() {
           {/* Campaign History */}
           <div className="lg:col-span-8 space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="font-black text-sm text-charcoal dark:text-white">
+              <h2 className="font-semibold text-sm text-charcoal dark:text-white">
                 Campaign History
               </h2>
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+              <span className="text-xs font-semibold text-slate-400">
                 {promos.length} total
               </span>
             </div>
@@ -496,7 +493,7 @@ export default function AdPromoManager() {
                   className="mx-auto text-primary animate-spin mb-3"
                   size={28}
                 />
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                <p className="text-xs font-bold text-slate-400">
                   Loading campaigns...
                 </p>
               </div>
@@ -505,7 +502,7 @@ export default function AdPromoManager() {
                 <div className="w-14 h-14 bg-slate-100 dark:bg-zinc-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
                   <Presentation className="text-slate-300" size={28} />
                 </div>
-                <p className="font-black text-charcoal dark:text-white text-sm">
+                <p className="font-semibold text-charcoal dark:text-white text-sm">
                   No promotions yet
                 </p>
                 <p className="text-xs text-slate-400 font-medium mt-1 max-w-xs mx-auto">
@@ -546,7 +543,7 @@ export default function AdPromoManager() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between gap-2 mb-1">
                             <div className="min-w-0">
-                              <h4 className="font-black text-sm text-charcoal dark:text-white truncate">
+                              <h4 className="font-semibold text-sm text-charcoal dark:text-white truncate">
                                 {promo.title}
                               </h4>
                               {promo.description && (
@@ -555,7 +552,7 @@ export default function AdPromoManager() {
                                 </p>
                               )}
                             </div>
-                            <span className="shrink-0 text-[9px] font-black text-slate-400 bg-slate-50 dark:bg-zinc-800 px-2 py-1 rounded-lg uppercase tracking-wide">
+                            <span className="shrink-0 text-xs font-semibold text-slate-400 bg-slate-50 dark:bg-zinc-800 px-2 py-1 rounded-lg">
                               {promo.category}
                             </span>
                           </div>
@@ -576,7 +573,7 @@ export default function AdPromoManager() {
                               },
                             )}
                             {isExpired && (
-                              <span className="ml-1 text-[9px] bg-slate-100 dark:bg-zinc-800 text-slate-500 px-1.5 py-0.5 rounded-md font-black uppercase">
+                              <span className="ml-1 text-xs bg-slate-100 dark:bg-zinc-800 text-slate-500 px-1.5 py-0.5 rounded-md font-semibold">
                                 Expired
                               </span>
                             )}
@@ -585,17 +582,17 @@ export default function AdPromoManager() {
                           {/* Status + Actions */}
                           <div className="flex items-center gap-2 mt-3">
                             {promo.status === "APPROVED" && (
-                              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 border border-emerald-100 dark:border-emerald-800/30 text-[9px] font-black uppercase tracking-widest">
+                              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 border border-emerald-100 dark:border-emerald-800/30 text-xs font-semibold">
                                 <CheckCircle size={10} /> Live
                               </span>
                             )}
                             {promo.status === "PENDING" && (
-                              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-amber-50 dark:bg-amber-900/20 text-amber-600 border border-amber-100 dark:border-amber-900/30 text-[9px] font-black uppercase tracking-widest animate-pulse">
+                              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-amber-50 dark:bg-amber-900/20 text-amber-600 border border-amber-100 dark:border-amber-900/30 text-xs font-semibold animate-pulse">
                                 <Clock size={10} /> Under Review
                               </span>
                             )}
                             {promo.status === "REJECTED" && (
-                              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-red-50 dark:bg-red-900/20 text-primary border border-red-100 dark:border-red-800/30 text-[9px] font-black uppercase tracking-widest">
+                              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-red-50 dark:bg-red-900/20 text-primary border border-red-100 dark:border-red-800/30 text-xs font-semibold">
                                 <ShieldAlert size={10} /> Rejected
                               </span>
                             )}

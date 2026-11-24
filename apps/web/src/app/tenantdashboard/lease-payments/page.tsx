@@ -127,10 +127,7 @@ export default function LeasePayments() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div>
-            <p className="text-[10px] sm:text-xs font-bold text-primary uppercase tracking-widest mb-1">
-              Financial
-            </p>
-            <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-charcoal dark:text-white tracking-tight">
+            <h1 className="font-display text-xl sm:text-2xl lg:text-3xl font-semibold text-charcoal dark:text-white tracking-tight">
               Lease &amp; Billing
             </h1>
             <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
@@ -150,7 +147,7 @@ export default function LeasePayments() {
             />
           </div>
           <div>
-            <h3 className="font-black text-amber-800 dark:text-amber-500 text-sm sm:text-base uppercase tracking-tight">
+            <h3 className="font-semibold text-amber-800 dark:text-amber-500 text-sm sm:text-base tracking-tight">
               Direct Online Payments Unavailable
             </h3>
             <p className="text-xs sm:text-sm text-amber-700/80 dark:text-amber-400/80 font-medium mt-1 leading-relaxed">
@@ -166,7 +163,7 @@ export default function LeasePayments() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
           <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 p-4 sm:p-6 rounded-2xl sm:rounded-4xl shadow-xs flex flex-col justify-between">
             <div className="flex justify-between items-start mb-4 sm:mb-6">
-              <h3 className="text-slate-500 font-bold text-[10px] uppercase tracking-widest leading-none">
+              <h3 className="text-slate-500 font-bold text-xs leading-none">
                 Account Standing
               </h3>
               <div className="w-8 h-8 rounded-full bg-slate-50 dark:bg-zinc-800 text-slate-500 flex items-center justify-center">
@@ -180,10 +177,10 @@ export default function LeasePayments() {
                     🟢
                   </span>
                   <div>
-                    <p className="text-2xl sm:text-3xl font-black text-emerald-600">
+                    <p className="text-2xl sm:text-3xl font-semibold text-emerald-600">
                       Account Cleared
                     </p>
-                    <p className="text-[10px] sm:text-xs font-bold text-emerald-500/60 uppercase tracking-widest mt-1">
+                    <p className="text-xs font-bold text-emerald-500/60 mt-1">
                       No outstanding balances
                     </p>
                   </div>
@@ -194,10 +191,10 @@ export default function LeasePayments() {
                     🔴
                   </span>
                   <div>
-                    <p className="text-[10px] sm:text-xs font-black text-red-500/60 uppercase tracking-widest mb-1">
+                    <p className="text-xs font-semibold text-red-500/60 mb-1">
                       Balance Due
                     </p>
-                    <p className="text-2xl sm:text-3xl lg:text-4xl font-black text-charcoal dark:text-white">
+                    <p className="text-2xl sm:text-3xl lg:text-4xl font-semibold text-charcoal dark:text-white">
                       ₱{unpaidBalance.toLocaleString()}
                     </p>
                   </div>
@@ -210,19 +207,19 @@ export default function LeasePayments() {
           <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 p-4 sm:p-6 rounded-2xl sm:rounded-4xl shadow-xs flex flex-col justify-between relative overflow-hidden group">
             <div className="flex justify-between items-start mb-4 sm:mb-6 relative z-10">
               <div>
-                <h3 className="text-slate-500 font-bold text-[10px] uppercase tracking-widest leading-none mb-1">
+                <h3 className="text-slate-500 font-bold text-xs leading-none mb-1">
                   Unit Assignment
                 </h3>
-                <p className="text-lg sm:text-2xl font-black text-charcoal dark:text-white flex items-center gap-2">
+                <p className="text-lg sm:text-2xl font-semibold text-charcoal dark:text-white flex items-center gap-2">
                   {unitId}
                   {isOccupied && (
-                    <span className="flex items-center gap-1 px-2 py-1 text-[9px] sm:text-[10px] bg-red-50 dark:bg-red-900/20 text-primary border border-primary rounded-full uppercase tracking-widest">
+                    <span className="flex items-center gap-1 px-2 py-1 text-xs bg-red-50 dark:bg-red-900/20 text-primary border border-primary rounded-full">
                       <span className="w-1.5 h-1.5 bg-primary rounded-full" />{" "}
                       Occupied
                     </span>
                   )}
                   {!isOccupied && (
-                    <span className="flex items-center gap-1 px-2 py-1 text-[9px] sm:text-[10px] bg-amber-50 dark:bg-amber-900/20 text-amber-600 border border-amber-400 rounded-full uppercase tracking-widest">
+                    <span className="flex items-center gap-1 px-2 py-1 text-xs bg-amber-50 dark:bg-amber-900/20 text-amber-600 border border-amber-400 rounded-full">
                       <span className="w-1.5 h-1.5 bg-amber-500 rounded-full" />{" "}
                       Pending
                     </span>
@@ -236,10 +233,10 @@ export default function LeasePayments() {
 
             <div className="relative z-10">
               <div className="flex justify-between items-end mb-2">
-                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                <h4 className="text-xs font-bold text-slate-400 flex items-center gap-1.5">
                   <Calendar size={12} /> Payment Progress
                 </h4>
-                <span className="text-sm font-black text-charcoal dark:text-white">
+                <span className="text-sm font-semibold text-charcoal dark:text-white">
                   {payments.filter((p) => p.status === "PAID").length}/
                   {payments.length} Paid
                 </span>
@@ -270,17 +267,17 @@ export default function LeasePayments() {
                 />{" "}
                 Billing Ledger
               </h2>
-              <p className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
+              <p className="text-xs font-bold text-slate-400 mt-1">
                 Submit Payment Proof &amp; Download Receipts
               </p>
             </div>
             {payments.length > 0 && (
               <div className="text-right hidden sm:block">
-                <p className="text-[10px] font-black text-charcoal dark:text-white">
+                <p className="text-[10px] font-semibold text-charcoal dark:text-white">
                   {payments.filter((p) => p.status === "PAID").length} /{" "}
                   {payments.length}
                 </p>
-                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                <p className="text-xs font-bold text-slate-400">
                   Invoices Cleared
                 </p>
               </div>
@@ -291,16 +288,16 @@ export default function LeasePayments() {
             <table className="w-full text-left border-collapse min-w-[600px]">
               <thead>
                 <tr className="border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/5">
-                  <th className="px-4 sm:px-6 py-3 sm:py-4 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                  <th className="px-4 sm:px-6 py-3 sm:py-4 text-xs font-bold text-slate-400">
                     Billing Month
                   </th>
-                  <th className="px-4 sm:px-6 py-3 sm:py-4 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                  <th className="px-4 sm:px-6 py-3 sm:py-4 text-xs font-bold text-slate-400">
                     Amount Due
                   </th>
-                  <th className="px-4 sm:px-6 py-3 sm:py-4 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                  <th className="px-4 sm:px-6 py-3 sm:py-4 text-xs font-bold text-slate-400">
                     Status
                   </th>
-                  <th className="px-4 sm:px-6 py-3 sm:py-4 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-slate-400 text-right">
+                  <th className="px-4 sm:px-6 py-3 sm:py-4 text-xs font-bold text-slate-400 text-right">
                     Proof of Remittance
                   </th>
                 </tr>
@@ -313,7 +310,7 @@ export default function LeasePayments() {
                         size={32}
                         className="mx-auto text-slate-200 dark:text-zinc-700 mb-3"
                       />
-                      <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                      <p className="text-xs font-bold text-slate-400">
                         No active billing obligations found
                       </p>
                       <p className="text-[10px] text-slate-400 mt-1">
@@ -332,10 +329,10 @@ export default function LeasePayments() {
                       <p className="font-bold text-charcoal dark:text-white text-xs sm:text-sm">
                         {row.month}
                       </p>
-                      <p className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+                      <p className="text-xs font-bold text-slate-400 mt-0.5">
                         {row.invoiceNumber}{row.status === "PAID" && ` • OR-${row.invoiceNumber.replace("#INV-", "").replace("#", "")}`}
                       </p>
-                      <p className="text-[9px] sm:text-[10px] font-bold text-primary uppercase tracking-widest flex items-center gap-1 mt-1.5 pt-1.5 border-t border-slate-100 dark:border-white/5">
+                      <p className="text-xs font-bold text-primary flex items-center gap-1 mt-1.5 pt-1.5 border-t border-slate-100 dark:border-white/5">
                         <Calendar size={10} />
                         Due:{" "}
                         {new Date(row.dueDate).toLocaleDateString("en-US", {
@@ -345,7 +342,7 @@ export default function LeasePayments() {
                         })}
                       </p>
                     </td>
-                    <td className="px-4 sm:px-6 py-4 sm:py-5 text-xs sm:text-sm font-black text-charcoal dark:text-white">
+                    <td className="px-4 sm:px-6 py-4 sm:py-5 text-xs sm:text-sm font-semibold text-charcoal dark:text-white">
                       ₱
                       {row.amount.toLocaleString(undefined, {
                         minimumFractionDigits: 2,
@@ -353,25 +350,25 @@ export default function LeasePayments() {
                     </td>
                     <td className="px-4 sm:px-6 py-4 sm:py-5">
                       {row.status === "PAID" && (
-                        <span className="inline-flex items-center gap-1.5 px-2 sm:px-3 py-1 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest bg-green-50 text-green-600 rounded-lg border border-green-200">
+                        <span className="inline-flex items-center gap-1.5 px-2 sm:px-3 py-1 text-xs font-bold bg-green-50 text-green-600 rounded-lg border border-green-200">
                           <CheckCircle size={10} className="sm:w-3 sm:h-3" />{" "}
                           Cleared
                         </span>
                       )}
                       {row.status === "REVIEWING" && (
-                        <span className="inline-flex items-center gap-1.5 px-2 sm:px-3 py-1 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest bg-blue-50 text-blue-600 rounded-lg border border-blue-200 animate-pulse">
+                        <span className="inline-flex items-center gap-1.5 px-2 sm:px-3 py-1 text-xs font-bold bg-blue-50 text-blue-600 rounded-lg border border-blue-200 animate-pulse">
                           <Clock size={10} className="sm:w-3 sm:h-3" /> In
                           Review
                         </span>
                       )}
                       {row.status === "PENDING" && (
-                        <span className="inline-flex items-center gap-1.5 px-2 sm:px-3 py-1 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest bg-amber-50 text-amber-600 rounded-lg border border-amber-200">
+                        <span className="inline-flex items-center gap-1.5 px-2 sm:px-3 py-1 text-xs font-bold bg-amber-50 text-amber-600 rounded-lg border border-amber-200">
                           <AlertTriangle size={10} className="sm:w-3 sm:h-3" />{" "}
                           Pending
                         </span>
                       )}
                       {row.status === "OVERDUE" && (
-                        <span className="inline-flex items-center gap-1.5 px-2 sm:px-3 py-1 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest bg-red-50 text-primary rounded-lg border border-red-200">
+                        <span className="inline-flex items-center gap-1.5 px-2 sm:px-3 py-1 text-xs font-bold bg-red-50 text-primary rounded-lg border border-red-200">
                           <AlertTriangle size={10} className="sm:w-3 sm:h-3" />{" "}
                           Overdue
                         </span>
@@ -385,11 +382,11 @@ export default function LeasePayments() {
                               onClick={() =>
                                 generateTenantReceiptPDF(row, storefront)
                               }
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-emerald-500/20 transition-all hover:scale-105 active:scale-95 shadow-xs shadow-emerald-500/10 cursor-pointer"
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 rounded-lg text-xs font-semibold hover:bg-emerald-500/20 transition-all hover:scale-105 active:scale-95 shadow-xs shadow-emerald-500/10 cursor-pointer"
                             >
                               <Download size={10} /> Download receipt
                             </button>
-                            <p className="text-[8px] sm:text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">
+                            <p className="text-xs font-bold text-slate-400 mt-1">
                               Admin Ref: {row.referenceNo}
                             </p>
                           </div>
@@ -398,7 +395,7 @@ export default function LeasePayments() {
                             onClick={() =>
                               generateTenantReceiptPDF(row, storefront)
                             }
-                            className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-slate-300 hover:text-primary rounded-xl font-bold text-[9px] sm:text-[10px] uppercase tracking-widest transition-colors hover:scale-105 active:scale-95"
+                            className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-slate-300 hover:text-primary rounded-xl font-bold text-xs transition-colors hover:scale-105 active:scale-95"
                           >
                             <Download
                               size={12}
@@ -408,12 +405,12 @@ export default function LeasePayments() {
                           </button>
                         )
                       ) : row.status === "REVIEWING" ? (
-                        <span className="inline-flex items-center px-3 sm:px-4 py-2 text-[9px] sm:text-[10px] font-bold text-blue-500 uppercase tracking-widest">
+                        <span className="inline-flex items-center px-3 sm:px-4 py-2 text-xs font-bold text-blue-500">
                           <Clock size={10} className="mr-1" /> Awaiting
                           Clearance
                         </span>
                       ) : (
-                        <label className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 bg-primary/10 text-primary hover:bg-primary hover:text-white rounded-xl font-bold text-[9px] sm:text-[10px] uppercase tracking-widest transition-colors border border-primary/20 hover:border-transparent cursor-pointer">
+                        <label className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 bg-primary/10 text-primary hover:bg-primary hover:text-white rounded-xl font-bold text-xs transition-colors border border-primary/20 hover:border-transparent cursor-pointer">
                           {uploadingFor === row.id ? (
                             <>
                               <div className="w-3 h-3 sm:w-4 sm:h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />{" "}

@@ -9,8 +9,6 @@ import {
   ArrowRight,
   Receipt,
   MessageSquare,
-  Zap,
-  Award,
   Activity,
   Monitor,
   Sparkles,
@@ -184,22 +182,14 @@ export default function TenantDashboard() {
           </div>
 
           <div className="min-w-0">
-            <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-full text-[9px] font-black uppercase tracking-widest border border-emerald-500/15">
-                <ShieldCheck size={9} /> Auth: High
-              </span>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-primary/8 text-primary rounded-full text-[9px] font-black uppercase tracking-widest border border-primary/15">
-                <Zap size={9} /> Live
-              </span>
-            </div>
-            <h1 className="text-xl sm:text-2xl font-black text-charcoal dark:text-white tracking-tighter uppercase italic leading-none">
-              Control <span className="text-primary not-italic">Center.</span>
+            <h1 className="font-display text-xl sm:text-2xl font-semibold text-charcoal dark:text-white tracking-tight leading-none">
+              Overview
             </h1>
             <p className="text-[11px] text-slate-500 font-semibold mt-0.5 flex items-center gap-2 flex-wrap">
               <span className="flex items-center gap-1">
                 <Store size={10} />{" "}
                 <span className="truncate max-w-[120px] sm:max-w-none">
-                  {shopName || "Boutique Terminal"}
+                  {shopName || "Your store"}
                 </span>
               </span>
               <span className="text-slate-300 dark:text-slate-700">·</span>
@@ -222,7 +212,7 @@ export default function TenantDashboard() {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
             </span>
-            <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">
+            <span className="text-xs font-semibold text-emerald-500">
               Synced
             </span>
           </div>
@@ -231,7 +221,7 @@ export default function TenantDashboard() {
           </button>
           <Link
             href="/tenantdashboard/digital-storefront"
-            className="hidden sm:flex items-center gap-1.5 px-4 py-2.5 bg-charcoal dark:bg-white text-white dark:text-charcoal rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-primary dark:hover:bg-primary dark:hover:text-white transition-all shadow-lg group"
+            className="hidden sm:flex items-center gap-1.5 px-4 py-2.5 bg-charcoal dark:bg-white text-white dark:text-charcoal rounded-xl font-semibold text-xs hover:bg-primary dark:hover:bg-primary dark:hover:text-white transition-all shadow-lg group"
           >
             Storefront{" "}
             <ArrowUpRight
@@ -251,14 +241,14 @@ export default function TenantDashboard() {
             <Star size={18} />
           </div>
           <div>
-            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">
+            <p className="text-xs font-semibold text-slate-400 mb-1">
               Sentiment Rating
             </p>
             <div className="flex items-end justify-between gap-1">
-              <span className="text-2xl font-black text-charcoal dark:text-white tracking-tighter">
+              <span className="text-2xl font-semibold text-charcoal dark:text-white tracking-tight">
                 {isLoading ? "—" : avgRating.toFixed(1)}
               </span>
-              <span className="text-[9px] font-black text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded-lg mb-0.5">
+              <span className="text-xs font-semibold text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded-lg mb-0.5">
                 Stars
               </span>
             </div>
@@ -272,14 +262,14 @@ export default function TenantDashboard() {
             <MessageSquare size={18} />
           </div>
           <div>
-            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">
+            <p className="text-xs font-semibold text-slate-400 mb-1">
               Total Feedback
             </p>
             <div className="flex items-end justify-between gap-1">
-              <span className="text-2xl font-black text-charcoal dark:text-white tracking-tighter">
+              <span className="text-2xl font-semibold text-charcoal dark:text-white tracking-tight">
                 {isLoading ? "—" : liveReviews.length}
               </span>
-              <span className="text-[9px] font-black text-primary bg-primary/10 px-1.5 py-0.5 rounded-lg mb-0.5">
+              <span className="text-xs font-semibold text-primary bg-primary/10 px-1.5 py-0.5 rounded-lg mb-0.5">
                 Reviews
               </span>
             </div>
@@ -295,10 +285,10 @@ export default function TenantDashboard() {
                 <Monitor size={17} />
               </div>
               <div>
-                <p className="text-[11px] font-black text-charcoal dark:text-white uppercase tracking-wider leading-none">
+                <p className="text-xs font-semibold text-charcoal dark:text-white leading-none">
                   Manifest Presence
                 </p>
-                <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
+                <p className="text-xs text-slate-400 font-bold mt-0.5">
                   Digital Identity Core
                 </p>
               </div>
@@ -322,44 +312,19 @@ export default function TenantDashboard() {
               </div>
               <div className="flex-1 text-center sm:text-left space-y-3 min-w-0">
                 <div>
-                  <h3 className="text-2xl sm:text-3xl lg:text-4xl font-black text-charcoal dark:text-white uppercase italic tracking-tight leading-none wrap-break-word">
-                    {shopName || "Boutique Terminal"}
+                  <h3 className="text-2xl sm:text-3xl lg:text-4xl font-semibold text-charcoal dark:text-white tracking-tight leading-none wrap-break-word">
+                    {shopName || "Your store"}
                   </h3>
-                  <p className="text-xs text-slate-500 font-semibold mt-1.5 flex items-center justify-center sm:justify-start gap-1.5">
-                    <MapPin size={11} className="text-primary" /> Verified Mall
-                    Partner • Unit {unitId || "L1-105"}
+                  <p className="text-sm text-slate-500 mt-1.5 flex items-center justify-center sm:justify-start gap-1.5">
+                    <MapPin size={13} className="text-primary" /> Unit{" "}
+                    {unitId && !/PENDING|UNASSIGNED/.test(unitId) ? unitId : "not assigned yet"}
                   </p>
                 </div>
-                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
-                  <span className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/10 text-amber-600 rounded-xl border border-amber-500/20 text-[10px] font-black uppercase tracking-wider">
-                    <Star size={11} className="fill-current" /> {avgRating}{" "}
-                    Sentiment
-                  </span>
-                  <span className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/10 text-blue-600 rounded-xl border border-blue-500/20 text-[10px] font-black uppercase tracking-wider">
-                    <Activity size={11} /> High Visibility
-                  </span>
-                </div>
+                <p className="flex items-center justify-center sm:justify-start gap-1.5 text-sm text-slate-500">
+                  <Star size={13} className="fill-current text-amber-500" /> {avgRating} average rating
+                </p>
               </div>
             </div>
-          </div>
-          <div className="grid grid-cols-3 divide-x divide-slate-50 dark:divide-white/5 border-t border-slate-50 dark:border-white/5 relative z-10">
-            {[
-              { label: "Recall", value: "92%", icon: Zap },
-              { label: "Rank", value: "#04", icon: Award },
-              { label: "Tier", value: "Elite", icon: ShieldCheck },
-            ].map((s) => (
-              <div
-                key={s.label}
-                className="py-3 flex flex-col items-center gap-0.5 hover:bg-slate-50/50 dark:hover:bg-white/2 transition-colors cursor-default group/s"
-              >
-                <p className="text-xs font-black text-charcoal dark:text-white italic uppercase tracking-tight group-hover/s:text-primary transition-colors">
-                  {s.value}
-                </p>
-                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">
-                  {s.label}
-                </p>
-              </div>
-            ))}
           </div>
         </div>
 
@@ -370,8 +335,8 @@ export default function TenantDashboard() {
               <div className="w-8 h-8 bg-amber-500/10 text-amber-500 rounded-lg flex items-center justify-center">
                 <Star size={16} />
               </div>
-              <span className="text-[11px] font-black text-charcoal dark:text-white uppercase tracking-[0.3em]">
-                Live Signals
+              <span className="text-xs font-semibold text-charcoal dark:text-white">
+                Recent reviews
               </span>
             </div>
             <Link
@@ -399,12 +364,12 @@ export default function TenantDashboard() {
                   className="px-5 py-3.5 hover:bg-slate-50 dark:hover:bg-white/2 transition-all border-l-2 border-transparent hover:border-primary cursor-default"
                 >
                   <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-black text-xs shrink-0 capitalize border border-primary/10">
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-semibold text-xs shrink-0 capitalize border border-primary/10">
                       {r.user?.name?.[0] || "S"}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2 mb-1">
-                        <p className="text-[10px] font-black text-charcoal dark:text-white truncate uppercase tracking-tight">
+                        <p className="text-xs font-semibold text-charcoal dark:text-white truncate tracking-tight">
                           {r.user?.name?.split(" ")[0] || "Shopper"}
                         </p>
                         <div className="flex gap-0.5 shrink-0">
@@ -431,7 +396,7 @@ export default function TenantDashboard() {
             ) : (
               <div className="py-10 flex flex-col items-center gap-2 opacity-40">
                 <MessageSquare size={28} className="text-slate-300" />
-                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">
+                <p className="text-xs font-semibold text-slate-400">
                   No signals yet
                 </p>
               </div>
@@ -455,7 +420,7 @@ export default function TenantDashboard() {
             >
               <item.icon size={20} />
             </div>
-            <p className="text-[10px] font-black text-charcoal dark:text-white uppercase tracking-widest leading-tight group-hover:text-primary transition-colors">
+            <p className="text-xs font-semibold text-charcoal dark:text-white leading-tight group-hover:text-primary transition-colors">
               {item.label}
             </p>
           </Link>
@@ -475,14 +440,14 @@ export default function TenantDashboard() {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-sm sm:text-base font-black text-charcoal dark:text-white uppercase tracking-wider leading-none">
+                <h2 className="text-sm sm:text-base font-semibold text-charcoal dark:text-white leading-none">
                   Payment Schedule
                 </h2>
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 rounded-full text-[9px] font-black uppercase tracking-widest">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 rounded-full text-xs font-semibold">
                   Remittance Cycle
                 </span>
               </div>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">
+              <p className="text-xs text-slate-400 font-bold mt-1">
                 Dues timeline, next scheduled billing &amp; payment records
               </p>
             </div>
@@ -492,7 +457,7 @@ export default function TenantDashboard() {
             {paymentSchedule && (
               <span
                 className={clsx(
-                  "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border",
+                  "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border",
                   paymentSchedule.paymentStatus === "Paid"
                     ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
                     : paymentSchedule.paymentStatus === "Overdue"
@@ -526,7 +491,7 @@ export default function TenantDashboard() {
 
             <Link
               href="/tenantdashboard/lease-payments"
-              className="flex items-center gap-1 px-3 py-1.5 bg-slate-50 dark:bg-white/5 hover:bg-primary/10 text-slate-500 dark:text-slate-400 hover:text-primary rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border border-slate-100 dark:border-white/5"
+              className="flex items-center gap-1 px-3 py-1.5 bg-slate-50 dark:bg-white/5 hover:bg-primary/10 text-slate-500 dark:text-slate-400 hover:text-primary rounded-xl text-xs font-semibold transition-all border border-slate-100 dark:border-white/5"
             >
               <span>Lease &amp; Billing</span>
               <ArrowUpRight size={13} />
@@ -539,7 +504,7 @@ export default function TenantDashboard() {
           {/* 1. Next Payment Date */}
           <div className="bg-slate-50/60 dark:bg-black/20 border border-slate-100 dark:border-white/5 rounded-xl p-4 flex flex-col justify-between hover:border-emerald-500/30 transition-all group/box">
             <div className="flex items-center justify-between gap-2 mb-2">
-              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+              <span className="text-xs font-semibold text-slate-400">
                 Next Payment Date
               </span>
               <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
@@ -547,12 +512,12 @@ export default function TenantDashboard() {
               </div>
             </div>
             <div>
-              <p className="text-lg sm:text-xl font-black text-charcoal dark:text-white tracking-tight leading-snug">
+              <p className="text-lg sm:text-xl font-semibold text-charcoal dark:text-white tracking-tight leading-snug">
                 {isLoadingSchedule
                   ? "—"
                   : formatDate(paymentSchedule?.nextPaymentDate)}
               </p>
-              <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mt-0.5">
+              <p className="text-xs font-bold text-slate-400 dark:text-slate-500 mt-0.5">
                 {paymentSchedule?.paymentStatus === "Overdue"
                   ? "Immediate Settlement Required"
                   : paymentSchedule?.paymentStatus === "Paid"
@@ -565,7 +530,7 @@ export default function TenantDashboard() {
           {/* 2. Payment Month */}
           <div className="bg-slate-50/60 dark:bg-black/20 border border-slate-100 dark:border-white/5 rounded-xl p-4 flex flex-col justify-between hover:border-blue-500/30 transition-all group/box">
             <div className="flex items-center justify-between gap-2 mb-2">
-              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+              <span className="text-xs font-semibold text-slate-400">
                 Payment Month
               </span>
               <div className="w-7 h-7 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
@@ -573,12 +538,12 @@ export default function TenantDashboard() {
               </div>
             </div>
             <div>
-              <p className="text-lg sm:text-xl font-black text-charcoal dark:text-white tracking-tight leading-snug truncate">
+              <p className="text-lg sm:text-xl font-semibold text-charcoal dark:text-white tracking-tight leading-snug truncate">
                 {isLoadingSchedule
                   ? "—"
                   : paymentSchedule?.paymentMonth || "Current Cycle"}
               </p>
-              <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mt-0.5">
+              <p className="text-xs font-bold text-slate-400 dark:text-slate-500 mt-0.5">
                 Billing Period
               </p>
             </div>
@@ -587,7 +552,7 @@ export default function TenantDashboard() {
           {/* 3. Payment Amount */}
           <div className="bg-slate-50/60 dark:bg-black/20 border border-slate-100 dark:border-white/5 rounded-xl p-4 flex flex-col justify-between hover:border-primary/30 transition-all group/box">
             <div className="flex items-center justify-between gap-2 mb-2">
-              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+              <span className="text-xs font-semibold text-slate-400">
                 Payment Amount
               </span>
               <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
@@ -595,12 +560,12 @@ export default function TenantDashboard() {
               </div>
             </div>
             <div>
-              <p className="text-lg sm:text-xl font-black text-primary tracking-tight leading-snug">
+              <p className="text-lg sm:text-xl font-semibold text-primary tracking-tight leading-snug">
                 {isLoadingSchedule
                   ? "—"
                   : `₱${(paymentSchedule?.paymentAmount || 0).toLocaleString()}`}
               </p>
-              <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mt-0.5 truncate">
+              <p className="text-xs font-bold text-slate-400 dark:text-slate-500 mt-0.5 truncate">
                 {paymentSchedule?.invoiceNumber
                   ? `Invoice ${paymentSchedule.invoiceNumber}`
                   : "Monthly Rental Fee"}
@@ -611,7 +576,7 @@ export default function TenantDashboard() {
           {/* 4. Payment Status */}
           <div className="bg-slate-50/60 dark:bg-black/20 border border-slate-100 dark:border-white/5 rounded-xl p-4 flex flex-col justify-between hover:border-amber-500/30 transition-all group/box">
             <div className="flex items-center justify-between gap-2 mb-2">
-              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+              <span className="text-xs font-semibold text-slate-400">
                 Payment Status
               </span>
               <div
@@ -638,7 +603,7 @@ export default function TenantDashboard() {
             <div>
               <span
                 className={clsx(
-                  "text-lg sm:text-xl font-black uppercase tracking-tight leading-snug",
+                  "text-lg sm:text-xl font-semibold tracking-tight leading-snug",
                   paymentSchedule?.paymentStatus === "Paid"
                     ? "text-emerald-600 dark:text-emerald-400"
                     : paymentSchedule?.paymentStatus === "Overdue"
@@ -652,7 +617,7 @@ export default function TenantDashboard() {
                   ? "—"
                   : paymentSchedule?.paymentStatus || "Pending"}
               </span>
-              <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mt-0.5">
+              <p className="text-xs font-bold text-slate-400 dark:text-slate-500 mt-0.5">
                 {paymentSchedule?.paymentStatus === "Paid"
                   ? "Cleared Standing"
                   : paymentSchedule?.paymentStatus === "Overdue"
@@ -667,7 +632,7 @@ export default function TenantDashboard() {
           {/* 5. Last Payment Date */}
           <div className="bg-slate-50/60 dark:bg-black/20 border border-slate-100 dark:border-white/5 rounded-xl p-4 flex flex-col justify-between hover:border-purple-500/30 transition-all group/box sm:col-span-2 lg:col-span-1">
             <div className="flex items-center justify-between gap-2 mb-2">
-              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+              <span className="text-xs font-semibold text-slate-400">
                 Last Payment Date
               </span>
               <div className="w-7 h-7 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center">
@@ -675,14 +640,14 @@ export default function TenantDashboard() {
               </div>
             </div>
             <div>
-              <p className="text-lg sm:text-xl font-black text-charcoal dark:text-white tracking-tight leading-snug">
+              <p className="text-lg sm:text-xl font-semibold text-charcoal dark:text-white tracking-tight leading-snug">
                 {isLoadingSchedule
                   ? "—"
                   : paymentSchedule?.lastPaymentDate
                     ? formatDate(paymentSchedule.lastPaymentDate)
                     : "None recorded"}
               </p>
-              <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mt-0.5">
+              <p className="text-xs font-bold text-slate-400 dark:text-slate-500 mt-0.5">
                 {paymentSchedule?.lastPaymentDate
                   ? "Last Settled Transaction"
                   : "No Prior Remittance"}
@@ -694,7 +659,7 @@ export default function TenantDashboard() {
         {/* Ledger Summary & Action Link */}
         <div className="mt-4 pt-4 border-t border-slate-50 dark:border-white/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-[10px] text-slate-500">
           <div className="flex items-center gap-2 flex-wrap font-medium">
-            <span className="font-bold text-charcoal dark:text-white uppercase tracking-wider">
+            <span className="font-bold text-charcoal dark:text-white">
               Payment Record:
             </span>
             <span>
@@ -711,7 +676,7 @@ export default function TenantDashboard() {
 
           <Link
             href="/tenantdashboard/lease-payments"
-            className="inline-flex items-center gap-1.5 text-[10px] font-black text-primary hover:text-primary-hover uppercase tracking-widest group/link shrink-0"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:text-primary-hover group/link shrink-0"
           >
             <span>Submit Proof of Payment</span>
             <ArrowRight
