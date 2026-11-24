@@ -35,7 +35,7 @@ export function ChatLauncher({ hidden = false, className }: { hidden?: boolean; 
       >
         {isOpen ? <X size={26} /> : <MessageCircle size={26} />}
         {!isOpen && unread > 0 && (
-          <span className="absolute -top-1.5 -right-1.5 min-w-6 h-6 px-1.5 bg-red-500 text-white text-xs font-black rounded-full flex items-center justify-center border-2 border-white dark:border-black animate-pulse">
+          <span className="absolute -top-1.5 -right-1.5 min-w-6 h-6 px-1.5 bg-red-500 text-white text-xs font-semibold rounded-full flex items-center justify-center border-2 border-white dark:border-black animate-pulse">
             {unread > 9 ? "9+" : unread}
           </span>
         )}

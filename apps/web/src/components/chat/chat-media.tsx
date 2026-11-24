@@ -42,7 +42,7 @@ export function ChatAvatar({
         // eslint-disable-next-line @next/next/no-img-element
         <img src={src!} alt={name || "Avatar"} onError={() => setBroken(true)} className="w-full h-full object-cover" />
       ) : (
-        <span className="text-[10px] font-bold text-slate-500 uppercase">{initialsOf(name)}</span>
+        <span className="text-xs font-bold text-slate-500">{initialsOf(name)}</span>
       )}
     </div>
   );

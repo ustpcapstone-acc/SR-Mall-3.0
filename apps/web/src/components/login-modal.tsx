@@ -63,7 +63,7 @@ function GoogleIcon({ size = 18 }: { size?: number }) {
 
 const INPUT =
   "w-full bg-slate-50 dark:bg-zinc-800 rounded-2xl border-2 border-transparent focus:border-primary outline-hidden transition-all text-sm font-bold text-charcoal dark:text-white";
-const LABEL = "text-[10px] font-black text-slate-500 uppercase tracking-widest px-1";
+const LABEL = "text-xs font-semibold text-slate-500 px-1";
 
 export const LoginModal = ({ isOpen, onClose, nextPath }: LoginModalProps) => {
   const { login } = useAuth();
@@ -214,7 +214,7 @@ export const LoginModal = ({ isOpen, onClose, nextPath }: LoginModalProps) => {
                 <div className={`${isSignUp ? "w-11 h-11" : "w-14 h-14"} bg-white rounded-2xl overflow-hidden shadow-lg mb-2 p-0.5`}>
                   <img src="/images/srmall-logo/sr_logo2.jpg" alt="Logo" className="w-full h-full object-cover rounded-xl" />
                 </div>
-                <h2 className="text-white font-bold uppercase text-[10px] tracking-[0.3em]">
+                <h2 className="text-white font-bold text-xs">
                   {isForgotPassword ? "Reset Password" : isSignUp ? "SR MALL" : "Welcome back"}
                 </h2>
               </div>
@@ -230,7 +230,7 @@ export const LoginModal = ({ isOpen, onClose, nextPath }: LoginModalProps) => {
             <div className={isSignUp ? "p-6 sm:p-8" : "p-8 sm:p-10"}>
               {isSignUp && (
                 <div className="mb-5 text-center">
-                  <h3 className="text-lg font-black text-charcoal dark:text-white">Create your account</h3>
+                  <h3 className="text-lg font-semibold text-charcoal dark:text-white">Create your account</h3>
                   <p className="text-xs text-slate-500 mt-1">Use your Gmail address to sign up.</p>
                 </div>
               )}
@@ -318,7 +318,7 @@ export const LoginModal = ({ isOpen, onClose, nextPath }: LoginModalProps) => {
 
                       <div className="space-y-2">
                         <div className="flex justify-between items-center px-1">
-                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Password</label>
+                          <label className="text-xs font-semibold text-slate-500">Password</label>
                           {!isSignUp && (
                             <button
                               type="button"
@@ -382,7 +382,7 @@ export const LoginModal = ({ isOpen, onClose, nextPath }: LoginModalProps) => {
                       <div className="w-full border-t border-slate-200 dark:border-white/10"></div>
                     </div>
                     <div className="relative flex justify-center text-xs">
-                      <span className="bg-white dark:bg-zinc-900 px-2 text-slate-500 uppercase tracking-widest font-black">
+                      <span className="bg-white dark:bg-zinc-900 px-2 text-slate-500 font-semibold">
                         Or Continue With
                       </span>
                     </div>

@@ -12,13 +12,13 @@ export default function NotFound() {
           <MapPin size={28} />
         </div>
 
-        <p className="text-[10px] font-black uppercase tracking-[0.45em] text-primary">
+        <p className="text-xs font-semibold text-primary">
           SR-MANAGE
         </p>
-        <h1 className="mt-3 bg-linear-to-br from-charcoal via-charcoal to-slate-400 bg-clip-text text-7xl font-black tracking-tighter text-transparent dark:from-white dark:via-white dark:to-zinc-600 sm:text-8xl">
+        <h1 className="mt-3 bg-linear-to-br from-charcoal via-charcoal to-slate-400 bg-clip-text text-7xl font-semibold tracking-tight text-transparent dark:from-white dark:via-white dark:to-zinc-600 sm:text-8xl">
           404
         </h1>
-        <h2 className="mt-4 text-2xl font-black uppercase tracking-tight text-charcoal dark:text-white sm:text-3xl">
+        <h2 className="mt-4 text-2xl font-semibold tracking-tight text-charcoal dark:text-white sm:text-3xl">
           This floor is empty.
         </h2>
         <p className="mx-auto mt-3 max-w-md text-sm font-medium leading-relaxed text-slate-500 dark:text-slate-400">
@@ -28,13 +28,13 @@ export default function NotFound() {
         <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <Link
             href="/"
-            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-7 py-3.5 text-[11px] font-black uppercase tracking-widest text-white shadow-xl shadow-primary/25 transition-all hover:-translate-y-0.5 hover:bg-primary-hover active:scale-95 sm:w-auto"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-7 py-3.5 text-xs font-semibold text-white shadow-xl shadow-primary/25 transition-all hover:-translate-y-0.5 hover:bg-primary-hover active:scale-95 sm:w-auto"
           >
             <Home size={16} /> Back to home
           </Link>
           <Link
             href="/tenant-directory"
-            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-7 py-3.5 text-[11px] font-black uppercase tracking-widest text-slate-600 shadow-xs transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:text-primary dark:border-white/10 dark:bg-zinc-900 dark:text-slate-300 sm:w-auto"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-7 py-3.5 text-xs font-semibold text-slate-600 shadow-xs transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:text-primary dark:border-white/10 dark:bg-zinc-900 dark:text-slate-300 sm:w-auto"
           >
             <Search size={16} /> Browse shops
           </Link>
@@ -42,7 +42,7 @@ export default function NotFound() {
 
         <Link
           href="/available-spaces"
-          className="mt-6 inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-slate-400 transition-colors hover:text-primary"
+          className="mt-6 inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 transition-colors hover:text-primary"
         >
           <ArrowLeft size={12} /> Looking for available spaces?
         </Link>

@@ -129,7 +129,7 @@ export default function NotificationDropdown({ className = "" }: { className?: s
       >
         <Bell size={20} />
         {badge > 0 && (
-          <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 bg-primary text-white text-[10px] font-black rounded-full flex items-center justify-center">
+          <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 bg-primary text-white text-[10px] font-semibold rounded-full flex items-center justify-center">
             {badge > 99 ? "99+" : badge}
           </span>
         )}
@@ -145,9 +145,9 @@ export default function NotificationDropdown({ className = "" }: { className?: s
           >
             <div className="flex items-center justify-between gap-2 px-5 py-4 border-b border-slate-100 dark:border-white/5">
               <div className="flex items-center gap-2">
-                <h3 className="font-black text-charcoal dark:text-white">Notifications</h3>
+                <h3 className="font-semibold text-charcoal dark:text-white">Notifications</h3>
                 {badge > 0 && (
-                  <span className="text-[10px] font-black text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                  <span className="text-[10px] font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
                     {badge} new
                   </span>
                 )}
@@ -212,7 +212,7 @@ export default function NotificationDropdown({ className = "" }: { className?: s
                               {row.chat.name} · {row.chat.unread} new message{row.chat.unread === 1 ? "" : "s"}
                             </span>
                             <span className="block text-xs text-slate-500 line-clamp-2 mt-0.5">{row.chat.preview}</span>
-                            <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1.5">
+                            <span className="block text-xs font-bold text-slate-400 mt-1.5">
                               {timeAgo(row.chat.lastAt)} · Tap to reply
                             </span>
                           </span>
@@ -239,7 +239,7 @@ export default function NotificationDropdown({ className = "" }: { className?: s
                             {n.title}
                           </span>
                           <span className="block text-xs text-slate-500 line-clamp-2 mt-0.5">{n.message}</span>
-                          <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1.5">
+                          <span className="block text-xs font-bold text-slate-400 mt-1.5">
                             {timeAgo(n.createdAt)}
                           </span>
                         </span>
@@ -259,7 +259,7 @@ export default function NotificationDropdown({ className = "" }: { className?: s
                 setIsOpen(false);
                 router.push(notificationsPageHref(user.role));
               }}
-              className="w-full text-center py-3.5 border-t border-slate-100 dark:border-white/5 text-xs font-black uppercase tracking-widest text-primary hover:bg-slate-50 dark:hover:bg-zinc-800/40"
+              className="w-full text-center py-3.5 border-t border-slate-100 dark:border-white/5 text-xs font-semibold text-primary hover:bg-slate-50 dark:hover:bg-zinc-800/40"
             >
               View all notifications
             </button>

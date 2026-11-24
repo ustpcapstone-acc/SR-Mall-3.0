@@ -65,7 +65,7 @@ export function BlockToggleButton({
       type="button"
       onClick={onClick}
       className={clsx(
-        "inline-flex items-center gap-1.5 h-9 px-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors",
+        "inline-flex items-center gap-1.5 h-9 px-3 rounded-xl text-xs font-semibold transition-colors",
         blocked
           ? "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500 hover:text-white"
           : "text-slate-400 hover:text-red-600 hover:bg-red-500/10",
@@ -91,7 +91,7 @@ export function ChatDaySeparator({ date }: { date: string | Date }) {
   return (
     <div className="flex items-center gap-3 py-2" role="separator">
       <span className="flex-1 h-px bg-slate-200 dark:bg-white/10" />
-      <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+      <span className="text-xs font-semibold text-slate-400">
         {formatDayLabel(date)}
       </span>
       <span className="flex-1 h-px bg-slate-200 dark:bg-white/10" />
@@ -150,7 +150,7 @@ export function ChatConfirmModal({
         className="relative w-full max-w-sm bg-white dark:bg-zinc-950 rounded-4xl shadow-2xl p-7 space-y-5 animate-fade-in-up"
       >
         <div className="space-y-1.5">
-          <h2 className="text-lg font-black uppercase tracking-tight italic text-charcoal dark:text-white">{title}</h2>
+          <h2 className="text-lg font-semibold tracking-tight text-charcoal dark:text-white">{title}</h2>
           <p className="text-sm text-slate-500">{message}</p>
         </div>
         <div className="flex gap-3">
@@ -158,7 +158,7 @@ export function ChatConfirmModal({
             type="button"
             onClick={onCancel}
             disabled={busy}
-            className="flex-1 py-3 bg-slate-100 dark:bg-zinc-900 text-slate-600 dark:text-slate-400 font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-slate-200 disabled:opacity-50"
+            className="flex-1 py-3 bg-slate-100 dark:bg-zinc-900 text-slate-600 dark:text-slate-400 font-bold text-xs rounded-xl hover:bg-slate-200 disabled:opacity-50"
           >
             Cancel
           </button>
@@ -167,7 +167,7 @@ export function ChatConfirmModal({
             onClick={onConfirm}
             disabled={busy}
             className={clsx(
-              "flex-1 py-3 text-white font-black text-xs uppercase tracking-widest rounded-xl flex items-center justify-center gap-2 disabled:opacity-70",
+              "flex-1 py-3 text-white font-semibold text-xs rounded-xl flex items-center justify-center gap-2 disabled:opacity-70",
               tone === "danger" ? "bg-red-600 hover:bg-red-700" : "bg-charcoal hover:bg-black",
             )}
           >

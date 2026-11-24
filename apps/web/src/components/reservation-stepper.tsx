@@ -52,7 +52,7 @@ export function ReservationStepper({
           >
             <span
               className={clsx(
-                "flex shrink-0 items-center justify-center rounded-full font-black tabular-nums transition-colors",
+                "flex shrink-0 items-center justify-center rounded-full font-semibold tabular-nums transition-colors",
                 compact ? "h-7 w-7 text-[11px]" : "h-8 w-8 text-xs",
                 done
                   ? "bg-emerald-500 text-white"
@@ -70,7 +70,7 @@ export function ReservationStepper({
 
             <p
               className={clsx(
-                "mt-2 text-[9px] font-black uppercase leading-tight tracking-wider",
+                "mt-2 text-xs font-semibold leading-tight",
                 done || active
                   ? "text-charcoal dark:text-white"
                   : "text-slate-400",
@@ -79,7 +79,7 @@ export function ReservationStepper({
               {s.label}
             </p>
             {!compact && (
-              <p className="mt-0.5 hidden text-[9px] font-medium leading-tight text-slate-400 sm:block">
+              <p className="mt-0.5 hidden text-xs font-medium leading-tight text-slate-400 sm:block">
                 {s.hint}
               </p>
             )}

@@ -211,7 +211,7 @@ export const AdBanner = ({
                   {searchQuery && (
                     <div className="absolute top-full left-0 w-full mt-3 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-3xl shadow-3xl z-100 overflow-hidden animate-in fade-in slide-in-from-top-2">
                       <div className="p-4 border-b border-slate-50 dark:border-white/5 flex items-center justify-between">
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Quick Results</span>
+                        <span className="text-xs font-semibold text-slate-400">Quick Results</span>
                         <button suppressHydrationWarning onClick={() => setSearchQuery("")}>
                           <X size={14} className="text-slate-300" />
                         </button>
@@ -226,8 +226,8 @@ export const AdBanner = ({
                                 <img src={s.logo_url || "/images/logo/logoshop.jpg"} className="w-full h-full object-cover" alt="" />
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className="text-[11px] font-black text-charcoal dark:text-white truncate uppercase">{s.shop_name}</p>
-                                <p className="text-[9px] font-bold text-slate-400 uppercase">{s.unit_id}</p>
+                                <p className="text-xs font-semibold text-charcoal dark:text-white truncate">{s.shop_name}</p>
+                                <p className="text-xs font-bold text-slate-400">{s.unit_id}</p>
                               </div>
                               <Navigation size={10} className="text-slate-300 group-hover/item:text-primary" />
                             </Link>
@@ -242,8 +242,8 @@ export const AdBanner = ({
                                 <img src={p.image_url} className="w-full h-full object-cover" alt="" />
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className="text-[11px] font-black text-charcoal dark:text-white truncate">{p.name}</p>
-                                <p className="text-[9px] font-bold text-primary uppercase">{p.price}</p>
+                                <p className="text-[11px] font-semibold text-charcoal dark:text-white truncate">{p.name}</p>
+                                <p className="text-xs font-bold text-primary">{p.price}</p>
                               </div>
                               <Tag size={10} className="text-slate-300 group-hover/item:text-primary" />
                             </button>

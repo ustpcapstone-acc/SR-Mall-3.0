@@ -162,7 +162,7 @@ export const ShopCard = ({ shop, onClick, onMessage }: ShopCardProps) => {
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center p-4 sm:p-8 bg-linear-to-br from-slate-50 to-slate-100 dark:from-zinc-900 dark:to-zinc-950">
             <Store className="w-6 h-6 sm:w-12 sm:h-12 text-slate-200 dark:text-zinc-800 mb-2 sm:mb-4" />
-            <p className="text-[8px] sm:text-[10px] font-black text-slate-300 uppercase tracking-widest text-center">
+            <p className="text-xs font-semibold text-slate-300 text-center">
               Storefront <br />
               Photo Pending
             </p>
@@ -175,7 +175,7 @@ export const ShopCard = ({ shop, onClick, onMessage }: ShopCardProps) => {
         <div className="absolute top-2 sm:top-6 right-2 sm:right-6">
           <div
             className={clsx(
-              "backdrop-blur-xl px-2 sm:px-4 py-1 sm:py-2 rounded-full border text-[7px] sm:text-[9px] font-black uppercase tracking-widest sm:tracking-[0.2em] shadow-2xl",
+              "backdrop-blur-xl px-2 sm:px-4 py-1 sm:py-2 rounded-full border text-xs font-semibold shadow-2xl",
               is_open
                 ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-400"
                 : "bg-zinc-800/40 border-zinc-400/40 text-zinc-200",
@@ -218,17 +218,17 @@ export const ShopCard = ({ shop, onClick, onMessage }: ShopCardProps) => {
         {/* Name + location over the photo */}
         <div className="absolute bottom-3 sm:bottom-6 left-3 sm:left-8 right-3 sm:right-8">
           {promo && (
-            <span className="inline-flex max-w-full items-center gap-1 mb-1.5 sm:mb-2.5 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full bg-primary text-white text-[7px] sm:text-[9px] font-black uppercase tracking-widest sm:tracking-[0.2em] shadow-lg shadow-primary/40">
+            <span className="inline-flex max-w-full items-center gap-1 mb-1.5 sm:mb-2.5 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full bg-primary text-white text-xs font-semibold shadow-lg shadow-primary/40">
               <Flame className="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0" fill="currentColor" />
               <span className="truncate">Promo · {promo.title}</span>
             </span>
           )}
-          <h4 className="text-base sm:text-3xl font-black text-white tracking-tighter uppercase leading-none line-clamp-1">
+          <h4 className="text-base sm:text-3xl font-semibold text-white tracking-tight leading-none line-clamp-1">
             {shop_name}
           </h4>
           <div className="flex items-center gap-1.5 sm:gap-2 mt-1 sm:mt-2">
             <div className={clsx("w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full", is_open ? "bg-emerald-400 animate-pulse" : "bg-zinc-400")} />
-            <p className="text-[7px] sm:text-[10px] font-bold text-white/70 uppercase tracking-widest truncate">{location}</p>
+            <p className="text-xs font-bold text-white/70 truncate">{location}</p>
           </div>
         </div>
 
@@ -240,7 +240,7 @@ export const ShopCard = ({ shop, onClick, onMessage }: ShopCardProps) => {
             "group-hover:opacity-100",
           )}
         >
-          <div className="px-4 sm:px-8 py-2 sm:py-3 bg-white text-black text-[8px] sm:text-[10px] font-black uppercase tracking-widest rounded-full shadow-3xl transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
+          <div className="px-4 sm:px-8 py-2 sm:py-3 bg-white text-black text-xs font-semibold rounded-full shadow-3xl transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
             Visit Shop
           </div>
         </div>
@@ -249,21 +249,21 @@ export const ShopCard = ({ shop, onClick, onMessage }: ShopCardProps) => {
       {/* Strip: Rating · Category (like Floor Area · Lease) */}
       <div className="p-3 sm:p-8 flex items-center justify-between gap-3 bg-white dark:bg-zinc-900/50">
         <div className="space-y-0.5 sm:space-y-1.5 min-w-0">
-          <p className="text-[7px] sm:text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] sm:tracking-[0.3em]">Rating</p>
+          <p className="text-xs font-semibold text-slate-400">Rating</p>
           {rating > 0 ? (
             <div className="flex items-baseline gap-1">
-              <p className="text-lg sm:text-3xl font-black text-charcoal dark:text-white tracking-tighter">{rating.toFixed(1)}</p>
+              <p className="text-lg sm:text-3xl font-semibold text-charcoal dark:text-white tracking-tight">{rating.toFixed(1)}</p>
               <Star className="w-3 h-3 sm:w-4 sm:h-4 text-amber-400 self-center" fill="currentColor" />
-              <span className="text-[9px] sm:text-xs font-black text-primary">({shop.reviewCount})</span>
+              <span className="text-xs font-semibold text-primary">({shop.reviewCount})</span>
             </div>
           ) : (
-            <p className="text-lg sm:text-3xl font-black text-charcoal dark:text-white tracking-tighter">New</p>
+            <p className="text-lg sm:text-3xl font-semibold text-charcoal dark:text-white tracking-tight">New</p>
           )}
         </div>
 
         <div className="flex flex-col items-end gap-0.5 sm:gap-1 text-right min-w-0">
-          <span className="text-[7px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest">Category</span>
-          <span className="text-[8px] sm:text-xs font-black text-charcoal dark:text-white uppercase truncate max-w-full">
+          <span className="text-xs font-bold text-slate-400">Category</span>
+          <span className="text-xs font-semibold text-charcoal dark:text-white truncate max-w-full">
             {shop.category || "General"}
           </span>
         </div>

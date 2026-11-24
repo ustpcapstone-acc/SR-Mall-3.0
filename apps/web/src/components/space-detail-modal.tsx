@@ -251,7 +251,7 @@ export default function SpaceDetailModal({
           ) : (
             <div className="w-full h-full flex flex-col items-center justify-center text-slate-200 dark:text-white/10 gap-4 bg-slate-50 dark:bg-zinc-950">
               <Square size={64} strokeWidth={1} />
-              <p className="text-[10px] font-black uppercase tracking-widest">
+              <p className="text-xs font-semibold">
                 No Visual Assets
               </p>
             </div>
@@ -268,7 +268,7 @@ export default function SpaceDetailModal({
                     : "bg-red-500"
               }`}
             />
-            <span className="text-[10px] font-black text-white tracking-[0.3em] uppercase">
+            <span className="text-xs font-semibold text-white">
               {status === "AVAILABLE"
                 ? "Available"
                 : status === "RESERVED"
@@ -284,11 +284,11 @@ export default function SpaceDetailModal({
             <div>
               <div className="flex items-center gap-3 text-primary mb-3">
                 <MapPin size={18} />
-                <span className="text-[10px] font-black uppercase tracking-[0.4em] mb-0.5">
+                <span className="text-xs font-semibold mb-0.5">
                   Premier Business Hub
                 </span>
               </div>
-              <h2 className="text-5xl sm:text-6xl font-black text-charcoal dark:text-white tracking-tighter uppercase leading-[0.8] mb-10">
+              <h2 className="text-5xl sm:text-6xl font-semibold text-charcoal dark:text-white tracking-tight leading-[0.8] mb-10">
                 Unit{" "}
                 <span className="text-slate-200 dark:text-white/20">
                   {slot.unit_id}
@@ -299,11 +299,11 @@ export default function SpaceDetailModal({
                 <div className="group bg-slate-50 dark:bg-white/5 p-4 sm:p-6 rounded-2xl sm:rounded-4xl border border-slate-100 dark:border-white/10 hover:border-primary/20 dark:hover:border-white/20 transition-all duration-500 shadow-inner">
                   <div className="flex items-center gap-3 text-slate-400 dark:text-white/40 mb-2 sm:mb-3 group-hover:text-primary transition-colors">
                     <Ruler size={16} className="sm:w-4.5 sm:h-4.5" />
-                    <span className="text-[8px] sm:text-[9px] uppercase font-black tracking-[0.2em]">
+                    <span className="text-xs font-semibold">
                       Scale / Area
                     </span>
                   </div>
-                  <p className="text-2xl sm:text-3xl font-black text-charcoal dark:text-white tracking-tight">
+                  <p className="text-2xl sm:text-3xl font-semibold text-charcoal dark:text-white tracking-tight">
                     {slot.sqm_size}{" "}
                     <span className="text-xs sm:text-sm font-bold text-slate-300 dark:text-white/20">
                       SQM
@@ -314,12 +314,12 @@ export default function SpaceDetailModal({
                 <div className="group bg-slate-50 dark:bg-white/5 p-4 sm:p-6 rounded-2xl sm:rounded-4xl border border-slate-100 dark:border-white/10 hover:border-emerald-500/20 dark:hover:border-white/20 transition-all duration-500 shadow-inner">
                   <div className="flex items-center gap-3 text-slate-400 dark:text-white/40 mb-2 sm:mb-3 group-hover:text-emerald-500 transition-colors">
                     <CreditCard size={16} className="sm:w-4.5 sm:h-4.5" />
-                    <span className="text-[8px] sm:text-[9px] uppercase font-black tracking-[0.2em]">
+                    <span className="text-xs font-semibold">
                       Rent
                     </span>
                   </div>
                   {/* Rent is private — quoted by the leasing team, never shown publicly. */}
-                  <p className="text-lg sm:text-xl font-black text-charcoal dark:text-white tracking-tight">
+                  <p className="text-lg sm:text-xl font-semibold text-charcoal dark:text-white tracking-tight">
                     On request
                   </p>
                   <p className="text-[11px] text-slate-400 mt-1">Ask the leasing team for a quote.</p>
@@ -328,7 +328,7 @@ export default function SpaceDetailModal({
             </div>
 
             <div className="space-y-6 pt-10 border-t border-slate-100 dark:border-white/5">
-              <h4 className="text-[10px] font-black text-slate-300 dark:text-white/30 uppercase tracking-[0.4em]">
+              <h4 className="text-xs font-semibold text-slate-300 dark:text-white/30">
                 Integrated Features
               </h4>
               <ul className="space-y-4">
@@ -354,7 +354,7 @@ export default function SpaceDetailModal({
                       <Store size={18} />
                     </span>
                     <div className="min-w-0">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400">
+                      <p className="text-xs font-semibold text-amber-600 dark:text-amber-400">
                         Cannot reserve — already a tenant
                       </p>
                       <p className="mt-1 text-xs font-medium leading-relaxed text-slate-600 dark:text-slate-300">
@@ -369,14 +369,14 @@ export default function SpaceDetailModal({
                   <button
                     onClick={handleReservation}
                     disabled={isReserving}
-                    className="w-full py-6 bg-charcoal dark:bg-white text-white dark:text-black hover:bg-primary dark:hover:bg-primary dark:hover:text-white font-black rounded-2xl transition-all shadow-xl dark:shadow-[0_20px_40px_-10px_rgba(255,255,255,0.2)] disabled:opacity-50 active:scale-95 uppercase tracking-widest text-xs"
+                    className="w-full py-6 bg-charcoal dark:bg-white text-white dark:text-black hover:bg-primary dark:hover:bg-primary dark:hover:text-white font-semibold rounded-2xl transition-all shadow-xl dark:shadow-[0_20px_40px_-10px_rgba(255,255,255,0.2)] disabled:opacity-50 active:scale-95 text-xs"
                   >
                     Secure Reservation
                   </button>
                 )}
                 <button
                   onClick={handleInquiry}
-                  className="w-full flex items-center justify-center gap-3 py-6 bg-slate-50 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 text-charcoal dark:text-white font-black rounded-2xl transition-all border border-slate-200 dark:border-white/10 group uppercase tracking-widest text-xs"
+                  className="w-full flex items-center justify-center gap-3 py-6 bg-slate-50 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 text-charcoal dark:text-white font-semibold rounded-2xl transition-all border border-slate-200 dark:border-white/10 group text-xs"
                 >
                   <Send
                     size={18}
@@ -393,7 +393,7 @@ export default function SpaceDetailModal({
                     <Clock size={20} />
                   </div>
                   <div className="space-y-1">
-                    <p className="text-sm font-black text-charcoal dark:text-white uppercase tracking-widest">
+                    <p className="text-sm font-semibold text-charcoal dark:text-white">
                       {isMyReservation ? "In process" : "Verification Pending"}
                     </p>
                     <p className="text-[10px] text-slate-500 font-medium max-w-[220px] leading-relaxed italic mx-auto">
@@ -405,7 +405,7 @@ export default function SpaceDetailModal({
                 </div>
               </div>
             )}
-            <p className="text-[8px] text-slate-400 dark:text-white/20 text-center mt-6 uppercase tracking-[0.3em] font-medium leading-loose">
+            <p className="text-xs text-slate-400 dark:text-white/20 text-center mt-6 font-medium leading-loose">
               Lease operations subject to mall administration regulatory
               approval and verification.
             </p>
@@ -431,8 +431,8 @@ export default function SpaceDetailModal({
                   <Clock size={26} />
                 </div>
                 <div>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-amber-500">In process</p>
-                  <h2 className="mt-1 text-xl font-black text-charcoal dark:text-white">Unit {slot.unit_id} is held for you</h2>
+                  <p className="text-xs font-semibold text-amber-500">In process</p>
+                  <h2 className="mt-1 text-xl font-semibold text-charcoal dark:text-white">Unit {slot.unit_id} is held for you</h2>
                 </div>
                 <ReservationStepper current={2} />
                 <p className="text-sm text-slate-600 dark:text-slate-300">
@@ -452,7 +452,7 @@ export default function SpaceDetailModal({
                     setConfirmOpen(false);
                     onClose();
                   }}
-                  className="w-full py-3.5 rounded-xl bg-primary hover:bg-primary-hover text-white text-xs font-black uppercase tracking-widest"
+                  className="w-full py-3.5 rounded-xl bg-primary hover:bg-primary-hover text-white text-xs font-semibold"
                 >
                   Done
                 </button>
@@ -460,8 +460,8 @@ export default function SpaceDetailModal({
             ) : (
             <>
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-primary">Confirm reservation</p>
-              <h2 id="reserve-title" className="mt-1 text-xl font-black text-charcoal dark:text-white">
+              <p className="text-xs font-semibold text-primary">Confirm reservation</p>
+              <h2 id="reserve-title" className="mt-1 text-xl font-semibold text-charcoal dark:text-white">
                 Reserve Unit {slot.unit_id}?
               </h2>
             </div>
@@ -470,19 +470,19 @@ export default function SpaceDetailModal({
 
             <dl className="grid grid-cols-2 gap-3 p-4 rounded-2xl bg-slate-50 dark:bg-zinc-900 border border-slate-100 dark:border-white/5 text-sm">
               <div>
-                <dt className="text-[10px] font-black uppercase tracking-widest text-slate-400">Unit</dt>
+                <dt className="text-xs font-semibold text-slate-400">Unit</dt>
                 <dd className="font-bold text-charcoal dark:text-white">{slot.unit_id}</dd>
               </div>
               <div>
-                <dt className="text-[10px] font-black uppercase tracking-widest text-slate-400">Floor</dt>
+                <dt className="text-xs font-semibold text-slate-400">Floor</dt>
                 <dd className="font-bold text-charcoal dark:text-white capitalize">{slot.floor || "—"}</dd>
               </div>
               <div>
-                <dt className="text-[10px] font-black uppercase tracking-widest text-slate-400">Size</dt>
+                <dt className="text-xs font-semibold text-slate-400">Size</dt>
                 <dd className="font-bold text-charcoal dark:text-white">{slot.sqm_size} sqm</dd>
               </div>
               <div>
-                <dt className="text-[10px] font-black uppercase tracking-widest text-slate-400">Rent</dt>
+                <dt className="text-xs font-semibold text-slate-400">Rent</dt>
                 <dd className="font-bold text-charcoal dark:text-white">On request</dd>
               </div>
             </dl>
@@ -505,7 +505,7 @@ export default function SpaceDetailModal({
             </ul>
 
             <div className="space-y-2">
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+              <p className="text-xs font-semibold text-slate-400">
                 Business permit <span className="text-primary">*</span>
               </p>
               {permit ? (
@@ -515,14 +515,14 @@ export default function SpaceDetailModal({
                     <p className="text-xs font-bold text-charcoal dark:text-white truncate">{permit.name}</p>
                     <p className="text-[10px] text-slate-500">{fileSize(permit.size)} · uploaded</p>
                   </div>
-                  <label className="text-[10px] font-black uppercase tracking-widest text-primary cursor-pointer hover:underline">
+                  <label className="text-xs font-semibold text-primary cursor-pointer hover:underline">
                     Replace
                     <input type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" hidden onChange={uploadPermit} />
                   </label>
                   <button
                     type="button"
                     onClick={() => setPermit(null)}
-                    className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-red-500"
+                    className="text-xs font-semibold text-slate-400 hover:text-red-500"
                   >
                     Remove
                   </button>
@@ -567,7 +567,7 @@ export default function SpaceDetailModal({
                 type="button"
                 onClick={() => setConfirmOpen(false)}
                 disabled={isReserving}
-                className="flex-1 py-3.5 rounded-xl bg-slate-100 dark:bg-zinc-900 text-slate-600 dark:text-slate-300 text-xs font-bold uppercase tracking-widest hover:bg-slate-200 disabled:opacity-50"
+                className="flex-1 py-3.5 rounded-xl bg-slate-100 dark:bg-zinc-900 text-slate-600 dark:text-slate-300 text-xs font-bold hover:bg-slate-200 disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -575,7 +575,7 @@ export default function SpaceDetailModal({
                 type="button"
                 onClick={submitReservation}
                 disabled={!agreed || !permit || uploadingPermit || isReserving || status !== "AVAILABLE"}
-                className="flex-1 py-3.5 rounded-xl bg-primary hover:bg-primary-hover text-white text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 disabled:opacity-50"
+                className="flex-1 py-3.5 rounded-xl bg-primary hover:bg-primary-hover text-white text-xs font-semibold flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 {isReserving && <Loader2 size={14} className="animate-spin" />}
                 {isReserving ? "Reserving…" : "Confirm reservation"}

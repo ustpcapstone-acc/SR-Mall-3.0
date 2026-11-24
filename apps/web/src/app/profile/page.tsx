@@ -67,7 +67,7 @@ function FavoritesCard({ userId }: { userId: string }) {
         <div className="py-10 text-center space-y-3">
           <Heart className="mx-auto text-slate-300" size={32} />
           <p className="text-sm text-slate-500">No favourites yet. Tap the heart on any shop to save it here.</p>
-          <Link href="/tenant-directory" className="inline-flex text-xs font-black uppercase tracking-widest text-primary hover:underline">
+          <Link href="/tenant-directory" className="inline-flex text-xs font-semibold text-primary hover:underline">
             Browse the mall directory →
           </Link>
         </div>
@@ -76,7 +76,7 @@ function FavoritesCard({ userId }: { userId: string }) {
           {favorites.map((s) => (
             <li key={s.id} className="flex items-center gap-3 p-3 rounded-2xl border border-slate-100 dark:border-white/5">
               <Link href={`/shop/${s.id}`} className="flex items-center gap-3 flex-1 min-w-0 group">
-                <span className="w-12 h-12 rounded-xl bg-primary/10 text-primary overflow-hidden flex items-center justify-center font-black shrink-0">
+                <span className="w-12 h-12 rounded-xl bg-primary/10 text-primary overflow-hidden flex items-center justify-center font-semibold shrink-0">
                   {s.logo_url ? <img src={s.logo_url} alt="" className="w-full h-full object-cover" /> : <Store size={18} />}
                 </span>
                 <span className="min-w-0">

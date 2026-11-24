@@ -94,7 +94,7 @@ export default function ProductPage() {
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 sm:pt-28 pb-16 space-y-6">
         {/* Breadcrumb */}
-        <nav className="flex items-center gap-1.5 text-[11px] font-bold text-slate-400 uppercase tracking-widest min-w-0">
+        <nav className="flex items-center gap-1.5 text-xs font-bold text-slate-400 min-w-0">
           <button onClick={() => router.back()} className="inline-flex items-center gap-1 hover:text-primary shrink-0">
             <ArrowLeft size={13} /> Back
           </button>
@@ -111,9 +111,9 @@ export default function ProductPage() {
         {error ? (
           <div className="py-24 text-center space-y-4 bg-white dark:bg-zinc-900 rounded-4xl border border-slate-100 dark:border-white/5">
             <ShoppingBag size={48} className="mx-auto text-slate-300" />
-            <p className="text-lg font-black text-charcoal dark:text-white">{error}</p>
+            <p className="text-lg font-semibold text-charcoal dark:text-white">{error}</p>
             <p className="text-sm text-slate-500">It may have been removed or hidden by the shop.</p>
-            <Link href="/products" className="inline-flex px-6 py-3 rounded-xl bg-primary text-white text-xs font-black uppercase tracking-widest">
+            <Link href="/products" className="inline-flex px-6 py-3 rounded-xl bg-primary text-white text-xs font-semibold">
               Browse products
             </Link>
           </div>
@@ -135,7 +135,7 @@ export default function ProductPage() {
                   </div>
                 )}
                 {out && (
-                  <span className="absolute top-4 left-4 px-3 py-1.5 rounded-xl bg-black/70 text-white text-[10px] font-black uppercase tracking-widest">
+                  <span className="absolute top-4 left-4 px-3 py-1.5 rounded-xl bg-black/70 text-white text-xs font-semibold">
                     Out of stock
                   </span>
                 )}
@@ -144,11 +144,11 @@ export default function ProductPage() {
               <div className="flex flex-col gap-5 py-1">
                 <div className="space-y-2">
                   {p.category && (
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold">
                       <Tag size={10} /> {p.category}
                     </span>
                   )}
-                  <h1 className="text-2xl sm:text-3xl font-black text-charcoal dark:text-white leading-tight wrap-break-word">{p.name}</h1>
+                  <h1 className="text-2xl sm:text-3xl font-semibold text-charcoal dark:text-white leading-tight wrap-break-word">{p.name}</h1>
                   {shop.reviewCount > 0 && (
                     <p className="flex items-center gap-1.5 text-xs text-slate-500">
                       <Star size={13} className="fill-amber-400 text-amber-400" />
@@ -159,12 +159,12 @@ export default function ProductPage() {
                 </div>
 
                 <div className="px-5 py-4 rounded-2xl bg-slate-50 dark:bg-zinc-800/60">
-                  <p className="text-3xl sm:text-4xl font-black text-primary">{p.price || "Ask for price"}</p>
+                  <p className="text-3xl sm:text-4xl font-semibold text-primary">{p.price || "Ask for price"}</p>
                 </div>
 
                 <dl className="grid grid-cols-[7rem_1fr] gap-y-3 text-sm">
                   <dt className="text-slate-400 font-bold">Availability</dt>
-                  <dd className={clsx("font-black flex items-center gap-1.5", out ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400")}>
+                  <dd className={clsx("font-semibold flex items-center gap-1.5", out ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400")}>
                     <Package size={15} /> {availabilityLabel(p)}
                   </dd>
                   <dt className="text-slate-400 font-bold">Sold by</dt>
@@ -180,7 +180,7 @@ export default function ProductPage() {
                   <button
                     onClick={inquire}
                     disabled={inquiring}
-                    className="flex-1 inline-flex items-center justify-center gap-2 py-4 rounded-2xl bg-primary text-white text-xs font-black uppercase tracking-widest shadow-lg shadow-primary/20 hover:bg-primary/90 disabled:opacity-60"
+                    className="flex-1 inline-flex items-center justify-center gap-2 py-4 rounded-2xl bg-primary text-white text-xs font-semibold shadow-lg shadow-primary/20 hover:bg-primary/90 disabled:opacity-60"
                   >
                     {inquiring ? <Loader2 size={16} className="animate-spin" /> : <MessageCircle size={16} />}
                     {out ? "Ask about restock" : "Inquire availability"}
@@ -198,14 +198,14 @@ export default function ProductPage() {
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={shop.logoUrl} alt={shop.name} className="w-full h-full object-cover" />
                     ) : (
-                      <span className="text-lg font-black text-slate-400">{shop.name.slice(0, 2).toUpperCase()}</span>
+                      <span className="text-lg font-semibold text-slate-400">{shop.name.slice(0, 2).toUpperCase()}</span>
                     )}
                   </div>
                   <div className="min-w-0 space-y-1.5">
-                    <p className="font-black text-charcoal dark:text-white truncate">{shop.name}</p>
+                    <p className="font-semibold text-charcoal dark:text-white truncate">{shop.name}</p>
                     <span
                       className={clsx(
-                        "inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest",
+                        "inline-flex items-center gap-1.5 text-xs font-semibold",
                         shop.isOpen ? "text-emerald-600 dark:text-emerald-400" : "text-slate-400",
                       )}
                     >
@@ -215,13 +215,13 @@ export default function ProductPage() {
                     <div className="flex gap-2">
                       <button
                         onClick={openChatOnly}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-primary/30 text-primary text-[10px] font-black uppercase tracking-widest hover:bg-primary/5"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-primary/30 text-primary text-xs font-semibold hover:bg-primary/5"
                       >
                         <MessageCircle size={12} /> Chat
                       </button>
                       <Link
                         href={`/shop/${shop.id}`}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 text-[10px] font-black uppercase tracking-widest hover:border-primary hover:text-primary"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 text-xs font-semibold hover:border-primary hover:text-primary"
                       >
                         <Store size={12} /> View shop
                       </Link>
@@ -231,26 +231,26 @@ export default function ProductPage() {
 
                 <dl className="grid grid-cols-2 sm:grid-cols-4 gap-4 flex-1 text-sm">
                   <div>
-                    <dt className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1"><Star size={11} /> Rating</dt>
-                    <dd className="mt-1 font-black text-primary">
+                    <dt className="text-xs font-semibold text-slate-400 flex items-center gap-1"><Star size={11} /> Rating</dt>
+                    <dd className="mt-1 font-semibold text-primary">
                       {shop.reviewCount > 0 ? `${shop.avgRating.toFixed(1)} (${shop.reviewCount})` : "No reviews yet"}
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1"><ShoppingBag size={11} /> Products</dt>
-                    <dd className="mt-1 font-black text-primary">{shop.productCount}</dd>
+                    <dt className="text-xs font-semibold text-slate-400 flex items-center gap-1"><ShoppingBag size={11} /> Products</dt>
+                    <dd className="mt-1 font-semibold text-primary">{shop.productCount}</dd>
                   </div>
                   <div>
-                    <dt className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1"><MapPin size={11} /> Location</dt>
-                    <dd className="mt-1 font-black text-primary">
+                    <dt className="text-xs font-semibold text-slate-400 flex items-center gap-1"><MapPin size={11} /> Location</dt>
+                    <dd className="mt-1 font-semibold text-primary">
                       Unit {shop.unitId}
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1">
+                    <dt className="text-xs font-semibold text-slate-400 flex items-center gap-1">
                       {shop.openingHours ? <Clock size={11} /> : <CalendarDays size={11} />} {shop.openingHours ? "Hours" : "Joined"}
                     </dt>
-                    <dd className="mt-1 font-black text-primary truncate">
+                    <dd className="mt-1 font-semibold text-primary truncate">
                       {shop.openingHours ||
                         new Date(shop.joinedAt).toLocaleDateString("en-US", { month: "short", year: "numeric" })}
                     </dd>
@@ -261,7 +261,7 @@ export default function ProductPage() {
 
             {/* Details */}
             <section className="p-5 sm:p-6 bg-white dark:bg-zinc-900 rounded-4xl border border-slate-100 dark:border-white/5 shadow-xs space-y-3">
-              <h2 className="text-xs font-black uppercase tracking-widest text-slate-400">Product details</h2>
+              <h2 className="text-xs font-semibold text-slate-400">Product details</h2>
               <dl className="grid grid-cols-[7rem_1fr] gap-y-2 text-sm">
                 <dt className="text-slate-400 font-bold">Category</dt>
                 <dd className="font-bold text-charcoal dark:text-white">{p.category || "—"}</dd>
@@ -277,8 +277,8 @@ export default function ProductPage() {
             {data.moreFromShop.length > 0 && (
               <section className="space-y-4">
                 <div className="flex items-end justify-between">
-                  <h2 className="text-lg font-black text-charcoal dark:text-white">More from {shop.name}</h2>
-                  <Link href={`/shop/${shop.id}`} className="text-[11px] font-black uppercase tracking-widest text-primary hover:underline">
+                  <h2 className="text-lg font-semibold text-charcoal dark:text-white">More from {shop.name}</h2>
+                  <Link href={`/shop/${shop.id}`} className="text-xs font-semibold text-primary hover:underline">
                     See all
                   </Link>
                 </div>

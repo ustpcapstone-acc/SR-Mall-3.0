@@ -711,7 +711,7 @@ export const ChatBox = ({
                 <ArrowLeft size={20} />
               </button>
             )}
-            <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center overflow-hidden font-black text-lg shrink-0">
+            <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center overflow-hidden font-semibold text-lg shrink-0">
               {viewMode === "chat" ? (
                 recipient === "admin" ? (
                   <Building2 size={20} />
@@ -740,7 +740,7 @@ export const ChatBox = ({
                     ? `Hi, ${(user?.name || "there").split(" ")[0]} 👋`
                     : "SR Mall Messages"}
               </h3>
-              <span className="text-[10px] font-bold text-white/80 uppercase tracking-widest truncate">
+              <span className="text-xs font-bold text-white/80 truncate">
                 {viewMode === "chat"
                   ? recipient === "admin"
                     ? "Replies within 12–24 hours"
@@ -802,7 +802,7 @@ export const ChatBox = ({
                     {/* Recent chats (Mall Administration is always offered first) */}
                     {(recent.length > 0 || showAdminStarter) && (
                       <section className="space-y-2">
-                        <h4 className="px-1 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Recent chats</h4>
+                        <h4 className="px-1 text-xs font-semibold text-slate-400">Recent chats</h4>
                         {showAdminStarter && (
                           <button
                             type="button"
@@ -835,7 +835,7 @@ export const ChatBox = ({
                               {row.kind === "admin" ? <AdminAvatar /> : <ShopAvatar name={row.name} logo={row.logo} />}
                               <span className="flex-1 min-w-0">
                                 <span className="flex items-center justify-between gap-2">
-                                  <span className={`text-sm text-charcoal dark:text-white truncate ${unread ? "font-black" : "font-bold"}`}>
+                                  <span className={`text-sm text-charcoal dark:text-white truncate ${unread ? "font-semibold" : "font-bold"}`}>
                                     {row.name}
                                   </span>
                                   <span className={`text-[10px] font-bold shrink-0 ${unread ? "text-primary" : "text-slate-400"}`}>
@@ -848,7 +848,7 @@ export const ChatBox = ({
                                     {row.lastMessage || "Photo"}
                                   </span>
                                   {unread && (
-                                    <span className="min-w-5 h-5 px-1.5 rounded-full bg-primary text-white text-[10px] font-black flex items-center justify-center shrink-0">
+                                    <span className="min-w-5 h-5 px-1.5 rounded-full bg-primary text-white text-[10px] font-semibold flex items-center justify-center shrink-0">
                                       {row.unread > 9 ? "9+" : row.unread}
                                     </span>
                                   )}
@@ -863,7 +863,7 @@ export const ChatBox = ({
                     {/* Everyone else you can message */}
                     {otherShops.length > 0 && (
                       <section className="space-y-2">
-                        <h4 className="px-1 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">All shops</h4>
+                        <h4 className="px-1 text-xs font-semibold text-slate-400">All shops</h4>
                         {otherShops.map((shop) => (
                           <button
                             key={shop.id || shop.name}
@@ -905,7 +905,7 @@ export const ChatBox = ({
                 <button
                   type="button"
                   onClick={() => setIsLoginModalOpen(true)}
-                  className="px-8 py-3 bg-primary text-white font-bold tracking-widest text-xs uppercase rounded-xl shadow-lg hover:bg-primary-hover hover:scale-105 transition-all"
+                  className="px-8 py-3 bg-primary text-white font-bold text-xs rounded-xl shadow-lg hover:bg-primary-hover hover:scale-105 transition-all"
                 >
                   Sign In
                 </button>
@@ -1006,7 +1006,7 @@ export const ChatBox = ({
                           {msg.content && <span>{msg.content}</span>}
                         </div>
                       </div>
-                      <div className="mt-1 px-2 text-[9px] font-bold uppercase tracking-widest text-slate-400">
+                      <div className="mt-1 px-2 text-xs font-bold text-slate-400">
                         {isTemporary && msg.failed ? (
                           <button
                             type="button"
@@ -1031,7 +1031,7 @@ export const ChatBox = ({
                             className="w-full h-full object-cover"
                           />
                         ) : (
-                          <span className="text-[10px] font-bold text-slate-500 uppercase">
+                          <span className="text-xs font-bold text-slate-500">
                             {(senderName || "ME").substring(0, 2).toUpperCase()}
                           </span>
                         )}
@@ -1076,7 +1076,7 @@ export const ChatBox = ({
                           ? `Please wait ${cooldownLeft}s before sending another message`
                           : "Send a leasing inquiry to the mall admin"
                       }
-                      className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-green-600 bg-green-50 dark:bg-green-900/20 px-3 py-1.5 rounded-full border border-green-200 dark:border-green-900/50 hover:bg-green-100 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                      className="flex items-center gap-2 text-xs font-bold text-green-600 bg-green-50 dark:bg-green-900/20 px-3 py-1.5 rounded-full border border-green-200 dark:border-green-900/50 hover:bg-green-100 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       <MapPin size={12} />
                       {cooldownLeft > 0
@@ -1181,7 +1181,7 @@ export const ChatBox = ({
               </a>
               <button
                 onClick={() => setLightboxImageUrl(null)}
-                className="px-4 py-2 bg-white text-charcoal rounded-xl text-xs font-black uppercase tracking-wider transition-transform active:scale-95 shadow-lg"
+                className="px-4 py-2 bg-white text-charcoal rounded-xl text-xs font-semibold transition-transform active:scale-95 shadow-lg"
               >
                 Close
               </button>

@@ -40,7 +40,7 @@ function VerifyCodeStep({
         <div className="w-16 h-16 bg-primary/10 text-primary rounded-3xl flex items-center justify-center mb-4 shadow-xs border border-primary/20">
           <KeyRound size={32} />
         </div>
-        <h1 className="text-2xl font-black text-charcoal dark:text-white uppercase tracking-tight">
+        <h1 className="text-2xl font-semibold text-charcoal dark:text-white tracking-tight">
           Enter Recovery Code
         </h1>
         <p className="text-sm text-slate-500 font-medium mt-2 text-center">
@@ -59,7 +59,7 @@ function VerifyCodeStep({
 
       {/* Code input */}
       <div className="space-y-2 mb-6">
-        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">
+        <label className="text-xs font-semibold text-slate-500 px-1">
           6-Digit Recovery Code
         </label>
         <input
@@ -73,7 +73,7 @@ function VerifyCodeStep({
             if (error) setError(null);
           }}
           placeholder="_ _ _ _ _ _"
-          className="w-full px-5 py-5 bg-slate-50 dark:bg-zinc-800 rounded-2xl border-2 border-transparent focus:border-primary outline-hidden transition-all text-2xl font-black text-charcoal dark:text-white tracking-[0.7em] text-center placeholder:tracking-normal placeholder:text-slate-300 dark:placeholder:text-zinc-600 placeholder:text-base"
+          className="w-full px-5 py-5 bg-slate-50 dark:bg-zinc-800 rounded-2xl border-2 border-transparent focus:border-primary outline-hidden transition-all text-2xl font-semibold text-charcoal dark:text-white text-center placeholder:tracking-normal placeholder:text-slate-300 dark:placeholder:text-zinc-600 placeholder:text-base"
         />
       </div>
 
@@ -142,7 +142,7 @@ function SetPasswordStep({
           <CheckCircle2 size={40} />
         </div>
         <div>
-          <h2 className="text-2xl font-black text-charcoal dark:text-white mb-2">Password Secured!</h2>
+          <h2 className="text-2xl font-semibold text-charcoal dark:text-white mb-2">Password Secured!</h2>
           <p className="text-sm text-slate-500 font-medium">
             Your password has been updated. Redirecting you to login...
           </p>
@@ -162,7 +162,7 @@ function SetPasswordStep({
           <div className="w-2 h-2 rounded-full bg-green-500" />
           <span className="text-xs font-bold text-green-600 dark:text-green-400">Code Verified</span>
         </div>
-        <h1 className="text-2xl font-black text-charcoal dark:text-white uppercase tracking-tight">
+        <h1 className="text-2xl font-semibold text-charcoal dark:text-white tracking-tight">
           Set New Password
         </h1>
         <p className="text-sm text-slate-500 font-medium mt-2">Enter and confirm your new password.</p>
@@ -179,7 +179,7 @@ function SetPasswordStep({
       <div className="space-y-4 mb-6">
         {/* New Password */}
         <div className="space-y-2">
-          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">
+          <label className="text-xs font-semibold text-slate-500 px-1">
             New Password
           </label>
           <div className="relative">
@@ -206,7 +206,7 @@ function SetPasswordStep({
 
         {/* Confirm Password */}
         <div className="space-y-2">
-          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">
+          <label className="text-xs font-semibold text-slate-500 px-1">
             Confirm Password
           </label>
           <div className="relative">

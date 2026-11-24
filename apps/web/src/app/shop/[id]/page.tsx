@@ -265,7 +265,7 @@ export default function ShopProfilePage() {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center space-y-6 bg-[#FAF7F3] dark:bg-zinc-950">
         <Loader2 className="h-12 w-12 animate-spin text-[#C51D30]" />
-        <p className="animate-pulse text-[10px] font-bold uppercase tracking-[0.3em] text-[#A79E98]">
+        <p className="animate-pulse text-xs font-bold text-[#A79E98]">
           Consulting Mall Concierge...
         </p>
       </div>
@@ -278,7 +278,7 @@ export default function ShopProfilePage() {
         <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-[#C51D30]/10 text-[#C51D30]">
           <AlertTriangle size={40} />
         </div>
-        <h2 className="mb-3 text-3xl font-black uppercase tracking-tight text-[#21191B] dark:text-white">
+        <h2 className="mb-3 text-3xl font-semibold tracking-tight text-[#21191B] dark:text-white">
           Slot Vacant
         </h2>
         <p className="mb-8 max-w-sm font-medium text-[#70656A] dark:text-slate-400">
@@ -286,7 +286,7 @@ export default function ShopProfilePage() {
         </p>
         <button
           onClick={() => router.back()}
-          className="flex items-center gap-2 rounded-full bg-[#C51D30] px-7 py-3.5 text-xs font-bold uppercase tracking-[0.16em] text-white shadow-lg shadow-[#C51D30]/25 transition-all hover:bg-[#A8172A] hover:shadow-xl active:scale-95"
+          className="flex items-center gap-2 rounded-full bg-[#C51D30] px-7 py-3.5 text-xs font-bold text-white shadow-lg shadow-[#C51D30]/25 transition-all hover:bg-[#A8172A] hover:shadow-xl active:scale-95"
         >
           <ArrowLeft size={16} /> Return to Directory
         </button>
@@ -407,7 +407,7 @@ export default function ShopProfilePage() {
               <ArrowLeft size={17} />
             </button>
             <div className="min-w-0">
-              <p className="text-[9px] font-semibold uppercase tracking-[0.22em] text-[#A79E98]">
+              <p className="text-xs font-semibold text-[#A79E98]">
                 Now visiting
               </p>
               <p className="truncate text-sm font-bold text-[#21191B] dark:text-white">
@@ -485,14 +485,14 @@ export default function ShopProfilePage() {
               {/* Status + photo counter */}
               <div className="absolute right-4 top-4 z-20 flex items-center gap-2">
                 {galleryUrls.length > 0 && (
-                  <span className="rounded-full border border-white/15 bg-black/35 px-2.5 py-1.5 text-[9px] font-bold uppercase tracking-[0.14em] text-white backdrop-blur-md">
+                  <span className="rounded-full border border-white/15 bg-black/35 px-2.5 py-1.5 text-xs font-bold text-white backdrop-blur-md">
                     {(coverIndex + 1).toString().padStart(2, "0")} /{" "}
                     {galleryUrls.length.toString().padStart(2, "0")}
                   </span>
                 )}
                 <span
                   className={clsx(
-                    "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[9px] font-bold uppercase tracking-[0.14em] shadow-lg backdrop-blur-md",
+                    "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-bold shadow-lg backdrop-blur-md",
                     shop.is_open
                       ? "border-emerald-400/30 bg-emerald-500/85 text-white"
                       : "border-white/15 bg-black/45 text-slate-200",
@@ -550,11 +550,11 @@ export default function ShopProfilePage() {
                     />
                   </div>
                   <div className="min-w-0 pb-0.5">
-                    <h1 className="text-2xl font-black leading-tight tracking-tight text-white sm:text-3xl lg:text-4xl">
+                    <h1 className="text-2xl font-semibold leading-tight tracking-tight text-white sm:text-3xl lg:text-4xl">
                       {shop.shop_name}
                     </h1>
                     {shop.category && (
-                      <p className="mt-1.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/70">
+                      <p className="mt-1.5 text-xs font-semibold text-white/70">
                         {shop.category}
                       </p>
                     )}
@@ -573,7 +573,7 @@ export default function ShopProfilePage() {
 
             {/* Shop information */}
             <div className="flex flex-col p-5 sm:p-6 lg:p-7">
-              <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#C51D30]">
+              <p className="text-xs font-bold text-[#C51D30]">
                 Shop information
               </p>
               <p className="mt-1 text-[13px] font-medium text-[#70656A] dark:text-slate-400">
@@ -592,7 +592,7 @@ export default function ShopProfilePage() {
                       <item.icon size={15} />
                     </span>
                     <div className="min-w-0">
-                      <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-[#A79E98]">
+                      <p className="text-xs font-bold text-[#A79E98]">
                         {item.label}
                       </p>
                       <div className="mt-0.5 truncate text-[12.5px] font-semibold text-[#21191B] dark:text-slate-200">
@@ -606,7 +606,7 @@ export default function ShopProfilePage() {
               {shop.description && (
                 <div className="mt-auto pt-4">
                   <div className="border-t border-[#F0EAE4] pt-4 dark:border-white/10">
-                    <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#A79E98]">
+                    <p className="text-xs font-bold text-[#A79E98]">
                       About
                     </p>
                     <p className="mt-1.5 line-clamp-3 whitespace-pre-line text-[12.5px] leading-relaxed text-[#70656A] dark:text-slate-400">
@@ -722,7 +722,7 @@ export default function ShopProfilePage() {
                 {/* Predictive matches (existing behaviour) */}
                 {productSearch.trim() && (
                   <div className="absolute left-0 right-0 top-full z-30 mt-2 overflow-hidden rounded-2xl border border-[#E8E2DE] bg-white shadow-2xl dark:border-white/10 dark:bg-zinc-900">
-                    <div className="border-b border-[#F0EAE4] px-4 py-2.5 text-[9px] font-bold uppercase tracking-[0.18em] text-[#A79E98] dark:border-white/10">
+                    <div className="border-b border-[#F0EAE4] px-4 py-2.5 text-xs font-bold text-[#A79E98] dark:border-white/10">
                       Matching products
                     </div>
                     <div className="max-h-72 overflow-y-auto">
@@ -882,7 +882,7 @@ export default function ShopProfilePage() {
                         <>
                           <div className="absolute inset-0 bg-black/40" />
                           <span className="absolute inset-0 flex items-center justify-center p-3 text-center">
-                            <span className="rounded-full border border-white/20 bg-black/75 px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-white">
+                            <span className="rounded-full border border-white/20 bg-black/75 px-4 py-1.5 text-xs font-bold text-white">
                               Sold out
                             </span>
                           </span>
@@ -892,7 +892,7 @@ export default function ShopProfilePage() {
 
                     <div className="flex flex-1 flex-col p-3 sm:p-3.5">
                       {product.category && (
-                        <span className="mb-1.5 inline-flex w-fit rounded-full bg-[#C51D30]/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.08em] text-[#C51D30]">
+                        <span className="mb-1.5 inline-flex w-fit rounded-full bg-[#C51D30]/10 px-2 py-0.5 text-xs font-bold text-[#C51D30]">
                           {product.category}
                         </span>
                       )}
@@ -916,7 +916,7 @@ export default function ShopProfilePage() {
                         )}
                         <span
                           className={clsx(
-                            "shrink-0 text-[9.5px] font-semibold",
+                            "shrink-0 text-xs font-semibold",
                             soldOut ? "text-[#A79E98]" : "text-emerald-600",
                           )}
                         >
@@ -945,7 +945,7 @@ export default function ShopProfilePage() {
         <div className={activeTab === "about" ? "block" : "hidden"}>
           <div className="mt-4 grid items-start gap-4 lg:grid-cols-[minmax(0,1.55fr)_minmax(0,0.75fr)]">
             <div className="rounded-2xl border border-[#E8E2DE] bg-white p-5 shadow-xs dark:border-white/10 dark:bg-zinc-900 sm:p-7">
-              <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#C51D30]">
+              <p className="text-xs font-bold text-[#C51D30]">
                 About the shop
               </p>
               <h2 className="mt-2 text-2xl font-bold tracking-tight text-[#21191B] dark:text-white">
@@ -963,7 +963,7 @@ export default function ShopProfilePage() {
             </div>
 
             <aside className="rounded-2xl border border-[#E8E2DE] bg-white p-5 shadow-xs dark:border-white/10 dark:bg-zinc-900 sm:p-6">
-              <h3 className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#A79E98]">
+              <h3 className="text-xs font-bold text-[#A79E98]">
                 Shop details
               </h3>
               <div className="mt-4 space-y-3">
@@ -973,7 +973,7 @@ export default function ShopProfilePage() {
                       <item.icon size={14} />
                     </span>
                     <div className="min-w-0">
-                      <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-[#A79E98]">
+                      <p className="text-xs font-bold text-[#A79E98]">
                         {item.label}
                       </p>
                       <div className="mt-0.5 wrap-break-word text-[12.5px] font-semibold text-[#21191B] dark:text-slate-200">
@@ -1006,10 +1006,10 @@ export default function ShopProfilePage() {
             {activeSales.length > 0 && (
               <section>
                 <div className="mb-3 flex items-center gap-2">
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[#C51D30]/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-[#C51D30]">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[#C51D30]/10 px-3 py-1 text-xs font-bold text-[#C51D30]">
                     <Flame size={12} /> Sales
                   </span>
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#A79E98]">
+                  <span className="text-xs font-semibold text-[#A79E98]">
                     {activeSales.length} running now
                   </span>
                 </div>
@@ -1033,7 +1033,7 @@ export default function ShopProfilePage() {
                             <Tag size={34} />
                           </div>
                         )}
-                        <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-[#C51D30] px-3 py-1 text-[9px] font-bold uppercase tracking-[0.16em] text-white shadow-lg shadow-[#C51D30]/30">
+                        <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-[#C51D30] px-3 py-1 text-xs font-bold text-white shadow-lg shadow-[#C51D30]/30">
                           <Flame size={11} fill="currentColor" /> Sale
                         </span>
                       </div>
@@ -1041,7 +1041,7 @@ export default function ShopProfilePage() {
                         <h3 className="text-lg font-bold leading-tight text-[#21191B] dark:text-white sm:text-xl">
                           {sale.title}
                         </h3>
-                        <p className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#8B7F76]">
+                        <p className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#8B7F76]">
                           <CalendarDays size={12} className="text-[#C51D30]" />{" "}
                           Until {formatSaleDate(saleEndsAt(sale))}
                         </p>

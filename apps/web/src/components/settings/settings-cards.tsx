@@ -65,7 +65,7 @@ export function PhotoPicker({
         disabled={busy}
         aria-label={`Change ${label.toLowerCase()}`}
         className={clsx(
-          "relative w-24 h-24 shrink-0 overflow-hidden bg-primary/10 text-primary flex items-center justify-center text-3xl font-black italic group",
+          "relative w-24 h-24 shrink-0 overflow-hidden bg-primary/10 text-primary flex items-center justify-center text-3xl font-semibold group",
           rounded,
         )}
       >
@@ -75,7 +75,7 @@ export function PhotoPicker({
         </span>
       </button>
       <div className="space-y-2">
-        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{label}</p>
+        <p className="text-xs font-semibold text-slate-400">{label}</p>
         <SecondaryButton type="button" onClick={() => input.current?.click()} disabled={busy} className="h-9 px-4">
           {busy ? <Loader2 size={14} className="animate-spin" /> : <Camera size={14} />} Change
         </SecondaryButton>
@@ -285,7 +285,7 @@ export function NotificationsCard({ userId, role }: { userId: string; role: "ADM
             return (
               <div key={groupKey} className="space-y-1">
                 <div className="pb-2 border-b border-slate-100 dark:border-white/5">
-                  <h3 className="text-[11px] font-black uppercase tracking-widest text-primary">
+                  <h3 className="text-xs font-semibold text-primary">
                     {NOTIFICATION_GROUPS[groupKey].label}
                   </h3>
                   <p className="text-xs text-slate-400">{NOTIFICATION_GROUPS[groupKey].hint}</p>
@@ -310,7 +310,7 @@ export function NotificationsCard({ userId, role }: { userId: string; role: "ADM
                               onClick={() => toggleChannel(item.type, ch, channels)}
                               aria-pressed={channels.includes(ch)}
                               className={clsx(
-                                "px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-colors disabled:opacity-40",
+                                "px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors disabled:opacity-40",
                                 channels.includes(ch) && enabled
                                   ? "bg-primary/10 border-primary/40 text-primary"
                                   : "border-slate-200 dark:border-white/10 text-slate-400",
@@ -323,7 +323,7 @@ export function NotificationsCard({ userId, role }: { userId: string; role: "ADM
                             type="button"
                             onClick={() => test(item.type)}
                             disabled={!enabled}
-                            className="px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border border-slate-200 dark:border-white/10 text-slate-400 hover:text-primary disabled:opacity-40"
+                            className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-200 dark:border-white/10 text-slate-400 hover:text-primary disabled:opacity-40"
                           >
                             Test
                           </button>
@@ -412,7 +412,7 @@ export function DeleteAccountCard({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-2 h-11 px-5 rounded-xl bg-red-500/10 text-red-600 text-[11px] font-black uppercase tracking-widest hover:bg-red-600 hover:text-white transition-colors"
+        className="inline-flex items-center gap-2 h-11 px-5 rounded-xl bg-red-500/10 text-red-600 text-xs font-semibold hover:bg-red-600 hover:text-white transition-colors"
       >
         <Trash2 size={14} /> Delete my account
       </button>
@@ -426,7 +426,7 @@ export function DeleteAccountCard({
                 <AlertTriangle size={20} />
               </span>
               <div>
-                <h2 className="text-lg font-black text-charcoal dark:text-white">Delete your account?</h2>
+                <h2 className="text-lg font-semibold text-charcoal dark:text-white">Delete your account?</h2>
                 <p className="text-sm text-slate-500">This permanently removes your account. It can&apos;t be undone.</p>
               </div>
             </div>
@@ -447,7 +447,7 @@ export function DeleteAccountCard({
                 type="button"
                 onClick={confirmDelete}
                 disabled={busy || (hasPassword ? !password : typed !== "DELETE")}
-                className="flex-1 inline-flex items-center justify-center gap-2 h-11 rounded-xl bg-red-600 hover:bg-red-700 text-white text-[11px] font-black uppercase tracking-widest disabled:opacity-50"
+                className="flex-1 inline-flex items-center justify-center gap-2 h-11 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-semibold disabled:opacity-50"
               >
                 {busy ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />} Delete
               </button>

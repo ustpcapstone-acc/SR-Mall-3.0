@@ -183,11 +183,11 @@ export const EventInquiryForm = ({
       <div className="grid grid-cols-1 items-start gap-10 lg:grid-cols-[minmax(0,11fr)_minmax(0,13fr)] lg:gap-10 xl:gap-12">
         {/* ── Left: venue information ───────────────────────────────────── */}
         <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[#C51D30]">
+          <p className="text-xs font-bold text-[#C51D30]">
             {eyebrowText}
           </p>
 
-          <h2 className="mt-3 whitespace-pre-line text-[2.75rem] font-black leading-[1.05] tracking-tight text-[#21191B] dark:text-white sm:text-[3.35rem] lg:text-[3.15rem] xl:text-[3.4rem]">
+          <h2 className="mt-3 whitespace-pre-line font-display text-[2.75rem] font-semibold leading-[1.05] tracking-tight text-[#21191B] dark:text-white sm:text-[3.35rem] lg:text-[3.15rem] xl:text-[3.4rem]">
             {renderEmphasis(headingText)}
           </h2>
 

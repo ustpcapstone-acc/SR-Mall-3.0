@@ -149,14 +149,14 @@ export default function LostAndFoundPage() {
             <div className="space-y-2">
               <Link
                 href="/"
-                className="inline-flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-widest hover:gap-3 transition-all"
+                className="inline-flex items-center gap-2 text-primary font-bold text-xs hover:gap-3 transition-all"
               >
                 <ArrowLeft size={14} /> Back to Mall
               </Link>
-              <h1 className="text-4xl sm:text-6xl font-black text-charcoal dark:text-white tracking-tighter uppercase leading-none">
+              <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-semibold text-charcoal dark:text-white tracking-tight leading-[1.05]">
                 Lost &{" "}
-                <span className="text-slate-300 dark:text-zinc-800">
-                  Found.
+                <span className="text-slate-500 dark:text-slate-400">
+                  Found
                 </span>
               </h1>
               <p className="text-sm sm:text-lg text-slate-500 font-medium max-w-lg">
@@ -166,11 +166,11 @@ export default function LostAndFoundPage() {
 
             <div className="flex items-center gap-4">
               <div className="text-right hidden sm:block">
-                <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-1">
+                <p className="text-xs font-semibold text-primary mb-1">
                   Mall Services
                 </p>
                 <div className="px-5 py-2 bg-primary/5 border border-primary/20 rounded-xl">
-                  <p className="text-xs font-black text-primary uppercase tracking-widest italic">
+                  <p className="text-xs font-semibold text-primary">
                     Assistance Desk
                   </p>
                 </div>
@@ -184,7 +184,7 @@ export default function LostAndFoundPage() {
               <div className="bg-white dark:bg-zinc-900 rounded-[2.5rem] p-8 border border-slate-100 dark:border-white/5 shadow-xl shadow-slate-200/50 dark:shadow-none relative overflow-hidden group">
                 <div className="relative z-10 flex flex-col items-center">
                   <div className="relative mb-6">
-                    <div className="w-24 h-24 rounded-full bg-primary text-white flex items-center justify-center font-black text-3xl shadow-2xl shadow-primary/30 ring-4 ring-primary/10 overflow-hidden relative">
+                    <div className="w-24 h-24 rounded-full bg-primary text-white flex items-center justify-center font-semibold text-3xl shadow-2xl shadow-primary/30 ring-4 ring-primary/10 overflow-hidden relative">
                       {(user as any)?.avatarUrl ? (
                         <img src={(user as any).avatarUrl} alt="Profile" className="w-full h-full object-cover" />
                       ) : (
@@ -192,16 +192,16 @@ export default function LostAndFoundPage() {
                       )}
                     </div>
                   </div>
-                  <h3 className="text-lg font-black text-charcoal dark:text-white text-center line-clamp-1">
+                  <h3 className="text-lg font-semibold text-charcoal dark:text-white text-center line-clamp-1">
                     {user?.name}
                   </h3>
-                  <p className="text-[10px] font-bold text-slate-400 dark:text-zinc-600 uppercase tracking-widest mt-1 text-center truncate w-full">
+                  <p className="text-xs font-bold text-slate-400 dark:text-zinc-600 mt-1 text-center truncate w-full">
                     {user?.email}
                   </p>
 
                   <div className="mt-6 flex items-center gap-2 px-4 py-1.5 bg-green-50 dark:bg-green-950/30 text-green-600 rounded-full border border-green-100 dark:border-green-900/30">
                     <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
-                    <span className="text-[9px] font-black uppercase tracking-widest">
+                    <span className="text-xs font-semibold">
                       Active Individual
                     </span>
                   </div>
@@ -222,7 +222,7 @@ export default function LostAndFoundPage() {
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id as any)}
                     className={clsx(
-                      "w-full flex items-center gap-4 px-6 py-4 rounded-2xl text-[11px] font-black uppercase tracking-wider transition-all border",
+                      "w-full flex items-center gap-4 px-6 py-4 rounded-2xl text-xs font-semibold transition-all border",
                       activeTab === tab.id
                         ? "bg-primary text-white border-primary shadow-lg shadow-primary/20 scale-105 z-10"
                         : "bg-transparent text-slate-500 dark:text-zinc-500 border-transparent hover:bg-white dark:hover:bg-white/5",
@@ -247,10 +247,10 @@ export default function LostAndFoundPage() {
                   <LogOut size={18} className="group-hover/logout:text-white" />
                 </div>
                 <div className="text-left">
-                  <p className="text-[11px] font-black uppercase tracking-widest leading-none mb-1">
+                  <p className="text-xs font-semibold leading-none mb-1">
                     Sign Out
                   </p>
-                  <p className="text-[9px] font-bold opacity-60 uppercase tracking-tighter">
+                  <p className="text-xs font-bold opacity-60 tracking-tight">
                     Terminate Session
                   </p>
                 </div>
@@ -265,10 +265,10 @@ export default function LostAndFoundPage() {
                     <Store size={18} className="text-white" />
                   </div>
                   <div className="text-left">
-                    <p className="text-[11px] font-black uppercase tracking-widest leading-none mb-1">
+                    <p className="text-xs font-semibold leading-none mb-1">
                       Become a Partner
                     </p>
-                    <p className="text-[9px] font-bold opacity-80 uppercase tracking-tighter text-white/70">
+                    <p className="text-xs font-bold opacity-80 tracking-tight text-white/70">
                       Join the Ecosystem
                     </p>
                   </div>
@@ -289,7 +289,7 @@ export default function LostAndFoundPage() {
                   <div className="flex-1 animate-fade-in">
                     <div className="flex items-center gap-3 mb-10">
                       <div className="w-1.5 h-8 bg-primary rounded-full"></div>
-                      <h2 className="text-2xl font-black text-charcoal dark:text-white uppercase tracking-tighter italic">
+                      <h2 className="text-2xl font-semibold text-charcoal dark:text-white tracking-tight">
                         Found Items
                       </h2>
                     </div>
@@ -304,15 +304,15 @@ export default function LostAndFoundPage() {
                               <img src={item.imageUrl} alt={item.title} className="w-24 h-24 rounded-2xl object-cover shrink-0 bg-white" />
                             )}
                             <div className="space-y-2 flex-1">
-                              <h3 className="text-lg font-black text-charcoal dark:text-white tracking-tight">{item.title}</h3>
-                              <div className="flex flex-wrap items-center gap-4 text-xs font-bold text-slate-500 uppercase tracking-widest">
+                              <h3 className="text-lg font-semibold text-charcoal dark:text-white tracking-tight">{item.title}</h3>
+                              <div className="flex flex-wrap items-center gap-4 text-xs font-bold text-slate-500">
                                 <span className="flex items-center gap-1.5"><MapPin size={14}/> {item.location}</span>
                                 <span className="flex items-center gap-1.5"><Calendar size={14}/> {new Date(item.date).toLocaleDateString()}</span>
                                 {item.time && <span className="flex items-center gap-1.5"><Clock size={14}/> {item.time}</span>}
                               </div>
                             </div>
                             <div className="flex flex-col items-end gap-3 shrink-0">
-                              <span className="px-3 py-1 bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest rounded-lg">
+                              <span className="px-3 py-1 bg-primary/10 text-primary text-xs font-semibold rounded-lg">
                                 {item.status}
                               </span>
                               <button 
@@ -320,7 +320,7 @@ export default function LostAndFoundPage() {
                                   setChatMessage(`Hello! I would like to claim the found item: ${item.title}`);
                                   setIsChatOpen(true);
                                 }}
-                                className="text-xs font-black text-charcoal dark:text-white uppercase tracking-widest hover:text-primary transition-colors flex items-center gap-2"
+                                className="text-xs font-semibold text-charcoal dark:text-white hover:text-primary transition-colors flex items-center gap-2"
                               >
                                 Claim <ArrowRight size={14} />
                               </button>
@@ -330,7 +330,7 @@ export default function LostAndFoundPage() {
                       ) : (
                         <div className="py-20 text-center text-slate-400">
                           <Package size={48} className="mx-auto mb-4 opacity-20" />
-                          <p className="text-sm font-bold uppercase tracking-widest">No found items reported.</p>
+                          <p className="text-sm font-bold">No found items reported.</p>
                         </div>
                       )}
                     </div>
@@ -342,7 +342,7 @@ export default function LostAndFoundPage() {
                   <div className="flex-1 animate-fade-in">
                     <div className="flex items-center gap-3 mb-10">
                       <div className="w-1.5 h-8 bg-orange-500 rounded-full"></div>
-                      <h2 className="text-2xl font-black text-charcoal dark:text-white uppercase tracking-tighter italic">
+                      <h2 className="text-2xl font-semibold text-charcoal dark:text-white tracking-tight">
                         Lost Items
                       </h2>
                     </div>
@@ -357,14 +357,14 @@ export default function LostAndFoundPage() {
                               <img src={item.imageUrl} alt={item.title} className="w-24 h-24 rounded-2xl object-cover shrink-0 bg-white" />
                             )}
                             <div className="space-y-2 flex-1">
-                              <h3 className="text-lg font-black text-charcoal dark:text-white tracking-tight">{item.title}</h3>
-                              <div className="flex flex-wrap items-center gap-4 text-xs font-bold text-slate-500 uppercase tracking-widest">
+                              <h3 className="text-lg font-semibold text-charcoal dark:text-white tracking-tight">{item.title}</h3>
+                              <div className="flex flex-wrap items-center gap-4 text-xs font-bold text-slate-500">
                                 <span className="flex items-center gap-1.5"><MapPin size={14}/> {item.location}</span>
                                 <span className="flex items-center gap-1.5"><Calendar size={14}/> {new Date(item.date).toLocaleDateString()}</span>
                               </div>
                             </div>
                             <div className="flex flex-col items-end gap-3 shrink-0">
-                              <span className="px-3 py-1 bg-orange-500/10 text-orange-600 text-[10px] font-black uppercase tracking-widest rounded-lg">
+                              <span className="px-3 py-1 bg-orange-500/10 text-orange-600 text-xs font-semibold rounded-lg">
                                 {item.status}
                               </span>
                               <button 
@@ -372,7 +372,7 @@ export default function LostAndFoundPage() {
                                   setChatMessage(`Hello! I have information regarding the lost item: ${item.title}`);
                                   setIsChatOpen(true);
                                 }}
-                                className="text-xs font-black text-charcoal dark:text-white uppercase tracking-widest hover:text-orange-500 transition-colors flex items-center gap-2"
+                                className="text-xs font-semibold text-charcoal dark:text-white hover:text-orange-500 transition-colors flex items-center gap-2"
                               >
                                 Provide Info <ArrowRight size={14} />
                               </button>
@@ -382,7 +382,7 @@ export default function LostAndFoundPage() {
                       ) : (
                         <div className="py-20 text-center text-slate-400">
                           <Search size={48} className="mx-auto mb-4 opacity-20" />
-                          <p className="text-sm font-bold uppercase tracking-widest">No lost items reported.</p>
+                          <p className="text-sm font-bold">No lost items reported.</p>
                         </div>
                       )}
                     </div>
@@ -394,7 +394,7 @@ export default function LostAndFoundPage() {
                   <div className="flex-1 animate-fade-in">
                     <div className="flex items-center gap-3 mb-10">
                       <div className="w-1.5 h-8 bg-blue-500 rounded-full"></div>
-                      <h2 className="text-2xl font-black text-charcoal dark:text-white uppercase tracking-tighter italic">
+                      <h2 className="text-2xl font-semibold text-charcoal dark:text-white tracking-tight">
                         Report Item
                       </h2>
                     </div>
@@ -403,7 +403,7 @@ export default function LostAndFoundPage() {
                       <form className="space-y-6" onSubmit={handleReportSubmit}>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           <div className="space-y-2 col-span-full">
-                            <label className="text-[10px] font-black text-slate-400 dark:text-zinc-600 uppercase tracking-[0.2em] px-1">
+                            <label className="text-xs font-semibold text-slate-400 dark:text-zinc-600 px-1">
                               Report Type
                             </label>
                             <select 
@@ -416,7 +416,7 @@ export default function LostAndFoundPage() {
                           </div>
                           
                           <div className="space-y-2 col-span-full">
-                            <label className="text-[10px] font-black text-slate-400 dark:text-zinc-600 uppercase tracking-[0.2em] px-1">
+                            <label className="text-xs font-semibold text-slate-400 dark:text-zinc-600 px-1">
                               Item Description
                             </label>
                             <input
@@ -430,7 +430,7 @@ export default function LostAndFoundPage() {
                           </div>
 
                           <div className="space-y-2 col-span-full">
-                            <label className="text-[10px] font-black text-slate-400 dark:text-zinc-600 uppercase tracking-[0.2em] px-1">
+                            <label className="text-xs font-semibold text-slate-400 dark:text-zinc-600 px-1">
                               Additional Details / Comments (Optional)
                             </label>
                             <textarea
@@ -442,7 +442,7 @@ export default function LostAndFoundPage() {
                           </div>
 
                           <div className="space-y-2">
-                            <label className="text-[10px] font-black text-slate-400 dark:text-zinc-600 uppercase tracking-[0.2em] px-1">
+                            <label className="text-xs font-semibold text-slate-400 dark:text-zinc-600 px-1">
                               Date
                             </label>
                             <input
@@ -455,7 +455,7 @@ export default function LostAndFoundPage() {
                           </div>
 
                           <div className="space-y-2">
-                            <label className="text-[10px] font-black text-slate-400 dark:text-zinc-600 uppercase tracking-[0.2em] px-1">
+                            <label className="text-xs font-semibold text-slate-400 dark:text-zinc-600 px-1">
                               Time (Optional)
                             </label>
                             <input
@@ -467,7 +467,7 @@ export default function LostAndFoundPage() {
                           </div>
 
                           <div className="space-y-2 col-span-full">
-                            <label className="text-[10px] font-black text-slate-400 dark:text-zinc-600 uppercase tracking-[0.2em] px-1">
+                            <label className="text-xs font-semibold text-slate-400 dark:text-zinc-600 px-1">
                               Location
                             </label>
                             <input
@@ -481,7 +481,7 @@ export default function LostAndFoundPage() {
                           </div>
 
                           <div className="space-y-2 col-span-full">
-                            <label className="text-[10px] font-black text-slate-400 dark:text-zinc-600 uppercase tracking-[0.2em] px-1">
+                            <label className="text-xs font-semibold text-slate-400 dark:text-zinc-600 px-1">
                               Image (Optional)
                             </label>
                             <div className="flex items-center gap-4">
@@ -501,7 +501,7 @@ export default function LostAndFoundPage() {
                           <button
                             type="submit"
                             disabled={isSubmitting || uploadingImage}
-                            className="inline-flex items-center gap-3 px-10 py-4 bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-primary-hover transition-all shadow-xl shadow-primary/20 active:scale-95 disabled:opacity-50"
+                            className="inline-flex items-center gap-3 px-10 py-4 bg-primary text-white rounded-2xl font-semibold text-xs hover:bg-primary-hover transition-all shadow-xl shadow-primary/20 active:scale-95 disabled:opacity-50"
                           >
                             {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : <PlusCircle size={18} />} 
                             Submit Report
@@ -518,10 +518,10 @@ export default function LostAndFoundPage() {
                     <div className="flex items-center gap-3 mb-10">
                       <div className="w-1.5 h-8 bg-emerald-500 rounded-full"></div>
                       <div>
-                        <h2 className="text-2xl font-black text-charcoal dark:text-white uppercase tracking-tighter italic">
+                        <h2 className="text-2xl font-semibold text-charcoal dark:text-white tracking-tight">
                           Claimed Items
                         </h2>
-                        <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-0.5">
+                        <p className="text-xs text-slate-400 font-bold mt-0.5">
                           Items that have been successfully verified and returned to their owners
                         </p>
                       </div>
@@ -547,10 +547,10 @@ export default function LostAndFoundPage() {
                             )}
                             <div className="space-y-2 flex-1">
                               <div className="flex items-center gap-2">
-                                <h3 className="text-lg font-black text-charcoal dark:text-white tracking-tight">
+                                <h3 className="text-lg font-semibold text-charcoal dark:text-white tracking-tight">
                                   {item.title}
                                 </h3>
-                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 text-[10px] font-black uppercase tracking-widest rounded-full">
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 text-xs font-semibold rounded-full">
                                   <CheckCircle2 size={12} /> Claimed
                                 </span>
                               </div>
@@ -559,7 +559,7 @@ export default function LostAndFoundPage() {
                                   {item.description}
                                 </p>
                               )}
-                              <div className="flex flex-wrap items-center gap-4 text-xs font-bold text-slate-500 uppercase tracking-widest">
+                              <div className="flex flex-wrap items-center gap-4 text-xs font-bold text-slate-500">
                                 <span className="flex items-center gap-1.5">
                                   <MapPin size={14} /> {item.location}
                                 </span>
@@ -574,7 +574,7 @@ export default function LostAndFoundPage() {
                               </div>
                             </div>
                             <div className="flex flex-col items-end gap-2 shrink-0">
-                              <span className="px-4 py-2 bg-emerald-500 text-white text-[10px] font-black uppercase tracking-widest rounded-xl flex items-center gap-1.5 shadow-md shadow-emerald-500/20">
+                              <span className="px-4 py-2 bg-emerald-500 text-white text-xs font-semibold rounded-xl flex items-center gap-1.5 shadow-md shadow-emerald-500/20">
                                 <CheckCircle2 size={14} /> Returned
                               </span>
                             </div>
@@ -583,7 +583,7 @@ export default function LostAndFoundPage() {
                       ) : (
                         <div className="py-20 text-center text-slate-400">
                           <CheckCircle2 size={48} className="mx-auto mb-4 opacity-20 text-emerald-500" />
-                          <p className="text-sm font-bold uppercase tracking-widest">
+                          <p className="text-sm font-bold">
                             No claimed items yet.
                           </p>
                         </div>

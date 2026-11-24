@@ -60,14 +60,14 @@ export const ProductCard = ({
 
       {/* Out of stock */}
       {isOutOfStock(product) && (
-        <div className="absolute top-3 right-3 z-20 bg-black/70 backdrop-blur-md px-2.5 py-1.5 rounded-xl text-[9px] font-black text-white uppercase tracking-[0.15em]">
+        <div className="absolute top-3 right-3 z-20 bg-black/70 backdrop-blur-md px-2.5 py-1.5 rounded-xl text-xs font-semibold text-white">
           Out of stock
         </div>
       )}
 
       {/* Shop Label */}
       <div className="absolute top-3 left-3 z-20">
-        <div className="bg-white/10 backdrop-blur-xl border border-white/20 px-3 py-1.5 rounded-xl text-[9px] font-black text-white uppercase tracking-[0.15em]">
+        <div className="bg-white/10 backdrop-blur-xl border border-white/20 px-3 py-1.5 rounded-xl text-xs font-semibold text-white">
           {product.shopName}
         </div>
       </div>
@@ -76,17 +76,17 @@ export const ProductCard = ({
       <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-5 md:p-6 z-30 transform translate-y-0 md:translate-y-3 group-hover:translate-y-0 transition-all duration-700 text-left">
         <div className="space-y-2">
           <div className="overflow-hidden">
-            <h4 className="text-base sm:text-lg font-black text-white uppercase tracking-tighter leading-none transform translate-y-0 md:translate-y-full group-hover:translate-y-0 transition-transform duration-700 delay-100 line-clamp-2">
+            <h4 className="text-base sm:text-lg font-semibold text-white tracking-tight leading-none transform translate-y-0 md:translate-y-full group-hover:translate-y-0 transition-transform duration-700 delay-100 line-clamp-2">
               {product.name}
             </h4>
           </div>
 
           <div className="flex items-end justify-between gap-2">
             <div className="space-y-0.5">
-              <p className="text-[9px] font-bold text-white/50 uppercase tracking-[0.15em]">
+              <p className="text-xs font-bold text-white/50">
                 Curated Item
               </p>
-              <p className="text-lg sm:text-xl font-black text-primary drop-shadow-[0_0_15px_rgba(190,30,45,0.5)]">
+              <p className="text-lg sm:text-xl font-semibold text-primary drop-shadow-[0_0_15px_rgba(190,30,45,0.5)]">
                 {product.price}
               </p>
             </div>

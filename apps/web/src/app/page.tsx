@@ -549,7 +549,7 @@ export default function PublicDigitalConcierge() {
                 <Link
                   href="/products"
                   onClick={() => sessionStorage.setItem("scroll_to_featured", "true")}
-                  className="group inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-primary hover:text-primary-hover transition-all"
+                  className="group inline-flex items-center gap-2 text-xs font-semibold text-primary hover:text-primary-hover transition-all"
                 >
                   View All Products
                   <ArrowRight
@@ -601,10 +601,10 @@ export default function PublicDigitalConcierge() {
                   {/* Content Overlay */}
                   <div className="absolute bottom-0 left-0 right-0 p-6 z-30 text-left">
                     <div className="space-y-1">
-                      <p className="text-[10px] font-black text-primary uppercase tracking-[0.3em]">
+                      <p className="text-xs font-semibold text-primary">
                         Collection
                       </p>
-                      <p className="text-2xl font-black text-white uppercase tracking-tighter">
+                      <p className="text-2xl font-semibold text-white tracking-tight">
                         View All <br />
                         Products
                       </p>
@@ -700,7 +700,7 @@ export default function PublicDigitalConcierge() {
                 {/* Caption */}
                 <div className="absolute inset-x-0 bottom-0 p-4 sm:p-7 flex items-end justify-between gap-4">
                   <div className="min-w-0">
-                    <p className="text-base sm:text-xl font-black text-white tracking-tight truncate">
+                    <p className="text-base sm:text-xl font-semibold text-white tracking-tight truncate">
                       {config?.featuredVideoTitle || "SR Mall Cinematic Experience"}
                     </p>
                   </div>
@@ -715,7 +715,7 @@ export default function PublicDigitalConcierge() {
                     className="relative z-20 shrink-0 inline-flex items-center gap-1.5 h-9 sm:h-10 pl-2.5 pr-3.5 rounded-full bg-white text-charcoal hover:bg-primary hover:text-white dark:hover:bg-[#BE1E2D] shadow-lg transition-colors focus:outline-hidden focus-visible:ring-2 focus-visible:ring-white/70"
                   >
                     {campaignMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
-                    <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest">
+                    <span className="text-xs font-semibold">
                       {campaignMuted ? "Sound off" : "Sound on"}
                     </span>
                   </button>
@@ -776,7 +776,7 @@ export default function PublicDigitalConcierge() {
               <div className="w-full lg:w-96 flex flex-col items-start lg:items-end gap-4">
                 <Link
                   href="/tenant-directory"
-                  className="group inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-primary hover:text-primary-hover transition-all"
+                  className="group inline-flex items-center gap-2 text-xs font-semibold text-primary hover:text-primary-hover transition-all"
                 >
                   View All Tenant Directory
                   <ArrowRight
@@ -801,7 +801,7 @@ export default function PublicDigitalConcierge() {
                   {searchQuery && (
                     <div className="absolute top-full left-0 w-full mt-2 sm:mt-3 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-2xl sm:rounded-3xl shadow-2xl z-100 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300">
                       <div className="p-3 sm:p-4 border-b border-slate-50 dark:border-white/5 flex justify-between items-center">
-                        <span className="text-[8px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                        <span className="text-xs font-semibold text-slate-400">
                           Recommended Matches
                         </span>
                         <button suppressHydrationWarning onClick={() => setSearchQuery("")} className="text-slate-400 hover:text-charcoal transition-colors">
@@ -830,10 +830,10 @@ export default function PublicDigitalConcierge() {
                                 />
                               </div>
                               <div className="flex-1">
-                                <p className="text-[10px] sm:text-xs font-black text-charcoal dark:text-white line-clamp-1 uppercase">
+                                <p className="text-xs font-semibold text-charcoal dark:text-white line-clamp-1">
                                   {s.shop_name}
                                 </p>
-                                <p className="text-[8px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                <p className="text-xs font-bold text-slate-400">
                                   {s.unit_id} — Plaza Wing
                                 </p>
                               </div>
@@ -850,7 +850,7 @@ export default function PublicDigitalConcierge() {
                         ).length === 0 && (
                             <div className="p-6 sm:p-8 text-center text-slate-400">
                               <Search size={24} className="mx-auto mb-2 opacity-20" />
-                              <p className="text-[8px] sm:text-[10px] font-bold uppercase tracking-widest">
+                              <p className="text-xs font-bold">
                                 No matching shops found
                               </p>
                             </div>
@@ -894,7 +894,7 @@ export default function PublicDigitalConcierge() {
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat.id)}
                 className={clsx(
-                  "flex items-center gap-3 px-6 py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all whitespace-nowrap border-2",
+                  "flex items-center gap-3 px-6 py-4 rounded-2xl text-xs font-semibold transition-all whitespace-nowrap border-2",
                   selectedCategory === cat.id
                     ? "bg-primary text-white border-primary shadow-[0_10px_30px_-5px_rgba(190,30,45,0.4)] scale-105 z-10"
                     : "bg-white dark:bg-zinc-900 text-slate-400 dark:text-zinc-500 border-slate-50 dark:border-white/5 hover:border-slate-200 dark:hover:border-white/10",
@@ -941,9 +941,7 @@ export default function PublicDigitalConcierge() {
                     className={clsx(
                       "text-sm",
                       "font-bold",
-                      "text-slate-400",
-                      "uppercase",
-                      "tracking-widest",
+                      "text-slate-400",
                     )}
                   >
                     Loading Premium Collection...
@@ -978,19 +976,19 @@ export default function PublicDigitalConcierge() {
                         <ArrowRight size={28} />
                       </div>
                       <div className="absolute bottom-3 sm:bottom-6 left-3 sm:left-8 right-3 sm:right-8">
-                        <h4 className="text-base sm:text-3xl font-black text-charcoal dark:text-white tracking-tighter uppercase leading-none">
+                        <h4 className="text-base sm:text-3xl font-semibold text-charcoal dark:text-white tracking-tight leading-none">
                           View All Shops
                         </h4>
                       </div>
                     </div>
                     <div className="p-3 sm:p-8 flex items-center justify-between bg-white dark:bg-zinc-900/50">
                       <div className="space-y-0.5 sm:space-y-1.5">
-                        <p className="text-[7px] sm:text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] sm:tracking-[0.3em]">Stores</p>
-                        <p className="text-lg sm:text-3xl font-black text-charcoal dark:text-white tracking-tighter">{shops.length}</p>
+                        <p className="text-xs font-semibold text-slate-400">Stores</p>
+                        <p className="text-lg sm:text-3xl font-semibold text-charcoal dark:text-white tracking-tight">{shops.length}</p>
                       </div>
                       <div className="flex flex-col items-end gap-0.5 sm:gap-1 text-right">
-                        <span className="text-[7px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest">Directory</span>
-                        <span className="text-[8px] sm:text-xs font-black text-primary uppercase">Full Listing</span>
+                        <span className="text-xs font-bold text-slate-400">Directory</span>
+                        <span className="text-xs font-semibold text-primary">Full Listing</span>
                       </div>
                     </div>
                   </Link>
@@ -1013,9 +1011,7 @@ export default function PublicDigitalConcierge() {
                   <p
                     className={clsx(
                       "text-slate-500",
-                      "font-bold",
-                      "uppercase",
-                      "tracking-widest",
+                      "font-bold",
                       "text-sm",
                     )}
                   >
@@ -1044,7 +1040,7 @@ export default function PublicDigitalConcierge() {
                 onClick={handleLoadMore}
                 disabled={isLoadingMore}
                 className={clsx(
-                  "inline-flex items-center gap-2 sm:gap-3 px-6 sm:px-8 py-3 sm:py-4 bg-zinc-100 dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-xl sm:rounded-2xl text-primary font-bold uppercase text-xs tracking-wider sm:tracking-[0.2em] hover:bg-slate-200 dark:hover:bg-zinc-800 hover:border-primary transition-all active:scale-95 disabled:opacity-70 shadow-xs",
+                  "inline-flex items-center gap-2 sm:gap-3 px-6 sm:px-8 py-3 sm:py-4 bg-zinc-100 dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-xl sm:rounded-2xl text-primary font-bold text-xs hover:bg-slate-200 dark:hover:bg-zinc-800 hover:border-primary transition-all active:scale-95 disabled:opacity-70 shadow-xs",
                 )}
               >
                 {isLoadingMore ? (
@@ -1151,7 +1147,7 @@ export default function PublicDigitalConcierge() {
             <div className="flex flex-col items-start lg:items-end gap-4 w-full lg:w-auto">
               <Link
                 href="/available-spaces"
-                className="group inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-primary hover:text-primary-hover transition-all"
+                className="group inline-flex items-center gap-2 text-xs font-semibold text-primary hover:text-primary-hover transition-all"
               >
                 View All Spaces
                 <ArrowRight
@@ -1170,9 +1166,7 @@ export default function PublicDigitalConcierge() {
                   "text-white",
                   "rounded-2xl",
                   "text-xs",
-                  "font-black",
-                  "uppercase",
-                  "tracking-[0.2em]",
+                  "font-semibold",
                   "hover:bg-primary-hover",
                   "hover:scale-105",
                   "transition-all",
@@ -1219,9 +1213,7 @@ export default function PublicDigitalConcierge() {
                   <p
                     className={clsx(
                       "text-xs",
-                      "font-black",
-                      "uppercase",
-                      "tracking-widest",
+                      "font-semibold",
                       "text-slate-400",
                     )}
                   >
@@ -1269,7 +1261,7 @@ export default function PublicDigitalConcierge() {
                       ) : (
                         <div className="absolute inset-0 flex flex-col items-center justify-center p-8 bg-linear-to-br from-slate-50 to-slate-100 dark:from-zinc-900 dark:to-zinc-950">
                           <ShoppingBag className="w-12 h-12 text-slate-200 dark:text-zinc-800 mb-4" />
-                          <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest text-center">
+                          <p className="text-xs font-semibold text-slate-300 text-center">
                             Premium Unit <br />
                             Preview Pending
                           </p>
@@ -1282,7 +1274,7 @@ export default function PublicDigitalConcierge() {
                       <div className={clsx("absolute", "top-6", "right-6")}>
                         <div
                           className={clsx(
-                            "backdrop-blur-xl px-4 py-2 rounded-full border text-[9px] font-black uppercase tracking-[0.2em] transition-all shadow-2xl",
+                            "backdrop-blur-xl px-4 py-2 rounded-full border text-xs font-semibold transition-all shadow-2xl",
                             slot.status === "AVAILABLE"
                               ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-400"
                               : access.mine
@@ -1304,14 +1296,14 @@ export default function PublicDigitalConcierge() {
                       >
                         <h4
                           className={clsx(
-                            "text-3xl font-black text-white tracking-tighter uppercase leading-none",
+                            "text-3xl font-semibold text-white tracking-tight leading-none",
                           )}
                         >
                           Unit {slot.unit_id}
                         </h4>
                         <div className="flex items-center gap-2 mt-2">
                           <div className={clsx("w-1.5 h-1.5 rounded-full", slot.status === "AVAILABLE" ? "bg-emerald-400 animate-pulse" : "bg-amber-400")}></div>
-                          <p className="text-[10px] font-bold text-white/70 uppercase tracking-widest">
+                          <p className="text-xs font-bold text-white/70">
                             Plaza Wing — Level 1
                           </p>
                         </div>
@@ -1319,7 +1311,7 @@ export default function PublicDigitalConcierge() {
 
                       {/* Action Button on Hover */}
                       <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-500 bg-black/20 backdrop-blur-[2px]">
-                        <div className="px-8 py-3 bg-white text-black text-[10px] font-black uppercase tracking-widest rounded-full shadow-3xl transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
+                        <div className="px-8 py-3 bg-white text-black text-xs font-semibold rounded-full shadow-3xl transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
                           Inquire Details
                         </div>
                       </div>
@@ -1339,10 +1331,8 @@ export default function PublicDigitalConcierge() {
                         <p
                           className={clsx(
                             "text-[10px]",
-                            "font-black",
-                            "text-slate-400",
-                            "uppercase",
-                            "tracking-[0.3em]",
+                            "font-semibold",
+                            "text-slate-400",
                           )}
                         >
                           Floor Area
@@ -1351,21 +1341,21 @@ export default function PublicDigitalConcierge() {
                           <p
                             className={clsx(
                               "text-3xl",
-                              "font-black",
+                              "font-semibold",
                               "text-charcoal",
                               "dark:text-white",
-                              "tracking-tighter",
+                              "tracking-tight",
                             )}
                           >
                             {slot.sqm_size}
                           </p>
-                          <span className="text-xs font-black text-primary">SQM</span>
+                          <span className="text-xs font-semibold text-primary">SQM</span>
                         </div>
                       </div>
 
                       <div className="flex flex-col items-end gap-1">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Lease Terms</span>
-                        <span className="text-xs font-black text-charcoal dark:text-white uppercase">Flexible</span>
+                        <span className="text-xs font-bold text-slate-400">Lease Terms</span>
+                        <span className="text-xs font-semibold text-charcoal dark:text-white">Flexible</span>
                       </div>
                     </div>
                   </div>
@@ -1390,9 +1380,7 @@ export default function PublicDigitalConcierge() {
                     className={clsx(
                       "text-sm",
                       "font-bold",
-                      "text-slate-500",
-                      "uppercase",
-                      "tracking-widest",
+                      "text-slate-500",
                     )}
                   >
                     No spaces currently available for lease.
@@ -1427,17 +1415,17 @@ export default function PublicDigitalConcierge() {
                     )}
                   >
                     <div className="space-y-1.5">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">
+                      <p className="text-xs font-semibold text-slate-400">
                         Inventory
                       </p>
-                      <p className="text-2xl font-black text-charcoal dark:text-white uppercase tracking-tighter">
+                      <p className="text-2xl font-semibold text-charcoal dark:text-white tracking-tight">
                         View All <br />
                         Spaces
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-[10px] font-bold text-primary uppercase tracking-widest">Explore</p>
-                      <p className="text-[9px] font-bold text-slate-400 uppercase">Full Map</p>
+                      <p className="text-xs font-bold text-primary">Explore</p>
+                      <p className="text-xs font-bold text-slate-400">Full Map</p>
                     </div>
                   </div>
                 </Link>
@@ -1463,7 +1451,7 @@ export default function PublicDigitalConcierge() {
                 onClick={handleLoadMoreSlots}
                 disabled={isLoadingMoreSlots}
                 className={clsx(
-                  "inline-flex items-center gap-2 sm:gap-3 px-6 sm:px-8 py-3 sm:py-4 bg-zinc-100 dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-xl sm:rounded-2xl text-primary font-bold uppercase text-xs tracking-wider sm:tracking-[0.2em] hover:bg-slate-200 dark:hover:bg-zinc-800 hover:border-primary transition-all active:scale-95 disabled:opacity-70 shadow-xs",
+                  "inline-flex items-center gap-2 sm:gap-3 px-6 sm:px-8 py-3 sm:py-4 bg-zinc-100 dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-xl sm:rounded-2xl text-primary font-bold text-xs hover:bg-slate-200 dark:hover:bg-zinc-800 hover:border-primary transition-all active:scale-95 disabled:opacity-70 shadow-xs",
                 )}
               >
                 {isLoadingMoreSlots ? (
@@ -1557,7 +1545,7 @@ export default function PublicDigitalConcierge() {
         <Reveal>
         <div className={clsx("max-w-7xl", "mx-auto", "px-4", "sm:px-6", "lg:px-10")}>
           <div className="max-w-2xl">
-            <p className="text-[11px] font-bold uppercase tracking-[0.26em] text-[#C51D30]">
+            <p className="text-xs font-bold text-[#C51D30]">
               Visit us
             </p>
             <h2 className="mt-4 font-display text-3xl font-semibold leading-[1.05] tracking-tight text-[#21191B] dark:text-white sm:text-4xl lg:text-5xl">

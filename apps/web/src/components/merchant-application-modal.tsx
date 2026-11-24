@@ -229,7 +229,7 @@ export const MerchantApplicationModal = ({
                 className="animate-spin mx-auto text-primary"
                 size={40}
               />
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+              <p className="text-xs font-semibold text-slate-400">
                 Verifying Application Status...
               </p>
             </div>
@@ -249,7 +249,7 @@ export const MerchantApplicationModal = ({
                 )}
               </div>
               <div className="space-y-2 px-4">
-                <h2 className="text-3xl font-black text-charcoal dark:text-white tracking-tight italic uppercase">
+                <h2 className="text-3xl font-semibold text-charcoal dark:text-white tracking-tight">
                   {existingStatus === "REJECTED" ? "Application " : "Existing "}
                   <span
                     className={
@@ -271,7 +271,7 @@ export const MerchantApplicationModal = ({
               </div>
               <button
                 onClick={onClose}
-                className="px-10 py-4 bg-charcoal dark:bg-white text-white dark:text-black font-black rounded-2xl uppercase tracking-widest text-xs transition-all hover:scale-105"
+                className="px-10 py-4 bg-charcoal dark:bg-white text-white dark:text-black font-semibold rounded-2xl text-xs transition-all hover:scale-105"
               >
                 Close Window
               </button>
@@ -282,7 +282,7 @@ export const MerchantApplicationModal = ({
                 <CheckCircle2 size={40} />
               </div>
               <div className="space-y-2">
-                <h2 className="text-3xl font-black text-charcoal dark:text-white tracking-tight italic uppercase">
+                <h2 className="text-3xl font-semibold text-charcoal dark:text-white tracking-tight">
                   Application <span className="text-emerald-500">Received</span>
                 </h2>
                 <p className="text-slate-500 font-medium">
@@ -292,7 +292,7 @@ export const MerchantApplicationModal = ({
               </div>
               <button
                 onClick={onClose}
-                className="px-10 py-4 bg-charcoal dark:bg-white text-white dark:text-black font-black rounded-2xl uppercase tracking-widest text-xs transition-all hover:scale-105"
+                className="px-10 py-4 bg-charcoal dark:bg-white text-white dark:text-black font-semibold rounded-2xl text-xs transition-all hover:scale-105"
               >
                 Return to Mall
               </button>
@@ -303,12 +303,12 @@ export const MerchantApplicationModal = ({
                 <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center border border-primary/20">
                   <Store size={20} />
                 </div>
-                <span className="text-[10px] font-black uppercase tracking-[0.4em]">
+                <span className="text-xs font-semibold">
                   Merchant Partnership
                 </span>
               </div>
 
-              <h2 className="text-4xl font-black text-charcoal dark:text-white tracking-tighter mb-2 italic uppercase">
+              <h2 className="text-4xl font-semibold text-charcoal dark:text-white tracking-tight mb-2">
                 Join <span className="text-primary">Sophie Red.</span>
               </h2>
               <p className="text-slate-500 font-medium mb-8">
@@ -319,7 +319,7 @@ export const MerchantApplicationModal = ({
               <form onSubmit={handleSubmit} className="space-y-5">
                 {/* Shop Name */}
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] ml-1 flex items-center gap-2">
+                  <label className="text-xs font-semibold text-slate-400 ml-1 flex items-center gap-2">
                     <Store size={14} /> Brand / Shop Name{" "}
                     <span className="text-red-500">*</span>
                   </label>
@@ -344,7 +344,7 @@ export const MerchantApplicationModal = ({
 
                 {/* Business Category */}
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] ml-1 flex items-center gap-2">
+                  <label className="text-xs font-semibold text-slate-400 ml-1 flex items-center gap-2">
                     <Tag size={14} /> Business Category{" "}
                     <span className="text-red-500">*</span>
                   </label>
@@ -370,7 +370,7 @@ export const MerchantApplicationModal = ({
 
                 {/* Business Description */}
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] ml-1 flex items-center gap-2">
+                  <label className="text-xs font-semibold text-slate-400 ml-1 flex items-center gap-2">
                     <Building2 size={14} /> Business Description{" "}
                     <span className="text-red-500">*</span>
                   </label>
@@ -398,7 +398,7 @@ export const MerchantApplicationModal = ({
                 {/* Contact Information */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] ml-1 flex items-center gap-2">
+                    <label className="text-xs font-semibold text-slate-400 ml-1 flex items-center gap-2">
                       <Mail size={14} /> Contact Email{" "}
                       <span className="text-red-500">*</span>
                     </label>
@@ -420,7 +420,7 @@ export const MerchantApplicationModal = ({
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] ml-1 flex items-center gap-2">
+                    <label className="text-xs font-semibold text-slate-400 ml-1 flex items-center gap-2">
                       <Phone size={14} /> Phone (Optional)
                     </label>
                     <input
@@ -466,7 +466,7 @@ export const MerchantApplicationModal = ({
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full py-4 bg-primary text-white font-black rounded-2xl uppercase tracking-[0.2em] text-xs shadow-xl shadow-primary/30 hover:bg-primary-hover transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+                  className="w-full py-4 bg-primary text-white font-semibold rounded-2xl text-xs shadow-xl shadow-primary/30 hover:bg-primary-hover transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
                 >
                   {isSubmitting ? (
                     <>

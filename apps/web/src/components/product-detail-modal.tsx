@@ -95,13 +95,13 @@ export const ProductDetailModal = ({
 
         <div className="p-6 sm:p-10 lg:p-14 flex flex-col justify-center space-y-5 sm:space-y-8">
           <div className="space-y-2">
-            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">
+            <span className="text-xs font-semibold text-primary">
               {product.shopName}
             </span>
-            <h3 className="text-2xl sm:text-4xl lg:text-5xl font-black text-charcoal dark:text-white uppercase tracking-tighter leading-none">
+            <h3 className="text-2xl sm:text-4xl lg:text-5xl font-semibold text-charcoal dark:text-white tracking-tight leading-none">
               {product.name}
             </h3>
-            <p className="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400 tracking-tight mt-2">
+            <p className="text-xl sm:text-2xl font-semibold text-emerald-600 dark:text-emerald-400 tracking-tight mt-2">
               {product.price}
             </p>
           </div>
@@ -116,14 +116,14 @@ export const ProductDetailModal = ({
           <div className="pt-3 sm:pt-6 space-y-3 sm:space-y-4">
             <Link
               href={`/shop/${product.shopId}`}
-              className="w-full py-4 sm:py-5 bg-charcoal dark:bg-zinc-800 text-white rounded-2xl flex items-center justify-center gap-4 font-black text-xs uppercase tracking-widest hover:bg-black transition-all shadow-xl active:scale-95 text-center"
+              className="w-full py-4 sm:py-5 bg-charcoal dark:bg-zinc-800 text-white rounded-2xl flex items-center justify-center gap-4 font-semibold text-xs hover:bg-black transition-all shadow-xl active:scale-95 text-center"
             >
               Visit Official Store
             </Link>
             {onInquire && (
               <button
                 onClick={() => onInquire(product.shopName)}
-                className="w-full py-4 sm:py-5 bg-primary text-white rounded-2xl flex items-center justify-center gap-4 font-black text-xs uppercase tracking-widest hover:scale-105 transition-all shadow-xl shadow-primary/20 active:scale-95"
+                className="w-full py-4 sm:py-5 bg-primary text-white rounded-2xl flex items-center justify-center gap-4 font-semibold text-xs hover:scale-105 transition-all shadow-xl shadow-primary/20 active:scale-95"
               >
                 Inquire for Availability
               </button>

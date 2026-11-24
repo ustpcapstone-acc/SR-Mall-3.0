@@ -6,7 +6,6 @@ import {
   MessageSquare,
   Send,
   LogIn,
-  Heart,
   CheckCircle,
   AlertCircle,
   AlertTriangle,
@@ -298,32 +297,12 @@ export const FeedbackSection = ({
         >
           {/* Section Header */}
           <div className={clsx("text-center", "mb-12", "sm:mb-16")}>
-            <span
-              className={clsx(
-                "inline-flex",
-                "items-center",
-                "gap-2",
-                "text-xs",
-                "uppercase",
-                "tracking-[0.2em]",
-                "text-primary",
-                "font-bold",
-                "bg-primary/10",
-                "px-4",
-                "py-1.5",
-                "rounded-full",
-                "mb-4",
-              )}
-            >
-              <Heart size={14} />
-              Visitor reviews
-            </span>
             <h2
               className={clsx(
                 "text-2xl",
                 "sm:text-3xl",
                 "lg:text-4xl",
-                "font-black",
+                "font-semibold",
                 "text-charcoal",
                 "dark:text-white",
                 "tracking-tight",
@@ -391,7 +370,7 @@ export const FeedbackSection = ({
                 >
                   <div className="flex justify-between items-start mb-2">
                     <div className="flex items-center gap-2">
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-amber-500/10 text-amber-500 border border-amber-500/20 rounded-lg text-[9px] font-black uppercase tracking-wider">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-amber-500/10 text-amber-500 border border-amber-500/20 rounded-lg text-xs font-semibold">
                         <AlertCircle size={10} /> Review Pending
                       </span>
                     </div>
@@ -472,7 +451,7 @@ export const FeedbackSection = ({
                             "flex",
                             "items-center",
                             "justify-center",
-                            "font-black",
+                            "font-semibold",
                             "text-primary",
                             "text-xs",
                             "sm:text-base",
@@ -487,12 +466,11 @@ export const FeedbackSection = ({
                           <div className="flex items-center gap-1.5 min-w-0">
                             <h4
                               className={clsx(
-                                "font-black",
+                                "font-semibold",
                                 "text-charcoal",
                                 "dark:text-white",
                                 "text-xs",
                                 "sm:text-base",
-                                "uppercase",
                                 "tracking-tight",
                                 "truncate",
                                 "shrink",
@@ -502,14 +480,14 @@ export const FeedbackSection = ({
                               {review.user?.name || "Anonymous"}
                             </h4>
                             {review.user?.role === "ADMIN" && (
-                              <span className="px-1.5 py-0.5 bg-primary/10 text-primary border border-primary/20 rounded-sm text-[8px] font-black uppercase tracking-wider shrink-0">
+                              <span className="px-1.5 py-0.5 bg-primary/10 text-primary border border-primary/20 rounded-sm text-xs font-semibold shrink-0">
                                 Admin
                               </span>
                             )}
                           </div>
                           <p
                             className={clsx(
-                              "text-[9px]",
+                              "text-xs",
                               "sm:text-xs",
                               "text-slate-400",
                               "font-bold",
@@ -541,14 +519,14 @@ export const FeedbackSection = ({
                                 setRating(review.rating);
                                 setComment(review.comment || "");
                               }}
-                              className="text-[9px] text-primary font-black uppercase tracking-widest hover:underline cursor-pointer"
+                              className="text-xs text-primary font-semibold hover:underline cursor-pointer"
                             >
                               Edit
                             </a>
                             <button
                               onClick={handleDelete}
                               disabled={isSubmitting}
-                              className="text-[9px] text-red-500 font-black uppercase tracking-widest hover:underline cursor-pointer"
+                              className="text-xs text-red-500 font-semibold hover:underline cursor-pointer"
                             >
                               Delete
                             </button>
@@ -576,7 +554,7 @@ export const FeedbackSection = ({
                     )}
                     {review.reply && (
                       <div className="mt-3 ml-1 pl-3 border-l-2 border-primary/40">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-primary">
+                        <p className="text-xs font-semibold text-primary">
                           Reply from the shop
                         </p>
                         <p className="mt-1 text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-line wrap-anywhere">
@@ -672,11 +650,10 @@ export const FeedbackSection = ({
                       "text-[14px]",
                       "sm:text-xl",
                       "lg:text-2xl",
-                      "font-black",
+                      "font-semibold",
                       "text-charcoal",
                       "dark:text-white",
-                      "tracking-tighter",
-                      "uppercase",
+                      "tracking-tight",
                     )}
                   >
                     Share your experience
@@ -715,17 +692,17 @@ export const FeedbackSection = ({
                       className={clsx(
                         "text-[12px]",
                         "sm:text-lg",
-                        "font-black",
+                        "font-semibold",
                         "text-charcoal",
                         "dark:text-white",
-                        "mb-1 uppercase tracking-widest",
+                        "mb-1",
                       )}
                     >
                       Sign in to leave a review
                     </h4>
                     <p
                       className={clsx(
-                        "text-[9px]",
+                        "text-xs",
                         "sm:text-sm",
                         "text-slate-500",
                         "font-medium",
@@ -745,16 +722,14 @@ export const FeedbackSection = ({
                         "sm:py-4",
                         "bg-primary",
                         "text-white",
-                        "font-black",
+                        "font-semibold",
                         "text-[10px] sm:text-xs",
                         "rounded-lg sm:rounded-xl",
                         "hover:bg-primary-hover",
                         "transition-all",
                         "active:scale-95",
                         "shadow-lg",
-                        "shadow-primary/30",
-                        "uppercase",
-                        "tracking-[0.15em]",
+                        "shadow-primary/30",
                       )}
                     >
                       Sign in
@@ -765,7 +740,7 @@ export const FeedbackSection = ({
                     {isCommentingPaused && mutedUntil && (
                       <div className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-red-700 dark:border-red-900/30 dark:bg-red-950/20 dark:text-red-400">
                         <AlertTriangle size={14} className="mt-0.5 shrink-0" />
-                        <p className="text-[10px] font-bold uppercase tracking-wide sm:text-xs">
+                        <p className="text-xs font-bold">
                           Commenting is paused until{" "}
                           {new Date(mutedUntil).toLocaleString("en-PH", {
                             month: "long",
@@ -788,9 +763,8 @@ export const FeedbackSection = ({
                         <AlertCircle size={14} />
                         <p
                           className={clsx(
-                            "text-[9px] sm:text-sm",
-                            "font-black",
-                            "uppercase",
+                            "text-xs sm:text-sm",
+                            "font-semibold",
                           )}
                         >
                           {submitMessage.message}
@@ -801,11 +775,9 @@ export const FeedbackSection = ({
                     <div className="space-y-1.5 sm:space-y-2">
                       <label
                         className={clsx(
-                          "text-[9px]",
-                          "font-black",
-                          "text-slate-400",
-                          "uppercase",
-                          "tracking-widest",
+                          "text-xs",
+                          "font-semibold",
+                          "text-slate-400",
                         )}
                       >
                         Your rating
@@ -838,11 +810,9 @@ export const FeedbackSection = ({
                     <div className="space-y-1.5 sm:space-y-2">
                       <label
                         className={clsx(
-                          "text-[9px]",
-                          "font-black",
-                          "text-slate-400",
-                          "uppercase",
-                          "tracking-widest",
+                          "text-xs",
+                          "font-semibold",
+                          "text-slate-400",
                         )}
                       >
                         Your review
@@ -890,16 +860,14 @@ export const FeedbackSection = ({
                         "py-3 sm:py-4",
                         "bg-primary",
                         "text-white",
-                        "font-black",
+                        "font-semibold",
                         "text-[10px] sm:text-xs",
                         "rounded-lg sm:rounded-xl",
                         "hover:bg-primary-hover",
                         "transition-all",
                         "active:scale-95",
                         "shadow-lg",
-                        "shadow-primary/30",
-                        "uppercase",
-                        "tracking-widest",
+                        "shadow-primary/30",
                       )}
                     >
                       {isCommentingPaused
@@ -953,7 +921,7 @@ export const FeedbackSection = ({
               <div className="space-y-2">
                 <h3
                   id="language-warning-title"
-                  className="text-xl font-black uppercase tracking-tight text-charcoal dark:text-white"
+                  className="text-xl font-semibold tracking-tight text-charcoal dark:text-white"
                 >
                   {languageWarning.muted
                     ? "Commenting paused"
@@ -989,7 +957,7 @@ export const FeedbackSection = ({
               <button
                 type="button"
                 onClick={dismissLanguageWarning}
-                className="w-full rounded-2xl bg-primary px-4 py-3.5 text-[10px] font-black uppercase tracking-widest text-white shadow-xl shadow-primary/20 transition-all hover:bg-primary-hover active:scale-95"
+                className="w-full rounded-2xl bg-primary px-4 py-3.5 text-xs font-semibold text-white shadow-xl shadow-primary/20 transition-all hover:bg-primary-hover active:scale-95"
               >
                 {languageWarning.muted ? "I understand" : "Edit my comment"}
               </button>

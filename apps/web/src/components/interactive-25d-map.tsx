@@ -95,11 +95,11 @@ export default function Interactive25DMap({ onClose }: { onClose: () => void }) 
       {/* Header / Controls */}
       <div className="absolute top-0 left-0 right-0 p-6 flex items-center justify-between z-50 bg-linear-to-b from-black/80 to-transparent pointer-events-none">
         <div className="pointer-events-auto">
-          <h2 className="text-2xl font-black text-white tracking-tighter flex items-center gap-3">
+          <h2 className="text-2xl font-semibold text-white tracking-tight flex items-center gap-3">
             <Navigation className="text-primary" /> 
             2.5D Interactive Map
           </h2>
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Drag to rotate • Click pins for details</p>
+          <p className="text-xs font-bold text-slate-400 mt-1">Drag to rotate • Click pins for details</p>
         </div>
         <button 
           onClick={onClose}
@@ -195,18 +195,18 @@ export default function Interactive25DMap({ onClose }: { onClose: () => void }) 
               <Info size={24} />
             </div>
             <div>
-              <h3 className="text-xl font-black text-white uppercase tracking-tight">{selectedPin.title}</h3>
-              <p className="text-xs font-bold text-white/60 uppercase tracking-widest">{selectedPin.category}</p>
+              <h3 className="text-xl font-semibold text-white tracking-tight">{selectedPin.title}</h3>
+              <p className="text-xs font-bold text-white/60">{selectedPin.category}</p>
             </div>
           </div>
           <div className="flex items-center justify-between p-4 bg-black/20 rounded-2xl">
-            <span className="text-xs font-bold text-white/60 uppercase tracking-widest">Status</span>
-            <span className={clsx("text-xs font-black uppercase tracking-widest px-3 py-1 rounded-full", selectedPin.status === "AVAILABLE" ? "bg-emerald-500/20 text-emerald-400" : "bg-amber-500/20 text-amber-400")}>
+            <span className="text-xs font-bold text-white/60">Status</span>
+            <span className={clsx("text-xs font-semibold px-3 py-1 rounded-full", selectedPin.status === "AVAILABLE" ? "bg-emerald-500/20 text-emerald-400" : "bg-amber-500/20 text-amber-400")}>
               {selectedPin.status}
             </span>
           </div>
           {selectedPin.status === "AVAILABLE" && (
-             <button className="w-full mt-4 py-3 bg-white text-black font-black text-xs uppercase tracking-widest rounded-xl hover:bg-slate-200 transition-colors">
+             <button className="w-full mt-4 py-3 bg-white text-black font-semibold text-xs rounded-xl hover:bg-slate-200 transition-colors">
                Inquire Space
              </button>
           )}
@@ -220,17 +220,17 @@ export default function Interactive25DMap({ onClose }: { onClose: () => void }) 
         <div className="flex flex-col gap-2 items-end">
           <div className="px-4 py-2 bg-white/10 backdrop-blur-md rounded-full border border-white/10 flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
-            <span className="text-[10px] font-bold text-white uppercase tracking-widest">Available</span>
+            <span className="text-xs font-bold text-white">Available</span>
           </div>
           <div className="px-4 py-2 bg-white/10 backdrop-blur-md rounded-full border border-white/10 flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-primary"></div>
-            <span className="text-[10px] font-bold text-white uppercase tracking-widest">Occupied</span>
+            <span className="text-xs font-bold text-white">Occupied</span>
           </div>
         </div>
 
         {/* Floor Selection */}
         <div className="bg-black/50 backdrop-blur-xl border border-white/10 p-2 rounded-2xl flex flex-col gap-1 pointer-events-auto shadow-2xl">
-           <div className="px-3 py-2 text-[10px] font-black text-white/50 uppercase tracking-widest text-center mb-1">
+           <div className="px-3 py-2 text-xs font-semibold text-white/50 text-center mb-1">
               Select Floor Level
            </div>
            {FLOORS.map(floor => (
@@ -238,7 +238,7 @@ export default function Interactive25DMap({ onClose }: { onClose: () => void }) 
                key={floor.name}
                onClick={() => setCurrentFloor(floor.src)}
                className={clsx(
-                 "px-6 py-3 text-xs font-bold uppercase tracking-widest rounded-xl transition-all w-full text-left",
+                 "px-6 py-3 text-xs font-bold rounded-xl transition-all w-full text-left",
                  currentFloor === floor.src 
                   ? "bg-primary text-white shadow-lg scale-[1.02]" 
                   : "bg-transparent text-white/60 hover:bg-white/10 hover:text-white"

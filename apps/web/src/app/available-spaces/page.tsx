@@ -12,7 +12,6 @@ import {
   ShoppingBag,
   Loader2,
   ArrowLeft,
-  LayoutGrid,
   ArrowRight,
   Store,
 } from "lucide-react";
@@ -75,7 +74,7 @@ export default function AvailableSpacesPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 relative z-10">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-primary transition-all mb-8 group"
+            className="inline-flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-primary transition-all mb-8 group"
           >
             <ArrowLeft
               size={14}
@@ -85,14 +84,10 @@ export default function AvailableSpacesPage() {
           </Link>
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
             <div className="space-y-4 max-w-2xl">
-              <span className="inline-flex items-center gap-2 px-4 py-1.5 bg-primary/10 text-primary text-[10px] font-black uppercase tracking-[0.3em] rounded-full border border-primary/20">
-                <LayoutGrid size={12} />
-                Leasing Inventory
-              </span>
-              <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black text-charcoal dark:text-white tracking-tighter leading-[0.9] uppercase">
+              <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-semibold text-charcoal dark:text-white tracking-tight leading-[1.05]">
                 Available <br />
-                <span className="text-slate-300 dark:text-zinc-800">
-                  Spaces.
+                <span className="text-slate-500 dark:text-slate-400">
+                  Spaces
                 </span>
               </h1>
               <p className="text-sm sm:text-lg text-slate-500 dark:text-slate-400 font-medium max-w-xl">
@@ -129,7 +124,7 @@ export default function AvailableSpacesPage() {
                   <Store size={18} />
                 </span>
                 <div className="min-w-0">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400">
+                  <p className="text-xs font-semibold text-amber-600 dark:text-amber-400">
                     Cannot reserve — already a tenant
                   </p>
                   <p className="mt-1 text-xs font-medium leading-relaxed text-slate-600 dark:text-slate-300">
@@ -142,10 +137,10 @@ export default function AvailableSpacesPage() {
             )}
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-4">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">
+                <p className="text-xs font-semibold text-primary">
                   Simple 3-step process
                 </p>
-                <h2 className="text-lg sm:text-xl font-black text-charcoal dark:text-white uppercase tracking-tight">
+                <h2 className="text-lg sm:text-xl font-semibold text-charcoal dark:text-white tracking-tight">
                   How reservation works
                 </h2>
               </div>
@@ -168,14 +163,14 @@ export default function AvailableSpacesPage() {
                 size={48}
                 className="animate-spin text-primary mx-auto"
               />
-              <p className="text-sm font-black text-slate-400 uppercase tracking-widest">
+              <p className="text-sm font-semibold text-slate-400">
                 Fetching Inventory...
               </p>
             </div>
           ) : filteredSlots.length > 0 ? (
             <>
               <div className="mb-10 flex items-center justify-between">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                <p className="text-xs font-semibold text-slate-400">
                   Showing {filteredSlots.length} available units
                 </p>
               </div>
@@ -210,7 +205,7 @@ export default function AvailableSpacesPage() {
                       ) : (
                         <div className="absolute inset-0 flex flex-col items-center justify-center p-4 sm:p-8 bg-linear-to-br from-slate-50 to-slate-100 dark:from-zinc-900 dark:to-zinc-950">
                           <ShoppingBag className="w-6 h-6 sm:w-12 sm:h-12 text-slate-200 dark:text-zinc-800 mb-2 sm:mb-4" />
-                          <p className="text-[8px] sm:text-[10px] font-black text-slate-300 uppercase tracking-widest text-center">
+                          <p className="text-xs font-semibold text-slate-300 text-center">
                             Premium Unit <br />
                             Preview Pending
                           </p>
@@ -222,7 +217,7 @@ export default function AvailableSpacesPage() {
                       <div className="absolute top-2 sm:top-6 right-2 sm:right-6">
                         <div
                           className={clsx(
-                            "backdrop-blur-xl px-2 sm:px-4 py-1 sm:py-2 rounded-full border text-[7px] sm:text-[9px] font-black uppercase tracking-widest sm:tracking-[0.2em] transition-all shadow-2xl",
+                            "backdrop-blur-xl px-2 sm:px-4 py-1 sm:py-2 rounded-full border text-xs font-semibold transition-all shadow-2xl",
                             slot.status === "AVAILABLE"
                               ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-400"
                               : access.mine
@@ -235,19 +230,19 @@ export default function AvailableSpacesPage() {
                       </div>
 
                       <div className="absolute bottom-3 sm:bottom-6 left-3 sm:left-8 right-3 sm:right-8">
-                        <h4 className="text-base sm:text-3xl font-black text-white tracking-tighter uppercase leading-none">
+                        <h4 className="text-base sm:text-3xl font-semibold text-white tracking-tight leading-none">
                           Unit {slot.unit_id}
                         </h4>
                         <div className="flex items-center gap-1.5 sm:gap-2 mt-1 sm:mt-2">
                            <div className={clsx("w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full", slot.status === "AVAILABLE" ? "bg-emerald-400 animate-pulse" : "bg-amber-400")}></div>
-                           <p className="text-[7px] sm:text-[10px] font-bold text-white/70 uppercase tracking-widest">
+                           <p className="text-xs font-bold text-white/70">
                              Plaza Wing — Level 1
                            </p>
                         </div>
                       </div>
 
                       <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-500 bg-black/20 backdrop-blur-[2px]">
-                        <div className="px-4 sm:px-8 py-2 sm:py-3 bg-white text-black text-[8px] sm:text-[10px] font-black uppercase tracking-widest rounded-full shadow-3xl transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
+                        <div className="px-4 sm:px-8 py-2 sm:py-3 bg-white text-black text-xs font-semibold rounded-full shadow-3xl transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
                           Inquire Details
                         </div>
                       </div>
@@ -255,20 +250,20 @@ export default function AvailableSpacesPage() {
 
                     <div className="p-3 sm:p-8 flex items-center justify-between bg-white dark:bg-zinc-900/50">
                       <div className="space-y-0.5 sm:space-y-1.5">
-                        <p className="text-[7px] sm:text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] sm:tracking-[0.3em]">
+                        <p className="text-xs font-semibold text-slate-400">
                           Floor Area
                         </p>
                         <div className="flex items-baseline gap-1">
-                          <p className="text-lg sm:text-3xl font-black text-charcoal dark:text-white tracking-tighter">
+                          <p className="text-lg sm:text-3xl font-semibold text-charcoal dark:text-white tracking-tight">
                             {slot.sqm_size}
                           </p>
-                          <span className="text-[9px] sm:text-xs font-black text-primary">SQM</span>
+                          <span className="text-xs font-semibold text-primary">SQM</span>
                         </div>
                       </div>
                       
                       <div className="flex flex-col items-end gap-0.5 sm:gap-1 text-right">
-                         <span className="text-[7px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest">Lease</span>
-                         <span className="text-[8px] sm:text-xs font-black text-charcoal dark:text-white uppercase">Flexible</span>
+                         <span className="text-xs font-bold text-slate-400">Lease</span>
+                         <span className="text-xs font-semibold text-charcoal dark:text-white">Flexible</span>
                       </div>
                     </div>
                   </div>
@@ -279,7 +274,7 @@ export default function AvailableSpacesPage() {
           ) : (
             <div className="py-32 text-center bg-white dark:bg-zinc-950 rounded-[3rem] border border-dashed border-slate-200 dark:border-white/10">
               <MapPin size={48} className="mx-auto text-slate-200 mb-6" />
-              <h3 className="text-xl font-black text-charcoal dark:text-white uppercase tracking-tighter mb-2">
+              <h3 className="text-xl font-semibold text-charcoal dark:text-white tracking-tight mb-2">
                 No Spaces Found
               </h3>
               <p className="text-sm text-slate-400 font-medium">
@@ -287,7 +282,7 @@ export default function AvailableSpacesPage() {
               </p>
               <button
                 onClick={() => setSearchQuery("")}
-                className="mt-8 text-primary font-black text-[10px] uppercase tracking-widest hover:underline"
+                className="mt-8 text-primary font-semibold text-xs hover:underline"
               >
                 Clear Search
               </button>

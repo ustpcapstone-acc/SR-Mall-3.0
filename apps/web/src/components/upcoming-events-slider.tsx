@@ -195,7 +195,7 @@ export const UpcomingEventsSlider = () => {
                 <button 
                   onClick={handleJoinClick}
                   suppressHydrationWarning 
-                  className="group flex items-center gap-2 sm:gap-4 px-4 py-2.5 sm:px-8 sm:py-5 bg-primary text-white font-black text-[9px] sm:text-xs uppercase tracking-widest rounded-xl sm:rounded-2xl hover:bg-white hover:text-primary transition-all active:scale-95 shadow-2xl shadow-primary/40 shrink-0 self-start md:self-auto"
+                  className="group flex items-center gap-2 sm:gap-4 px-4 py-2.5 sm:px-8 sm:py-5 bg-primary text-white font-semibold text-xs rounded-xl sm:rounded-2xl hover:bg-white hover:text-primary transition-all active:scale-95 shadow-2xl shadow-primary/40 shrink-0 self-start md:self-auto"
                 >
                   Join Event
                   <ArrowRight className="w-3.5 h-3.5 sm:w-5 sm:h-5 group-hover:translate-x-2 transition-transform" />
@@ -237,10 +237,10 @@ export const UpcomingEventsSlider = () => {
           />
           <div className="relative w-full max-w-lg bg-white dark:bg-zinc-950 rounded-4xl shadow-2xl overflow-hidden animate-fade-in-up border border-slate-100 dark:border-white/5">
             <div className="bg-primary p-8 text-white relative">
-              <h2 className="text-2xl font-black uppercase tracking-tight">
+              <h2 className="text-2xl font-semibold tracking-tight">
                 Join Event Info
               </h2>
-              <p className="text-xs text-white/80 font-bold uppercase tracking-widest mt-1">
+              <p className="text-xs text-white/80 font-bold mt-1">
                 {selectedEventInfo.title}
               </p>
               <button
@@ -252,7 +252,7 @@ export const UpcomingEventsSlider = () => {
             </div>
             <div className="p-8 space-y-6">
               <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
+                <label className="text-xs font-semibold text-slate-400 flex items-center gap-2">
                   <Globe size={14} className="text-primary" />
                   Facebook Account
                 </label>
@@ -261,7 +261,7 @@ export const UpcomingEventsSlider = () => {
                 </div>
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
+                <label className="text-xs font-semibold text-slate-400 flex items-center gap-2">
                   <Phone size={14} className="text-primary" />
                   Contact Number
                 </label>
@@ -274,7 +274,7 @@ export const UpcomingEventsSlider = () => {
               </p>
               <button
                 onClick={() => setIsJoinModalOpen(false)}
-                className="w-full py-4 bg-primary text-white font-black text-xs uppercase tracking-widest rounded-xl hover:bg-primary/90 transition-all mt-4"
+                className="w-full py-4 bg-primary text-white font-semibold text-xs rounded-xl hover:bg-primary/90 transition-all mt-4"
               >
                 Done
               </button>

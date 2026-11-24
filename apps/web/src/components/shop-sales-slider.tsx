@@ -180,7 +180,7 @@ export const ShopSalesSlider = ({ shops }: { shops: any[] }) => {
                   </div>
                 </div>
                 
-                <Link href={`/shop/${currentSale.shopId}`} suppressHydrationWarning className="group flex items-center gap-2 sm:gap-4 px-4 py-2.5 sm:px-8 sm:py-5 bg-primary text-white font-black text-[9px] sm:text-xs uppercase tracking-widest rounded-xl sm:rounded-2xl hover:bg-white hover:text-primary transition-all active:scale-95 shadow-2xl shadow-primary/40 shrink-0 self-start md:self-auto">
+                <Link href={`/shop/${currentSale.shopId}`} suppressHydrationWarning className="group flex items-center gap-2 sm:gap-4 px-4 py-2.5 sm:px-8 sm:py-5 bg-primary text-white font-semibold text-xs rounded-xl sm:rounded-2xl hover:bg-white hover:text-primary transition-all active:scale-95 shadow-2xl shadow-primary/40 shrink-0 self-start md:self-auto">
                   Now Visiting
                   <br className="hidden sm:block" />
                   {currentSale.shopName}

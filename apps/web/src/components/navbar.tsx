@@ -255,10 +255,8 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
                       "py-1.5",
                       "bg-white",
                       "text-black",
-                      "font-black",
-                      "text-xs",
-                      "uppercase",
-                      "tracking-wider",
+                      "font-semibold",
+                      "text-xs",
                       "rounded-full",
                       "hover:bg-slate-200",
                       "transition-colors",
@@ -334,12 +332,11 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
                         </span>
                         <span
                           className={clsx(
-                            "text-[8px] sm:text-[10px]",
+                            "text-xs sm:text-[10px]",
                             "text-slate-500",
                             "dark:text-slate-400",
                             "font-medium",
-                            "tracking-tight",
-                            "uppercase",
+                            "tracking-tight",
                           )}
                         >
                           {user?.role?.toLowerCase()}
@@ -385,10 +382,8 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
                           <p
                             className={clsx(
                               "text-[10px]",
-                              "font-black",
-                              "text-slate-400",
-                              "uppercase",
-                              "tracking-[0.2em]",
+                              "font-semibold",
+                              "text-slate-400",
                             )}
                           >
                             Account Overview
@@ -441,13 +436,11 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
                               "px-4",
                               "py-3",
                               "text-xs",
-                              "font-black",
+                              "font-semibold",
                               "text-primary",
                               "hover:bg-primary/5",
                               "rounded-xl",
-                              "transition-colors",
-                              "uppercase",
-                              "tracking-widest",
+                              "transition-colors",
                             )}
                           >
                             <LogOut size={16} /> Sign Out
@@ -505,10 +498,10 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
                   )}
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-lg font-black text-charcoal dark:text-white leading-tight">
+                  <span className="text-lg font-semibold text-charcoal dark:text-white leading-tight">
                     {user?.name || user?.email?.split('@')[0]}
                   </span>
-                  <span className="text-[10px] font-bold text-primary uppercase tracking-[0.2em] mt-0.5">
+                  <span className="text-xs font-bold text-primary mt-0.5">
                     {user?.role} Account
                   </span>
                 </div>
@@ -529,7 +522,7 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
                   className={clsx(
                     "flex items-center justify-between py-4 border-b border-slate-100 dark:border-white/5 text-base transition-colors",
                     isActive
-                      ? "text-primary font-black"
+                      ? "text-primary font-semibold"
                       : "text-slate-700 dark:text-slate-200 font-bold hover:text-charcoal dark:hover:text-white",
                   )}
                 >

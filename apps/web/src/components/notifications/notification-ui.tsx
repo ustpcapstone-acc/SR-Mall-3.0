@@ -44,7 +44,7 @@ export function NotificationIcon({ type, size = 18, boxed = false }: { type: str
 
 export function NotificationTypeLabel({ type, className }: { type: string; className?: string }) {
   return (
-    <span className={clsx("text-[10px] font-black uppercase tracking-widest text-slate-400", className)}>
+    <span className={clsx("text-xs font-semibold text-slate-400", className)}>
       {notificationTypeInfo(type).label}
     </span>
   );

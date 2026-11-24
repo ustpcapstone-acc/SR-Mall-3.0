@@ -135,10 +135,10 @@ export default function NotificationsPageClient() {
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 pb-6 border-b border-slate-200 dark:border-white/10">
         <div className="space-y-3">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-primary/10 text-primary rounded-full text-[10px] font-black uppercase tracking-widest border border-primary/20">
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-semibold border border-primary/20">
             <Bell size={12} /> {unreadCount > 0 ? `${unreadCount} unread` : "All caught up"}
           </div>
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-charcoal dark:text-white tracking-tighter italic uppercase leading-none">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-semibold text-charcoal dark:text-white tracking-tight leading-none">
             Notifi<span className="text-primary">cations.</span>
           </h1>
           <p className="text-slate-500 font-medium">Everything the system has told you, newest first.</p>
@@ -148,7 +148,7 @@ export default function NotificationsPageClient() {
             type="button"
             onClick={markAll}
             disabled={busy || unreadCount === 0}
-            className="inline-flex items-center gap-2 h-11 px-4 rounded-xl bg-primary text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/20 disabled:opacity-40"
+            className="inline-flex items-center gap-2 h-11 px-4 rounded-xl bg-primary text-white text-xs font-semibold shadow-lg shadow-primary/20 disabled:opacity-40"
           >
             <CheckCheck size={14} /> Mark all read
           </button>
@@ -156,13 +156,13 @@ export default function NotificationsPageClient() {
             type="button"
             onClick={clearRead}
             disabled={busy}
-            className="inline-flex items-center gap-2 h-11 px-4 rounded-xl border border-slate-200 dark:border-white/10 text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 disabled:opacity-40"
+            className="inline-flex items-center gap-2 h-11 px-4 rounded-xl border border-slate-200 dark:border-white/10 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 disabled:opacity-40"
           >
             <Trash2 size={14} /> Clear read
           </button>
           <Link
             href={notificationSettingsHref(user?.role)}
-            className="inline-flex items-center gap-2 h-11 px-4 rounded-xl border border-slate-200 dark:border-white/10 text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
+            className="inline-flex items-center gap-2 h-11 px-4 rounded-xl border border-slate-200 dark:border-white/10 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
           >
             <Settings size={14} /> Settings
           </Link>
@@ -177,7 +177,7 @@ export default function NotificationsPageClient() {
             type="button"
             onClick={() => setTab(t.key)}
             className={clsx(
-              "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all",
+              "px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all",
               tab === t.key ? "bg-primary text-white shadow-md shadow-primary/25" : "text-slate-400 hover:text-charcoal dark:hover:text-white",
             )}
           >
@@ -198,7 +198,7 @@ export default function NotificationsPageClient() {
         ) : items.length === 0 ? (
           <div className="py-20 text-center space-y-2 px-6">
             <Bell className="w-10 h-10 text-slate-300 mx-auto" />
-            <p className="font-black text-charcoal dark:text-white">Nothing here</p>
+            <p className="font-semibold text-charcoal dark:text-white">Nothing here</p>
             <p className="text-sm text-slate-500">
               {tab === "UNREAD" ? "You've read everything." : "Notifications in this category will appear here."}
             </p>
@@ -208,7 +208,7 @@ export default function NotificationsPageClient() {
             {items.map((n, i) => (
               <li key={n.id}>
                 {startsNewDay(items[i - 1]?.createdAt, n.createdAt) && (
-                  <p className="px-6 pt-5 pb-2 text-[10px] font-black uppercase tracking-widest text-slate-400 bg-slate-50/60 dark:bg-white/2 border-y border-slate-100 dark:border-white/5 first:border-t-0">
+                  <p className="px-6 pt-5 pb-2 text-xs font-semibold text-slate-400 bg-slate-50/60 dark:bg-white/2 border-y border-slate-100 dark:border-white/5 first:border-t-0">
                     {formatDayLabel(n.createdAt)}
                   </p>
                 )}
@@ -222,7 +222,7 @@ export default function NotificationsPageClient() {
                     <NotificationIcon type={n.type} boxed />
                     <span className="flex-1 min-w-0">
                       <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                        <span className={clsx("text-sm text-charcoal dark:text-white", n.isRead ? "font-medium" : "font-black")}>{n.title}</span>
+                        <span className={clsx("text-sm text-charcoal dark:text-white", n.isRead ? "font-medium" : "font-semibold")}>{n.title}</span>
                         {!n.isRead && <span className="w-2 h-2 rounded-full bg-primary" aria-label="Unread" />}
                       </span>
                       <span className="block text-sm text-slate-500 dark:text-slate-400 mt-0.5 wrap-anywhere">{n.message}</span>
@@ -266,7 +266,7 @@ export default function NotificationsPageClient() {
               type="button"
               onClick={loadMore}
               disabled={loadingMore}
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-slate-100 dark:bg-white/5 text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/10 disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-slate-100 dark:bg-white/5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/10 disabled:opacity-50"
             >
               {loadingMore && <Loader2 size={14} className="animate-spin" />} Load older
             </button>

@@ -14,7 +14,6 @@ import {
   Loader2,
   X,
   ChevronDown,
-  Sparkles,
   ArrowLeft,
   Store,
 } from "lucide-react";
@@ -87,7 +86,7 @@ export default function TenantDirectoryPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 relative z-10">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-primary transition-all mb-8 group"
+            className="inline-flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-primary transition-all mb-8 group"
           >
             <ArrowLeft
               size={14}
@@ -97,14 +96,10 @@ export default function TenantDirectoryPage() {
           </Link>
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
             <div className="space-y-4 max-w-2xl">
-              <span className="inline-flex items-center gap-2 px-4 py-1.5 bg-primary/10 text-primary text-[10px] font-black uppercase tracking-[0.3em] rounded-full border border-primary/20">
-                <Store size={12} />
-                Global Directory
-              </span>
-              <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black text-charcoal dark:text-white tracking-tighter leading-[0.9] uppercase">
+              <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-semibold text-charcoal dark:text-white tracking-tight leading-[1.05]">
                 Tenant <br />
-                <span className="text-slate-300 dark:text-zinc-800">
-                  Directory.
+                <span className="text-slate-500 dark:text-slate-400">
+                  Directory
                 </span>
               </h1>
               <p className="text-sm sm:text-lg text-slate-500 dark:text-slate-400 font-medium max-w-xl">
@@ -131,7 +126,7 @@ export default function TenantDirectoryPage() {
                 {searchQuery && (
                   <div className="absolute top-full left-0 w-full mt-2 sm:mt-3 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-2xl sm:rounded-3xl shadow-2xl z-100 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300">
                     <div className="p-3 sm:p-4 border-b border-slate-50 dark:border-white/5 flex justify-between items-center">
-                      <span className="text-[8px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                      <span className="text-xs font-semibold text-slate-400">
                         Recommended Matches
                       </span>
                       <button onClick={() => setSearchQuery("")} className="text-slate-400 hover:text-charcoal transition-colors">
@@ -160,10 +155,10 @@ export default function TenantDirectoryPage() {
                               />
                             </div>
                             <div className="flex-1">
-                              <p className="text-[10px] sm:text-xs font-black text-charcoal dark:text-white line-clamp-1 uppercase">
+                              <p className="text-xs font-semibold text-charcoal dark:text-white line-clamp-1">
                                 {s.shop_name}
                               </p>
-                              <p className="text-[8px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                              <p className="text-xs font-bold text-slate-400">
                                 {s.unit_id} — Plaza Wing
                               </p>
                             </div>
@@ -180,7 +175,7 @@ export default function TenantDirectoryPage() {
                       ).length === 0 && (
                         <div className="p-6 sm:p-8 text-center text-slate-400">
                           <Search size={24} className="mx-auto mb-2 opacity-20" />
-                          <p className="text-[8px] sm:text-[10px] font-bold uppercase tracking-widest">
+                          <p className="text-xs font-bold">
                             No matching shops found
                           </p>
                         </div>
@@ -192,7 +187,7 @@ export default function TenantDirectoryPage() {
               <button
                 onClick={() => setIsFilterOpen(!isFilterOpen)}
                 className={clsx(
-                  "flex items-center gap-3 px-6 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap border-2",
+                  "flex items-center gap-3 px-6 py-4 rounded-2xl text-xs font-semibold transition-all whitespace-nowrap border-2",
                   isFilterOpen
                     ? "bg-primary text-white border-primary shadow-lg shadow-primary/20"
                     : "bg-white dark:bg-zinc-900 text-slate-500 dark:text-slate-400 border-slate-100 dark:border-white/5 hover:border-slate-200",
@@ -215,7 +210,7 @@ export default function TenantDirectoryPage() {
           >
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               <div className="space-y-4">
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                <span className="text-xs font-semibold text-slate-400">
                   Categories
                 </span>
                 <div className="flex flex-wrap gap-2">
@@ -224,7 +219,7 @@ export default function TenantDirectoryPage() {
                       key={cat}
                       onClick={() => setSelectedCategory(cat)}
                       className={clsx(
-                        "px-4 py-2 rounded-xl text-[10px] font-bold uppercase transition-all",
+                        "px-4 py-2 rounded-xl text-xs font-bold transition-all",
                         selectedCategory === cat
                           ? "bg-primary text-white"
                           : "bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200",
@@ -249,14 +244,14 @@ export default function TenantDirectoryPage() {
                 size={48}
                 className="animate-spin text-primary mx-auto"
               />
-              <p className="text-sm font-black text-slate-400 uppercase tracking-widest">
+              <p className="text-sm font-semibold text-slate-400">
                 Loading Directory...
               </p>
             </div>
           ) : filteredShops.length > 0 ? (
             <>
               <div className="mb-10 flex items-center justify-between">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                <p className="text-xs font-semibold text-slate-400">
                   Showing {filteredShops.length} stores
                 </p>
               </div>
@@ -276,7 +271,7 @@ export default function TenantDirectoryPage() {
           ) : (
             <div className="py-32 text-center bg-white dark:bg-zinc-950 rounded-[3rem] border border-dashed border-slate-200 dark:border-white/10">
               <Store size={48} className="mx-auto text-slate-200 mb-6" />
-              <h3 className="text-xl font-black text-charcoal dark:text-white uppercase tracking-tighter mb-2">
+              <h3 className="text-xl font-semibold text-charcoal dark:text-white tracking-tight mb-2">
                 No Storefronts Found
               </h3>
               <p className="text-sm text-slate-400 font-medium">
@@ -287,7 +282,7 @@ export default function TenantDirectoryPage() {
                   setSearchQuery("");
                   setSelectedCategory("All Categories");
                 }}
-                className="mt-8 text-primary font-black text-[10px] uppercase tracking-widest hover:underline"
+                className="mt-8 text-primary font-semibold text-xs hover:underline"
               >
                 Clear All Filters
               </button>

@@ -57,7 +57,7 @@ export const Footer = ({ config }: FooterProps = {}) => {
                 className="w-full h-full object-cover"
               />
             </div>
-            <span className="text-xl font-black tracking-tighter text-charcoal dark:text-white">
+            <span className="text-xl font-semibold tracking-tight text-charcoal dark:text-white">
               {config?.companyName || "SR MALL"}
             </span>
           </div>
