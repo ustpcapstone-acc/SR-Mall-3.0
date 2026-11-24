@@ -12,6 +12,7 @@ import {
   Building2,
   Users,
   X,
+  Plus,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -155,7 +156,7 @@ export const TenantSidebar = ({
                 "text-[10px]",
                 "font-semibold",
                 "text-slate-400",
-                "dark:text-slate-400",
+                "dark:text-slate-400",
                 "font-sans",
               )}
             >
@@ -184,6 +185,16 @@ export const TenantSidebar = ({
                 ))}
               </Select>
             )}
+            {ws && !staffPerms && (
+              <Link
+                href="/tenantdashboard/rent-a-space"
+                onClick={() => onMobileClose?.()}
+                className="mt-2 flex items-center gap-1.5 rounded-lg px-1 py-1 text-xs font-medium text-slate-500 transition-colors hover:text-primary dark:text-slate-400"
+              >
+                <Plus size={14} aria-hidden />
+                Rent another space
+              </Link>
+            )}
           </div>
           {navItems.map((item) => {
             const isActive = pathname === item.href.split("?")[0];
@@ -202,7 +213,7 @@ export const TenantSidebar = ({
                 </div>
                 <span
                   className={clsx(
-                    "tracking-tight",
+                    "tracking-tight",
                     "text-[11px]",
                     "lg:text-xs",
                     "flex-1"
