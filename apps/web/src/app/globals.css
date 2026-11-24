@@ -6,6 +6,14 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Kumo's brand colour is Cloudflare orange by default: use SR Mall crimson
+   (follows the CMS theme colour through --crimson-rgb). */
+:root {
+  --color-kumo-brand: rgb(var(--crimson-rgb));
+  --color-kumo-brand-hover: rgb(var(--crimson-hover-rgb));
+  --text-color-kumo-brand: rgb(var(--crimson-rgb));
+}
+
 @theme {
   /* Colours read raw "R G B" variables defined below (and overridden at
      runtime by the CMS theme colour, see lib/theme.ts). They must not reuse

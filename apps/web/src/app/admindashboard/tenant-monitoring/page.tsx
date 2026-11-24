@@ -1,5 +1,6 @@
 "use client";
 
+import { PaymentLedgerDialog } from "@/components/payments/payment-ledger-dialog";
 import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/app/providers";
 import {
@@ -236,6 +237,7 @@ const getTimeframeDetails = (tf: Timeframe) => {
 
 export default function TenantMonitoring() {
   const { user: adminUser } = useAuth();
+  const [ledgerOpen, setLedgerOpen] = useState(false);
   const [timeframe, setTimeframe] = useState<Timeframe>("monthly");
   const [tenants, setTenants] = useState<Tenant[]>([]);
   // `loading` = first load only (full-page spinner). Background refreshes are
@@ -1734,7 +1736,12 @@ export default function TenantMonitoring() {
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="p-4 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-2xl shadow-xs hidden sm:flex items-center gap-4">
+            <button
+              type="button"
+              onClick={() => setLedgerOpen(true)}
+              title="See who paid each month"
+              className="p-4 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-2xl shadow-xs flex items-center gap-4 text-left hover:border-primary/40 hover:shadow-md transition-all focus-visible:outline-2 focus-visible:outline-primary"
+            >
               <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center text-emerald-500">
                 <TrendingUp size={20} />
               </div>
@@ -1748,8 +1755,9 @@ export default function TenantMonitoring() {
                 <p className="text-lg font-black text-charcoal dark:text-white">
                   ₱{Math.round((stats.totalRevenue || 0) * multiplier).toLocaleString()}
                 </p>
+                <p className="text-[10px] font-bold text-primary">View payments</p>
               </div>
-            </div>
+            </button>
             <button
               onClick={() => setIsRegisterOpen(true)}
               className="h-14 px-8 bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest flex items-center gap-3 hover:scale-105 transition-all shadow-xl shadow-primary/20 active:scale-95"
@@ -1758,6 +1766,8 @@ export default function TenantMonitoring() {
             </button>
           </div>
         </div>
+
+        <PaymentLedgerDialog open={ledgerOpen} onOpenChange={setLedgerOpen} adminId={adminUser?.id} />
 
         {/* Executive Summary Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">

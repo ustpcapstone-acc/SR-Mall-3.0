@@ -15,6 +15,7 @@ import { getTenantInvoices, submitDepositSlip } from "@/app/actions/finance";
 import { getStorefrontAction } from "@/app/actions/tenant";
 import { generateTenantReceiptPDF } from "@/utils/report-generator";
 import { useAuth } from "@/app/providers";
+import { MyScheduleButton } from "@/components/payments/my-schedule-dialog";
 
 export default function LeasePayments() {
   const { user } = useAuth();
@@ -124,17 +125,20 @@ export default function LeasePayments() {
 
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10 py-4 sm:py-6 lg:py-10 space-y-4 sm:space-y-6 lg:space-y-8">
         {/* Header */}
-        <div>
-          <p className="text-[10px] sm:text-xs font-bold text-primary uppercase tracking-widest mb-1">
-            Financial
-          </p>
-          <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-charcoal dark:text-white tracking-tight">
-            Lease &amp; Billing
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
-            Submit your bank deposit slips to verify your monthly dues in the
-            administration office.
-          </p>
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+          <div>
+            <p className="text-[10px] sm:text-xs font-bold text-primary uppercase tracking-widest mb-1">
+              Financial
+            </p>
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-charcoal dark:text-white tracking-tight">
+              Lease &amp; Billing
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
+              Submit your bank deposit slips to verify your monthly dues in the
+              administration office.
+            </p>
+          </div>
+          <MyScheduleButton userId={user?.id} />
         </div>
 
         {/* Disclaimer Banner */}
