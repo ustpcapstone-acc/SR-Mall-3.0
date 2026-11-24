@@ -124,7 +124,9 @@ export const AdBanner = ({
   };
 
   return (
-    <div className="relative w-full h-[280px] sm:h-[380px] md:h-[500px] overflow-hidden group">
+    // Full screen below the fixed 5rem navbar (svh: correct on mobile browsers
+    // whose address bar resizes the viewport); never shorter than 520px.
+    <div className="relative w-full h-[calc(100svh-5rem)] min-h-[520px] overflow-hidden group">
       {localAds.map((ad: any, index: number) => (
         <div
           key={`${ad.id}-${index}`}
@@ -158,14 +160,14 @@ export const AdBanner = ({
           })()}
           <div className="absolute inset-0 bg-linear-to-r from-black/80 via-black/40 to-transparent flex items-center">
             <div className="max-w-7xl mx-auto px-5 sm:px-10 w-full flex flex-col lg:flex-row lg:items-center justify-between gap-10">
-              <div className="max-w-xs sm:max-w-xl animate-fade-in-up">
+              <div className="max-w-sm sm:max-w-2xl animate-fade-in-up">
                 <span className="inline-block px-3 sm:px-4 py-1 sm:py-1.5 bg-primary text-white text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.2em] mb-3 sm:mb-6 rounded-full shadow-lg shadow-primary/30">
                   {ad.tenantId ? "Tenant Spotlight" : "Experience SR Mall"}
                 </span>
-                <h2 className="text-2xl sm:text-5xl md:text-7xl font-bold text-white mb-2 sm:mb-6 leading-tight tracking-tight line-clamp-2 sm:line-clamp-none">
+                <h2 className="text-3xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold text-white mb-3 sm:mb-6 leading-[1.05] tracking-tight line-clamp-3">
                   {ad.title}
                 </h2>
-                <p className="text-xs sm:text-lg text-white/80 mb-4 sm:mb-10 leading-relaxed font-medium line-clamp-2 sm:line-clamp-3">
+                <p className="text-sm sm:text-lg text-white/80 mb-6 sm:mb-10 leading-relaxed font-medium line-clamp-3">
                   {ad.description ||
                     "Visit us and experience the future of digital shopping today."}
                 </p>
