@@ -8,12 +8,14 @@ import { staffCanOpen, staffHome } from "@/lib/tenant-permissions";
  * Keeps each dashboard behind its own portal:
  *   /admindashboard, /admin  -> staff accounts, and only the sections their role allows
  *   /tenantdashboard         -> tenant accounts (tenant staff: their role's sections)
+ *   /account                 -> customer accounts
  * Server actions also check access themselves; this is the first gate.
  */
 const AREAS: { prefix: string; type: AccountType; login: string }[] = [
   { prefix: "/admindashboard", type: "ADMIN", login: "/staff-portal" },
   { prefix: "/admin", type: "ADMIN", login: "/staff-portal" },
   { prefix: "/tenantdashboard", type: "TENANT", login: "/tenant-portal" },
+  { prefix: "/account", type: "CUSTOMER", login: "/login" },
 ];
 
 export async function proxy(request: NextRequest) {
@@ -64,5 +66,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admindashboard/:path*", "/admin/:path*", "/tenantdashboard/:path*"],
+  matcher: ["/admindashboard/:path*", "/admin/:path*", "/tenantdashboard/:path*", "/account/:path*"],
 };

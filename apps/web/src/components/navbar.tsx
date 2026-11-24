@@ -12,6 +12,7 @@ import {
   X,
   Heart,
   ShoppingBag,
+  LayoutDashboard,
 } from "lucide-react";
 import { getAllStorefrontsAction } from "@/app/actions/tenant";
 import { getPublicViewConfigAction } from "@/app/actions/cms";
@@ -30,6 +31,13 @@ interface NavbarProps {
     companyName?: string | null;
     [key: string]: any;
   } | null;
+}
+
+/** Each account type's own dashboard (customers: /account). */
+function dashboardHref(role?: string) {
+  if (role === "ADMIN") return "/admindashboard";
+  if (role === "TENANT" || role === "TENANT_STAFF") return "/tenantdashboard";
+  return "/account";
 }
 
 export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
@@ -286,13 +294,9 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
                 <div className="flex items-center gap-2">
                   <PublicThemeToggle />
                 </div>
-                {(user?.role === "ADMIN" || user?.role === "TENANT") && (
+                {isAuthenticated && user && dashboardHref(user.role) !== "/account" && (
                   <Link
-                    href={
-                      user.role === "ADMIN"
-                        ? "/admindashboard"
-                        : "/tenantdashboard"
-                    }
+                    href={dashboardHref(user.role)}
                     className={clsx(
                       "hidden",
                       "sm:flex",
@@ -464,6 +468,15 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
                           >
                             <User size={16} className="text-primary" /> My Profile
                           </Link>
+                          {dashboardHref(user?.role) === "/account" && (
+                            <Link
+                              href="/account"
+                              onClick={() => setIsProfileOpen(false)}
+                              className="w-full flex items-center gap-3 px-6 py-3 text-xs font-bold text-charcoal dark:text-white hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
+                            >
+                              <LayoutDashboard size={16} className="text-primary" /> My Account
+                            </Link>
+                          )}
 
                         </div>
 
@@ -601,18 +614,13 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
               </>
             )}
 
-            {isAuthenticated &&
-              (user?.role === "ADMIN" || user?.role === "TENANT") && (
+            {isAuthenticated && user && (
                 <Link
-                  href={
-                    user?.role === "ADMIN"
-                      ? "/admindashboard"
-                      : "/tenantdashboard"
-                  }
+                  href={dashboardHref(user.role)}
                   onClick={() => setIsMobileMenuOpen(false)}
                   className="flex items-center justify-between py-4 border-b border-slate-100 dark:border-white/5 text-base font-bold text-primary"
                 >
-                  Go to Dashboard
+                  {dashboardHref(user.role) === "/account" ? "My Account" : "Go to Dashboard"}
                   <ChevronDown
                     size={16}
                     className="-rotate-90 text-primary/40"

@@ -45,6 +45,8 @@ const signUpSchema = z.object({
 interface LoginModalProps {
   isOpen: boolean;
   onClose: () => void;
+  /** Where to go after signing in (the /login page passes its ?next). */
+  nextPath?: string | null;
 }
 
 /** Official multi-colour Google "G". */
@@ -63,7 +65,7 @@ const INPUT =
   "w-full bg-slate-50 dark:bg-zinc-800 rounded-2xl border-2 border-transparent focus:border-primary outline-hidden transition-all text-sm font-bold text-charcoal dark:text-white";
 const LABEL = "text-[10px] font-black text-slate-500 uppercase tracking-widest px-1";
 
-export const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
+export const LoginModal = ({ isOpen, onClose, nextPath }: LoginModalProps) => {
   const { login } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
@@ -141,13 +143,13 @@ export const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
         if (!res.success || !res.data) throw new Error(res.error || "Error creating account.");
         login(res.data.id, res.data.name || data.firstName, res.data.email, res.data.role);
         onClose();
-        goTo("/");
+        goTo(nextPath || "/");
       } else {
         const res = await loginAction({ email: data.email, password: data.password }, "CUSTOMER");
         if (!res.success || !res.data) throw new Error(res.error || "Invalid email or password.");
         login(res.data.id, res.data.name, res.data.email, res.data.role, res.data.avatarUrl);
         onClose();
-        goTo(res.redirectTo);
+        goTo(nextPath || res.redirectTo);
       }
     } catch (err: any) {
       setError(err?.message || (isSignUp ? "Error creating account." : "Invalid email or password."));
