@@ -92,7 +92,7 @@ export default function SiteEditorPage() {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center space-y-4">
         <Loader2 className="w-10 h-10 text-primary animate-spin" />
-        <p className="text-sm font-bold text-slate-400 text-center">
+        <p className="text-sm font-bold text-slate-500 dark:text-slate-400 text-center">
           Loading Global Config...
         </p>
       </div>
@@ -101,7 +101,7 @@ export default function SiteEditorPage() {
 
   if (user?.role !== "ADMIN") {
     return (
-      <div className="p-10 text-center">
+      <div className="p-5 sm:p-10 text-center">
         <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-red-500">Access Denied</h1>
         <p>You do not have permission to configure global site variables.</p>
       </div>
@@ -156,14 +156,14 @@ export default function SiteEditorPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
         {/* Mall Hero Section */}
-        <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-[3rem] shadow-xs p-12 space-y-10">
+        <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl shadow-xs p-6 sm:p-12 space-y-10">
           <h2 className="font-semibold text-charcoal dark:text-white flex items-center gap-3 text-xl tracking-tight">
             <Layout size={24} className="text-primary" /> Landing Page Hero
           </h2>
 
           <div className="space-y-6">
             <div className="group/field">
-              <label className="text-xs font-semibold text-slate-400 block mb-2">
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mb-2">
                 Hero Floating Badge
               </label>
               <input
@@ -176,7 +176,7 @@ export default function SiteEditorPage() {
             </div>
 
             <div className="group/field">
-              <label className="text-xs font-semibold text-slate-400 block mb-2">
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mb-2">
                 Main Hero Title
               </label>
               <textarea
@@ -188,7 +188,7 @@ export default function SiteEditorPage() {
             </div>
 
             <div className="group/field">
-              <label className="text-xs font-semibold text-slate-400 block mb-2">
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mb-2">
                 Hero Subtitle
               </label>
               <textarea
@@ -200,7 +200,7 @@ export default function SiteEditorPage() {
             </div>
 
             <div className="group/field">
-              <label className="text-xs font-semibold text-slate-400 block mb-2">
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mb-2">
                 Primary Button Text
               </label>
               <input
@@ -213,7 +213,7 @@ export default function SiteEditorPage() {
 
             <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-white/5">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-semibold text-slate-400 flex items-center gap-2">
+                <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-2">
                   <ImageIcon size={14} /> Hero Background Image
                 </label>
                 <button
@@ -237,7 +237,7 @@ export default function SiteEditorPage() {
         </div>
 
         {/* Default Ad Banner Section */}
-        <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-[3rem] shadow-xs p-12 space-y-10">
+        <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl shadow-xs p-6 sm:p-12 space-y-10">
           <div className="flex justify-between items-center">
             <h2 className="font-semibold text-charcoal dark:text-white flex items-center gap-3 text-xl tracking-tight">
               <Type size={24} className="text-primary" /> Default Ad Fallback
@@ -253,7 +253,7 @@ export default function SiteEditorPage() {
 
           <div className="space-y-6">
             <div className="group/field">
-              <label className="text-xs font-semibold text-slate-400 block mb-2">
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mb-2">
                 Campaign Title
               </label>
               <input
@@ -266,7 +266,7 @@ export default function SiteEditorPage() {
             </div>
 
             <div className="group/field">
-              <label className="text-xs font-semibold text-slate-400 block mb-2">
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mb-2">
                 Ad Description
               </label>
               <textarea
@@ -278,7 +278,7 @@ export default function SiteEditorPage() {
             </div>
 
             <div className="group/field">
-              <label className="text-xs font-semibold text-slate-400 block mb-2">
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mb-2">
                 Call-to-Action Text
               </label>
               <input
@@ -292,7 +292,7 @@ export default function SiteEditorPage() {
 
             <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-white/5">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-semibold text-slate-400 flex items-center gap-2">
+                <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-2">
                   <ImageIcon size={14} /> Campaign Background
                 </label>
                 <button
@@ -305,7 +305,7 @@ export default function SiteEditorPage() {
 
               <div
                 onClick={() => adImageInputRef.current?.click()}
-                className="w-full aspect-21/9 rounded-4xl overflow-hidden border-[3px] border-dashed border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800/30 flex items-center justify-center cursor-pointer group/upload relative"
+                className="w-full aspect-21/9 rounded-2xl overflow-hidden border-[3px] border-dashed border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800/30 flex items-center justify-center cursor-pointer group/upload relative"
               >
                 {config?.defaultAdImage ? (
                   <>

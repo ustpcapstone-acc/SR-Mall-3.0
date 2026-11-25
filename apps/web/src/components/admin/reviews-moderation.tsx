@@ -225,7 +225,7 @@ export function ReviewsModeration({
   if (!reviews) {
     if (error) {
       return (
-        <div className="p-16 text-center space-y-4 bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-[2.5rem]">
+        <div className="p-16 text-center space-y-4 bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl">
           <AlertTriangle className="mx-auto text-primary" size={28} />
           <p className="font-semibold text-charcoal dark:text-white tracking-tight">
             Couldn&apos;t load reviews
@@ -281,7 +281,7 @@ export function ReviewsModeration({
         />
       </div>
 
-      <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-[2.5rem] shadow-xs overflow-hidden">
+      <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl shadow-xs overflow-hidden">
         {/* Tabs + refresh */}
         <div className="p-4 md:p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-100 dark:border-white/5">
           <div className="flex gap-1 p-1.5 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/5 w-fit max-w-full overflow-x-auto">
@@ -300,7 +300,7 @@ export function ReviewsModeration({
                 <span className="text-xs font-semibold">{t.label}</span>
                 <span
                   className={clsx(
-                    "min-w-6 px-1.5 py-0.5 rounded-full text-[10px] font-semibold text-center",
+                    "min-w-6 px-1.5 py-0.5 rounded-full text-xs font-semibold text-center",
                     activeBucket === t.id
                       ? "bg-white text-primary"
                       : counts[t.id] > 0 && t.id !== "published"
@@ -317,7 +317,7 @@ export function ReviewsModeration({
             onClick={() => load(true)}
             disabled={refreshing}
             aria-label="Refresh reviews"
-            className="self-end lg:self-auto p-3 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-2xl text-slate-400 hover:text-primary transition-all disabled:opacity-50"
+            className="self-end lg:self-auto p-3 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-2xl text-slate-500 dark:text-slate-400 hover:text-primary transition-all disabled:opacity-50"
           >
             <RefreshCw size={18} className={refreshing ? "animate-spin" : ""} />
           </button>
@@ -338,7 +338,7 @@ export function ReviewsModeration({
               <button
                 onClick={() => setSearch("")}
                 aria-label="Clear search"
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded-md text-slate-400 hover:text-charcoal dark:hover:text-white"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded-md text-slate-500 dark:text-slate-400 hover:text-charcoal dark:hover:text-white"
               >
                 <X size={14} />
               </button>
@@ -372,7 +372,7 @@ export function ReviewsModeration({
         {filtered.length === 0 ? (
           <div className="py-20 flex flex-col items-center gap-3 text-center text-slate-300 dark:text-slate-600">
             {activeBucket === "published" ? <MessageSquare size={28} /> : <ShieldCheck size={28} />}
-            <p className="text-slate-400 font-bold text-xs">
+            <p className="text-slate-500 dark:text-slate-400 font-bold text-xs">
               {search || shopFilter !== "all" || ratingFilter !== "all"
                 ? "No reviews match these filters"
                 : activeBucket === "pending"
@@ -441,11 +441,11 @@ function SummaryCard({
   tone: string;
 }) {
   return (
-    <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-4xl p-5 shadow-xs min-w-0">
+    <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl p-5 shadow-xs min-w-0">
       <span className={clsx("w-10 h-10 rounded-xl flex items-center justify-center", tone)}>{icon}</span>
       <p className={clsx(LABEL, "mt-4 truncate")}>{label}</p>
       <p className="mt-1 text-3xl font-semibold tracking-tight text-charcoal dark:text-white">{value}</p>
-      {sub && <p className="mt-1 text-xs font-bold text-slate-400 truncate">{sub}</p>}
+      {sub && <p className="mt-1 text-xs font-bold text-slate-500 dark:text-slate-400 truncate">{sub}</p>}
     </div>
   );
 }
@@ -588,7 +588,7 @@ function ReviewItem({
             <Stars rating={r.rating} />
             {r.user && <UserStatusBadge user={r.user} />}
           </div>
-          <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-bold text-slate-400">
+          <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-bold text-slate-500 dark:text-slate-400">
             <span className="inline-flex items-center gap-1 text-slate-500 dark:text-slate-300">
               <Store size={11} /> {r.tenant ? r.tenant.shopName : "Mall review"}
             </span>
@@ -613,7 +613,7 @@ function ReviewItem({
               {comment}
             </p>
           ) : (
-            <p className="text-sm italic text-slate-400">Rating only, no comment.</p>
+            <p className="text-sm italic text-slate-500 dark:text-slate-400">Rating only, no comment.</p>
           )}
           {long && (
             <button
@@ -830,9 +830,9 @@ function DeleteReviewModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="delete-review-title"
-        className="relative w-full max-w-md bg-white dark:bg-zinc-950 rounded-4xl shadow-2xl overflow-hidden animate-fade-in-up"
+        className="relative w-full max-w-md bg-white dark:bg-zinc-950 rounded-2xl shadow-2xl overflow-hidden animate-fade-in-up"
       >
-        <div className="p-8 space-y-5">
+        <div className="p-5 sm:p-8 space-y-5">
           <div className="w-12 h-12 rounded-2xl bg-red-500/10 text-red-600 flex items-center justify-center">
             <Trash2 size={22} />
           </div>

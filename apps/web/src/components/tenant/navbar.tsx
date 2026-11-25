@@ -84,7 +84,7 @@ export const TenantNavbar = ({ onMenuClick }: TenantNavbarProps) => {
                 <span className="text-xs font-bold text-charcoal dark:text-white">
                   {user?.name?.split(" ")[0] || "Tenant"}
                 </span>
-                <span className="text-xs text-slate-400 font-medium tracking-tight">
+                <span className="text-xs text-slate-500 dark:text-slate-400 font-medium tracking-tight">
                   Account
                 </span>
               </div>
@@ -97,7 +97,7 @@ export const TenantNavbar = ({ onMenuClick }: TenantNavbarProps) => {
             {isProfileOpen && (
               <div className="absolute top-full right-0 mt-3 w-52 bg-white dark:bg-[#161b26] rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-800 py-2 animate-fade-in-up">
                 <div className="px-4 py-2 border-b border-slate-50 dark:border-slate-800 mb-1">
-                  <p className="text-xs font-bold text-slate-400">
+                  <p className="text-xs font-bold text-slate-500 dark:text-slate-400">
                     Menu
                   </p>
                 </div>

@@ -139,7 +139,7 @@ export default function NotificationsPageClient() {
             <Bell size={12} /> {unreadCount > 0 ? `${unreadCount} unread` : "All caught up"}
           </div>
           <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-charcoal dark:text-white">
-            Notifi<span className="text-primary">cations.</span>
+            Notifications
           </h1>
           <p className="text-slate-500 font-medium">Everything the system has told you, newest first.</p>
         </div>
@@ -190,7 +190,7 @@ export default function NotificationsPageClient() {
       </div>
 
       {/* List */}
-      <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-4xl shadow-xs overflow-hidden">
+      <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl shadow-xs overflow-hidden">
         {loading ? (
           <div className="py-24 flex justify-center">
             <Loader2 className="animate-spin text-primary" size={28} />
@@ -208,7 +208,7 @@ export default function NotificationsPageClient() {
             {items.map((n, i) => (
               <li key={n.id}>
                 {startsNewDay(items[i - 1]?.createdAt, n.createdAt) && (
-                  <p className="px-6 pt-5 pb-2 text-xs font-semibold text-slate-400 bg-slate-50/60 dark:bg-white/2 border-y border-slate-100 dark:border-white/5 first:border-t-0">
+                  <p className="px-6 pt-5 pb-2 text-xs font-semibold text-slate-500 dark:text-slate-400 bg-slate-50/60 dark:bg-white/2 border-y border-slate-100 dark:border-white/5 first:border-t-0">
                     {formatDayLabel(n.createdAt)}
                   </p>
                 )}
@@ -228,7 +228,7 @@ export default function NotificationsPageClient() {
                       <span className="block text-sm text-slate-500 dark:text-slate-400 mt-0.5 wrap-anywhere">{n.message}</span>
                       <span className="flex items-center gap-2 mt-1.5">
                         <NotificationTypeLabel type={n.type} />
-                        <span className="text-[10px] font-bold text-slate-400">· {timeAgo(n.createdAt)}</span>
+                        <span className="text-xs font-bold text-slate-500 dark:text-slate-400">· {timeAgo(n.createdAt)}</span>
                       </span>
                     </span>
                   </button>
@@ -239,7 +239,7 @@ export default function NotificationsPageClient() {
                         onClick={() => markRead(n)}
                         title="Mark as read"
                         aria-label="Mark as read"
-                        className="p-2 rounded-lg text-slate-400 hover:text-primary hover:bg-primary/10"
+                        className="p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:text-primary hover:bg-primary/10"
                       >
                         <Check size={16} />
                       </button>
@@ -249,7 +249,7 @@ export default function NotificationsPageClient() {
                       onClick={() => remove(n)}
                       title="Delete"
                       aria-label="Delete notification"
-                      className="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-500/10"
+                      className="p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:text-red-600 hover:bg-red-500/10"
                     >
                       <Trash2 size={16} />
                     </button>

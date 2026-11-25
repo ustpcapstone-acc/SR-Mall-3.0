@@ -250,6 +250,15 @@ export default function TenantMonitoring() {
   const [saving, setSaving] = useState(false);
   const loadInFlightRef = useRef(false);
   const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
+  // Which tab of the tenant window is open. A tenant with a deposit slip
+  // waiting opens on Payments, where the slip is checked.
+  const [tabChoice, setTabChoice] = useState<{ id: string; tab: "details" | "payments" } | null>(null);
+  const detailTab =
+    tabChoice && tabChoice.id === selectedTenant?.id
+      ? tabChoice.tab
+      : selectedTenant?.hasSlipToVerify
+        ? "payments"
+        : "details";
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const [toast, setToast] = useState<{
     msg: string;
@@ -1047,7 +1056,7 @@ export default function TenantMonitoring() {
               "max-w-lg",
               "bg-white",
               "dark:bg-zinc-950",
-              "rounded-4xl",
+              "rounded-2xl",
               "shadow-2xl",
               "overflow-hidden",
               "animate-fade-in-up",
@@ -1077,9 +1086,9 @@ export default function TenantMonitoring() {
               </button>
             </div>
 
-            <div className="p-8 space-y-5">
+            <div className="p-5 sm:p-8 space-y-5">
               <div>
-                <label className="text-xs font-semibold text-slate-400 block mb-2">
+                <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mb-2">
                   Shop Name
                 </label>
                 <input
@@ -1097,7 +1106,7 @@ export default function TenantMonitoring() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs font-semibold text-slate-400 block mb-2">
+                  <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mb-2">
                     Unit ID
                   </label>
                   <select
@@ -1121,7 +1130,7 @@ export default function TenantMonitoring() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-slate-400 block mb-2">
+                  <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mb-2">
                     Status
                   </label>
                   <select
@@ -1144,7 +1153,7 @@ export default function TenantMonitoring() {
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-slate-400 block mb-2">
+                <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mb-2">
                   Monthly Rent (₱)
                 </label>
                 <input
@@ -1161,7 +1170,7 @@ export default function TenantMonitoring() {
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-slate-400 block mb-2">
+                <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mb-2">
                   Description / Store Type
                 </label>
                 <textarea
@@ -1233,7 +1242,7 @@ export default function TenantMonitoring() {
               "max-w-lg",
               "bg-white",
               "dark:bg-zinc-950",
-              "rounded-4xl",
+              "rounded-2xl",
               "shadow-2xl",
               "overflow-hidden",
               "animate-fade-in-up",
@@ -1263,9 +1272,9 @@ export default function TenantMonitoring() {
               </button>
             </div>
 
-            <div className="p-8 space-y-5">
+            <div className="p-5 sm:p-8 space-y-5">
               <div>
-                <label className="text-xs font-semibold text-slate-400 block mb-2">
+                <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mb-2">
                   Amount to Bill (₱)
                 </label>
                 <input
@@ -1283,7 +1292,7 @@ export default function TenantMonitoring() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs font-semibold text-slate-400 block mb-2">
+                  <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mb-2">
                     Billing Month
                   </label>
                   <input
@@ -1300,7 +1309,7 @@ export default function TenantMonitoring() {
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-slate-400 block mb-2">
+                  <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mb-2">
                     Due Date
                   </label>
                   <input
@@ -1318,7 +1327,7 @@ export default function TenantMonitoring() {
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-slate-400 block mb-2">
+                <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mb-2">
                   Description
                 </label>
                 <textarea
@@ -1381,7 +1390,7 @@ export default function TenantMonitoring() {
             className="absolute inset-0 bg-black/60 backdrop-blur-xs"
             onClick={() => setIsDocumentsModalOpen(false)}
           />
-          <div className="relative w-full max-w-2xl bg-white dark:bg-zinc-950 rounded-4xl shadow-2xl overflow-hidden animate-fade-in-up flex flex-col max-h-[90vh]">
+          <div className="relative w-full max-w-2xl bg-white dark:bg-zinc-950 rounded-2xl shadow-2xl overflow-hidden animate-fade-in-up flex flex-col max-h-[90vh]">
             {/* Header */}
             <div className="bg-linear-to-r from-slate-900 to-slate-800 dark:from-zinc-900 dark:to-zinc-950 p-6 text-white relative shrink-0 border-b border-white/10">
               <div className="flex items-center gap-4">
@@ -1392,14 +1401,14 @@ export default function TenantMonitoring() {
                   <h2 className="text-xl font-semibold tracking-tight">
                     Tenant Documents & Records
                   </h2>
-                  <p className="text-xs text-slate-400 font-bold mt-0.5">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-bold mt-0.5">
                     {selectedTenant.shopName} • {selectedTenant.unitId}
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setIsDocumentsModalOpen(false)}
-                className="absolute top-6 right-6 p-2 rounded-full hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
+                className="absolute top-6 right-6 p-2 rounded-full hover:bg-white/10 text-slate-500 dark:text-slate-400 hover:text-white transition-colors"
               >
                 <X size={18} />
               </button>
@@ -1410,7 +1419,7 @@ export default function TenantMonitoring() {
               {/* Section 1: Lease Contract & Official Voucher */}
               <div>
                 <div className="flex items-center justify-between mb-3">
-                  <h4 className="text-xs font-semibold text-slate-400 flex items-center gap-2">
+                  <h4 className="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-2">
                     <Calendar size={14} /> Official Lease Agreement & Voucher
                   </h4>
                   <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
@@ -1421,7 +1430,7 @@ export default function TenantMonitoring() {
                 <div className="bg-slate-50 dark:bg-zinc-900/60 rounded-2xl border border-slate-200 dark:border-white/5 p-5 space-y-4">
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-left">
                     <div>
-                      <span className="text-xs font-semibold text-slate-400 block mb-1">
+                      <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mb-1">
                         Unit Assignment
                       </span>
                       <span className="text-sm font-semibold text-charcoal dark:text-white">
@@ -1429,7 +1438,7 @@ export default function TenantMonitoring() {
                       </span>
                     </div>
                     <div>
-                      <span className="text-xs font-semibold text-slate-400 block mb-1">
+                      <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mb-1">
                         Monthly Lease
                       </span>
                       <span className="text-sm font-semibold text-charcoal dark:text-white">
@@ -1437,7 +1446,7 @@ export default function TenantMonitoring() {
                       </span>
                     </div>
                     <div>
-                      <span className="text-xs font-semibold text-slate-400 block mb-1">
+                      <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mb-1">
                         Effective Date
                       </span>
                       <span className="text-xs font-bold text-slate-600 dark:text-slate-300">
@@ -1445,7 +1454,7 @@ export default function TenantMonitoring() {
                       </span>
                     </div>
                     <div>
-                      <span className="text-xs font-semibold text-slate-400 block mb-1">
+                      <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mb-1">
                         Term Expiry
                       </span>
                       <span className="text-xs font-bold text-slate-600 dark:text-slate-300">
@@ -1455,7 +1464,7 @@ export default function TenantMonitoring() {
                   </div>
 
                   <div className="pt-3 border-t border-slate-200 dark:border-white/5 flex items-center justify-between gap-3">
-                    <p className="text-[10px] text-slate-500">
+                    <p className="text-xs text-slate-500">
                       Standard SR-Mall Commercial Space Lease Agreement Voucher with system verification code and security credentials.
                     </p>
                     <button
@@ -1480,10 +1489,10 @@ export default function TenantMonitoring() {
               {/* Section 2: Invoices & Receipts Ledger */}
               <div>
                 <div className="flex items-center justify-between mb-3">
-                  <h4 className="text-xs font-semibold text-slate-400 flex items-center gap-2">
+                  <h4 className="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-2">
                     <Receipt size={14} /> Official Payment Receipts & Invoices
                   </h4>
-                  <span className="text-xs font-semibold text-slate-400">
+                  <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
                     {allInvoices.filter((i: any) => i.tenantId === selectedTenant.id).length} Documents
                   </span>
                 </div>
@@ -1527,7 +1536,7 @@ export default function TenantMonitoring() {
                                     {inv.status === "REVIEWING" ? "PENDING" : inv.status}
                                   </span>
                                 </div>
-                                <p className="text-xs text-slate-400 font-bold mt-0.5">
+                                <p className="text-xs text-slate-500 dark:text-slate-400 font-bold mt-0.5">
                                   {inv.month} • Due {new Date(inv.dueDate).toLocaleDateString()} • ₱{inv.amount.toLocaleString()}
                                 </p>
                               </div>
@@ -1558,12 +1567,12 @@ export default function TenantMonitoring() {
                         ))}
                     </div>
                   ) : (
-                    <div className="p-8 text-center text-slate-400">
+                    <div className="p-5 sm:p-8 text-center text-slate-400">
                       <FileText size={28} className="mx-auto mb-2 opacity-20" />
                       <p className="text-xs font-bold">
                         No billing ledger records found
                       </p>
-                      <p className="text-[10px] text-slate-500 mt-1">
+                      <p className="text-xs text-slate-500 mt-1">
                         Posted invoices and official payments will be logged and downloadable here.
                       </p>
                     </div>
@@ -1573,7 +1582,7 @@ export default function TenantMonitoring() {
 
               {/* Section 3: Intelligence & Audit Report */}
               <div>
-                <h4 className="text-xs font-semibold text-slate-400 mb-3 flex items-center gap-2">
+                <h4 className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-3 flex items-center gap-2">
                   <BarChart3 size={14} /> Intelligence & Compliance Export
                 </h4>
 
@@ -1582,7 +1591,7 @@ export default function TenantMonitoring() {
                     <h5 className="text-xs font-semibold text-charcoal dark:text-white tracking-tight">
                       Comprehensive Tenant Audit Report
                     </h5>
-                    <p className="text-[10px] text-slate-500 mt-0.5">
+                    <p className="text-xs text-slate-500 mt-0.5">
                       Full administrative summary including occupancy area, rental figures, ledger status, and ratings.
                     </p>
                   </div>
@@ -1625,7 +1634,7 @@ export default function TenantMonitoring() {
             className="absolute inset-0 bg-black/60 backdrop-blur-xs"
             onClick={() => !isDeletingTenant && setTenantToDelete(null)}
           />
-          <div className="relative w-full max-w-md bg-white dark:bg-zinc-950 rounded-4xl shadow-2xl overflow-hidden animate-fade-in-up border border-red-200 dark:border-red-900/30">
+          <div className="relative w-full max-w-md bg-white dark:bg-zinc-950 rounded-2xl shadow-2xl overflow-hidden animate-fade-in-up border border-red-200 dark:border-red-900/30">
             <div className="p-6 text-center space-y-4">
               <div className="w-16 h-16 bg-red-500/10 text-red-600 rounded-3xl flex items-center justify-center mx-auto border border-red-500/20">
                 <Trash2 size={32} />
@@ -1635,7 +1644,7 @@ export default function TenantMonitoring() {
                 <h3 className="text-xl font-semibold text-charcoal dark:text-white tracking-tight">
                   Delete Tenant
                 </h3>
-                <p className="text-xs text-slate-400 font-bold mt-1">
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-bold mt-1">
                   Permanent Administrative Action
                 </p>
               </div>
@@ -1648,7 +1657,7 @@ export default function TenantMonitoring() {
                   </strong>
                   ?
                 </p>
-                <ul className="text-[11px] text-slate-600 dark:text-slate-400 mt-2 space-y-1 list-disc list-inside">
+                <ul className="text-xs text-slate-600 dark:text-slate-400 mt-2 space-y-1 list-disc list-inside">
                   <li>Tenant profile and its invoices will be permanently deleted</li>
                   <li>A summary (unit, lease dates, payments) is kept in User Management → Tenant History</li>
                   <li>
@@ -1757,7 +1766,7 @@ export default function TenantMonitoring() {
                 <TrendingUp size={20} />
               </div>
               <div>
-                <p className="text-xs font-semibold text-slate-400 flex items-center gap-1.5">
+                <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
                   Est. Revenue{" "}
                   <span className="text-xs px-1.5 py-0.5 rounded-sm bg-emerald-500/10 text-emerald-500 font-bold">
                     {tfDetails.periodBadge}
@@ -1766,7 +1775,7 @@ export default function TenantMonitoring() {
                 <p className="text-lg font-semibold text-charcoal dark:text-white">
                   ₱{Math.round((stats.totalRevenue || 0) * multiplier).toLocaleString()}
                 </p>
-                <p className="text-[10px] font-bold text-primary">View payments</p>
+                <p className="text-xs font-bold text-primary">View payments</p>
               </div>
             </button>
             <button
@@ -1783,14 +1792,14 @@ export default function TenantMonitoring() {
         {/* Executive Summary Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
           <div className="group relative p-1">
-            <div className="absolute inset-0 bg-linear-to-br from-blue-500 to-indigo-600 rounded-4xl blur-xl opacity-0 group-hover:opacity-10 transition-opacity"></div>
-            <div className="relative p-6 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-[1.8rem] shadow-xs overflow-hidden h-full">
+            <div className="absolute inset-0 bg-linear-to-br from-blue-500 to-indigo-600 rounded-2xl blur-xl opacity-0 group-hover:opacity-10 transition-opacity"></div>
+            <div className="relative p-6 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-2xl shadow-xs overflow-hidden h-full">
               <div className="flex flex-col items-center text-center gap-3 mb-5">
                 <div className="w-12 h-12 bg-blue-500/10 rounded-2xl flex items-center justify-center text-blue-500 group-hover:scale-110 transition-transform">
                   <Store size={22} />
                 </div>
                 <div className="flex flex-col items-center gap-1">
-                  <span className="text-xs font-semibold text-slate-400">
+                  <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
                     Active Units
                   </span>
                 </div>
@@ -1808,14 +1817,14 @@ export default function TenantMonitoring() {
           </div>
 
           <div className="group relative p-1">
-            <div className="absolute inset-0 bg-linear-to-br from-emerald-500 to-teal-600 rounded-4xl blur-xl opacity-0 group-hover:opacity-10 transition-opacity"></div>
-            <div className="relative p-6 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-[1.8rem] shadow-xs overflow-hidden h-full">
+            <div className="absolute inset-0 bg-linear-to-br from-emerald-500 to-teal-600 rounded-2xl blur-xl opacity-0 group-hover:opacity-10 transition-opacity"></div>
+            <div className="relative p-6 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-2xl shadow-xs overflow-hidden h-full">
               <div className="flex flex-col items-center text-center gap-3 mb-5">
                 <div className="w-12 h-12 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-500 group-hover:scale-110 transition-transform">
                   <PhilippinePeso size={22} />
                 </div>
                 <div className="flex flex-col items-center gap-1">
-                  <span className="text-xs font-semibold text-slate-400 flex items-center gap-1">
+                  <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1">
                     Collected{" "}
                     <span className="text-xs px-1.5 py-0.5 rounded-sm bg-emerald-500/10 text-emerald-600 font-bold">
                       {tfDetails.periodBadge}
@@ -1841,19 +1850,19 @@ export default function TenantMonitoring() {
           </div>
 
           <div className="group relative p-1">
-            <div className="absolute inset-0 bg-linear-to-br from-amber-500 to-orange-600 rounded-4xl blur-xl opacity-0 group-hover:opacity-10 transition-opacity"></div>
-            <div className="relative p-6 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-[1.8rem] shadow-xs overflow-hidden h-full">
+            <div className="absolute inset-0 bg-linear-to-br from-amber-500 to-orange-600 rounded-2xl blur-xl opacity-0 group-hover:opacity-10 transition-opacity"></div>
+            <div className="relative p-6 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-2xl shadow-xs overflow-hidden h-full">
               <div className="flex flex-col items-center text-center gap-3 mb-5">
                 <div className="w-12 h-12 bg-amber-500/10 rounded-2xl flex items-center justify-center text-amber-500 group-hover:scale-110 transition-transform">
                   <Clock size={22} />
                 </div>
                 <div className="flex flex-col items-center gap-1">
-                  <span className="text-xs font-semibold text-slate-400">
+                  <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
                     Applications
                   </span>
                   <div className="flex items-center gap-1 text-amber-500">
                     <Activity size={10} />
-                    <span className="text-[10px] font-bold">Pending</span>
+                    <span className="text-xs font-bold">Pending</span>
                   </div>
                 </div>
               </div>
@@ -1867,19 +1876,19 @@ export default function TenantMonitoring() {
           </div>
 
           <div className="group relative p-1">
-            <div className="absolute inset-0 bg-linear-to-br from-red-500 to-pink-600 rounded-4xl blur-xl opacity-0 group-hover:opacity-10 transition-opacity"></div>
-            <div className="relative p-6 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-[1.8rem] shadow-xs overflow-hidden h-full">
+            <div className="absolute inset-0 bg-linear-to-br from-red-500 to-pink-600 rounded-2xl blur-xl opacity-0 group-hover:opacity-10 transition-opacity"></div>
+            <div className="relative p-6 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-2xl shadow-xs overflow-hidden h-full">
               <div className="flex flex-col items-center text-center gap-3 mb-5">
                 <div className="w-12 h-12 bg-red-500/10 rounded-2xl flex items-center justify-center text-red-500 group-hover:scale-110 transition-transform">
                   <AlertTriangle size={22} />
                 </div>
                 <div className="flex flex-col items-center gap-1">
-                  <span className="text-xs font-semibold text-slate-400">
+                  <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
                     Deficits
                   </span>
                   <div className="flex items-center gap-1 text-red-500 font-semibold">
                     <ShieldAlert size={10} />
-                    <span className="text-[10px]">Overdue</span>
+                    <span className="text-xs">Overdue</span>
                   </div>
                 </div>
               </div>
@@ -1894,19 +1903,19 @@ export default function TenantMonitoring() {
 
           {/* Paid Tenants Card */}
           <div className="group relative p-1">
-            <div className="absolute inset-0 bg-linear-to-br from-emerald-500 to-teal-600 rounded-4xl blur-xl opacity-0 group-hover:opacity-10 transition-opacity"></div>
-            <div className="relative p-6 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-[1.8rem] shadow-xs overflow-hidden h-full">
+            <div className="absolute inset-0 bg-linear-to-br from-emerald-500 to-teal-600 rounded-2xl blur-xl opacity-0 group-hover:opacity-10 transition-opacity"></div>
+            <div className="relative p-6 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-2xl shadow-xs overflow-hidden h-full">
               <div className="flex flex-col items-center text-center gap-3 mb-5">
                 <div className="w-12 h-12 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-500 group-hover:scale-110 transition-transform">
                   <CheckCircle size={22} />
                 </div>
                 <div className="flex flex-col items-center gap-1">
-                  <span className="text-xs font-semibold text-slate-400">
+                  <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
                     Paid Tenants
                   </span>
                   <div className="flex items-center gap-1 text-emerald-500 font-semibold">
                     <CheckCircle size={10} />
-                    <span className="text-[10px]">Cleared</span>
+                    <span className="text-xs">Cleared</span>
                   </div>
                 </div>
               </div>
@@ -1921,19 +1930,19 @@ export default function TenantMonitoring() {
 
           {/* Total Tenants Card */}
           <div className="group relative p-1">
-            <div className="absolute inset-0 bg-linear-to-br from-indigo-500 to-purple-600 rounded-4xl blur-xl opacity-0 group-hover:opacity-10 transition-opacity"></div>
-            <div className="relative p-6 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-[1.8rem] shadow-xs overflow-hidden h-full">
+            <div className="absolute inset-0 bg-linear-to-br from-indigo-500 to-purple-600 rounded-2xl blur-xl opacity-0 group-hover:opacity-10 transition-opacity"></div>
+            <div className="relative p-6 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-2xl shadow-xs overflow-hidden h-full">
               <div className="flex flex-col items-center text-center gap-3 mb-5">
                 <div className="w-12 h-12 bg-indigo-500/10 rounded-2xl flex items-center justify-center text-indigo-500 group-hover:scale-110 transition-transform">
                   <Users size={22} />
                 </div>
                 <div className="flex flex-col items-center gap-1">
-                  <span className="text-xs font-semibold text-slate-400">
+                  <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
                     Total Tenants
                   </span>
                   <div className="flex items-center gap-1 text-indigo-500 font-semibold">
                     <TrendingUp size={10} />
-                    <span className="text-[10px]">Directory</span>
+                    <span className="text-xs">Directory</span>
                   </div>
                 </div>
               </div>
@@ -1948,7 +1957,7 @@ export default function TenantMonitoring() {
         </div>
 
         {/* Control Bar */}
-        <div className="mb-6 p-4 md:p-5 bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-4xl shadow-xs space-y-4">
+        <div className="mb-6 p-4 md:p-5 bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl shadow-xs space-y-4">
           {/* Row 1 — search + view + export */}
           <div className="flex flex-col md:flex-row md:items-center gap-3">
             <div className="relative flex-1 min-w-0 group">
@@ -1969,7 +1978,7 @@ export default function TenantMonitoring() {
                   type="button"
                   onClick={() => setSearchQuery("")}
                   aria-label="Clear search"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-lg text-slate-400 hover:text-charcoal dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-white/10 transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-lg text-slate-500 dark:text-slate-400 hover:text-charcoal dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-white/10 transition-colors"
                 >
                   <X size={14} />
                 </button>
@@ -2043,7 +2052,7 @@ export default function TenantMonitoring() {
                     <Download size={16} className="text-[#BE1E2D]" />
                     Export Tenant Reports
                   </h4>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                     Select a periodic breakdown or export complete records.
                   </p>
                 </div>
@@ -2058,7 +2067,7 @@ export default function TenantMonitoring() {
                           Monthly Report
                         </span>
                       </div>
-                      <span className="text-xs text-slate-400 font-bold">
+                      <span className="text-xs text-slate-500 dark:text-slate-400 font-bold">
                         Specific Month
                       </span>
                     </div>
@@ -2105,7 +2114,7 @@ export default function TenantMonitoring() {
                           Yearly Report
                         </span>
                       </div>
-                      <span className="text-xs text-slate-400 font-bold">
+                      <span className="text-xs text-slate-500 dark:text-slate-400 font-bold">
                         Full Year
                       </span>
                     </div>
@@ -2203,7 +2212,7 @@ export default function TenantMonitoring() {
               </button>
             )}
 
-            <p className="ml-auto text-xs font-semibold text-slate-400">
+            <p className="ml-auto text-xs font-semibold text-slate-500 dark:text-slate-400">
               Showing{" "}
               <span className="text-charcoal dark:text-white">
                 {filteredTenants.length === 0 ? 0 : pageStart + 1}–
@@ -2211,7 +2220,7 @@ export default function TenantMonitoring() {
               </span>{" "}
               of {filteredTenants.length} tenant{filteredTenants.length === 1 ? "" : "s"}
               {filteredTenants.length !== tenants.length && (
-                <span className="text-slate-300 dark:text-slate-600"> ({tenants.length} total)</span>
+                <span className="text-slate-500 dark:text-slate-600"> ({tenants.length} total)</span>
               )}
             </p>
           </div>
@@ -2258,9 +2267,9 @@ export default function TenantMonitoring() {
             <p
               className={clsx(
                 "animate-pulse",
-                "text-[10px]",
+                "text-xs",
                 "font-semibold",
-                "text-slate-400",
+                "text-slate-500 dark:text-slate-400",
               )}
             >
               Loading Tenant Data
@@ -2361,7 +2370,7 @@ export default function TenantMonitoring() {
                                 >
                                   {tenant.shopName}
                                 </p>
-                                <div className="flex items-center gap-2 text-[10px] text-slate-400 min-w-0">
+                                <div className="flex items-center gap-2 text-xs text-slate-400 min-w-0">
                                   <span className="truncate" title={tenant.user?.email}>
                                     {tenant.user?.email}
                                   </span>
@@ -2424,8 +2433,8 @@ export default function TenantMonitoring() {
                               {tenant.nextDueDate !== "N/A" && (
                                 <span
                                   className={clsx(
-                                    "flex items-center gap-1 text-[10px] font-bold whitespace-nowrap",
-                                    isOverdue ? "text-primary" : "text-slate-400",
+                                    "flex items-center gap-1 text-xs font-bold whitespace-nowrap",
+                                    isOverdue ? "text-primary" : "text-slate-500 dark:text-slate-400",
                                   )}
                                 >
                                   <Calendar size={10} className="shrink-0" />
@@ -2442,7 +2451,7 @@ export default function TenantMonitoring() {
                                 ₱{Math.round((tenant.rentCost || 0) * multiplier).toLocaleString()}
                               </span>
                               {timeframe !== "monthly" && (
-                                <span className="text-xs text-slate-400 font-medium whitespace-nowrap">
+                                <span className="text-xs text-slate-500 dark:text-slate-400 font-medium whitespace-nowrap">
                                   Base: ₱{(tenant.rentCost || 0).toLocaleString()}/mo
                                 </span>
                               )}
@@ -2457,7 +2466,7 @@ export default function TenantMonitoring() {
                                 setSelectedTenant(tenant);
                               }}
                               aria-label={`Open ${tenant.shopName}`}
-                              className="p-2 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors text-slate-400 hover:text-primary"
+                              className="p-2 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors text-slate-500 dark:text-slate-400 hover:text-primary"
                             >
                               <MoreVertical size={18} />
                             </button>
@@ -2566,7 +2575,7 @@ export default function TenantMonitoring() {
                       >
                         {tenant.shopName}
                       </h3>
-                      <p className={clsx("text-sm", "text-slate-400", "mb-4")}>
+                      <p className={clsx("text-sm", "text-slate-500 dark:text-slate-400", "mb-4")}>
                         {tenant.unitId}
                       </p>
 
@@ -2584,7 +2593,7 @@ export default function TenantMonitoring() {
                           <p
                             className={clsx(
                               "text-xs",
-                              "text-slate-400",
+                              "text-slate-500 dark:text-slate-400",
                               "font-bold",
                               "mb-1",
                             )}
@@ -2612,7 +2621,7 @@ export default function TenantMonitoring() {
                           <p
                             className={clsx(
                               "text-xs",
-                              "text-slate-400",
+                              "text-slate-500 dark:text-slate-400",
                               "font-bold",
                               "mb-1",
                             )}
@@ -2675,7 +2684,7 @@ export default function TenantMonitoring() {
             {filteredTenants.length > 0 && (
               <div className="mt-6 flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-xs dark:border-white/5 dark:bg-zinc-900 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-slate-400">
+                  <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
                     Rows
                   </span>
                   <CustomSelect
@@ -2707,7 +2716,7 @@ export default function TenantMonitoring() {
                     entry === "ellipsis" ? (
                       <span
                         key={`ellipsis-${index}`}
-                        className="px-1 text-xs font-semibold text-slate-400"
+                        className="px-1 text-xs font-semibold text-slate-500 dark:text-slate-400"
                       >
                         …
                       </span>
@@ -2719,7 +2728,7 @@ export default function TenantMonitoring() {
                         aria-label={`Page ${entry}`}
                         aria-current={entry === currentPage ? "page" : undefined}
                         className={clsx(
-                          "h-9 min-w-9 rounded-xl px-2 text-[11px] font-semibold transition-colors",
+                          "h-9 min-w-9 rounded-xl px-2 text-xs font-semibold transition-colors",
                           entry === currentPage
                             ? "bg-primary text-white shadow-md shadow-primary/25"
                             : "border border-slate-200 text-slate-500 hover:border-primary/30 hover:text-primary dark:border-white/10 dark:text-slate-300",
@@ -2741,7 +2750,7 @@ export default function TenantMonitoring() {
                   </button>
                 </div>
 
-                <p className="text-center text-xs font-semibold text-slate-400 sm:text-right">
+                <p className="text-center text-xs font-semibold text-slate-500 dark:text-slate-400 sm:text-right">
                   Page <span className="text-charcoal dark:text-white">{currentPage}</span> of{" "}
                   {totalPages}
                 </p>
@@ -2884,7 +2893,7 @@ export default function TenantMonitoring() {
                     >
                       {selectedTenant.shopName}
                     </h3>
-                    <p className={clsx("text-sm", "text-slate-400", "mt-1")}>
+                    <p className={clsx("text-sm", "text-slate-500 dark:text-slate-400", "mt-1")}>
                       {selectedTenant.unitId}
                     </p>
                     {selectedTenant.description && (
@@ -2955,7 +2964,7 @@ export default function TenantMonitoring() {
                     />
                     <span
                       className={clsx(
-                        "text-[10px]",
+                        "text-xs",
                         "font-bold",
                         "text-slate-500",
                         "group-hover:text-primary",
@@ -2995,7 +3004,7 @@ export default function TenantMonitoring() {
                     />
                     <span
                       className={clsx(
-                        "text-[10px]",
+                        "text-xs",
                         "font-bold",
                         "text-slate-500",
                         "group-hover:text-red-500",
@@ -3006,13 +3015,39 @@ export default function TenantMonitoring() {
                   </button>
                 </div>
 
+                {/* One tenant, two tabs: who they are, and what they pay */}
+                <div role="tablist" aria-label="Tenant sections" className="flex gap-1 rounded-xl bg-slate-100 dark:bg-white/5 p-1">
+                  {(["details", "payments"] as const).map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      role="tab"
+                      aria-selected={detailTab === t}
+                      onClick={() => selectedTenant && setTabChoice({ id: selectedTenant.id, tab: t })}
+                      className={clsx(
+                        "flex-1 rounded-lg px-3 py-2 text-sm font-semibold transition-colors",
+                        detailTab === t
+                          ? "bg-white dark:bg-zinc-800 text-charcoal dark:text-white shadow-xs"
+                          : "text-slate-500 dark:text-slate-400 hover:text-charcoal dark:hover:text-white",
+                      )}
+                    >
+                      {t === "details" ? "Details" : "Payments"}
+                      {t === "payments" && selectedTenant.hasSlipToVerify && (
+                        <span className="ml-2 rounded-md bg-amber-500/15 px-1.5 py-0.5 text-xs text-amber-700 dark:text-amber-400">Slip to check</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+                
+                {detailTab === "details" && (
+                <>
                 {/* Contract Info */}
                 <div>
                   <h4
                     className={clsx(
-                      "text-[10px]",
+                      "text-xs",
                       "font-semibold",
-                      "text-slate-400",
+                      "text-slate-500 dark:text-slate-400",
                       "mb-4",
                       "flex",
                       "items-center",
@@ -3134,7 +3169,7 @@ export default function TenantMonitoring() {
                           ₱{Math.round((selectedTenant.rentCost || 0) * multiplier).toLocaleString()}
                         </span>
                         {timeframe !== "monthly" && (
-                          <span className="text-[10px] text-slate-400 block font-medium">
+                          <span className="text-xs text-slate-500 dark:text-slate-400 block font-medium">
                             Base: ₱{(selectedTenant.rentCost || 0).toLocaleString()}/mo
                           </span>
                         )}
@@ -3147,9 +3182,9 @@ export default function TenantMonitoring() {
                 <div>
                   <h4
                     className={clsx(
-                      "text-[10px]",
+                      "text-xs",
                       "font-semibold",
-                      "text-slate-400",
+                      "text-slate-500 dark:text-slate-400",
                       "mb-4",
                       "flex",
                       "items-center",
@@ -3172,8 +3207,8 @@ export default function TenantMonitoring() {
                     >
                       <p
                         className={clsx(
-                          "text-[10px]",
-                          "text-slate-400",
+                          "text-xs",
+                          "text-slate-500 dark:text-slate-400",
                           "font-bold",
                           "mb-2",
                         )}
@@ -3204,8 +3239,8 @@ export default function TenantMonitoring() {
                     >
                       <p
                         className={clsx(
-                          "text-[10px]",
-                          "text-slate-400",
+                          "text-xs",
+                          "text-slate-500 dark:text-slate-400",
                           "font-bold",
                           "mb-2",
                         )}
@@ -3236,8 +3271,8 @@ export default function TenantMonitoring() {
                     >
                       <p
                         className={clsx(
-                          "text-[10px]",
-                          "text-slate-400",
+                          "text-xs",
+                          "text-slate-500 dark:text-slate-400",
                           "font-bold",
                           "mb-2",
                         )}
@@ -3272,8 +3307,8 @@ export default function TenantMonitoring() {
                     >
                       <p
                         className={clsx(
-                          "text-[10px]",
-                          "text-slate-400",
+                          "text-xs",
+                          "text-slate-500 dark:text-slate-400",
                           "font-bold",
                           "mb-2",
                         )}
@@ -3334,20 +3369,24 @@ export default function TenantMonitoring() {
                   </div>
                 )}
 
+                </>
+                )}
+                {detailTab === "payments" && (
+                <>
                 {/* Financial Intelligence & Ledger */}
                 <div>
                   <h4
                     className={clsx(
-                      "text-[10px]",
+                      "text-xs",
                       "font-semibold",
-                      "text-slate-400",
+                      "text-slate-500 dark:text-slate-400",
                       "mb-4",
                       "flex",
                       "items-center",
                       "gap-2",
                     )}
                   >
-                    <PhilippinePeso size={14} /> Financial Logistics
+                    <PhilippinePeso size={14} /> Payments
                   </h4>
 
                   <div className="space-y-4">
@@ -3431,7 +3470,7 @@ export default function TenantMonitoring() {
                                       <p className="text-xs font-semibold text-charcoal dark:text-white tracking-tight">
                                         {inv.invoiceNumber}
                                       </p>
-                                      <p className="text-xs font-bold text-slate-400">
+                                      <p className="text-xs font-bold text-slate-500 dark:text-slate-400">
                                         {inv.month} • Due{" "}
                                         {new Date(
                                           inv.dueDate,
@@ -3529,7 +3568,7 @@ export default function TenantMonitoring() {
                               </div>
                             ))
                         ) : (
-                          <div className="p-10 text-center text-slate-400">
+                          <div className="p-5 sm:p-10 text-center text-slate-400">
                             <PaymentIcon
                               size={32}
                               className="mx-auto mb-3 opacity-20"
@@ -3544,6 +3583,10 @@ export default function TenantMonitoring() {
                   </div>
                 </div>
 
+                </>
+                )}
+                {detailTab === "details" && (
+                <>
                 {/* Account Security & Compliance */}
                 <div className="pt-4 border-t border-slate-200 dark:border-white/5">
                   <div className="bg-slate-900 border border-white/10 rounded-2xl p-5 flex items-center justify-between">
@@ -3568,6 +3611,8 @@ export default function TenantMonitoring() {
                     </div>
                   </div>
                 </div>
+                </>
+                )}
               </div>
 
               {/* Approval Section for PENDING tenants */}
@@ -3697,7 +3742,7 @@ export default function TenantMonitoring() {
                     "text-white",
                     "rounded-2xl",
                     "font-semibold",
-                    "text-[10px]",
+                    "text-xs",
                     "hover:bg-[#a01825]",
                     "transition-colors",
                     "flex",
@@ -3723,7 +3768,7 @@ export default function TenantMonitoring() {
                       "text-slate-600",
                       "dark:text-slate-300",
                       "font-bold",
-                      "text-[10px]",
+                      "text-xs",
                       "rounded-xl",
                       "hover:bg-slate-50",
                       "dark:hover:bg-zinc-700",
@@ -3747,7 +3792,7 @@ export default function TenantMonitoring() {
                       "dark:border-red-900/30",
                       "text-red-600",
                       "font-bold",
-                      "text-[10px]",
+                      "text-xs",
                       "rounded-xl",
                       "hover:bg-red-100",
                       "dark:hover:bg-red-900/20",
@@ -3849,8 +3894,8 @@ function FilterSelect({
           open && "border-primary/40 ring-2 ring-primary/15",
         )}
       >
-        {icon && <span className={active ? "text-primary" : "text-slate-400"}>{icon}</span>}
-        <span className="text-xs font-semibold text-slate-400">{label}</span>
+        {icon && <span className={active ? "text-primary" : "text-slate-500 dark:text-slate-400"}>{icon}</span>}
+        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">{label}</span>
         <span className="h-4 w-px bg-slate-200 dark:bg-white/10" />
         {selected?.dot && <span className={clsx("w-2 h-2 rounded-full shrink-0", selected.dot)} />}
         <span className={clsx("text-sm font-bold whitespace-nowrap", active ? "text-primary" : "text-charcoal dark:text-white")}>

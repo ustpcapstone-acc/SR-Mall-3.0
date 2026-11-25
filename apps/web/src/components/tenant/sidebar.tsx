@@ -153,9 +153,9 @@ export const TenantSidebar = ({
           <div className={clsx("px-3", "lg:px-5", "mb-4", "lg:mb-6")}>
             <p
               className={clsx(
-                "text-[10px]",
+                "text-xs",
                 "font-semibold",
-                "text-slate-400",
+                "text-slate-500",
                 "dark:text-slate-400",
                 "font-sans",
               )}
@@ -214,7 +214,7 @@ export const TenantSidebar = ({
                 <span
                   className={clsx(
                     "tracking-tight",
-                    "text-[11px]",
+                    "text-xs",
                     "lg:text-xs",
                     "flex-1"
                   )}

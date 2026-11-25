@@ -586,7 +586,7 @@ function CustomerMessenger({ inbox }: { inbox: Inbox }) {
         </div>
       </div>
 
-      <div className="flex-1 bg-white dark:bg-zinc-900 rounded-2xl sm:rounded-4xl shadow-xs border border-slate-100 dark:border-white/5 flex overflow-hidden relative">
+      <div className="flex-1 bg-white dark:bg-zinc-900 rounded-2xl sm:rounded-2xl shadow-xs border border-slate-100 dark:border-white/5 flex overflow-hidden relative">
         {/* Left Column (Inbox) */}
         <div
           className={`${
@@ -681,7 +681,7 @@ function CustomerMessenger({ inbox }: { inbox: Inbox }) {
                       <span
                         className={clsx(
                           "text-xs font-bold shrink-0",
-                          unread > 0 ? "text-primary" : "text-slate-400",
+                          unread > 0 ? "text-primary" : "text-slate-500 dark:text-slate-400",
                         )}
                       >
                         {formatConversationTime(chat.messages?.[0]?.createdAt || chat.updatedAt)}
@@ -711,7 +711,7 @@ function CustomerMessenger({ inbox }: { inbox: Inbox }) {
                         {lastMsg}
                       </p>
                       {unread > 0 && (
-                        <span className="min-w-5 h-5 px-1.5 rounded-full bg-primary text-white text-[10px] font-semibold flex items-center justify-center shrink-0">
+                        <span className="min-w-5 h-5 px-1.5 rounded-full bg-primary text-white text-xs font-semibold flex items-center justify-center shrink-0">
                           {unread > 99 ? "99+" : unread}
                         </span>
                       )}
@@ -752,7 +752,7 @@ function CustomerMessenger({ inbox }: { inbox: Inbox }) {
                         <div className="flex items-center gap-2 lg:gap-3">
                           <button
                             onClick={() => setActiveChat(null)}
-                            className="p-2 -ml-2 text-slate-400 hover:text-charcoal dark:hover:text-white transition-colors lg:hidden"
+                            className="p-2 -ml-2 text-slate-500 dark:text-slate-400 hover:text-charcoal dark:hover:text-white transition-colors lg:hidden"
                           >
                             <svg
                               xmlns="http://www.w3.org/2000/svg"
@@ -777,7 +777,7 @@ function CustomerMessenger({ inbox }: { inbox: Inbox }) {
                                 className="w-full h-full object-cover"
                               />
                             ) : (
-                              <span className="text-[10px] font-bold text-primary">
+                              <span className="text-xs font-bold text-primary">
                                 {(otherPerson?.name || otherPerson?.email || "?")
                                   .charAt(0)
                                   .toUpperCase()}
@@ -790,7 +790,7 @@ function CustomerMessenger({ inbox }: { inbox: Inbox }) {
                               {otherPerson?.name || otherPerson?.email || "SR Mall Member"}
                               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                             </h3>
-                            <span className="text-xs font-bold text-slate-400 hidden xs:block">
+                            <span className="text-xs font-bold text-slate-500 dark:text-slate-400 hidden xs:block">
                               {isToAdmin ? "Portal Administrator" : "Active Customer"}
                             </span>
                           </div>
@@ -864,7 +864,7 @@ function CustomerMessenger({ inbox }: { inbox: Inbox }) {
                                     )}
                                     </div>
                                 </div>
-                                <span className="text-xs font-bold text-slate-400 mt-1 lg:mt-2">
+                                <span className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-1 lg:mt-2">
                                   {isTemporary && msg.failed ? (
                                     <button
                                       type="button"
@@ -949,7 +949,7 @@ function CustomerMessenger({ inbox }: { inbox: Inbox }) {
                               e.preventDefault();
                               fileInputRef.current?.click();
                             }}
-                            className="p-2 text-slate-400 hover:text-primary transition-colors shrink-0 relative z-10 cursor-pointer"
+                            className="p-2 text-slate-500 dark:text-slate-400 hover:text-primary transition-colors shrink-0 relative z-10 cursor-pointer"
                             title="Attach image"
                           >
                             <Paperclip size={16} />
@@ -986,7 +986,7 @@ function CustomerMessenger({ inbox }: { inbox: Inbox }) {
                     {/* Right Column (Context Panel) */}
                     <div className="hidden xl:block w-72 border-l border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-zinc-900 overflow-y-auto">
                       <div className="p-6">
-                        <h3 className="text-xs font-semibold text-slate-400 mb-6 flex items-center gap-2">
+                        <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-6 flex items-center gap-2">
                           <MoreVertical size={14} /> Interaction Context
                         </h3>
 
@@ -1009,13 +1009,13 @@ function CustomerMessenger({ inbox }: { inbox: Inbox }) {
                             <h4 className="font-bold text-charcoal dark:text-white">
                               {otherPerson?.name || otherPerson?.email || "SR Mall Member"}
                             </h4>
-                            <p className="text-xs font-bold text-slate-400 mt-1">
+                            <p className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-1">
                               {isToAdmin ? "Portal Administrator" : "Chat Participant"}
                             </p>
                           </div>
 
                           <div className="bg-white dark:bg-zinc-800 p-5 rounded-2xl border border-slate-200 dark:border-white/10 shadow-xs">
-                            <h4 className="text-xs font-semibold text-slate-400 mb-2">
+                            <h4 className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">
                               Notice
                             </h4>
                             <p className="text-xs font-medium text-slate-500 mb-4">

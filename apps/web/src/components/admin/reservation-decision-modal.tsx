@@ -152,7 +152,7 @@ export function ReservationDecisionModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="reservation-decision-title"
-        className="relative w-full max-w-xl max-h-[92vh] overflow-y-auto bg-white dark:bg-zinc-950 rounded-4xl shadow-2xl animate-fade-in-up"
+        className="relative w-full max-w-xl max-h-[92vh] overflow-y-auto bg-white dark:bg-zinc-950 rounded-2xl shadow-2xl animate-fade-in-up"
       >
         <div
           className={clsx(
@@ -209,15 +209,15 @@ export function ReservationDecisionModal({
           {/* What */}
           <dl className="grid grid-cols-3 gap-3 text-sm">
             <div className="p-3 rounded-xl border border-slate-100 dark:border-white/5">
-              <dt className="flex items-center gap-1 text-xs font-semibold text-slate-400"><MapPin size={11} /> Floor</dt>
+              <dt className="flex items-center gap-1 text-xs font-semibold text-slate-500 dark:text-slate-400"><MapPin size={11} /> Floor</dt>
               <dd className="mt-1 font-bold capitalize text-charcoal dark:text-white">{r.floor || "—"}</dd>
             </div>
             <div className="p-3 rounded-xl border border-slate-100 dark:border-white/5">
-              <dt className="flex items-center gap-1 text-xs font-semibold text-slate-400"><Ruler size={11} /> Size</dt>
+              <dt className="flex items-center gap-1 text-xs font-semibold text-slate-500 dark:text-slate-400"><Ruler size={11} /> Size</dt>
               <dd className="mt-1 font-bold text-charcoal dark:text-white">{r.sqm_size ?? "—"} sqm</dd>
             </div>
             <div className="p-3 rounded-xl border border-slate-100 dark:border-white/5">
-              <dt className="flex items-center gap-1 text-xs font-semibold text-slate-400"><Wallet size={11} /> Rent</dt>
+              <dt className="flex items-center gap-1 text-xs font-semibold text-slate-500 dark:text-slate-400"><Wallet size={11} /> Rent</dt>
               <dd className="mt-1 font-bold text-charcoal dark:text-white">₱{Number(r.base_rent || 0).toLocaleString()}</dd>
             </div>
           </dl>
@@ -229,7 +229,7 @@ export function ReservationDecisionModal({
 
           {/* Business permit */}
           <div className="space-y-2">
-            <p className="text-xs font-semibold text-slate-400">Business permit</p>
+            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Business permit</p>
             {permit ? (
               <div className="rounded-2xl border border-slate-100 dark:border-white/5 overflow-hidden">
                 {isImage(permit) ? (
@@ -250,7 +250,7 @@ export function ReservationDecisionModal({
                 <div className="flex items-center gap-3 p-3">
                   <div className="min-w-0 flex-1">
                     <p className="text-xs font-bold text-charcoal dark:text-white truncate">{permit.name}</p>
-                    <p className="text-[10px] text-slate-500">
+                    <p className="text-xs text-slate-500">
                       {permit.size ? `${fileSize(permit.size)} · ` : ""}uploaded{" "}
                       {new Date(permit.uploadedAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
                     </p>
@@ -298,7 +298,7 @@ export function ReservationDecisionModal({
 
           {!details && (
             <div className="space-y-1.5">
-              <label htmlFor="reservation-comment" className="text-xs font-semibold text-slate-400">
+              <label htmlFor="reservation-comment" className="text-xs font-semibold text-slate-500 dark:text-slate-400">
                 Comment to the applicant {approve ? "(optional)" : <span className="text-primary">(required)</span>}
               </label>
               <textarea
@@ -313,7 +313,7 @@ export function ReservationDecisionModal({
                 }
                 className="w-full p-3 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-zinc-900 text-sm text-charcoal dark:text-white focus:outline-hidden focus:border-primary resize-none"
               />
-              <p className="flex justify-between text-[10px] text-slate-400">
+              <p className="flex justify-between text-xs text-slate-500 dark:text-slate-400">
                 <span>Sent to {name} by email and notification.</span>
                 <span>{reason.length}/{COMMENT_MAX}</span>
               </p>

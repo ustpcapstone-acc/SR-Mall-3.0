@@ -105,7 +105,7 @@ export default function MerchantRequestsPage() {
   };
 
   return (
-    <div className="p-10 animate-fade-in-up">
+    <div className="p-5 sm:p-10 animate-fade-in-up">
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-charcoal dark:text-white">
@@ -125,21 +125,21 @@ export default function MerchantRequestsPage() {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-zinc-900 rounded-[3rem] border border-slate-100 dark:border-white/5 shadow-2xl">
-        <div className="w-full">
+      <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-100 dark:border-white/5 shadow-2xl">
+        <div className="w-full overflow-x-auto">
           <table className="w-full text-left border-collapse min-w-[900px]">
             <thead>
               <tr className="border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/5">
-                <th className="px-8 py-6 text-xs font-semibold text-slate-400">
+                <th className="px-4 sm:px-8 py-6 text-xs font-semibold text-slate-500 dark:text-slate-400">
                   Applicant Details
                 </th>
-                <th className="px-8 py-6 text-xs font-semibold text-slate-400">
+                <th className="px-4 sm:px-8 py-6 text-xs font-semibold text-slate-500 dark:text-slate-400">
                   Shop Description
                 </th>
-                <th className="px-8 py-6 text-xs font-semibold text-slate-400">
+                <th className="px-4 sm:px-8 py-6 text-xs font-semibold text-slate-500 dark:text-slate-400">
                   Unit Assignment
                 </th>
-                <th className="px-8 py-6 text-xs font-semibold text-slate-400 text-right">
+                <th className="px-4 sm:px-8 py-6 text-xs font-semibold text-slate-500 dark:text-slate-400 text-right">
                   Decision
                 </th>
               </tr>
@@ -152,7 +152,7 @@ export default function MerchantRequestsPage() {
                       className="animate-spin mx-auto text-primary"
                       size={40}
                     />
-                    <p className="text-xs font-semibold text-slate-400 mt-4">
+                    <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-4">
                       Reviewing Applications...
                     </p>
                   </td>
@@ -163,7 +163,7 @@ export default function MerchantRequestsPage() {
                     key={req.id}
                     className="hover:bg-slate-50 dark:hover:bg-white/5 transition-all group"
                   >
-                    <td className="px-8 py-6">
+                    <td className="px-4 sm:px-8 py-6">
                       <div className="flex items-center gap-4">
                         <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
                           <User size={22} />
@@ -181,17 +181,17 @@ export default function MerchantRequestsPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-8 py-6 max-w-xs">
+                    <td className="px-4 sm:px-8 py-6 max-w-xs">
                       <div className="space-y-1">
                         <p className="text-xs font-semibold text-charcoal dark:text-white">
                           {req.shopName}
                         </p>
-                        <p className="text-[11px] text-slate-500 font-medium line-clamp-2 leading-relaxed">
+                        <p className="text-xs text-slate-500 font-medium line-clamp-2 leading-relaxed">
                           {req.description}
                         </p>
                       </div>
                     </td>
-                    <td className="px-8 py-6">
+                    <td className="px-4 sm:px-8 py-6">
                       <div className="relative flex items-center gap-2 group/select min-w-[200px]">
                         <MapPin
                           size={16}
@@ -263,7 +263,7 @@ export default function MerchantRequestsPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-8 py-6 text-right">
+                    <td className="px-4 sm:px-8 py-6 text-right">
                       <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300">
                         <button
                           onClick={() => handleApprove(req.id)}

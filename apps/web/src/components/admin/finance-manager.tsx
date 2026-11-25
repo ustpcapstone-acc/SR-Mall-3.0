@@ -99,7 +99,7 @@ export default function FinanceManager() {
             <h2 className="font-semibold text-lg text-charcoal dark:text-white flex items-center gap-2">
               <FileText size={18} className="text-slate-400" /> Master Ledger
             </h2>
-            <p className="text-xs font-bold text-slate-400 mt-1">
+            <p className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-1">
               Manage billing & clear deposit slips
             </p>
           </div>
@@ -114,7 +114,7 @@ export default function FinanceManager() {
               "bg-primary",
               "text-white",
               "font-bold",
-              "text-[10px]",
+              "text-xs",
               "rounded-xl",
               "hover:bg-primary-hover",
               "shadow-md",
@@ -130,16 +130,16 @@ export default function FinanceManager() {
           <table className="w-full text-left border-collapse min-w-[800px]">
             <thead>
               <tr className="bg-slate-50/50 dark:bg-white/5 border-b border-slate-100 dark:border-white/5">
-                <th className="px-6 py-4 text-xs font-bold text-slate-400">
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400">
                   Tenant / Shop
                 </th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400">
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400">
                   Invoice Details
                 </th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400">
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400">
                   Status
                 </th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 text-right">
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 text-right">
                   Verification
                 </th>
               </tr>
@@ -154,7 +154,7 @@ export default function FinanceManager() {
                     <p className="font-bold text-charcoal dark:text-white text-sm">
                       {inv.tenant?.shopName || "Unknown Shop"}
                     </p>
-                    <p className="text-xs font-bold text-slate-400 mt-1">
+                    <p className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-1">
                       Unit {inv.tenant?.unitId || "N/A"}
                     </p>
                   </td>
@@ -222,7 +222,7 @@ export default function FinanceManager() {
                         )}
                       </div>
                     ) : (
-                      <span className="text-xs font-bold text-slate-400">
+                      <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
                         No Proof Uploaded
                       </span>
                     )}
@@ -233,7 +233,7 @@ export default function FinanceManager() {
                 <tr>
                   <td
                     colSpan={4}
-                    className="px-6 py-12 text-center text-xs font-bold text-slate-400"
+                    className="px-6 py-12 text-center text-xs font-bold text-slate-500 dark:text-slate-400"
                   >
                     No Invoices Found in Ledger
                   </td>
@@ -293,7 +293,7 @@ export default function FinanceManager() {
               <div className="space-y-1.5">
                 <label
                   className={clsx(
-                    "text-[10px]",
+                    "text-xs",
                     "font-semibold",
                     "text-slate-500",
                     "px-1",
@@ -337,7 +337,7 @@ export default function FinanceManager() {
                 <div className="space-y-1.5">
                   <label
                     className={clsx(
-                      "text-[10px]",
+                      "text-xs",
                       "font-semibold",
                       "text-slate-500",
                       "px-1",
@@ -374,7 +374,7 @@ export default function FinanceManager() {
                 <div className="space-y-1.5">
                   <label
                     className={clsx(
-                      "text-[10px]",
+                      "text-xs",
                       "font-semibold",
                       "text-slate-500",
                       "px-1",
@@ -412,7 +412,7 @@ export default function FinanceManager() {
               <div className="space-y-1.5">
                 <label
                   className={clsx(
-                    "text-[10px]",
+                    "text-xs",
                     "font-semibold",
                     "text-slate-500",
                     "px-1",

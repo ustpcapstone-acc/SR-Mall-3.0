@@ -185,19 +185,19 @@ export default function TenantDashboard() {
             <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-charcoal dark:text-white">
               Overview
             </h1>
-            <p className="text-[11px] text-slate-500 font-semibold mt-0.5 flex items-center gap-2 flex-wrap">
+            <p className="text-xs text-slate-500 font-semibold mt-0.5 flex items-center gap-2 flex-wrap">
               <span className="flex items-center gap-1">
                 <Store size={10} />{" "}
                 <span className="truncate max-w-[120px] sm:max-w-none">
                   {shopName || "Your store"}
                 </span>
               </span>
-              <span className="text-slate-300 dark:text-slate-700">·</span>
+              <span className="text-slate-500 dark:text-slate-700">·</span>
               <span className="flex items-center gap-1">
                 <MapPin size={10} className="text-primary/50" /> Unit{" "}
                 {unitId || "L1-105"}
               </span>
-              <span className="text-slate-300 dark:text-slate-700">·</span>
+              <span className="text-slate-500 dark:text-slate-700">·</span>
               <span className="flex items-center gap-1">
                 <Star size={10} className="text-amber-400 fill-amber-400" />{" "}
                 {isLoading ? "—" : avgRating}
@@ -216,7 +216,7 @@ export default function TenantDashboard() {
               Synced
             </span>
           </div>
-          <button className="p-2.5 bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-xl text-slate-400 hover:text-primary transition-all">
+          <button className="p-2.5 bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-xl text-slate-500 dark:text-slate-400 hover:text-primary transition-all">
             <Activity size={18} />
           </button>
           <Link
@@ -241,7 +241,7 @@ export default function TenantDashboard() {
             <Star size={18} />
           </div>
           <div>
-            <p className="text-xs font-semibold text-slate-400 mb-1">
+            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
               Sentiment Rating
             </p>
             <div className="flex items-end justify-between gap-1">
@@ -262,7 +262,7 @@ export default function TenantDashboard() {
             <MessageSquare size={18} />
           </div>
           <div>
-            <p className="text-xs font-semibold text-slate-400 mb-1">
+            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
               Total Feedback
             </p>
             <div className="flex items-end justify-between gap-1">
@@ -288,7 +288,7 @@ export default function TenantDashboard() {
                 <p className="text-xs font-semibold text-charcoal dark:text-white leading-none">
                   Your storefront
                 </p>
-                <p className="text-xs text-slate-400 font-bold mt-0.5">
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-bold mt-0.5">
                   How shoppers see your shop
                 </p>
               </div>
@@ -386,7 +386,7 @@ export default function TenantDashboard() {
                           ))}
                         </div>
                       </div>
-                      <p className="text-[10px] text-slate-500 italic line-clamp-1">
+                      <p className="text-xs text-slate-500 italic line-clamp-1">
                         "{r.comment || "No comment."}"
                       </p>
                     </div>
@@ -396,7 +396,7 @@ export default function TenantDashboard() {
             ) : (
               <div className="py-10 flex flex-col items-center gap-2 opacity-40">
                 <MessageSquare size={28} className="text-slate-300" />
-                <p className="text-xs font-semibold text-slate-400">
+                <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
                   No reviews yet
                 </p>
               </div>
@@ -447,7 +447,7 @@ export default function TenantDashboard() {
                   Remittance Cycle
                 </span>
               </div>
-              <p className="text-xs text-slate-400 font-bold mt-1">
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-bold mt-1">
                 Dues timeline, next scheduled billing &amp; payment records
               </p>
             </div>
@@ -504,7 +504,7 @@ export default function TenantDashboard() {
           {/* 1. Next Payment Date */}
           <div className="bg-slate-50/60 dark:bg-black/20 border border-slate-100 dark:border-white/5 rounded-xl p-4 flex flex-col justify-between hover:border-emerald-500/30 transition-all group/box">
             <div className="flex items-center justify-between gap-2 mb-2">
-              <span className="text-xs font-semibold text-slate-400">
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
                 Next Payment Date
               </span>
               <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
@@ -517,7 +517,7 @@ export default function TenantDashboard() {
                   ? "—"
                   : formatDate(paymentSchedule?.nextPaymentDate)}
               </p>
-              <p className="text-xs font-bold text-slate-400 dark:text-slate-500 mt-0.5">
+              <p className="text-xs font-bold text-slate-500 dark:text-slate-500 mt-0.5">
                 {paymentSchedule?.paymentStatus === "Overdue"
                   ? "Immediate Settlement Required"
                   : paymentSchedule?.paymentStatus === "Paid"
@@ -530,7 +530,7 @@ export default function TenantDashboard() {
           {/* 2. Payment Month */}
           <div className="bg-slate-50/60 dark:bg-black/20 border border-slate-100 dark:border-white/5 rounded-xl p-4 flex flex-col justify-between hover:border-blue-500/30 transition-all group/box">
             <div className="flex items-center justify-between gap-2 mb-2">
-              <span className="text-xs font-semibold text-slate-400">
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
                 Payment Month
               </span>
               <div className="w-7 h-7 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
@@ -543,7 +543,7 @@ export default function TenantDashboard() {
                   ? "—"
                   : paymentSchedule?.paymentMonth || "Current Cycle"}
               </p>
-              <p className="text-xs font-bold text-slate-400 dark:text-slate-500 mt-0.5">
+              <p className="text-xs font-bold text-slate-500 dark:text-slate-500 mt-0.5">
                 Billing Period
               </p>
             </div>
@@ -552,7 +552,7 @@ export default function TenantDashboard() {
           {/* 3. Payment Amount */}
           <div className="bg-slate-50/60 dark:bg-black/20 border border-slate-100 dark:border-white/5 rounded-xl p-4 flex flex-col justify-between hover:border-primary/30 transition-all group/box">
             <div className="flex items-center justify-between gap-2 mb-2">
-              <span className="text-xs font-semibold text-slate-400">
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
                 Payment Amount
               </span>
               <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
@@ -565,7 +565,7 @@ export default function TenantDashboard() {
                   ? "—"
                   : `₱${(paymentSchedule?.paymentAmount || 0).toLocaleString()}`}
               </p>
-              <p className="text-xs font-bold text-slate-400 dark:text-slate-500 mt-0.5 truncate">
+              <p className="text-xs font-bold text-slate-500 dark:text-slate-500 mt-0.5 truncate">
                 {paymentSchedule?.invoiceNumber
                   ? `Invoice ${paymentSchedule.invoiceNumber}`
                   : "Monthly Rental Fee"}
@@ -576,7 +576,7 @@ export default function TenantDashboard() {
           {/* 4. Payment Status */}
           <div className="bg-slate-50/60 dark:bg-black/20 border border-slate-100 dark:border-white/5 rounded-xl p-4 flex flex-col justify-between hover:border-amber-500/30 transition-all group/box">
             <div className="flex items-center justify-between gap-2 mb-2">
-              <span className="text-xs font-semibold text-slate-400">
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
                 Payment Status
               </span>
               <div
@@ -617,7 +617,7 @@ export default function TenantDashboard() {
                   ? "—"
                   : paymentSchedule?.paymentStatus || "Pending"}
               </span>
-              <p className="text-xs font-bold text-slate-400 dark:text-slate-500 mt-0.5">
+              <p className="text-xs font-bold text-slate-500 dark:text-slate-500 mt-0.5">
                 {paymentSchedule?.paymentStatus === "Paid"
                   ? "Cleared Standing"
                   : paymentSchedule?.paymentStatus === "Overdue"
@@ -632,7 +632,7 @@ export default function TenantDashboard() {
           {/* 5. Last Payment Date */}
           <div className="bg-slate-50/60 dark:bg-black/20 border border-slate-100 dark:border-white/5 rounded-xl p-4 flex flex-col justify-between hover:border-purple-500/30 transition-all group/box sm:col-span-2 lg:col-span-1">
             <div className="flex items-center justify-between gap-2 mb-2">
-              <span className="text-xs font-semibold text-slate-400">
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
                 Last Payment Date
               </span>
               <div className="w-7 h-7 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center">
@@ -647,7 +647,7 @@ export default function TenantDashboard() {
                     ? formatDate(paymentSchedule.lastPaymentDate)
                     : "None recorded"}
               </p>
-              <p className="text-xs font-bold text-slate-400 dark:text-slate-500 mt-0.5">
+              <p className="text-xs font-bold text-slate-500 dark:text-slate-500 mt-0.5">
                 {paymentSchedule?.lastPaymentDate
                   ? "Last Settled Transaction"
                   : "No Prior Remittance"}
@@ -657,7 +657,7 @@ export default function TenantDashboard() {
         </div>
 
         {/* Ledger Summary & Action Link */}
-        <div className="mt-4 pt-4 border-t border-slate-50 dark:border-white/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-[10px] text-slate-500">
+        <div className="mt-4 pt-4 border-t border-slate-50 dark:border-white/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-slate-500">
           <div className="flex items-center gap-2 flex-wrap font-medium">
             <span className="font-bold text-charcoal dark:text-white">
               Payment Record:

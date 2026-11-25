@@ -598,7 +598,7 @@ function MessengerHubContent() {
     );
 
   return (
-    <div className="h-screen flex flex-col pt-10 px-8 pb-8 animate-fade-in-up">
+    <div className="h-screen flex flex-col pt-10 px-4 sm:px-8 pb-8 animate-fade-in-up">
       <div className="mb-6 flex items-end justify-between shrink-0">
         <div>
           <div className="flex items-center gap-3 mb-1">
@@ -612,7 +612,7 @@ function MessengerHubContent() {
         </div>
       </div>
 
-      <div className="flex-1 bg-white dark:bg-zinc-900 rounded-4xl shadow-xs border border-slate-100 dark:border-white/5 flex overflow-hidden">
+      <div className="flex-1 bg-white dark:bg-zinc-900 rounded-2xl shadow-xs border border-slate-100 dark:border-white/5 flex overflow-hidden">
         {/* Left Column (Inbox) */}
         <div className="w-80 border-r border-slate-100 dark:border-white/5 flex flex-col bg-slate-50/50 dark:bg-zinc-900">
           <div className="p-5 border-b border-slate-100 dark:border-white/5 space-y-4">
@@ -635,7 +635,7 @@ function MessengerHubContent() {
                 <button
                   key={f}
                   onClick={() => setFilter(f)}
-                  className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider whitespace-nowrap transition-colors ${
+                  className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-colors ${
                     filter === f
                       ? "bg-charcoal text-white dark:bg-white dark:text-black shadow-xs"
                       : "bg-white dark:bg-zinc-800 text-slate-500 border border-slate-200 dark:border-white/10 hover:border-slate-300"
@@ -651,7 +651,7 @@ function MessengerHubContent() {
             {loading ? (
               <div className="flex flex-col items-center justify-center h-40 gap-3">
                 <Loader2 size={24} className="animate-spin text-primary" />
-                <span className="text-xs font-bold text-slate-400">
+                <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
                   Loading Chats
                 </span>
               </div>
@@ -714,8 +714,8 @@ function MessengerHubContent() {
                           {displayName}
                         </h4>
                         <span
-                          className={`text-[9px] font-bold uppercase shrink-0 ml-1 ${
-                            unread > 0 ? "text-primary" : "text-slate-400"
+                          className={`text-xs font-bold uppercase shrink-0 ml-1 ${
+                            unread > 0 ? "text-primary" : "text-slate-500 dark:text-slate-400"
                           }`}
                         >
                           {formatConversationTime(chat.messages[0]?.createdAt || chat.updatedAt)}
@@ -744,7 +744,7 @@ function MessengerHubContent() {
                             : chat.messages[0]?.content || "No messages yet"}
                         </p>
                         {unread > 0 && (
-                          <span className="min-w-5 h-5 px-1.5 rounded-full bg-primary text-white text-[10px] font-semibold flex items-center justify-center shrink-0">
+                          <span className="min-w-5 h-5 px-1.5 rounded-full bg-primary text-white text-xs font-semibold flex items-center justify-center shrink-0">
                             {unread > 99 ? "99+" : unread}
                           </span>
                         )}
@@ -781,7 +781,7 @@ function MessengerHubContent() {
                     <h3 className="font-semibold text-charcoal dark:text-white flex items-center gap-2 leading-tight">
                       {activeDisplayName}
                     </h3>
-                    <p className="text-[10px] font-medium text-slate-400 truncate max-w-xs">
+                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400 truncate max-w-xs">
                       {activeOtherUser?.email}
                     </p>
                   </div>
@@ -795,12 +795,12 @@ function MessengerHubContent() {
               <div
                 ref={messagesContainerRef}
                 onScroll={handleScroll}
-                className="flex-1 overflow-y-auto p-8 space-y-6 bg-slate-50/30 dark:bg-black/20 custom-scrollbar"
+                className="flex-1 overflow-y-auto p-5 sm:p-8 space-y-6 bg-slate-50/30 dark:bg-black/20 custom-scrollbar"
               >
                 {loadingMessages && messages.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-48 gap-3">
                     <Loader2 size={24} className="animate-spin text-primary" />
-                    <span className="text-xs font-bold text-slate-400">
+                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
                       Loading conversation...
                     </span>
                   </div>
@@ -866,7 +866,7 @@ function MessengerHubContent() {
                           </div>
 
                           <div className="flex items-center gap-1.5 mt-1 px-1">
-                            <span className="text-xs font-bold text-slate-400">
+                            <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
                               {formatMessageTime(msg.createdAt)}
                             </span>
                             {isTemporary && msg.failed ? (
@@ -958,7 +958,7 @@ function MessengerHubContent() {
                       e.preventDefault();
                       fileInputRef.current?.click();
                     }}
-                    className="p-2 text-slate-400 hover:text-primary transition-colors shrink-0 relative z-10 cursor-pointer"
+                    className="p-2 text-slate-500 dark:text-slate-400 hover:text-primary transition-colors shrink-0 relative z-10 cursor-pointer"
                     title="Attach image"
                   >
                     <Paperclip size={16} />
@@ -1007,7 +1007,7 @@ function MessengerHubContent() {
         {activeChat && (
           <div className="w-80 border-l border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-zinc-900 overflow-y-auto hidden xl:block">
             <div className="p-6">
-              <h3 className="text-xs font-semibold text-slate-400 mb-6 flex items-center gap-2">
+              <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-6 flex items-center gap-2">
                 <MoreVertical size={14} /> Context Panel
               </h3>
 
@@ -1041,7 +1041,7 @@ function MessengerHubContent() {
                       <p className="text-lg font-semibold text-charcoal dark:text-white">
                         {messages.length}
                       </p>
-                      <p className="text-xs font-bold text-slate-400 mt-1">
+                      <p className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-1">
                         Messages
                       </p>
                     </div>
@@ -1049,7 +1049,7 @@ function MessengerHubContent() {
                       <p className="text-lg font-semibold text-charcoal dark:text-white">
                         Active
                       </p>
-                      <p className="text-xs font-bold text-slate-400 mt-1">
+                      <p className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-1">
                         Status
                       </p>
                     </div>
@@ -1059,7 +1059,7 @@ function MessengerHubContent() {
                 {/* Space Interest Module */}
                 {activeChat.areaSlot && (
                   <div className="bg-white dark:bg-zinc-800 p-5 rounded-2xl border border-slate-200 dark:border-white/10 shadow-xs">
-                    <h4 className="text-xs font-semibold text-slate-400 mb-4">
+                    <h4 className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-4">
                       Linked Inventory
                     </h4>
                     <div className="space-y-4">
@@ -1169,7 +1169,7 @@ export default function MessengerHub() {
         <div className="h-screen flex items-center justify-center">
           <div className="flex flex-col items-center gap-3">
             <Loader2 size={32} className="animate-spin text-primary" />
-            <span className="text-xs font-bold text-slate-400">
+            <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
               Loading Messenger...
             </span>
           </div>

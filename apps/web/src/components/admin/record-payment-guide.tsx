@@ -29,13 +29,13 @@ const CHOICES = [
   {
     key: "bill",
     title: "A tenant is paying an unpaid bill in cash",
-    how: "On Tenant Monitoring, open the tenant, find the bill and press Record Cash.",
+    how: "On Tenant Monitoring, open the tenant, go to the Payments tab and press Record Cash on the bill.",
     href: "/admindashboard/tenant-monitoring",
   },
   {
     key: "slip",
     title: "A tenant sent a bank deposit slip",
-    how: "On Tenant Monitoring, open a tenant marked Verifying, view the slip and press Approve.",
+    how: "On Tenant Monitoring, open a tenant marked Verifying. On the Payments tab, view the slip and press Approve.",
     href: "/admindashboard/tenant-monitoring?payment=verifying",
   },
 ] as const;

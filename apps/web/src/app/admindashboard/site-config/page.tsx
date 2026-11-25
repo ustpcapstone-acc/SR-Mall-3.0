@@ -65,7 +65,7 @@ export default function SiteConfigCMS() {
 
   if (loading)
     return (
-      <div className="p-10 text-center animate-pulse font-bold text-xs text-slate-400">
+      <div className="p-5 sm:p-10 text-center animate-pulse font-bold text-xs text-slate-400">
         Initializing CMS Engine...
       </div>
     );
@@ -86,7 +86,7 @@ export default function SiteConfigCMS() {
         <div className="flex items-center gap-3">
           <button
             onClick={() => setDraft(config)}
-            className="flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-zinc-900 text-slate-400 dark:text-white border border-slate-100 dark:border-white/5 rounded-xl font-bold text-xs hover:border-primary transition-all"
+            className="flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-zinc-900 text-slate-500 dark:text-white border border-slate-100 dark:border-white/5 rounded-xl font-bold text-xs hover:border-primary transition-all"
           >
             <RefreshCcw size={14} /> Revert to Live
           </button>
@@ -111,7 +111,7 @@ export default function SiteConfigCMS() {
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-10">
         {/* Editor Controls */}
         <div className="space-y-8 h-fit">
-          <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-4xl shadow-xs p-8 space-y-8">
+          <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl shadow-xs p-5 sm:p-8 space-y-8">
             <div className="flex items-center gap-3 pb-6 border-b border-slate-100 dark:border-white/5">
               <div className="p-2.5 bg-primary/10 rounded-xl text-primary">
                 <Type size={18} />
@@ -123,7 +123,7 @@ export default function SiteConfigCMS() {
 
             <div className="space-y-6">
               <div>
-                <label className="text-xs font-semibold text-slate-400 block mb-2">
+                <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mb-2">
                   Main Headline
                 </label>
                 <textarea
@@ -137,7 +137,7 @@ export default function SiteConfigCMS() {
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-slate-400 block mb-2">
+                <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mb-2">
                   Sub-headline Description
                 </label>
                 <textarea
@@ -152,7 +152,7 @@ export default function SiteConfigCMS() {
 
               <div className="grid grid-cols-2 gap-6">
                 <div>
-                  <label className="text-xs font-semibold text-slate-400 block mb-2">
+                  <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mb-2">
                     Button Text
                   </label>
                   <input
@@ -165,7 +165,7 @@ export default function SiteConfigCMS() {
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-slate-400 block mb-2">
+                  <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mb-2">
                     Background Overlay (Darkness)
                   </label>
                   <input
@@ -191,7 +191,7 @@ export default function SiteConfigCMS() {
             </div>
           </div>
 
-          <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-4xl shadow-xs p-8 space-y-6">
+          <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl shadow-xs p-5 sm:p-8 space-y-6">
             <div className="flex items-center gap-3 pb-6 border-b border-slate-100 dark:border-white/5">
               <div className="p-2.5 bg-amber-500/10 rounded-xl text-amber-500">
                 <ToggleLeft size={18} />
@@ -234,20 +234,20 @@ export default function SiteConfigCMS() {
           <div className="flex items-center gap-4 bg-charcoal dark:bg-zinc-900 p-1.5 rounded-full border border-white/5 shadow-2xl mb-2">
             <button
               onClick={() => setViewMode("desktop")}
-              className={`flex items-center gap-2 px-5 py-3 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${viewMode === "desktop" ? "bg-white text-charcoal" : "text-white/50 hover:text-white"}`}
+              className={`flex items-center gap-2 px-5 py-3 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${viewMode === "desktop" ? "bg-white text-charcoal" : "text-white/50 hover:text-white"}`}
             >
               <Monitor size={16} /> Desktop View
             </button>
             <button
               onClick={() => setViewMode("mobile")}
-              className={`flex items-center gap-2 px-5 py-3 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${viewMode === "mobile" ? "bg-white text-charcoal" : "text-white/50 hover:text-white"}`}
+              className={`flex items-center gap-2 px-5 py-3 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${viewMode === "mobile" ? "bg-white text-charcoal" : "text-white/50 hover:text-white"}`}
             >
               <Smartphone size={16} /> Mobile Preview
             </button>
           </div>
 
           <div
-            className={`relative transition-all duration-500 border border-slate-200 dark:border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl ${viewMode === "desktop" ? "aspect-video w-full" : "w-[375px] h-[667px]"}`}
+            className={`relative transition-all duration-500 border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden shadow-2xl ${viewMode === "desktop" ? "aspect-video w-full" : "w-[375px] h-[667px]"}`}
           >
             {/* Dynamic Content Engine (Mini-Clone of Public-View) */}
             <div
@@ -261,7 +261,7 @@ export default function SiteConfigCMS() {
                 style={{ opacity: draft.heroOverlayDark / 100 }}
               />
 
-              <div className="absolute inset-x-0 bottom-0 top-0 flex flex-col items-center justify-center text-center px-10">
+              <div className="absolute inset-x-0 bottom-0 top-0 flex flex-col items-center justify-center text-center px-4 sm:px-10">
                 <div className="space-y-4 max-w-xl">
                   <span className="inline-block px-4 py-1.5 bg-primary/20 backdrop-blur-md text-white text-xs font-semibold rounded-full border border-white/20 animate-fade-in shadow-xl">
                     {draft.isMaintenance
@@ -288,14 +288,14 @@ export default function SiteConfigCMS() {
 
             {/* Maintenance Overlay in Preview */}
             {draft.isMaintenance && (
-              <div className="absolute inset-0 bg-charcoal flex flex-col items-center justify-center p-10 z-20">
+              <div className="absolute inset-0 bg-charcoal flex flex-col items-center justify-center p-5 sm:p-10 z-20">
                 <div className="w-16 h-16 bg-primary/20 text-primary rounded-3xl flex items-center justify-center mb-6 border border-primary/30">
                   <AlertTriangle size={32} />
                 </div>
                 <h2 className="font-display text-2xl font-semibold text-white mb-2 tracking-tight">
                   System Under Maintenance
                 </h2>
-                <p className="text-xs text-slate-400 font-medium text-center leading-loose">
+                <p className="text-xs text-slate-300 font-medium text-center leading-loose">
                   The public view will be hidden until you toggle this setting
                   off and republish.
                 </p>

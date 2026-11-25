@@ -659,7 +659,7 @@ export default function AdScheduler() {
               className="p-6 bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-white/5 shadow-xs"
             >
               <div className="flex items-center justify-between mb-4">
-                <span className="text-xs font-semibold text-slate-400">
+                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
                   {stat.label}
                 </span>
                 <div
@@ -693,7 +693,7 @@ export default function AdScheduler() {
               <h2 className="font-semibold text-charcoal dark:text-white text-lg">
                 Mall Banner Carousel
               </h2>
-              <p className="text-xs font-bold text-slate-400 mt-0.5">
+              <p className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-0.5">
                 Banners displayed on the homepage carousel
               </p>
             </div>
@@ -721,7 +721,7 @@ export default function AdScheduler() {
                   size={40}
                   className="mx-auto text-slate-300 dark:text-zinc-700 mb-4"
                 />
-                <p className="text-slate-400 font-bold text-xs mb-4">
+                <p className="text-slate-500 dark:text-slate-400 font-bold text-xs mb-4">
                   No Active Mall-Wide Ads
                 </p>
                 <button
@@ -819,7 +819,7 @@ export default function AdScheduler() {
                             </span>
                           )}
                         </div>
-                        <p className="text-xs text-slate-400 mb-4 line-clamp-1">
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mb-4 line-clamp-1">
                           {ad.description ||
                             "Global announcement for all mall visitors."}
                         </p>
@@ -832,7 +832,7 @@ export default function AdScheduler() {
                           >
                             {ui.label}
                           </span>
-                          <span className="text-xs font-bold text-slate-400 flex items-center gap-1">
+                          <span className="text-xs font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1">
                             <Clock size={10} />{" "}
                             {status === "DEFAULT"
                               ? "Always active"
@@ -858,7 +858,7 @@ export default function AdScheduler() {
                   aria-expanded={showAdHistory}
                   className="flex w-full items-center justify-between gap-3 rounded-xl px-1 py-1 text-left"
                 >
-                  <span className="flex items-center gap-2 text-xs font-semibold text-slate-400">
+                  <span className="flex items-center gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
                     <History size={14} /> Banner history
                     <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500 dark:bg-white/5 dark:text-slate-400">
                       {expiredMallAds.length}
@@ -901,7 +901,7 @@ export default function AdScheduler() {
                             <p className="truncate text-xs font-bold text-charcoal dark:text-white">
                               {ad.title}
                             </p>
-                            <p className="text-xs font-bold text-slate-400">
+                            <p className="text-xs font-bold text-slate-500 dark:text-slate-400">
                               Ended {formatPHDate(ad.endDate)} · {ad.priority}
                             </p>
                           </div>
@@ -911,7 +911,7 @@ export default function AdScheduler() {
                           onClick={() => setDeleteAdTarget(ad)}
                           aria-label={`Delete ${ad.title}`}
                           title="Delete banner"
-                          className="flex h-8 w-8 shrink-0 items-center justify-center self-end rounded-lg border border-slate-200 text-slate-400 transition-colors hover:border-red-500/30 hover:bg-red-500 hover:text-white dark:border-white/10 sm:self-auto"
+                          className="flex h-8 w-8 shrink-0 items-center justify-center self-end rounded-lg border border-slate-200 text-slate-500 dark:text-slate-400 transition-colors hover:border-red-500/30 hover:bg-red-500 hover:text-white dark:border-white/10 sm:self-auto"
                         >
                           <Trash2 size={13} />
                         </button>
@@ -933,7 +933,7 @@ export default function AdScheduler() {
                 <h2 className="font-semibold text-charcoal dark:text-white text-lg">
                   Tenant Promos
                 </h2>
-                <p className="text-xs font-bold text-slate-400 mt-0.5">
+                <p className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-0.5">
                   Review & approve merchant promotion requests
                 </p>
               </div>
@@ -952,7 +952,7 @@ export default function AdScheduler() {
                   onClick={() => setPromoTab(t.key)}
                   className={clsx(
                     "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5",
-                    promoTab === t.key ? "bg-white dark:bg-zinc-900 text-charcoal dark:text-white shadow-xs" : "text-slate-400 hover:text-charcoal dark:hover:text-white",
+                    promoTab === t.key ? "bg-white dark:bg-zinc-900 text-charcoal dark:text-white shadow-xs" : "text-slate-500 hover:text-charcoal dark:hover:text-white",
                   )}
                 >
                   {t.label}
@@ -992,7 +992,7 @@ export default function AdScheduler() {
                   <h4 className="font-bold text-charcoal dark:text-white mb-1">
                     No promo history yet
                   </h4>
-                  <p className="text-xs text-slate-400 font-medium">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
                     Rejected, taken-down and ended promos are archived here.
                   </p>
                 </div>
@@ -1029,12 +1029,12 @@ export default function AdScheduler() {
                             {promo.category} ·{" "}
                             {promo.tenant?.shopName || "Tenant"}
                           </p>
-                          <p className="mt-1 flex flex-wrap items-center gap-2 text-xs font-bold text-slate-400">
+                          <p className="mt-1 flex flex-wrap items-center gap-2 text-xs font-bold text-slate-500 dark:text-slate-400">
                             <Calendar size={10} />
                             {formatPHDate(promo.startDate)} —{" "}
                             {formatPHDate(promo.endDate)}
                             {promo.tenant?.unitId && (
-                              <span className="text-slate-300 dark:text-slate-600">
+                              <span className="text-slate-500 dark:text-slate-600">
                                 · Unit {promo.tenant.unitId}
                               </span>
                             )}
@@ -1060,7 +1060,7 @@ export default function AdScheduler() {
                 <div className="py-16 text-center">
                   <Megaphone size={40} className="mx-auto text-slate-300 dark:text-zinc-700 mb-3" />
                   <h4 className="font-bold text-charcoal dark:text-white mb-1">No live tenant promos</h4>
-                  <p className="text-xs text-slate-400 font-medium">Approved promos show here until they end.</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Approved promos show here until they end.</p>
                 </div>
               ) : (
                 livePromos.map((promo) => {
@@ -1122,7 +1122,7 @@ export default function AdScheduler() {
                 <h4 className="font-bold text-charcoal dark:text-white mb-1">
                   All Caught Up!
                 </h4>
-                <p className="text-xs text-slate-400 font-medium">
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
                   No pending promotion requests from tenants.
                 </p>
               </div>
@@ -1268,7 +1268,7 @@ export default function AdScheduler() {
             className="absolute inset-0 bg-charcoal/40 dark:bg-black/80 backdrop-blur-md"
             onClick={() => setIsModalOpen(false)}
           />
-          <div className="relative w-full max-w-xl bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-white/10 p-8 animate-fade-in-up max-h-[90vh] overflow-y-auto">
+          <div className="relative w-full max-w-xl bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-white/10 p-5 sm:p-8 animate-fade-in-up max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-semibold text-charcoal dark:text-white tracking-tight flex items-center gap-2">
                 <Plus size={18} className="text-primary" /> Create Global Mall
@@ -1296,7 +1296,7 @@ export default function AdScheduler() {
               setFormData(EMPTY_FORM);
             }}
           />
-          <div className="relative w-full max-w-xl bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-white/10 p-8 animate-fade-in-up max-h-[90vh] overflow-y-auto">
+          <div className="relative w-full max-w-xl bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-white/10 p-5 sm:p-8 animate-fade-in-up max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-semibold text-charcoal dark:text-white tracking-tight flex items-center gap-2">
                 <Edit2 size={18} className="text-primary" /> Edit Ad Campaign

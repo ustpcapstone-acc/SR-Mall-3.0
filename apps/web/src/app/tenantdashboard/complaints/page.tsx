@@ -74,7 +74,7 @@ function NewComplaintModal({ userId, onClose, onCreated }: { userId: string; onC
         <div className="flex items-start justify-between gap-4">
           <div>
             <h2 className="text-lg font-semibold text-charcoal dark:text-white">New complaint</h2>
-            <p className="text-xs text-slate-400 mt-0.5">Sent straight to the mall admin. You'll be notified when they reply.</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Sent straight to the mall admin. You'll be notified when they reply.</p>
           </div>
           <button onClick={onClose} className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-zinc-800 flex items-center justify-center text-slate-500" aria-label="Close">
             <X size={16} />
@@ -94,7 +94,7 @@ function NewComplaintModal({ userId, onClose, onCreated }: { userId: string; onC
         <div>
           <label className={clsx(LABEL, "block mb-1.5")}>Subject</label>
           <input value={subject} maxLength={SUBJECT_MAX} onChange={(e) => setSubject(e.target.value)} placeholder="e.g. Ceiling leak near the counter" className={INPUT} />
-          <p className="text-right text-[10px] text-slate-400 mt-1">{subject.length}/{SUBJECT_MAX}</p>
+          <p className="text-right text-xs text-slate-500 dark:text-slate-400 mt-1">{subject.length}/{SUBJECT_MAX}</p>
         </div>
 
         <div>
@@ -107,7 +107,7 @@ function NewComplaintModal({ userId, onClose, onCreated }: { userId: string; onC
             placeholder="What happened, where exactly, and since when?"
             className={clsx(INPUT, "resize-none")}
           />
-          <p className="text-right text-[10px] text-slate-400 mt-1">{details.length}/{DETAILS_MAX}</p>
+          <p className="text-right text-xs text-slate-500 dark:text-slate-400 mt-1">{details.length}/{DETAILS_MAX}</p>
         </div>
 
         <div>
@@ -131,7 +131,7 @@ function NewComplaintModal({ userId, onClose, onCreated }: { userId: string; onC
               </button>
             ))}
           </div>
-          <p className="text-[10px] text-slate-400 mt-1.5">Use Urgent for safety issues or problems stopping you from operating.</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5">Use Urgent for safety issues or problems stopping you from operating.</p>
         </div>
 
         <div>
@@ -147,7 +147,7 @@ function NewComplaintModal({ userId, onClose, onCreated }: { userId: string; onC
               </div>
             ))}
             {photos.length < MAX_PHOTOS && (
-              <label className={clsx("w-20 h-20 rounded-xl border-2 border-dashed border-slate-200 dark:border-zinc-700 flex flex-col items-center justify-center text-slate-400 hover:border-primary hover:text-primary cursor-pointer", uploading && "opacity-60 pointer-events-none")}>
+              <label className={clsx("w-20 h-20 rounded-xl border-2 border-dashed border-slate-200 dark:border-zinc-700 flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 hover:border-primary hover:text-primary cursor-pointer", uploading && "opacity-60 pointer-events-none")}>
                 {uploading ? <Loader2 size={18} className="animate-spin" /> : <Camera size={18} />}
                 <span className="text-xs font-bold mt-1">{uploading ? "Uploading" : "Add"}</span>
                 <input type="file" accept="image/*" multiple hidden onChange={addPhotos} />
@@ -191,14 +191,14 @@ function ComplaintRow({ c, active, onClick }: { c: ComplaintSummary; active: boo
             {c.priority === "URGENT" && <PriorityBadge priority={c.priority} />}
           </div>
           <p className={clsx("text-sm text-charcoal dark:text-white truncate", c.unread ? "font-semibold" : "font-bold")}>{c.subject}</p>
-          <p className="text-[11px] text-slate-400 truncate">
+          <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
             {c.category} · {formatWhen(c.lastActivityAt)}
           </p>
         </div>
         <div className="flex flex-col items-end gap-2 shrink-0">
           {c.unread && <span className="w-2.5 h-2.5 rounded-full bg-red-500" aria-label="New reply" />}
           {c.commentCount > 0 && (
-            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-400">
+            <span className="inline-flex items-center gap-1 text-xs font-bold text-slate-500 dark:text-slate-400">
               <MessageSquare size={11} /> {c.commentCount}
             </span>
           )}
@@ -278,7 +278,7 @@ function TenantComplaints() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-charcoal dark:text-white">Complaints</h1>
-          <p className="text-xs sm:text-sm text-slate-400 font-medium mt-1">Report a problem to the mall admin and follow it here — no need to go to the office.</p>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium mt-1">Report a problem to the mall admin and follow it here — no need to go to the office.</p>
         </div>
         <div className="flex gap-2">
           <button onClick={refreshAll} className="h-11 w-11 rounded-2xl border border-slate-200 dark:border-white/10 flex items-center justify-center text-slate-500 hover:text-primary" aria-label="Refresh">
@@ -306,7 +306,7 @@ function TenantComplaints() {
                 onClick={() => setTab(t.key)}
                 className={clsx(
                   "flex-1 h-10 rounded-xl text-xs font-semibold transition-all",
-                  tab === t.key ? "bg-white dark:bg-zinc-900 text-charcoal dark:text-white shadow-xs" : "text-slate-400",
+                  tab === t.key ? "bg-white dark:bg-zinc-900 text-charcoal dark:text-white shadow-xs" : "text-slate-500",
                 )}
               >
                 {t.label} <span className="opacity-60">({t.n})</span>
@@ -319,8 +319,8 @@ function TenantComplaints() {
           ) : shown.length === 0 ? (
             <div className={clsx(CARD, "py-14 px-6 text-center")}>
               <ClipboardList size={36} className="mx-auto text-slate-200 dark:text-zinc-700 mb-3" />
-              <p className="text-sm font-semibold text-slate-400">{tab === "open" ? "No open complaints" : "No resolved complaints yet"}</p>
-              {tab === "open" && <p className="text-xs text-slate-400 mt-1">Something wrong with your unit? Tap “New complaint”.</p>}
+              <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">{tab === "open" ? "No open complaints" : "No resolved complaints yet"}</p>
+              {tab === "open" && <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Something wrong with your unit? Tap “New complaint”.</p>}
             </div>
           ) : (
             <div className="space-y-2">
@@ -340,7 +340,7 @@ function TenantComplaints() {
           ) : (
             <div className={clsx(CARD, "py-24 px-6 text-center")}>
               <MessageSquare size={36} className="mx-auto text-slate-200 dark:text-zinc-700 mb-3" />
-              <p className="text-sm font-semibold text-slate-400">Select a complaint to see the conversation</p>
+              <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">Select a complaint to see the conversation</p>
             </div>
           )}
         </div>

@@ -39,7 +39,7 @@ export default function AdminProfileSettings() {
 
   if (me.error) {
     return (
-      <div className="p-10 text-center space-y-3">
+      <div className="p-5 sm:p-10 text-center space-y-3">
         <AlertTriangle className="mx-auto text-primary" size={28} />
         <p className="font-bold text-charcoal dark:text-white">{me.error}</p>
         <SecondaryButton onClick={() => me.reload()}>Try again</SecondaryButton>

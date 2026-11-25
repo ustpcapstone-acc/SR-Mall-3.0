@@ -265,7 +265,7 @@ export default function MasterBookingsPage() {
           <div className="h-10 w-px bg-slate-200 dark:bg-white/10 hidden md:block mx-2" />
           <button
             onClick={() => loadData(true)}
-            className="p-4 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-2xl text-slate-400 hover:text-primary transition-all shadow-xs"
+            className="p-4 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-2xl text-slate-500 dark:text-slate-400 hover:text-primary transition-all shadow-xs"
           >
             <Monitor size={20} />
           </button>
@@ -273,13 +273,13 @@ export default function MasterBookingsPage() {
       </div>
 
       {/* Modern Tabs */}
-      <div className="bg-white dark:bg-zinc-900/50 p-2 rounded-4xl border border-slate-200 dark:border-white/5 flex gap-2 w-fit overflow-x-auto custom-scrollbar shadow-xs">
+      <div className="bg-white dark:bg-zinc-900/50 p-2 rounded-2xl border border-slate-200 dark:border-white/5 flex flex-wrap gap-2 w-fit max-w-full shadow-xs">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id as any)}
             className={clsx(
-              "flex items-center gap-3 px-8 py-4 rounded-2xl transition-all relative whitespace-nowrap active:scale-95",
+              "flex items-center gap-3 px-4 sm:px-8 py-3 sm:py-4 rounded-2xl transition-all relative whitespace-nowrap active:scale-95",
               activeTab === tab.id
                 ? "bg-primary text-white shadow-xl shadow-primary/25"
                 : "text-slate-400 hover:text-charcoal dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5",
@@ -313,29 +313,29 @@ export default function MasterBookingsPage() {
             <div className="xl:col-span-3 space-y-8">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-semibold text-charcoal dark:text-white tracking-tight">
-                  Event <span className="text-primary">Requests</span>
+                  Event requests
                 </h2>
-                <span className="text-xs font-semibold text-slate-400">
+                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
                   {pendingEvents.length} waiting for a decision
                 </span>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {pendingEvents.length === 0 ? (
-                  <div className="md:col-span-2 py-32 text-center bg-white dark:bg-zinc-900 rounded-[3rem] border-2 border-dashed border-slate-100 dark:border-white/5">
+                  <div className="md:col-span-2 py-14 sm:py-32 text-center bg-white dark:bg-zinc-900 rounded-2xl border-2 border-dashed border-slate-100 dark:border-white/5">
                     <CalendarIcon
                       size={48}
                       className="text-slate-200 mx-auto mb-4"
                     />
-                    <p className="text-xs font-semibold text-slate-400">
-                      Master Calendar is Clear
+                    <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                      No event requests waiting
                     </p>
                   </div>
                 ) : (
                   pendingEvents.map((inq) => (
                     <div
                       key={inq.id}
-                      className="bg-white dark:bg-zinc-900 p-8 rounded-[2.5rem] border border-slate-100 dark:border-white/5 flex flex-col justify-between group/card hover:shadow-2xl hover:shadow-primary/5 transition-all duration-500 group-hover:blur-[2px] hover:!blur-0"
+                      className="bg-white dark:bg-zinc-900 p-5 sm:p-8 rounded-2xl border border-slate-100 dark:border-white/5 flex flex-col justify-between group/card hover:shadow-2xl hover:shadow-primary/5 transition-all duration-500 group-hover:blur-[2px] hover:!blur-0"
                     >
                       <div>
                         <div className="flex justify-between items-start mb-6">
@@ -353,7 +353,7 @@ export default function MasterBookingsPage() {
                                 },
                               )}
                             </p>
-                            <p className="text-xs font-bold text-slate-400 mt-1">
+                            <p className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-1">
                               {inq.eventTime}
                             </p>
                           </div>
@@ -368,7 +368,7 @@ export default function MasterBookingsPage() {
                           {inq.user?.email}
                         </p>
                         <div className="p-4 bg-slate-50 dark:bg-black rounded-2xl border border-slate-100 dark:border-white/5 mb-8">
-                          <p className="text-xs font-semibold text-slate-400 mb-1 flex items-center gap-2">
+                          <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 flex items-center gap-2">
                             <MessageSquare size={12} /> Inquiry Message
                           </p>
                           <p className="text-xs text-charcoal dark:text-white/80 leading-relaxed line-clamp-2">
@@ -376,7 +376,7 @@ export default function MasterBookingsPage() {
                           </p>
                           {inq.imageUrl && (
                             <div className="mt-4 pt-4 border-t border-slate-200 dark:border-white/5">
-                              <p className="text-xs font-semibold text-slate-400 mb-2 flex items-center gap-2">
+                              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2 flex items-center gap-2">
                                 <Sparkles size={12} /> Attached Image
                               </p>
                               <div className="aspect-video w-full rounded-xl overflow-hidden bg-slate-100 dark:bg-zinc-800">
@@ -417,9 +417,9 @@ export default function MasterBookingsPage() {
             {/* Master Schedule Calendar */}
             <div className="xl:col-span-2 space-y-8">
               <h2 className="text-xl font-semibold text-charcoal dark:text-white tracking-tight">
-                Event <span className="text-primary">Calendar</span>
+                Event calendar
               </h2>
-              <div className="bg-white dark:bg-zinc-900 rounded-[3rem] p-10 border border-slate-100 dark:border-white/5 shadow-xs">
+              <div className="bg-white dark:bg-zinc-900 rounded-2xl p-5 sm:p-10 border border-slate-100 dark:border-white/5 shadow-xs">
                 <div className="flex items-center justify-between mb-10">
                   <button
                     onClick={handlePrevMonth}
@@ -469,7 +469,7 @@ export default function MasterBookingsPage() {
                         key={d}
                         onClick={() => handleDayClick(d)}
                         className={clsx(
-                          "aspect-square rounded-[1.25rem] flex items-center justify-center relative cursor-pointer transition-all border group",
+                          "aspect-square rounded-2xl flex items-center justify-center relative cursor-pointer transition-all border group",
                           evs.length > 0
                             ? "bg-primary border-primary text-white shadow-xl shadow-primary/20 scale-105 z-10"
                             : "bg-white dark:bg-zinc-900 border-transparent hover:border-slate-200 dark:hover:border-white/10",
@@ -509,21 +509,21 @@ export default function MasterBookingsPage() {
         )}
         {activeTab === "reservation" && (
           <div className="space-y-8">
-            <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-[2.5rem] shadow-xs overflow-hidden">
+            <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl shadow-xs overflow-hidden">
               <div className="overflow-x-auto custom-scrollbar">
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-slate-50/50 dark:bg-white/5">
-                      <th className="px-8 py-6 text-xs font-semibold text-slate-400 border-b border-slate-100 dark:border-white/5">
+                      <th className="px-4 sm:px-8 py-6 text-xs font-semibold text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-white/5">
                         Commercial Space
                       </th>
-                      <th className="px-8 py-6 text-xs font-semibold text-slate-400 border-b border-slate-100 dark:border-white/5">
+                      <th className="px-4 sm:px-8 py-6 text-xs font-semibold text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-white/5">
                         Reserving Customer
                       </th>
-                      <th className="px-8 py-6 text-xs font-semibold text-slate-400 border-b border-slate-100 dark:border-white/5">
+                      <th className="px-4 sm:px-8 py-6 text-xs font-semibold text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-white/5">
                         2-Day Review Window
                       </th>
-                      <th className="px-8 py-6 text-xs font-semibold text-slate-400 border-b border-slate-100 dark:border-white/5 text-right">
+                      <th className="px-4 sm:px-8 py-6 text-xs font-semibold text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-white/5 text-right">
                         Actions
                       </th>
                     </tr>
@@ -533,7 +533,7 @@ export default function MasterBookingsPage() {
                       <tr>
                         <td
                           colSpan={4}
-                          className="p-24 text-center text-slate-400 font-bold text-xs"
+                          className="p-24 text-center text-slate-500 dark:text-slate-400 font-bold text-xs"
                         >
                           <div className="max-w-md mx-auto space-y-3">
                             <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-white/5 text-slate-400 flex items-center justify-center mx-auto">
@@ -542,7 +542,7 @@ export default function MasterBookingsPage() {
                             <p className="text-sm font-semibold text-charcoal dark:text-white tracking-tight">
                               No Pending Space Reservations
                             </p>
-                            <p className="text-xs text-slate-400 font-medium">
+                            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
                               All commercial units are currently available or occupied. New reservations will appear here with a 2-day review timer.
                             </p>
                           </div>
@@ -554,9 +554,9 @@ export default function MasterBookingsPage() {
                           key={res.id}
                           className="hover:bg-slate-50/80 dark:hover:bg-white/2 transition-colors group/row"
                         >
-                          <td className="px-8 py-6">
+                          <td className="px-4 sm:px-8 py-6">
                             <div className="flex items-center gap-4">
-                              <div className="w-14 h-14 bg-amber-500/10 rounded-[1.25rem] flex items-center justify-center text-amber-500 transition-transform group-hover/row:scale-105 shrink-0">
+                              <div className="w-14 h-14 bg-amber-500/10 rounded-2xl flex items-center justify-center text-amber-500 transition-transform group-hover/row:scale-105 shrink-0">
                                 <Building size={24} />
                               </div>
                               <div>
@@ -567,7 +567,7 @@ export default function MasterBookingsPage() {
                                   <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
                                     {res.sqm_size} SQM
                                   </span>
-                                  <span className="text-slate-300 dark:text-white/20">&bull;</span>
+                                  <span className="text-slate-500 dark:text-white/20">&bull;</span>
                                   <span className="text-xs font-semibold text-primary">
                                     ₱{res.base_rent?.toLocaleString()} / mo
                                   </span>
@@ -576,7 +576,7 @@ export default function MasterBookingsPage() {
                             </div>
                           </td>
 
-                          <td className="px-8 py-6">
+                          <td className="px-4 sm:px-8 py-6">
                             <div className="flex items-center gap-3.5">
                               <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 flex items-center justify-center font-semibold text-sm text-charcoal dark:text-white overflow-hidden shrink-0">
                                 {res.reservingUser?.avatarUrl ? (
@@ -593,11 +593,11 @@ export default function MasterBookingsPage() {
                                 <p className="text-sm font-semibold text-charcoal dark:text-white leading-snug">
                                   {res.reservingUser?.name || "Registered Customer"}
                                 </p>
-                                <p className="text-xs text-slate-400 font-medium">
+                                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
                                   {res.reservingUser?.email || "No email available"}
                                 </p>
                                 {res.reservedAt && (
-                                  <p className="text-xs font-bold text-slate-400 mt-0.5">
+                                  <p className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-0.5">
                                     Reserved: {new Date(res.reservedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
                                   </p>
                                 )}
@@ -605,7 +605,7 @@ export default function MasterBookingsPage() {
                             </div>
                           </td>
 
-                          <td className="px-8 py-6">
+                          <td className="px-4 sm:px-8 py-6">
                             <div className="space-y-1.5">
                               <div
                                 className={clsx(
@@ -621,7 +621,7 @@ export default function MasterBookingsPage() {
                                 <span>{res.remainingFormatted || `${res.hoursRemaining ?? 24}h left`}</span>
                                 {res.isUrgent && <AlertTriangle size={13} />}
                               </div>
-                              <p className="text-[10px] text-slate-400 font-medium">
+                              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
                                 {res.isUrgent
                                   ? "Auto-rejects in < 6h if unreviewed"
                                   : "Auto-rejection after 2 days without a decision"}
@@ -629,7 +629,7 @@ export default function MasterBookingsPage() {
                             </div>
                           </td>
 
-                          <td className="px-8 py-6 text-right">
+                          <td className="px-4 sm:px-8 py-6 text-right">
                             <div className="flex justify-end items-center gap-2.5">
                               <button
                                 onClick={() => handleReservationDetails(res)}
@@ -668,10 +668,10 @@ export default function MasterBookingsPage() {
       {/* Shared Modals */}
       {modalInquiry && (
         <div className="fixed inset-0 bg-charcoal/80 backdrop-blur-md z-100 flex items-center justify-center p-6 animate-fade-in">
-          <div className="bg-white dark:bg-zinc-900 rounded-[3rem] p-10 max-w-lg w-full shadow-2xl relative border border-white/10 animate-scale-in">
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl p-5 sm:p-10 max-w-lg w-full shadow-2xl relative border border-white/10 animate-scale-in">
             <button
               onClick={() => setModalInquiry(null)}
-              className="absolute top-8 right-8 w-12 h-12 rounded-2xl bg-slate-100 dark:bg-zinc-800 text-slate-400 hover:text-charcoal transition-all flex items-center justify-center active:scale-90"
+              className="absolute top-8 right-8 w-12 h-12 rounded-2xl bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-slate-400 hover:text-charcoal transition-all flex items-center justify-center active:scale-90"
             >
               <X size={20} />
             </button>
@@ -695,7 +695,7 @@ export default function MasterBookingsPage() {
                   {modalAction === "ACCEPTED" ? "Approve" : "Reject"}{" "}
                   this event?
                 </h2>
-                <p className="text-xs font-semibold text-slate-400 mt-1">
+                <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-1">
                   The customer is told your decision.
                 </p>
               </div>
@@ -703,7 +703,7 @@ export default function MasterBookingsPage() {
 
             <div className="space-y-6">
               <div className="space-y-2">
-                <label className="text-xs font-semibold text-slate-400 pl-2">
+                <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 pl-2">
                   Note to the customer
                 </label>
                 <textarea
@@ -748,7 +748,7 @@ export default function MasterBookingsPage() {
           onClick={() => setSelectedCalendarDate(null)}
         >
           <div
-            className="bg-white dark:bg-zinc-900 w-full max-w-md rounded-[3rem] p-10 border border-white/10 relative animate-scale-in shadow-2xl"
+            className="bg-white dark:bg-zinc-900 w-full max-w-md rounded-2xl p-5 sm:p-10 border border-white/10 relative animate-scale-in shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center gap-4 mb-8">
@@ -759,7 +759,7 @@ export default function MasterBookingsPage() {
                 <h3 className="text-2xl font-semibold text-charcoal dark:text-white tracking-tight leading-none">
                   Events on this day
                 </h3>
-                <p className="text-xs font-semibold text-slate-400 mt-1">
+                <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-1">
                   {selectedCalendarDate.toLocaleDateString("en-US", {
                     weekday: "long",
                     month: "long",
@@ -773,7 +773,7 @@ export default function MasterBookingsPage() {
               {calendarModalEvents.map((ev) => (
                 <div
                   key={ev.id}
-                  className="p-6 rounded-4xl bg-slate-50 dark:bg-black border border-slate-100 dark:border-white/5 group hover:border-primary/50 transition-all"
+                  className="p-6 rounded-2xl bg-slate-50 dark:bg-black border border-slate-100 dark:border-white/5 group hover:border-primary/50 transition-all"
                 >
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-xs font-semibold text-primary">
@@ -787,16 +787,16 @@ export default function MasterBookingsPage() {
                   <h4 className="text-sm font-semibold text-charcoal dark:text-white tracking-tight">
                     {ev.eventType}
                   </h4>
-                  <p className="text-xs text-slate-400 font-bold mt-0.5 mb-3">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-bold mt-0.5 mb-3">
                     {ev.user?.name || "Customer"}
                   </p>
 
                   {ev.message && (
                     <div className="p-3 bg-white dark:bg-zinc-900 rounded-xl border border-slate-100 dark:border-white/5">
-                      <p className="text-xs font-semibold text-slate-400 mb-1 flex items-center gap-1.5">
+                      <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 flex items-center gap-1.5">
                         <MessageSquare size={10} /> Message
                       </p>
-                      <p className="text-[11px] text-charcoal dark:text-white/80 leading-relaxed italic line-clamp-3">
+                      <p className="text-xs text-charcoal dark:text-white/80 leading-relaxed italic line-clamp-3">
                         "{ev.message}"
                       </p>
                     </div>

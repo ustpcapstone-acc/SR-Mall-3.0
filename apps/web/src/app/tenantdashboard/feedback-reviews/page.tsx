@@ -34,7 +34,7 @@ type ReviewItem = TenantReviewsData["reviews"][number];
 const PAGE_SIZE = 10;
 const REPLY_MAX = 1000;
 const LABEL = "text-xs font-bold text-slate-400";
-const CARD = "bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl sm:rounded-4xl shadow-xs";
+const CARD = "bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl sm:rounded-2xl shadow-xs";
 
 const SORTS: { value: TenantReviewSort; label: string }[] = [
   { value: "newest", label: "Newest" },
@@ -306,7 +306,7 @@ export default function FeedbackReviews() {
                     <span className="flex-1 h-2 bg-slate-100 dark:bg-zinc-800 rounded-full overflow-hidden">
                       <span className="block h-full bg-amber-500 rounded-full" style={{ width: `${row.pct}%` }} />
                     </span>
-                    <span className="w-16 text-[10px] font-bold text-slate-400 text-right tabular-nums">
+                    <span className="w-16 text-xs font-bold text-slate-500 dark:text-slate-400 text-right tabular-nums">
                       {row.count} · {row.pct}%
                     </span>
                   </button>
@@ -452,7 +452,7 @@ function SummaryCard({
         <span className={clsx("w-8 h-8 rounded-lg flex items-center justify-center shrink-0", tone)}>{icon}</span>
       </div>
       <p className="mt-2 text-2xl sm:text-3xl font-semibold text-charcoal dark:text-white">{value}</p>
-      {sub && <div className="mt-1 text-[11px] text-slate-500 truncate">{sub}</div>}
+      {sub && <div className="mt-1 text-xs text-slate-500 truncate">{sub}</div>}
     </div>
   );
 }
@@ -529,7 +529,7 @@ function ReviewRow({
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="min-w-0">
               <p className="font-bold text-sm text-charcoal dark:text-white truncate">{review.user.name}</p>
-              <p className="text-[11px] text-slate-400" title={new Date(review.createdAt).toLocaleString()}>
+              <p className="text-xs text-slate-500 dark:text-slate-400" title={new Date(review.createdAt).toLocaleString()}>
                 {timeAgo(review.createdAt)}
               </p>
             </div>
@@ -544,7 +544,7 @@ function ReviewRow({
                   onClick={onReport}
                   title="Report to the mall admin"
                   aria-label="Report review"
-                  className="p-1.5 rounded-lg text-slate-300 hover:text-red-600 hover:bg-red-500/10 transition-colors"
+                  className="p-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-red-600 hover:bg-red-500/10 transition-colors"
                 >
                   <Flag size={14} />
                 </button>
@@ -557,11 +557,11 @@ function ReviewRow({
               {review.comment}
             </p>
           ) : (
-            <p className="text-sm italic text-slate-400">Rating only, no comment.</p>
+            <p className="text-sm italic text-slate-500 dark:text-slate-400">Rating only, no comment.</p>
           )}
 
           {review.reportedAt && (
-            <p className="text-[11px] text-amber-600">
+            <p className="text-xs text-amber-600">
               Waiting for the mall admin. Your reason: &ldquo;{review.reportReason}&rdquo;
             </p>
           )}
@@ -578,7 +578,7 @@ function ReviewRow({
                 className="w-full p-3 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-zinc-800 text-sm text-charcoal dark:text-white focus:outline-hidden focus:border-primary resize-none"
               />
               <div className="flex items-center gap-2">
-                <span className="text-[10px] text-slate-400 tabular-nums">
+                <span className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">
                   {draft.length}/{REPLY_MAX}
                 </span>
                 <button
@@ -606,7 +606,7 @@ function ReviewRow({
               <div className="flex items-center justify-between gap-2">
                 <p className="flex items-center gap-1.5 text-xs font-bold text-primary">
                   <CornerDownRight size={12} /> Your reply
-                  {review.repliedAt && <span className="normal-case tracking-normal font-medium text-slate-400">· {timeAgo(review.repliedAt)}</span>}
+                  {review.repliedAt && <span className="normal-case tracking-normal font-medium text-slate-500 dark:text-slate-400">· {timeAgo(review.repliedAt)}</span>}
                 </p>
                 <div className="flex items-center gap-1">
                   <button
@@ -615,7 +615,7 @@ function ReviewRow({
                       setEditing(true);
                     }}
                     aria-label="Edit reply"
-                    className="p-1.5 rounded-lg text-slate-400 hover:text-charcoal dark:hover:text-white hover:bg-white dark:hover:bg-white/10"
+                    className="p-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-charcoal dark:hover:text-white hover:bg-white dark:hover:bg-white/10"
                   >
                     <Pencil size={13} />
                   </button>
@@ -623,7 +623,7 @@ function ReviewRow({
                     onClick={() => save("")}
                     disabled={saving}
                     aria-label="Remove reply"
-                    className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-500/10"
+                    className="p-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-red-600 hover:bg-red-500/10"
                   >
                     {saving ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
                   </button>
@@ -685,7 +685,7 @@ function ReportModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="report-title"
-        className="relative w-full max-w-md bg-white dark:bg-zinc-950 rounded-4xl shadow-2xl p-7 space-y-5 animate-fade-in-up"
+        className="relative w-full max-w-md bg-white dark:bg-zinc-950 rounded-2xl shadow-2xl p-7 space-y-5 animate-fade-in-up"
       >
         <div className="space-y-1.5">
           <h2 id="report-title" className="text-lg font-semibold text-charcoal dark:text-white">

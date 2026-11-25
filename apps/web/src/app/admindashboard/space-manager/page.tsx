@@ -741,9 +741,9 @@ export default function SpaceManagerPage() {
           <p
             className={clsx(
               "animate-pulse",
-              "text-[10px]",
+              "text-xs",
               "font-semibold",
-              "text-slate-400",
+              "text-slate-500 dark:text-slate-400",
             )}
           >
             Loading Floor Plan
@@ -843,7 +843,7 @@ export default function SpaceManagerPage() {
                   <div className="absolute -bottom-0.5 -left-0.5 w-4 h-4 border-b-2 border-l-2 border-primary rounded-bl-md pointer-events-none" />
                   <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 border-b-2 border-r-2 border-primary rounded-br-md pointer-events-none" />
                   <div className="absolute top-3 right-3 flex items-center gap-1.5 pointer-events-none z-10">
-                    <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 bg-white/80 dark:bg-slate-800/80 px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-700">
+                    <span className="text-xs font-semibold text-slate-500 dark:text-slate-500 bg-white/80 dark:bg-slate-800/80 px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-700">
                       Floor Map Boundary
                     </span>
                   </div>
@@ -1072,7 +1072,7 @@ void openDecision(slot, "reject");
                 <div
                   key={slot.id}
                   className={clsx(
-                    "group glass-premium dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-4xl overflow-hidden hover:border-primary/40 transition-all duration-500 hover:shadow-2xl hover:shadow-primary/5",
+                    "group glass-premium dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-2xl overflow-hidden hover:border-primary/40 transition-all duration-500 hover:shadow-2xl hover:shadow-primary/5",
                     viewMode === "list"
                       ? "flex items-center p-6 gap-8"
                       : "flex flex-col",
@@ -1127,7 +1127,7 @@ void openDecision(slot, "reject");
                             })()}
                             <span
                               className={clsx(
-                                "text-[10px]",
+                                "text-xs",
                                 "font-semibold",
                               )}
                             >
@@ -1194,7 +1194,7 @@ void openDecision(slot, "reject");
                               "bg-white",
                               "text-black",
                               "font-semibold",
-                              "text-[10px]",
+                              "text-xs",
                               "rounded-lg",
                               "hover:bg-primary",
                               "hover:text-white",
@@ -1248,8 +1248,8 @@ void openDecision(slot, "reject");
                             </h3>
                             <p
                               className={clsx(
-                                "text-slate-400",
-                                "text-[10px]",
+                                "text-slate-500 dark:text-slate-400",
+                                "text-xs",
                                 "font-semibold",
                                 "mt-1",
                               )}
@@ -1292,8 +1292,8 @@ void openDecision(slot, "reject");
                           >
                             <p
                               className={clsx(
-                                "text-[10px]",
-                                "text-slate-400",
+                                "text-xs",
+                                "text-slate-500 dark:text-slate-400",
                                 "font-semibold",
                                 "mb-1",
                               )}
@@ -1312,7 +1312,7 @@ void openDecision(slot, "reject");
                               <span
                                 className={clsx(
                                   "text-xs",
-                                  "text-slate-400",
+                                  "text-slate-500 dark:text-slate-400",
                                   "font-bold",
                                   "ml-1",
                                 )}
@@ -1334,8 +1334,8 @@ void openDecision(slot, "reject");
                           >
                             <p
                               className={clsx(
-                                "text-[10px]",
-                                "text-slate-400",
+                                "text-xs",
+                                "text-slate-500 dark:text-slate-400",
                                 "font-semibold",
                                 "mb-1",
                               )}
@@ -1393,7 +1393,8 @@ void openDecision(slot, "reject");
                         className={clsx(
                           "flex-1",
                           "grid",
-                          "grid-cols-5",
+                          "grid-cols-2",
+                          "md:grid-cols-5",
                           "items-center",
                           "gap-6",
                         )}
@@ -1411,8 +1412,8 @@ void openDecision(slot, "reject");
                           </h3>
                           <p
                             className={clsx(
-                              "text-[10px]",
-                              "text-slate-400",
+                              "text-xs",
+                              "text-slate-500 dark:text-slate-400",
                               "font-bold",
                             )}
                           >
@@ -1501,7 +1502,7 @@ void openDecision(slot, "approve");
                               "p-2",
                               "hover:bg-primary",
                               "hover:text-white",
-                              "text-slate-400",
+                              "text-slate-500",
                               "dark:text-slate-500",
                               "rounded-xl",
                               "transition-all",
@@ -1518,7 +1519,7 @@ void openDecision(slot, "approve");
                               "p-2",
                               "hover:bg-primary",
                               "hover:text-white",
-                              "text-slate-400",
+                              "text-slate-500",
                               "dark:text-slate-500",
                               "rounded-xl",
                               "transition-all",
@@ -1532,7 +1533,7 @@ void openDecision(slot, "approve");
                               "p-2",
                               "hover:bg-red-500",
                               "hover:text-white",
-                              "text-slate-400",
+                              "text-slate-500",
                               "dark:text-slate-500",
                               "rounded-xl",
                               "transition-all",
@@ -1601,7 +1602,7 @@ void openDecision(slot, "approve");
                     "gap-2",
                     "text-primary",
                     "font-semibold",
-                    "text-[10px]",
+                    "text-xs",
                   )}
                 >
                   <Info size={14} />
@@ -1616,7 +1617,7 @@ void openDecision(slot, "approve");
                     "tracking-tight",
                   )}
                 >
-                  Edit <span className="text-primary">Space</span>
+                  Edit space
                 </h2>
               </div>
               <button
@@ -1628,7 +1629,7 @@ void openDecision(slot, "approve");
                   "hover:bg-primary/10",
                   "rounded-full",
                   "transition-all",
-                  "text-slate-400",
+                  "text-slate-500 dark:text-slate-400",
                   "hover:text-primary",
                 )}
               >
@@ -1644,9 +1645,9 @@ void openDecision(slot, "approve");
               <div className="space-y-4">
                 <label
                   className={clsx(
-                    "text-[10px]",
+                    "text-xs",
                     "font-semibold",
-                    "text-slate-400",
+                    "text-slate-500 dark:text-slate-400",
                   )}
                 >
                   Unit ID
@@ -1682,9 +1683,9 @@ void openDecision(slot, "approve");
                 <div className="space-y-4">
                   <label
                     className={clsx(
-                      "text-[10px]",
+                      "text-xs",
                       "font-semibold",
-                      "text-slate-400",
+                      "text-slate-500 dark:text-slate-400",
                     )}
                   >
                     Floor
@@ -1720,9 +1721,9 @@ void openDecision(slot, "approve");
                 <div className="space-y-4">
                   <label
                     className={clsx(
-                      "text-[10px]",
+                      "text-xs",
                       "font-semibold",
-                      "text-slate-400",
+                      "text-slate-500 dark:text-slate-400",
                     )}
                   >
                     Category
@@ -1765,9 +1766,9 @@ void openDecision(slot, "approve");
                 <div className="space-y-4">
                   <label
                     className={clsx(
-                      "text-[10px]",
+                      "text-xs",
                       "font-semibold",
-                      "text-slate-400",
+                      "text-slate-500 dark:text-slate-400",
                     )}
                   >
                     Size (SQM)
@@ -1799,7 +1800,7 @@ void openDecision(slot, "approve");
                     }
                     required
                   />
-                  <p className="text-[11px] text-slate-400">
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
                     Rent isn&apos;t shown here or to the public — it&apos;s set per tenant in Tenant Monitoring.
                   </p>
                 </div>
@@ -1809,9 +1810,9 @@ void openDecision(slot, "approve");
               <div className="space-y-4">
                 <label
                   className={clsx(
-                    "text-[10px]",
+                    "text-xs",
                     "font-semibold",
-                    "text-slate-400",
+                    "text-slate-500 dark:text-slate-400",
                   )}
                 >
                   Status
@@ -1859,9 +1860,9 @@ void openDecision(slot, "approve");
                 >
                   <label
                     className={clsx(
-                      "text-[10px]",
+                      "text-xs",
                       "font-semibold",
-                      "text-slate-400",
+                      "text-slate-500 dark:text-slate-400",
                     )}
                   >
                     Images ({activeSlot?.space_images?.length || 0}/10)
@@ -1881,7 +1882,7 @@ void openDecision(slot, "approve");
                       (activeSlot?.space_images?.length || 0) >= 10
                     }
                     className={clsx(
-                      "text-[10px]",
+                      "text-xs",
                       "text-primary",
                       "font-semibold",
                       "hover:underline",
@@ -1956,14 +1957,14 @@ void openDecision(slot, "approve");
                 <div className="flex justify-between items-center">
                   <label
                     className={clsx(
-                      "text-[10px]",
+                      "text-xs",
                       "font-semibold",
-                      "text-slate-400",
+                      "text-slate-500 dark:text-slate-400",
                     )}
                   >
                     Integrated Features ({activeSlot?.features?.length || 0})
                   </label>
-                  <span className="text-xs text-slate-400 font-medium">
+                  <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
                     Shown in public modal
                   </span>
                 </div>
@@ -2058,7 +2059,7 @@ void openDecision(slot, "approve");
                         <button
                           type="button"
                           onClick={() => handleRemoveFeature(idx)}
-                          className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
+                          className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
                           title="Remove feature"
                         >
                           <Trash2 size={14} />
@@ -2067,10 +2068,10 @@ void openDecision(slot, "approve");
                     ))
                   ) : (
                     <div className="p-4 rounded-xl border border-dashed border-slate-200 dark:border-white/10 text-center">
-                      <p className="text-[11px] text-slate-400 font-medium">
+                      <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
                         No custom features added yet.
                       </p>
-                      <p className="text-[10px] text-slate-400/70 mt-0.5">
+                      <p className="text-xs text-slate-400/70 mt-0.5">
                         Standard mall default features will be displayed in the public modal until you add custom bullets.
                       </p>
                     </div>

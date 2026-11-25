@@ -90,9 +90,9 @@ export function RecordCashPaymentModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="cash-payment-title"
-        className="relative w-full max-w-lg bg-white dark:bg-zinc-950 rounded-4xl shadow-2xl overflow-hidden animate-fade-in-up"
+        className="relative w-full max-w-lg bg-white dark:bg-zinc-950 rounded-2xl shadow-2xl overflow-hidden animate-fade-in-up"
       >
-        <div className="bg-[#BE1E2D] p-8 text-white relative">
+        <div className="bg-[#BE1E2D] p-5 sm:p-8 text-white relative">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-md">
               <PhilippinePeso size={24} />
@@ -116,7 +116,7 @@ export function RecordCashPaymentModal({
           </button>
         </div>
 
-        <div className="p-8 space-y-6">
+        <div className="p-5 sm:p-8 space-y-6">
           {/* Invoice being cleared */}
           <div className="rounded-2xl border border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-zinc-900 p-5">
             <div className="flex items-start justify-between gap-4">
@@ -124,7 +124,7 @@ export function RecordCashPaymentModal({
                 <p className="text-sm font-semibold text-charcoal dark:text-white truncate">
                   #{invoice.invoiceNumber}
                 </p>
-                <p className="mt-1 text-xs font-bold text-slate-400">
+                <p className="mt-1 text-xs font-bold text-slate-500 dark:text-slate-400">
                   {invoice.month}
                   {tenantName ? ` • ${tenantName}` : ""}
                 </p>
@@ -148,7 +148,7 @@ export function RecordCashPaymentModal({
           <div>
             <label
               htmlFor="cash-ref-no"
-              className="text-xs font-semibold text-slate-400 block mb-2"
+              className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mb-2"
             >
               Receipt / Reference Number
             </label>
@@ -176,14 +176,14 @@ export function RecordCashPaymentModal({
             {error && (
               <p
                 id="cash-ref-error"
-                className="mt-2 flex items-center gap-1.5 text-[11px] font-bold text-red-600"
+                className="mt-2 flex items-center gap-1.5 text-xs font-bold text-red-600"
               >
                 <AlertTriangle size={12} /> {error}
               </p>
             )}
           </div>
 
-          <p className="flex items-start gap-2 text-[11px] text-slate-500 leading-relaxed">
+          <p className="flex items-start gap-2 text-xs text-slate-500 leading-relaxed">
             <ShieldCheck size={14} className="shrink-0 mt-0.5 text-emerald-500" />
             This marks the invoice as PAID and notifies the tenant.
           </p>

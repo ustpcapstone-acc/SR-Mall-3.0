@@ -127,7 +127,7 @@ export default function TenantProfileSettings() {
 
   if (me.error || myShop.error) {
     return (
-      <div className="p-10 text-center space-y-3">
+      <div className="p-5 sm:p-10 text-center space-y-3">
         <AlertTriangle className="mx-auto text-primary" size={28} />
         <p className="font-bold text-charcoal dark:text-white">{me.error || myShop.error}</p>
         <SecondaryButton onClick={() => (me.reload(), myShop.reload())}>Try again</SecondaryButton>
@@ -279,7 +279,7 @@ export default function TenantProfileSettings() {
       {closeOpen && (
         <div className="fixed inset-0 z-250 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-xs" onClick={() => !closing && setCloseOpen(false)} />
-          <div role="dialog" aria-modal="true" className="relative w-full max-w-md bg-white dark:bg-zinc-950 rounded-4xl shadow-2xl p-7 space-y-5 animate-fade-in-up">
+          <div role="dialog" aria-modal="true" className="relative w-full max-w-md bg-white dark:bg-zinc-950 rounded-2xl shadow-2xl p-7 space-y-5 animate-fade-in-up">
             <div>
               <h2 className="text-lg font-semibold text-charcoal dark:text-white">Close {shop.shopName}?</h2>
               <p className="text-sm text-slate-500 mt-1">

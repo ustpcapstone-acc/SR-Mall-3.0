@@ -124,7 +124,7 @@ function AdminComplaints() {
               <c.icon size={18} />
             </div>
             <p className="text-2xl sm:text-3xl font-semibold text-charcoal dark:text-white">{c.value}</p>
-            <p className="text-xs font-semibold text-slate-400 mt-1">{c.label}</p>
+            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-1">{c.label}</p>
           </button>
         ))}
       </div>
@@ -169,7 +169,7 @@ function AdminComplaints() {
           ) : filtered.length === 0 ? (
             <div className={clsx(CARD, "py-14 px-6 text-center")}>
               <ClipboardList size={36} className="mx-auto text-slate-200 dark:text-zinc-700 mb-3" />
-              <p className="text-sm font-semibold text-slate-400">No complaints match these filters</p>
+              <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">No complaints match these filters</p>
             </div>
           ) : (
             filtered.map((c) => (
@@ -190,15 +190,15 @@ function AdminComplaints() {
                       {c.priority !== "NORMAL" && <PriorityBadge priority={c.priority} />}
                     </div>
                     <p className={clsx("text-sm text-charcoal dark:text-white truncate", c.unread ? "font-semibold" : "font-bold")}>{c.subject}</p>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate inline-flex items-center gap-1 max-w-full">
+                    <p className="text-xs text-slate-500 dark:text-slate-400 truncate inline-flex items-center gap-1 max-w-full">
                       <Store size={11} className="shrink-0" /> <span className="truncate">{c.shopName} · Unit {c.unitId}</span>
                     </p>
-                    <p className="text-[11px] text-slate-400 truncate">{c.category} · {formatWhen(c.lastActivityAt)}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{c.category} · {formatWhen(c.lastActivityAt)}</p>
                   </div>
                   <div className="flex flex-col items-end gap-2 shrink-0">
                     {c.unread && <span className="w-2.5 h-2.5 rounded-full bg-red-500" aria-label="Needs attention" />}
                     {c.commentCount > 0 && (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-400">
+                      <span className="inline-flex items-center gap-1 text-xs font-bold text-slate-500 dark:text-slate-400">
                         <MessageSquare size={11} /> {c.commentCount}
                       </span>
                     )}
@@ -218,7 +218,7 @@ function AdminComplaints() {
           ) : (
             <div className={clsx(CARD, "py-24 px-6 text-center")}>
               <MessageSquare size={36} className="mx-auto text-slate-200 dark:text-zinc-700 mb-3" />
-              <p className="text-sm font-semibold text-slate-400">Select a complaint to view and reply</p>
+              <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">Select a complaint to view and reply</p>
             </div>
           )}
         </div>

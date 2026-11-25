@@ -143,7 +143,7 @@ export default function AdminDashboard() {
   if (!data) {
     if (error) {
       return (
-        <div className="p-10 max-w-xl mx-auto text-center space-y-4">
+        <div className="p-5 sm:p-10 max-w-xl mx-auto text-center space-y-4">
           <AlertTriangle className="mx-auto text-primary" size={32} />
           <p className={clsx(NAME, "text-lg")}>Couldn&apos;t load the dashboard</p>
           <p className="text-sm text-slate-500">{error}</p>
@@ -207,7 +207,7 @@ export default function AdminDashboard() {
             onClick={() => load(true)}
             disabled={refreshing}
             aria-label="Refresh dashboard"
-            className="p-4 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-2xl text-slate-400 hover:text-primary transition-all shadow-xs active:scale-95 disabled:opacity-50"
+            className="p-4 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-2xl text-slate-500 dark:text-slate-400 hover:text-primary transition-all shadow-xs active:scale-95 disabled:opacity-50"
           >
             <RefreshCw size={20} className={refreshing ? "animate-spin" : ""} />
           </button>
@@ -490,7 +490,7 @@ function Card({ className, children }: { className?: string; children: React.Rea
   return (
     <div
       className={clsx(
-        "bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-[2.5rem] p-6 md:p-8 shadow-xs",
+        "bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl p-6 md:p-8 shadow-xs",
         className,
       )}
     >
@@ -533,7 +533,7 @@ function EmptyState({ icon, text }: { icon: React.ReactNode; text: string }) {
   return (
     <div className="flex flex-col items-center justify-center text-center py-12 gap-3 text-slate-300 dark:text-slate-600">
       {icon}
-      <p className="text-slate-400 font-bold text-xs max-w-xs leading-relaxed">{text}</p>
+      <p className="text-slate-500 dark:text-slate-400 font-bold text-xs max-w-xs leading-relaxed">{text}</p>
     </div>
   );
 }
@@ -577,7 +577,7 @@ function KpiCard({
     <Link
       href={href}
       title={sub ? `${label}: ${value} · ${sub}` : `${label}: ${value}`}
-      className="group min-w-0 bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-4xl p-5 shadow-xs hover:shadow-xl hover:-translate-y-0.5 transition-all"
+      className="group min-w-0 bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl p-5 shadow-xs hover:shadow-xl hover:-translate-y-0.5 transition-all"
     >
       <span
         className={clsx(
@@ -601,7 +601,7 @@ function KpiCard({
             {Math.abs(trend.value)}%
           </span>
         )}
-        {sub && <span className="text-slate-400 truncate">{sub}</span>}
+        {sub && <span className="text-slate-500 dark:text-slate-400 truncate">{sub}</span>}
       </div>
     </Link>
   );
@@ -696,7 +696,7 @@ function AttentionList({ attention }: { attention: AdminDashboardData["attention
               <p
                 className={clsx(
                   "mt-0.5 text-xs font-bold truncate",
-                  row.urgent ? "text-red-600" : "text-slate-400",
+                  row.urgent ? "text-red-600" : "text-slate-500 dark:text-slate-400",
                 )}
               >
                 {row.detail}
@@ -704,7 +704,7 @@ function AttentionList({ attention }: { attention: AdminDashboardData["attention
             </div>
             <span
               className={clsx(
-                "min-w-9 px-2.5 py-1 rounded-full text-center text-[11px] font-semibold border",
+                "min-w-9 px-2.5 py-1 rounded-full text-center text-xs font-semibold border",
                 row.urgent
                   ? "bg-red-500 text-white border-red-500"
                   : "bg-primary/10 text-primary border-primary/20",
@@ -741,7 +741,7 @@ function QuickAction({
       </span>
       <span className="text-xs font-semibold text-charcoal dark:text-white">{label}</span>
       {badge ? (
-        <span className="absolute top-2 right-2 min-w-5 h-5 px-1.5 rounded-full bg-primary text-white text-[11px] font-bold flex items-center justify-center">
+        <span className="absolute top-2 right-2 min-w-5 h-5 px-1.5 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center">
           {badge > 99 ? "99+" : badge}
         </span>
       ) : null}
@@ -973,19 +973,19 @@ function HistoryModal({ onClose }: { onClose: () => void }) {
         role="dialog"
         aria-modal="true"
         aria-labelledby="history-title"
-        className="relative w-full max-w-2xl max-h-[85vh] bg-white dark:bg-zinc-900 rounded-4xl shadow-2xl flex flex-col border border-slate-200 dark:border-white/10 overflow-hidden animate-fade-in-up"
+        className="relative w-full max-w-2xl max-h-[85vh] bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl flex flex-col border border-slate-200 dark:border-white/10 overflow-hidden animate-fade-in-up"
       >
         <div className="flex items-center justify-between p-6 md:p-8 border-b border-slate-100 dark:border-white/5">
           <div className="space-y-1">
             <h2 id="history-title" className="font-display text-2xl font-semibold text-charcoal dark:text-white tracking-tight">
-              Activity <span className="text-primary">History.</span>
+              Activity history
             </h2>
             <p className={LABEL}>Last 50 events</p>
           </div>
           <button
             onClick={onClose}
             aria-label="Close"
-            className="p-2 rounded-lg text-slate-400 hover:text-charcoal dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10"
+            className="p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:text-charcoal dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10"
           >
             <X size={18} />
           </button>

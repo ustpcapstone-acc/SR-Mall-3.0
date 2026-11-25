@@ -290,7 +290,7 @@ export default function AdPromoManager() {
                 <p className="text-xl sm:text-2xl font-semibold text-charcoal dark:text-white leading-none">
                   {loading ? "—" : s.value}
                 </p>
-                <p className="text-[10px] text-slate-400 font-medium mt-0.5">
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
                   {s.label}
                 </p>
               </div>
@@ -313,7 +313,7 @@ export default function AdPromoManager() {
                 <h2 className="font-semibold text-sm text-charcoal dark:text-white">
                   New Promo Request
                 </h2>
-                <p className="text-[10px] text-slate-400 font-medium">
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
                   Submit for admin approval
                 </p>
               </div>
@@ -322,7 +322,7 @@ export default function AdPromoManager() {
             <div className="p-5 sm:p-6 space-y-4">
               {/* Title */}
               <div>
-                <label className="text-xs font-semibold text-slate-400 block mb-1.5">
+                <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mb-1.5">
                   Promo Title *
                 </label>
                 <input
@@ -337,7 +337,7 @@ export default function AdPromoManager() {
 
               {/* Description */}
               <div>
-                <label className="text-xs font-semibold text-slate-400 block mb-1.5">
+                <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mb-1.5">
                   Description
                 </label>
                 <textarea
@@ -351,7 +351,7 @@ export default function AdPromoManager() {
 
               {/* Category */}
               <div>
-                <label className="text-xs font-semibold text-slate-400 block mb-1.5">
+                <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mb-1.5">
                   Category
                 </label>
                 <select
@@ -368,7 +368,7 @@ export default function AdPromoManager() {
               {/* Date Range */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-semibold text-slate-400 flex items-center gap-1 mb-1.5">
+                  <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1 mb-1.5">
                     <Calendar size={10} /> Start
                   </label>
                   <input
@@ -380,7 +380,7 @@ export default function AdPromoManager() {
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-slate-400 flex items-center gap-1 mb-1.5">
+                  <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1 mb-1.5">
                     <Calendar size={10} /> End
                   </label>
                   <input
@@ -395,7 +395,7 @@ export default function AdPromoManager() {
 
               {/* Media Upload */}
               <div>
-                <label className="text-xs font-semibold text-slate-400 block mb-1.5">
+                <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mb-1.5">
                   Banner Media *
                 </label>
                 <div className="relative border-2 border-dashed border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden min-h-[140px] group hover:border-primary transition-all cursor-pointer">
@@ -447,7 +447,7 @@ export default function AdPromoManager() {
                       <p className="text-xs font-bold text-charcoal dark:text-white">
                         Click to upload
                       </p>
-                      <p className="text-[10px] text-slate-400 font-medium mt-0.5">
+                      <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
                         Image or Video · Max 50MB
                       </p>
                     </div>
@@ -469,7 +469,7 @@ export default function AdPromoManager() {
                 {isSubmitting ? "Submitting..." : "Submit Promotion"}
               </button>
 
-              <p className="text-xs text-slate-400 font-medium text-center leading-relaxed">
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium text-center leading-relaxed">
                 Your promotion will go live after admin approval. Usually
                 reviewed within 24 hours.
               </p>
@@ -482,18 +482,18 @@ export default function AdPromoManager() {
               <h2 className="font-semibold text-sm text-charcoal dark:text-white">
                 Campaign History
               </h2>
-              <span className="text-xs font-semibold text-slate-400">
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
                 {promos.length} total
               </span>
             </div>
 
             {loading ? (
-              <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl p-12 text-center">
+              <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl p-6 sm:p-12 text-center">
                 <Loader2
                   className="mx-auto text-primary animate-spin mb-3"
                   size={28}
                 />
-                <p className="text-xs font-bold text-slate-400">
+                <p className="text-xs font-bold text-slate-500 dark:text-slate-400">
                   Loading campaigns...
                 </p>
               </div>
@@ -505,7 +505,7 @@ export default function AdPromoManager() {
                 <p className="font-semibold text-charcoal dark:text-white text-sm">
                   No promotions yet
                 </p>
-                <p className="text-xs text-slate-400 font-medium mt-1 max-w-xs mx-auto">
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1 max-w-xs mx-auto">
                   Submit your first promotional banner using the form. It will
                   appear here after submission.
                 </p>
@@ -547,17 +547,17 @@ export default function AdPromoManager() {
                                 {promo.title}
                               </h4>
                               {promo.description && (
-                                <p className="text-[10px] text-slate-400 font-medium mt-0.5 line-clamp-1">
+                                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5 line-clamp-1">
                                   {promo.description}
                                 </p>
                               )}
                             </div>
-                            <span className="shrink-0 text-xs font-semibold text-slate-400 bg-slate-50 dark:bg-zinc-800 px-2 py-1 rounded-lg">
+                            <span className="shrink-0 text-xs font-semibold text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-zinc-800 px-2 py-1 rounded-lg">
                               {promo.category}
                             </span>
                           </div>
 
-                          <p className="text-[10px] text-slate-400 font-medium flex items-center gap-1 mt-1">
+                          <p className="text-xs text-slate-500 dark:text-slate-400 font-medium flex items-center gap-1 mt-1">
                             <Calendar size={9} />
                             {new Date(promo.startDate).toLocaleDateString(
                               "en-US",
@@ -599,7 +599,7 @@ export default function AdPromoManager() {
                             <div className="flex-1" />
                             <button
                               onClick={() => setDeleteTarget(promo)}
-                              className="p-2 text-slate-300 hover:text-primary hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all"
+                              className="p-2 text-slate-500 dark:text-slate-400 hover:text-primary hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all"
                               title="Delete promotion"
                             >
                               <Trash2 size={14} />

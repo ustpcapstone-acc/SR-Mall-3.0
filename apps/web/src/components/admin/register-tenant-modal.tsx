@@ -283,7 +283,7 @@ export function RegisterTenantModal({ isOpen, onClose, onSuccess }: Props) {
           "w-full",
           "max-w-lg",
           "bg-zinc-900",
-          "rounded-[2.5rem]",
+          "rounded-2xl",
           "shadow-2xl",
           "border",
           "border-white/5",
@@ -364,7 +364,7 @@ export function RegisterTenantModal({ isOpen, onClose, onSuccess }: Props) {
                   )}
                 </div>
                 <span
-                  className={`text-[9px] font-black uppercase tracking-widest mt-1.5 ${step === s.key ? "text-primary" : "text-zinc-500"}`}
+                  className={`text-xs font-black uppercase tracking-widest mt-1.5 ${step === s.key ? "text-primary" : "text-zinc-500"}`}
                 >
                   {s.label}
                 </span>
@@ -384,7 +384,7 @@ export function RegisterTenantModal({ isOpen, onClose, onSuccess }: Props) {
               <div>
                 <label
                   className={clsx(
-                    "text-[10px]",
+                    "text-xs",
                     "font-bold",
                     "text-zinc-500",
                     "mb-1.5",
@@ -418,7 +418,7 @@ export function RegisterTenantModal({ isOpen, onClose, onSuccess }: Props) {
               <div>
                 <label
                   className={clsx(
-                    "text-[10px]",
+                    "text-xs",
                     "font-bold",
                     "text-zinc-500",
                     "block",
@@ -450,7 +450,7 @@ export function RegisterTenantModal({ isOpen, onClose, onSuccess }: Props) {
               <div>
                 <label
                   className={clsx(
-                    "text-[10px]",
+                    "text-xs",
                     "font-bold",
                     "text-zinc-500",
                     "block",
@@ -586,7 +586,7 @@ export function RegisterTenantModal({ isOpen, onClose, onSuccess }: Props) {
               <div>
                 <label
                   className={clsx(
-                    "text-[10px]",
+                    "text-xs",
                     "font-bold",
                     "text-zinc-500",
                     "block",
@@ -618,7 +618,7 @@ export function RegisterTenantModal({ isOpen, onClose, onSuccess }: Props) {
               <div>
                 <label
                   className={clsx(
-                    "text-[10px]",
+                    "text-xs",
                     "font-bold",
                     "text-zinc-500",
                     "block",
@@ -656,7 +656,7 @@ export function RegisterTenantModal({ isOpen, onClose, onSuccess }: Props) {
               <div>
                 <label
                   className={clsx(
-                    "text-[10px]",
+                    "text-xs",
                     "font-bold",
                     "text-zinc-500",
                     "block",
@@ -747,7 +747,7 @@ export function RegisterTenantModal({ isOpen, onClose, onSuccess }: Props) {
                   ))}
                 </select>
                 {availableSlots.length === 0 && !slotsLoading && (
-                  <p className="text-[10px] text-amber-500 mt-2">
+                  <p className="text-xs text-amber-500 mt-2">
                     No available slots. Create slots in Space Manager first.
                   </p>
                 )}
@@ -756,7 +756,7 @@ export function RegisterTenantModal({ isOpen, onClose, onSuccess }: Props) {
                 <div>
                   <label
                     className={clsx(
-                      "text-[10px]",
+                      "text-xs",
                       "font-bold",
                       "text-zinc-500",
                       "block",
@@ -792,7 +792,7 @@ export function RegisterTenantModal({ isOpen, onClose, onSuccess }: Props) {
                 <div>
                   <label
                     className={clsx(
-                      "text-[10px]",
+                      "text-xs",
                       "font-bold",
                       "text-zinc-500",
                       "mb-1.5",
@@ -825,7 +825,7 @@ export function RegisterTenantModal({ isOpen, onClose, onSuccess }: Props) {
               <div>
                 <label
                   className={clsx(
-                    "text-[10px]",
+                    "text-xs",
                     "font-bold",
                     "text-zinc-500",
                     "block",

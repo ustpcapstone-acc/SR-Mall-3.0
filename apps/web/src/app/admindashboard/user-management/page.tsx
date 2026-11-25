@@ -163,7 +163,7 @@ export default function UserManagement() {
         <div className="flex items-center gap-4">
           <button
             onClick={loadUsers}
-            className="p-4 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-2xl text-slate-400 hover:text-primary transition-all shadow-xs active:scale-95"
+            className="p-4 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-2xl text-slate-500 dark:text-slate-400 hover:text-primary transition-all shadow-xs active:scale-95"
           >
             <RefreshCcw size={20} className={loading ? "animate-spin" : ""} />
           </button>
@@ -173,14 +173,14 @@ export default function UserManagement() {
       <FixUserRolesBanner onFixed={loadUsers} />
 
       {/* Navigation Matrix */}
-      <div className="flex items-center gap-2 bg-slate-100/50 dark:bg-white/5 p-2 rounded-4xl w-fit border border-slate-200 dark:border-white/5">
+      <div className="flex flex-wrap items-center gap-2 bg-slate-100/50 dark:bg-white/5 p-2 rounded-2xl w-fit max-w-full border border-slate-200 dark:border-white/5">
         <button
           onClick={() => setActiveTab("users")}
           className={clsx(
-            "flex items-center gap-3 px-8 py-4 rounded-2xl transition-all relative whitespace-nowrap active:scale-95",
+            "flex items-center gap-3 px-4 sm:px-8 py-3 sm:py-4 rounded-2xl transition-all relative whitespace-nowrap active:scale-95",
             activeTab === "users"
               ? "bg-white dark:bg-zinc-800 text-charcoal dark:text-white shadow-xl"
-              : "text-slate-400 hover:bg-white/50 dark:hover:bg-white/5",
+              : "text-slate-500 hover:bg-white/50 dark:hover:bg-white/5",
           )}
         >
           <Users size={18} />
@@ -196,10 +196,10 @@ export default function UserManagement() {
         <button
           onClick={() => setActiveTab("feedback")}
           className={clsx(
-            "flex items-center gap-3 px-8 py-4 rounded-2xl transition-all relative whitespace-nowrap active:scale-95",
+            "flex items-center gap-3 px-4 sm:px-8 py-3 sm:py-4 rounded-2xl transition-all relative whitespace-nowrap active:scale-95",
             activeTab === "feedback"
               ? "bg-white dark:bg-zinc-800 text-charcoal dark:text-white shadow-xl"
-              : "text-slate-400 hover:bg-white/50 dark:hover:bg-white/5",
+              : "text-slate-500 hover:bg-white/50 dark:hover:bg-white/5",
           )}
         >
           <MessageSquare size={18} />
@@ -215,10 +215,10 @@ export default function UserManagement() {
         <button
           onClick={() => setActiveTab("history")}
           className={clsx(
-            "flex items-center gap-3 px-8 py-4 rounded-2xl transition-all relative whitespace-nowrap active:scale-95",
+            "flex items-center gap-3 px-4 sm:px-8 py-3 sm:py-4 rounded-2xl transition-all relative whitespace-nowrap active:scale-95",
             activeTab === "history"
               ? "bg-white dark:bg-zinc-800 text-charcoal dark:text-white shadow-xl"
-              : "text-slate-400 hover:bg-white/50 dark:hover:bg-white/5",
+              : "text-slate-500 hover:bg-white/50 dark:hover:bg-white/5",
           )}
         >
           <Store size={18} />
@@ -230,17 +230,17 @@ export default function UserManagement() {
 
       {activeTab === "users" && (
         <div className="space-y-8 animate-fade-in">
-          <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-[3rem] shadow-xs overflow-hidden">
-            <div className="p-8 border-b border-slate-100 dark:border-white/5 bg-slate-50/30 dark:bg-white/2 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl shadow-xs overflow-hidden">
+            <div className="p-5 sm:p-8 border-b border-slate-100 dark:border-white/5 bg-slate-50/30 dark:bg-white/2 flex flex-col md:flex-row md:items-center justify-between gap-6">
               <div className="flex items-center gap-4">
-                <div className="w-14 h-14 bg-primary/10 rounded-[1.25rem] flex items-center justify-center text-primary shadow-inner">
+                <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center text-primary shadow-inner">
                   <ShieldCheck size={28} />
                 </div>
                 <div>
                   <h3 className="text-xl font-semibold text-charcoal dark:text-white tracking-tight">
                     Global Directory
                   </h3>
-                  <p className="text-xs font-semibold text-slate-400 mt-1">
+                  <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-1">
                     Institutional Integrity: 100% Operational
                   </p>
                 </div>
@@ -257,7 +257,7 @@ export default function UserManagement() {
                         "px-4 py-3 rounded-xl text-xs font-semibold transition-all whitespace-nowrap",
                         roleFilter === role
                           ? "bg-white dark:bg-zinc-800 text-charcoal dark:text-white shadow-xs"
-                          : "text-slate-400 hover:text-charcoal dark:hover:text-white"
+                          : "text-slate-500 hover:text-charcoal dark:hover:text-white"
                       )}
                     >
                       {role}
@@ -284,12 +284,12 @@ export default function UserManagement() {
                   {isSearchFocused && searchQuery.length > 0 && (
                     <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl overflow-hidden z-50 animate-fade-in-up">
                       <div className="p-3 border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/2">
-                        <p className="text-xs font-semibold text-slate-400">Recommended Matches</p>
+                        <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Recommended Matches</p>
                       </div>
                       <div className="max-h-60 overflow-y-auto custom-scrollbar">
                         {filteredUsers.slice(0, 5).length === 0 ? (
                           <div className="p-4 text-center">
-                            <p className="text-xs font-semibold text-slate-400">No Matches Found</p>
+                            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">No Matches Found</p>
                           </div>
                         ) : (
                           filteredUsers.slice(0, 5).map((u) => (
@@ -307,7 +307,7 @@ export default function UserManagement() {
                               </div>
                               <div className="flex-1 min-w-0">
                                 <p className="text-xs font-semibold text-charcoal dark:text-white truncate">{u.name || "ANONYMOUS"}</p>
-                                <p className="text-xs font-bold text-slate-400 truncate">{u.email}</p>
+                                <p className="text-xs font-bold text-slate-500 dark:text-slate-400 truncate">{u.email}</p>
                               </div>
                               <div className="px-2 py-0.5 bg-slate-100 dark:bg-zinc-800 rounded-full text-xs font-semibold text-slate-500 shrink-0">
                                 {u.role}
@@ -326,7 +326,7 @@ export default function UserManagement() {
               {loading ? (
                 <div className="py-40 flex flex-col items-center justify-center gap-4">
                   <Loader2 className="w-10 h-10 text-primary animate-spin" />
-                  <p className="text-xs font-semibold text-slate-400">
+                  <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
                     Loading Users...
                   </p>
                 </div>
@@ -334,16 +334,16 @@ export default function UserManagement() {
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-slate-50/50 dark:bg-white/2">
-                      <th className="px-8 py-6 text-xs font-semibold text-slate-400">
+                      <th className="px-4 sm:px-8 py-6 text-xs font-semibold text-slate-500 dark:text-slate-400">
                         User Details
                       </th>
-                      <th className="px-8 py-6 text-xs font-semibold text-slate-400">
+                      <th className="px-4 sm:px-8 py-6 text-xs font-semibold text-slate-500 dark:text-slate-400">
                         Role & Permissions
                       </th>
-                      <th className="px-8 py-6 text-xs font-semibold text-slate-400">
+                      <th className="px-4 sm:px-8 py-6 text-xs font-semibold text-slate-500 dark:text-slate-400">
                         Security Status
                       </th>
-                      <th className="px-8 py-6 text-xs font-semibold text-slate-400 text-right">
+                      <th className="px-4 sm:px-8 py-6 text-xs font-semibold text-slate-500 dark:text-slate-400 text-right">
                         Actions
                       </th>
                     </tr>
@@ -351,8 +351,8 @@ export default function UserManagement() {
                   <tbody className="divide-y divide-slate-100 dark:divide-white/5">
                     {filteredUsers.length === 0 ? (
                       <tr>
-                        <td colSpan={4} className="px-8 py-20 text-center">
-                          <p className="text-xs font-semibold text-slate-400">
+                        <td colSpan={4} className="px-4 sm:px-8 py-20 text-center">
+                          <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
                             No identities matched the filter criteria.
                           </p>
                         </td>
@@ -364,7 +364,7 @@ export default function UserManagement() {
                           className="hover:bg-slate-50/80 dark:hover:bg-white/2 transition-colors group/row"
                         >
                           <td
-                            className="px-8 py-8 cursor-pointer"
+                            className="px-4 sm:px-8 py-8 cursor-pointer"
                             onClick={() => setSelectedUser(item)}
                           >
                             <div className="flex items-center gap-5">
@@ -391,13 +391,13 @@ export default function UserManagement() {
                                 >
                                   {item.name || "ANONYMOUS"}
                                 </p>
-                                <p className="text-xs font-bold text-slate-400 mt-0.5">
+                                <p className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-0.5">
                                   {item.email}
                                 </p>
                               </div>
                             </div>
                           </td>
-                          <td className="px-8 py-8">
+                          <td className="px-4 sm:px-8 py-8">
                             <div className="flex items-center gap-3">
                               <div className="p-2 bg-primary/10 text-primary rounded-xl">
                                 <Shield size={16} />
@@ -405,7 +405,7 @@ export default function UserManagement() {
                               {item.role === "ADMIN" ? (
                                 <Link
                                   href="/admindashboard/roles-staff"
-                                  className="text-[11px] font-bold text-charcoal dark:text-white hover:text-primary"
+                                  className="text-xs font-bold text-charcoal dark:text-white hover:text-primary"
                                 >
                                   Staff account (manage in Roles &amp; Staff)
                                 </Link>
@@ -430,7 +430,7 @@ export default function UserManagement() {
                               )}
                             </div>
                           </td>
-                          <td className="px-8 py-8">
+                          <td className="px-4 sm:px-8 py-8">
                             {item.isBlacklisted ? (
                               <span className="inline-flex items-center gap-2 px-3 py-1 bg-red-500/10 text-red-500 text-xs font-semibold rounded-full border border-red-500/20">
                                 <Ban size={10} /> Blacklisted
@@ -442,7 +442,7 @@ export default function UserManagement() {
                               </span>
                             )}
                           </td>
-                          <td className="px-8 py-8 text-right">
+                          <td className="px-4 sm:px-8 py-8 text-right">
                             <div className="flex items-center justify-end gap-3 opacity-100 transition-all duration-300 lg:opacity-0 lg:group-hover/row:opacity-100">
                               {item.role !== "ADMIN" && (
                               <button
@@ -493,10 +493,10 @@ export default function UserManagement() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="blacklist-modal-title"
-            className="w-full max-w-md overflow-hidden rounded-[2.5rem] border border-slate-200 bg-white shadow-2xl animate-fade-in-up dark:border-white/10 dark:bg-zinc-900"
+            className="w-full max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl animate-fade-in-up dark:border-white/10 dark:bg-zinc-900"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="p-8 space-y-5">
+            <div className="p-5 sm:p-8 space-y-5">
               <div className="flex items-start justify-between gap-4">
                 <div
                   className={clsx(
@@ -544,7 +544,7 @@ export default function UserManagement() {
 
               <div
                 className={clsx(
-                  "rounded-2xl border p-4 text-[11px] font-bold leading-relaxed",
+                  "rounded-2xl border p-4 text-xs font-bold leading-relaxed",
                   blacklistTarget.isBlacklisted
                     ? "border-emerald-500/20 bg-emerald-500/5 text-emerald-700 dark:text-emerald-400"
                     : "border-red-500/20 bg-red-500/5 text-red-600 dark:text-red-400",
@@ -594,12 +594,12 @@ export default function UserManagement() {
       {selectedUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fade-in" onClick={() => setSelectedUser(null)}>
           <div
-            className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-[3rem] w-full max-w-lg shadow-2xl overflow-hidden animate-fade-in-up"
+            className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden animate-fade-in-up"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="p-8 border-b border-slate-100 dark:border-white/5 flex items-center justify-between">
+            <div className="p-5 sm:p-8 border-b border-slate-100 dark:border-white/5 flex items-center justify-between">
               <h3 className="text-xl font-semibold text-charcoal dark:text-white tracking-tight">
-                User <span className="text-primary">Details</span>
+                User details
               </h3>
               <button
                 onClick={() => setSelectedUser(null)}
@@ -609,9 +609,9 @@ export default function UserManagement() {
               </button>
             </div>
 
-            <div className="p-8 space-y-8">
+            <div className="p-5 sm:p-8 space-y-8">
               <div className="flex items-center gap-6">
-                <div className={clsx("w-20 h-20 rounded-4xl font-semibold text-3xl flex items-center justify-center border-4 shadow-xl transition-all",
+                <div className={clsx("w-20 h-20 rounded-2xl font-semibold text-3xl flex items-center justify-center border-4 shadow-xl transition-all",
                   selectedUser.isBlacklisted ? "bg-red-500/10 text-red-500 border-red-500/20" : "bg-primary/10 text-primary border-primary/20"
                 )}>
                   {selectedUser.name ? selectedUser.name.charAt(0).toUpperCase() : "U"}
@@ -620,7 +620,7 @@ export default function UserManagement() {
                   <h4 className={clsx("text-2xl font-semibold tracking-tight", selectedUser.isBlacklisted ? "text-red-500 line-through opacity-60" : "text-charcoal dark:text-white")}>
                     {selectedUser.name || "ANONYMOUS"}
                   </h4>
-                  <p className="text-sm font-bold text-slate-400 mt-1">
+                  <p className="text-sm font-bold text-slate-500 dark:text-slate-400 mt-1">
                     {selectedUser.email}
                   </p>
                   <div className="mt-3 flex gap-2">
@@ -633,23 +633,23 @@ export default function UserManagement() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-5 bg-slate-50 dark:bg-white/2 rounded-3xl border border-slate-100 dark:border-white/5">
-                  <p className="text-xs font-semibold text-slate-400 mb-1 flex items-center gap-1"><Shield size={10} /> Privilege Level</p>
+                  <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 flex items-center gap-1"><Shield size={10} /> Privilege Level</p>
                   <p className="text-sm font-semibold text-charcoal dark:text-white">{selectedUser.role}</p>
                 </div>
                 <div className="p-5 bg-slate-50 dark:bg-white/2 rounded-3xl border border-slate-100 dark:border-white/5">
-                  <p className="text-xs font-semibold text-slate-400 mb-1 flex items-center gap-1"><Activity size={10} /> Security Status</p>
+                  <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 flex items-center gap-1"><Activity size={10} /> Security Status</p>
                   <p className={clsx("text-sm font-semibold", selectedUser.isBlacklisted ? "text-red-500" : "text-emerald-500")}>
                     {selectedUser.isBlacklisted ? "Blacklisted" : "Active"}
                   </p>
                 </div>
                 <div className="p-5 bg-slate-50 dark:bg-white/2 rounded-3xl border border-slate-100 dark:border-white/5">
-                  <p className="text-xs font-semibold text-slate-400 mb-1">Created At</p>
+                  <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Created At</p>
                   <p className="text-sm font-bold text-charcoal dark:text-white">
                     {selectedUser.createdAt ? new Date(selectedUser.createdAt).toLocaleDateString() : "Unknown"}
                   </p>
                 </div>
                 <div className="p-5 bg-slate-50 dark:bg-white/2 rounded-3xl border border-slate-100 dark:border-white/5">
-                  <p className="text-xs font-semibold text-slate-400 mb-1">Last Login</p>
+                  <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Last Login</p>
                   <p className="text-sm font-bold text-charcoal dark:text-white">
                     {selectedUser.lastLogin ? new Date(selectedUser.lastLogin).toLocaleDateString() : "N/A"}
                   </p>
