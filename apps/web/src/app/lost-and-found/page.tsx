@@ -4,27 +4,10 @@ import React, { useState, useEffect } from "react";
 import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { useAuth } from "@/app/providers";
-import {
-  Search,
-  Package,
-  Megaphone,
-  PlusCircle,
-  ArrowRight,
-  ArrowLeft,
-  X,
-  AlertCircle,
-  Clock,
-  MapPin,
-  Calendar,
-  LogOut,
-  Store,
-  Camera,
-  Loader2,
-  Image as ImageIcon,
-  CheckCircle2,
-} from "lucide-react";
+import { Package, ArrowLeft, LogOut, Store, Loader2, Image as ImageIcon } from "lucide-react";
 import Link from "next/link";
-import clsx from "clsx";
+import { cn } from "@cloudflare/kumo";
+import { FilterRow, PublicHeader } from "@/components/public-header";
 import { toast } from "sonner";
 import { createLostAndFoundItem, getLostAndFoundItems } from "@/app/actions/lost-and-found";
 import { uploadImageServerAction } from "@/app/actions/upload";
@@ -160,471 +143,178 @@ export default function LostAndFoundPage() {
     );
   }
 
+  const tabs = [
+    { id: "found", label: "Found items" },
+    { id: "lost", label: "Lost items" },
+    { id: "report", label: "Report an item" },
+    { id: "claimed", label: "Claimed items" },
+  ];
+  const isCustomer = user?.role === "CUSTOMER" || user?.role === "USER";
+  const spinner = (
+    <div className="flex justify-center py-16">
+      <Loader2 className="animate-spin text-primary" size={32} />
+    </div>
+  );
+  const ask = (message: string) => {
+    setChatMessage(message);
+    setIsChatOpen(true);
+  };
+
   return (
-    <div
-      className={clsx(
-        "min-h-screen",
-        "bg-slate-50",
-        "dark:bg-black",
-        "selection:bg-primary",
-        "selection:text-white",
-      )}
-    >
+    <div className="min-h-screen bg-slate-50 dark:bg-black selection:bg-primary selection:text-white">
       <Navbar />
 
-      <main className="pt-32 pb-20 px-4">
-        <div className="max-w-6xl mx-auto">
-          {/* Header Section */}
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
-            <div className="space-y-2">
-              <Link
-                href="/"
-                className="inline-flex items-center gap-2 text-primary font-bold text-xs hover:gap-3 transition-all"
-              >
-                <ArrowLeft size={14} /> Back to Mall
+      <PublicHeader title="Lost and found" description="Report something you lost, or find something you misplaced in the mall.">
+        <div className="flex flex-col items-start gap-2 md:items-end">
+          <p className="max-w-full truncate text-sm text-kumo-subtle">
+            Signed in as <span className="font-semibold text-kumo-default">{user?.name}</span> ({user?.email})
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {isCustomer && (
+              <Link href="/become-a-tenant" className={cn(BUTTON, "bg-primary text-white hover:bg-primary-hover")}>
+                <Store size={16} aria-hidden /> Become a tenant
               </Link>
-              <h1 className="font-display text-3xl sm:text-4xl lg:text-5xl font-semibold tracking-tight text-charcoal dark:text-white">
-                Lost &{" "}
-                <span className="text-slate-500 dark:text-slate-400">
-                  Found
-                </span>
-              </h1>
-              <p className="text-sm sm:text-lg text-slate-500 font-medium max-w-lg">
-                Report lost items, or find something you misplaced in the mall.
-              </p>
-            </div>
-
-            <div className="flex items-center gap-4">
-              <div className="text-right hidden sm:block">
-                <p className="text-xs font-semibold text-primary mb-1">
-                  Mall Services
-                </p>
-                <div className="px-5 py-2 bg-primary/5 border border-primary/20 rounded-xl">
-                  <p className="text-xs font-semibold text-primary">
-                    Assistance Desk
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-            {/* Sidebar Controls */}
-            <aside className="lg:col-span-1 flex flex-col gap-4">
-              <div className="bg-white dark:bg-zinc-900 rounded-[2.5rem] p-8 border border-slate-100 dark:border-white/5 shadow-xl shadow-slate-200/50 dark:shadow-none relative overflow-hidden group">
-                <div className="relative z-10 flex flex-col items-center">
-                  <div className="relative mb-6">
-                    <div className="w-24 h-24 rounded-full bg-primary text-white flex items-center justify-center font-semibold text-3xl shadow-2xl shadow-primary/30 ring-4 ring-primary/10 overflow-hidden relative">
-                      {(user as any)?.avatarUrl ? (
-                        <img src={(user as any).avatarUrl} alt="Profile" className="w-full h-full object-cover" />
-                      ) : (
-                        user?.name?.charAt(0).toUpperCase()
-                      )}
-                    </div>
-                  </div>
-                  <h3 className="text-lg font-semibold text-charcoal dark:text-white text-center line-clamp-1">
-                    {user?.name}
-                  </h3>
-                  <p className="text-xs font-bold text-slate-400 dark:text-zinc-600 mt-1 text-center truncate w-full">
-                    {user?.email}
-                  </p>
-
-                  <div className="mt-6 flex items-center gap-2 px-4 py-1.5 bg-green-50 dark:bg-green-950/30 text-green-600 rounded-full border border-green-100 dark:border-green-900/30">
-                    <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
-                    <span className="text-xs font-semibold">
-                      Active Individual
-                    </span>
-                  </div>
-                </div>
-
-                {/* Decorative Accents */}
-                <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full blur-2xl -translate-y-12 translate-x-12"></div>
-              </div>
-
-              <nav className="bg-white/50 dark:bg-zinc-900/50 backdrop-blur-xs rounded-4xl p-3 border border-slate-100 dark:border-white/5 shadow-xs">
-                {[
-                  { id: "found", label: "Found Items", icon: Package },
-                  { id: "lost", label: "Lost Items", icon: Search },
-                  { id: "report", label: "Report Item", icon: Megaphone },
-                  { id: "claimed", label: "Claimed Items", icon: CheckCircle2 },
-                ].map((tab) => (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id as any)}
-                    className={clsx(
-                      "w-full flex items-center gap-4 px-6 py-4 rounded-2xl text-xs font-semibold transition-all border",
-                      activeTab === tab.id
-                        ? "bg-primary text-white border-primary shadow-lg shadow-primary/20 scale-105 z-10"
-                        : "bg-transparent text-slate-500 dark:text-zinc-500 border-transparent hover:bg-white dark:hover:bg-white/5",
-                    )}
-                  >
-                    <tab.icon
-                      size={16}
-                      className={
-                        activeTab === tab.id ? "text-white" : "text-slate-400"
-                      }
-                    />
-                    {tab.label}
-                  </button>
-                ))}
-              </nav>
-
-              <button
-                onClick={() => logout()}
-                className="w-full flex items-center gap-4 px-8 py-5 rounded-4xl bg-red-50 dark:bg-red-950/20 text-red-600 border border-red-100 dark:border-red-900/20 hover:bg-red-600 hover:text-white transition-all group/logout shadow-xs hover:shadow-red-200 dark:shadow-none"
-              >
-                <div className="w-10 h-10 rounded-2xl bg-white dark:bg-zinc-900 group-hover/logout:bg-red-500 flex items-center justify-center transition-all">
-                  <LogOut size={18} className="group-hover/logout:text-white" />
-                </div>
-                <div className="text-left">
-                  <p className="text-xs font-semibold leading-none mb-1">
-                    Sign Out
-                  </p>
-                  <p className="text-xs font-bold opacity-60 tracking-tight">
-                    Terminate Session
-                  </p>
-                </div>
-              </button>
-
-              {(user?.role === "CUSTOMER" || user?.role === "USER") && (
-                <Link
-                  href="/become-a-tenant"
-                  className="w-full flex items-center gap-4 px-8 py-6 rounded-[2.5rem] bg-primary text-white hover:bg-primary-hover transition-all group/partner shadow-xl shadow-primary/20 active:scale-95 mt-4"
-                >
-                  <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center transition-all">
-                    <Store size={18} className="text-white" />
-                  </div>
-                  <div className="text-left">
-                    <p className="text-xs font-semibold leading-none mb-1">
-                      Become a Tenant
-                    </p>
-                    <p className="text-xs font-bold opacity-80 tracking-tight text-white/70">
-                      Join the Ecosystem
-                    </p>
-                  </div>
-                  <ArrowRight
-                    size={16}
-                    className="ml-auto opacity-40 group-hover:translate-x-1 transition-transform"
-                  />
-                </Link>
-              )}
-            </aside>
-
-            {/* Main Interactive Canvas */}
-            <div className="lg:col-span-3">
-              <div className="bg-white dark:bg-zinc-900 rounded-[3rem] p-8 sm:p-12 border border-slate-100 dark:border-white/5 shadow-2xl shadow-slate-200/50 dark:shadow-none min-h-[600px] flex flex-col">
-                
-                {/* Found Items Tab */}
-                {activeTab === "found" && (
-                  <div className="flex-1 animate-fade-in">
-                    <div className="flex items-center gap-3 mb-10">
-                      <div className="w-1.5 h-8 bg-primary rounded-full"></div>
-                      <h2 className="font-display text-2xl font-semibold text-charcoal dark:text-white tracking-tight">
-                        Found Items
-                      </h2>
-                    </div>
-                    
-                    <div className="space-y-4">
-                      {isLoadingItems ? (
-                        <div className="py-20 flex justify-center"><Loader2 className="animate-spin text-primary" size={32}/></div>
-                      ) : foundItems.length > 0 ? (
-                        foundItems.map((item) => (
-                          <div key={item.id} className="p-6 bg-slate-50 dark:bg-zinc-800/50 rounded-3xl border border-slate-100 dark:border-white/5 flex flex-col sm:flex-row gap-6 justify-between items-start sm:items-center hover:border-primary/30 transition-all">
-                            {item.imageUrl && (
-                              <img src={item.imageUrl} alt={item.title} className="w-24 h-24 rounded-2xl object-cover shrink-0 bg-white" />
-                            )}
-                            <div className="space-y-2 flex-1">
-                              <h3 className="text-lg font-semibold text-charcoal dark:text-white tracking-tight">{item.title}</h3>
-                              <div className="flex flex-wrap items-center gap-4 text-xs font-bold text-slate-500">
-                                <span className="flex items-center gap-1.5"><MapPin size={14}/> {item.location}</span>
-                                <span className="flex items-center gap-1.5"><Calendar size={14}/> {new Date(item.date).toLocaleDateString()}</span>
-                                {item.time && <span className="flex items-center gap-1.5"><Clock size={14}/> {item.time}</span>}
-                              </div>
-                            </div>
-                            <div className="flex flex-col items-end gap-3 shrink-0">
-                              <span className="px-3 py-1 bg-primary/10 text-primary text-xs font-semibold rounded-lg">
-                                {item.status}
-                              </span>
-                              <button 
-                                onClick={() => {
-                                  setChatMessage(`Hello! I would like to claim the found item: ${item.title}`);
-                                  setIsChatOpen(true);
-                                }}
-                                className="text-xs font-semibold text-charcoal dark:text-white hover:text-primary transition-colors flex items-center gap-2"
-                              >
-                                Claim <ArrowRight size={14} />
-                              </button>
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="py-20 text-center text-slate-400">
-                          <Package size={48} className="mx-auto mb-4 opacity-20" />
-                          <p className="text-sm font-bold">No found items reported.</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Lost Items Tab */}
-                {activeTab === "lost" && (
-                  <div className="flex-1 animate-fade-in">
-                    <div className="flex items-center gap-3 mb-10">
-                      <div className="w-1.5 h-8 bg-orange-500 rounded-full"></div>
-                      <h2 className="font-display text-2xl font-semibold text-charcoal dark:text-white tracking-tight">
-                        Lost Items
-                      </h2>
-                    </div>
-
-                    <div className="space-y-4">
-                      {isLoadingItems ? (
-                        <div className="py-20 flex justify-center"><Loader2 className="animate-spin text-orange-500" size={32}/></div>
-                      ) : lostItems.length > 0 ? (
-                        lostItems.map((item) => (
-                          <div key={item.id} className="p-6 bg-orange-50 dark:bg-orange-950/10 rounded-3xl border border-orange-100 dark:border-orange-900/20 flex flex-col sm:flex-row gap-6 justify-between items-start sm:items-center">
-                            {item.imageUrl && (
-                              <img src={item.imageUrl} alt={item.title} className="w-24 h-24 rounded-2xl object-cover shrink-0 bg-white" />
-                            )}
-                            <div className="space-y-2 flex-1">
-                              <h3 className="text-lg font-semibold text-charcoal dark:text-white tracking-tight">{item.title}</h3>
-                              <div className="flex flex-wrap items-center gap-4 text-xs font-bold text-slate-500">
-                                <span className="flex items-center gap-1.5"><MapPin size={14}/> {item.location}</span>
-                                <span className="flex items-center gap-1.5"><Calendar size={14}/> {new Date(item.date).toLocaleDateString()}</span>
-                              </div>
-                            </div>
-                            <div className="flex flex-col items-end gap-3 shrink-0">
-                              <span className="px-3 py-1 bg-orange-500/10 text-orange-600 text-xs font-semibold rounded-lg">
-                                {item.status}
-                              </span>
-                              <button 
-                                onClick={() => {
-                                  setChatMessage(`Hello! I have information regarding the lost item: ${item.title}`);
-                                  setIsChatOpen(true);
-                                }}
-                                className="text-xs font-semibold text-charcoal dark:text-white hover:text-orange-500 transition-colors flex items-center gap-2"
-                              >
-                                Provide Info <ArrowRight size={14} />
-                              </button>
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="py-20 text-center text-slate-400">
-                          <Search size={48} className="mx-auto mb-4 opacity-20" />
-                          <p className="text-sm font-bold">No lost items reported.</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Report Tab */}
-                {activeTab === "report" && (
-                  <div className="flex-1 animate-fade-in">
-                    <div className="flex items-center gap-3 mb-10">
-                      <div className="w-1.5 h-8 bg-blue-500 rounded-full"></div>
-                      <h2 className="font-display text-2xl font-semibold text-charcoal dark:text-white tracking-tight">
-                        Report Item
-                      </h2>
-                    </div>
-
-                    <div className="max-w-2xl">
-                      <form className="space-y-6" onSubmit={handleReportSubmit}>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <div className="space-y-2 col-span-full">
-                            <label className="text-xs font-semibold text-slate-400 dark:text-zinc-600 px-1">
-                              Report Type
-                            </label>
-                            <select 
-                              value={reportForm.type}
-                              onChange={e => setReportForm({...reportForm, type: e.target.value as any})}
-                              className="w-full bg-slate-50 dark:bg-black border-2 border-slate-100 dark:border-white/5 rounded-2xl py-4 px-6 text-sm font-bold text-charcoal dark:text-white focus:outline-hidden focus:border-primary transition-all">
-                              <option value="LOST">I lost something</option>
-                              <option value="FOUND">I found something</option>
-                            </select>
-                          </div>
-                          
-                          <div className="space-y-2 col-span-full">
-                            <label className="text-xs font-semibold text-slate-400 dark:text-zinc-600 px-1">
-                              Item Description
-                            </label>
-                            <input
-                              type="text"
-                              required
-                              value={reportForm.title}
-                              onChange={e => setReportForm({...reportForm, title: e.target.value})}
-                              className="w-full bg-slate-50 dark:bg-black border-2 border-slate-100 dark:border-white/5 rounded-2xl py-4 px-6 text-sm font-bold text-charcoal dark:text-white focus:outline-hidden focus:border-primary transition-all"
-                              placeholder="E.g. Black leather wallet with ID"
-                            />
-                          </div>
-
-                          <div className="space-y-2 col-span-full">
-                            <label className="text-xs font-semibold text-slate-400 dark:text-zinc-600 px-1">
-                              Additional Details / Comments (Optional)
-                            </label>
-                            <textarea
-                              value={reportForm.description}
-                              onChange={e => setReportForm({...reportForm, description: e.target.value})}
-                              className="w-full bg-slate-50 dark:bg-black border-2 border-slate-100 dark:border-white/5 rounded-2xl py-4 px-6 text-sm font-bold text-charcoal dark:text-white focus:outline-hidden focus:border-primary transition-all min-h-[100px] resize-none"
-                              placeholder="Any specific markings, contents, etc..."
-                            />
-                          </div>
-
-                          <div className="space-y-2">
-                            <label className="text-xs font-semibold text-slate-400 dark:text-zinc-600 px-1">
-                              Date
-                            </label>
-                            <input
-                              type="date"
-                              required
-                              value={reportForm.date}
-                              onChange={e => setReportForm({...reportForm, date: e.target.value})}
-                              className="w-full bg-slate-50 dark:bg-black border-2 border-slate-100 dark:border-white/5 rounded-2xl py-4 px-6 text-sm font-bold text-charcoal dark:text-white focus:outline-hidden focus:border-primary transition-all"
-                            />
-                          </div>
-
-                          <div className="space-y-2">
-                            <label className="text-xs font-semibold text-slate-400 dark:text-zinc-600 px-1">
-                              Time (Optional)
-                            </label>
-                            <input
-                              type="time"
-                              value={reportForm.time}
-                              onChange={e => setReportForm({...reportForm, time: e.target.value})}
-                              className="w-full bg-slate-50 dark:bg-black border-2 border-slate-100 dark:border-white/5 rounded-2xl py-4 px-6 text-sm font-bold text-charcoal dark:text-white focus:outline-hidden focus:border-primary transition-all"
-                            />
-                          </div>
-
-                          <div className="space-y-2 col-span-full">
-                            <label className="text-xs font-semibold text-slate-400 dark:text-zinc-600 px-1">
-                              Location
-                            </label>
-                            <input
-                              type="text"
-                              required
-                              value={reportForm.location}
-                              onChange={e => setReportForm({...reportForm, location: e.target.value})}
-                              className="w-full bg-slate-50 dark:bg-black border-2 border-slate-100 dark:border-white/5 rounded-2xl py-4 px-6 text-sm font-bold text-charcoal dark:text-white focus:outline-hidden focus:border-primary transition-all"
-                              placeholder="E.g. Food Court"
-                            />
-                          </div>
-
-                          <div className="space-y-2 col-span-full">
-                            <label className="text-xs font-semibold text-slate-400 dark:text-zinc-600 px-1">
-                              Image (Optional)
-                            </label>
-                            <div className="flex items-center gap-4">
-                              {reportForm.imageUrl && (
-                                <img src={reportForm.imageUrl} className="w-16 h-16 rounded-xl object-cover" />
-                              )}
-                              <label className="flex items-center gap-2 px-4 py-3 bg-slate-100 dark:bg-zinc-800 rounded-xl cursor-pointer hover:bg-slate-200 transition-colors text-xs font-bold">
-                                {uploadingImage ? <Loader2 size={16} className="animate-spin" /> : <ImageIcon size={16} />}
-                                Upload Image
-                                <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
-                              </label>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="pt-8">
-                          <button
-                            type="submit"
-                            disabled={isSubmitting || uploadingImage}
-                            className="inline-flex items-center gap-3 px-10 py-4 bg-primary text-white rounded-2xl font-semibold text-xs hover:bg-primary-hover transition-all shadow-xl shadow-primary/20 active:scale-95 disabled:opacity-50"
-                          >
-                            {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : <PlusCircle size={18} />} 
-                            Submit Report
-                          </button>
-                        </div>
-                      </form>
-                    </div>
-                  </div>
-                )}
-
-                {/* Claimed Items Tab */}
-                {activeTab === "claimed" && (
-                  <div className="flex-1 animate-fade-in">
-                    <div className="flex items-center gap-3 mb-10">
-                      <div className="w-1.5 h-8 bg-emerald-500 rounded-full"></div>
-                      <div>
-                        <h2 className="font-display text-2xl font-semibold text-charcoal dark:text-white tracking-tight">
-                          Claimed Items
-                        </h2>
-                        <p className="text-xs text-slate-400 font-bold mt-0.5">
-                          Items that have been successfully verified and returned to their owners
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="space-y-4">
-                      {isLoadingItems ? (
-                        <div className="py-20 flex justify-center">
-                          <Loader2 className="animate-spin text-emerald-500" size={32} />
-                        </div>
-                      ) : claimedItems.length > 0 ? (
-                        claimedItems.map((item) => (
-                          <div
-                            key={item.id}
-                            className="p-6 bg-emerald-50/40 dark:bg-emerald-950/10 rounded-3xl border border-emerald-100 dark:border-emerald-900/20 flex flex-col sm:flex-row gap-6 justify-between items-start sm:items-center hover:border-emerald-300 dark:hover:border-emerald-800 transition-all"
-                          >
-                            {item.imageUrl && (
-                              <img
-                                src={item.imageUrl}
-                                alt={item.title}
-                                className="w-24 h-24 rounded-2xl object-cover shrink-0 bg-white"
-                              />
-                            )}
-                            <div className="space-y-2 flex-1">
-                              <div className="flex items-center gap-2">
-                                <h3 className="text-lg font-semibold text-charcoal dark:text-white tracking-tight">
-                                  {item.title}
-                                </h3>
-                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 text-xs font-semibold rounded-full">
-                                  <CheckCircle2 size={12} /> Claimed
-                                </span>
-                              </div>
-                              {item.description && (
-                                <p className="text-xs text-slate-500 line-clamp-2">
-                                  {item.description}
-                                </p>
-                              )}
-                              <div className="flex flex-wrap items-center gap-4 text-xs font-bold text-slate-500">
-                                <span className="flex items-center gap-1.5">
-                                  <MapPin size={14} /> {item.location}
-                                </span>
-                                <span className="flex items-center gap-1.5">
-                                  <Calendar size={14} /> {new Date(item.date).toLocaleDateString()}
-                                </span>
-                                {item.time && (
-                                  <span className="flex items-center gap-1.5">
-                                    <Clock size={14} /> {item.time}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                            <div className="flex flex-col items-end gap-2 shrink-0">
-                              <span className="px-4 py-2 bg-emerald-500 text-white text-xs font-semibold rounded-xl flex items-center gap-1.5 shadow-md shadow-emerald-500/20">
-                                <CheckCircle2 size={14} /> Returned
-                              </span>
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="py-20 text-center text-slate-400">
-                          <CheckCircle2 size={48} className="mx-auto mb-4 opacity-20 text-emerald-500" />
-                          <p className="text-sm font-bold">
-                            No claimed items yet.
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
+            )}
+            <button type="button" onClick={() => logout()} className={cn(BUTTON, "border border-kumo-line text-kumo-default hover:bg-kumo-tint")}>
+              <LogOut size={16} aria-hidden /> Sign out
+            </button>
           </div>
         </div>
+      </PublicHeader>
+
+      <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
+        <FilterRow label="Show" options={tabs} value={activeTab} onChange={(id) => setActiveTab(id as typeof activeTab)} />
+
+        {activeTab === "found" && (
+          <ItemList title="Found items" help="Is one of these yours? Ask the mall office to claim it.">
+            {isLoadingItems ? (
+              spinner
+            ) : foundItems.length > 0 ? (
+              foundItems.map((item) => (
+                <ItemCard
+                  key={item.id}
+                  item={item}
+                  action={{ label: "Claim", onClick: () => ask(`Hello! I would like to claim the found item: ${item.title}`) }}
+                />
+              ))
+            ) : (
+              <Empty>No found items reported.</Empty>
+            )}
+          </ItemList>
+        )}
+
+        {activeTab === "lost" && (
+          <ItemList title="Lost items" help="Seen one of these? Tell the mall office.">
+            {isLoadingItems ? (
+              spinner
+            ) : lostItems.length > 0 ? (
+              lostItems.map((item) => (
+                <ItemCard
+                  key={item.id}
+                  item={item}
+                  action={{ label: "Provide Info", onClick: () => ask(`Hello! I have information regarding the lost item: ${item.title}`) }}
+                />
+              ))
+            ) : (
+              <Empty>No lost items reported.</Empty>
+            )}
+          </ItemList>
+        )}
+
+        {activeTab === "report" && (
+          <ItemList title="Report an item" help="The mall office reviews each report before it is listed.">
+            <form onSubmit={handleReportSubmit} className="grid grid-cols-1 gap-4 rounded-2xl border border-kumo-line bg-kumo-base p-5 sm:p-6 md:grid-cols-2">
+              <Field label="What happened?" wide>
+                <select
+                  value={reportForm.type}
+                  onChange={(e) => setReportForm({ ...reportForm, type: e.target.value as any })}
+                  className={INPUT}
+                >
+                  <option value="LOST">I lost something</option>
+                  <option value="FOUND">I found something</option>
+                </select>
+              </Field>
+              <Field label="Item" wide>
+                <input
+                  type="text"
+                  required
+                  value={reportForm.title}
+                  onChange={(e) => setReportForm({ ...reportForm, title: e.target.value })}
+                  className={INPUT}
+                  placeholder="For example: black leather wallet with ID"
+                />
+              </Field>
+              <Field label="More details (optional)" wide>
+                <textarea
+                  value={reportForm.description}
+                  onChange={(e) => setReportForm({ ...reportForm, description: e.target.value })}
+                  className={cn(INPUT, "min-h-24 resize-y py-3")}
+                  placeholder="Markings, contents or anything else that helps"
+                />
+              </Field>
+              <Field label="Date">
+                <input
+                  type="date"
+                  required
+                  value={reportForm.date}
+                  onChange={(e) => setReportForm({ ...reportForm, date: e.target.value })}
+                  className={INPUT}
+                />
+              </Field>
+              <Field label="Time (optional)">
+                <input
+                  type="time"
+                  value={reportForm.time}
+                  onChange={(e) => setReportForm({ ...reportForm, time: e.target.value })}
+                  className={INPUT}
+                />
+              </Field>
+              <Field label="Where" wide>
+                <input
+                  type="text"
+                  required
+                  value={reportForm.location}
+                  onChange={(e) => setReportForm({ ...reportForm, location: e.target.value })}
+                  className={INPUT}
+                  placeholder="For example: food court"
+                />
+              </Field>
+              <div className="flex flex-wrap items-center gap-4 md:col-span-2">
+                {reportForm.imageUrl && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={reportForm.imageUrl} alt="Your upload" className="size-16 rounded-lg object-cover" />
+                )}
+                <label className={cn(BUTTON, "border border-kumo-line text-kumo-default hover:bg-kumo-tint focus-within:ring-2 focus-within:ring-primary")}>
+                  {uploadingImage ? <Loader2 size={16} className="animate-spin" /> : <ImageIcon size={16} aria-hidden />}
+                  {reportForm.imageUrl ? "Change photo" : "Add a photo (optional)"}
+                  <input type="file" className="sr-only" accept="image/*" onChange={handleImageUpload} />
+                </label>
+              </div>
+              <div className="md:col-span-2">
+                <button
+                  type="submit"
+                  disabled={isSubmitting || uploadingImage}
+                  className={cn(BUTTON, "h-12 bg-primary px-6 text-white hover:bg-primary-hover disabled:opacity-50")}
+                >
+                  {isSubmitting && <Loader2 size={16} className="animate-spin" />}
+                  Submit Report
+                </button>
+              </div>
+            </form>
+          </ItemList>
+        )}
+
+        {activeTab === "claimed" && (
+          <ItemList title="Claimed items" help="Items that were checked and returned to their owners.">
+            {isLoadingItems ? (
+              spinner
+            ) : claimedItems.length > 0 ? (
+              claimedItems.map((item) => <ItemCard key={item.id} item={item} returned />)
+            ) : (
+              <Empty>No claimed items yet.</Empty>
+            )}
+          </ItemList>
+        )}
       </main>
 
       <Footer />
@@ -638,5 +328,69 @@ export default function LostAndFoundPage() {
         initialMessage={chatMessage}
       />
     </div>
+  );
+}
+
+const BUTTON = "inline-flex h-10 cursor-pointer items-center gap-2 rounded-xl px-4 text-sm font-semibold transition-colors";
+const INPUT =
+  "min-h-11 w-full rounded-lg border border-kumo-line bg-kumo-base px-3 text-base text-kumo-default outline-none focus:border-primary focus:ring-2 focus:ring-primary/25";
+
+function ItemList({ title, help, children }: { title: string; help: string; children: React.ReactNode }) {
+  return (
+    <section className="mt-6">
+      <h2 className="font-display text-2xl font-semibold tracking-tight text-kumo-default">{title}</h2>
+      <p className="mb-4 text-sm text-kumo-subtle">{help}</p>
+      <div className="space-y-3">{children}</div>
+    </section>
+  );
+}
+
+function Empty({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="rounded-2xl border border-dashed border-kumo-line bg-kumo-base px-6 py-14 text-center text-sm text-kumo-subtle">
+      {children}
+    </p>
+  );
+}
+
+function Field({ label, wide, children }: { label: string; wide?: boolean; children: React.ReactNode }) {
+  return (
+    <label className={cn("block space-y-1.5", wide && "md:col-span-2")}>
+      <span className="block text-sm font-medium text-kumo-default">{label}</span>
+      {children}
+    </label>
+  );
+}
+
+function ItemCard({
+  item,
+  action,
+  returned,
+}: {
+  item: any;
+  action?: { label: string; onClick: () => void };
+  returned?: boolean;
+}) {
+  const facts = [item.location, new Date(item.date).toLocaleDateString(), item.time].filter(Boolean).join(", ");
+  return (
+    <article className="flex flex-col gap-4 rounded-2xl border border-kumo-line bg-kumo-base p-4 sm:flex-row sm:items-center">
+      {item.imageUrl && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={item.imageUrl} alt={item.title} loading="lazy" className="size-24 shrink-0 rounded-xl object-cover" />
+      )}
+      <div className="min-w-0 flex-1">
+        <h3 className="text-lg font-semibold text-kumo-default">{item.title}</h3>
+        {returned && item.description && <p className="line-clamp-2 text-sm text-kumo-subtle">{item.description}</p>}
+        <p className="text-sm text-kumo-subtle">{facts}</p>
+        <p className={cn("mt-1 text-sm font-medium", returned ? "text-kumo-success" : "text-kumo-default")}>
+          {returned ? "Returned to the owner" : `Status: ${String(item.status || "").toLowerCase()}`}
+        </p>
+      </div>
+      {action && (
+        <button type="button" onClick={action.onClick} className={cn(BUTTON, "shrink-0 border border-kumo-line text-kumo-default hover:border-primary hover:text-primary")}>
+          {action.label}
+        </button>
+      )}
+    </article>
   );
 }

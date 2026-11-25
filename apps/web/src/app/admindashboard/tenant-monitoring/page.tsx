@@ -2,62 +2,33 @@
 
 import { PaymentLedgerDialog } from "@/components/payments/payment-ledger-dialog";
 import React, { useState, useEffect, useRef } from "react";
-import { useAuth } from "@/app/providers";
+import { Button, Input, InputArea, Loader, Select, Table, cn } from "@cloudflare/kumo";
 import {
-  Search,
-  Filter,
-  MoreVertical,
-  Store,
-  Calendar,
+  CaretLeft,
+  CaretRight,
+  CaretUpDown,
+  ChatCircle,
+  DownloadSimple,
   FileText,
-  AlertTriangle,
-  Zap,
-  MessageSquare,
+  ListDashes,
   Receipt,
-  Edit,
-  X,
-  Star,
-  TrendingUp,
+  SquaresFour,
+  Trash,
   UserPlus,
-  Users,
-  CheckCircle,
-  Building,
-  Phone,
-  Mail,
-  MapPin,
-  CreditCard,
-  Clock,
-  BarChart3,
-  PieChart,
-  Download,
-  Trash2,
-  Eye,
-  RefreshCw,
-  ArrowUpDown,
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  Check,
-  LayoutGrid,
-  List,
-  PhilippinePeso,
-  Activity,
-  PieChart as PieChartIcon,
-  ArrowDownRight,
-  ShieldCheck,
-  ShieldAlert,
-  CreditCard as PaymentIcon,
-} from "lucide-react";
+} from "@phosphor-icons/react";
+import { AdminDialog, AdminPage, EmptyNote, Panel, Person, SearchField, Stat, StatRow, PageTabs } from "@/components/admin/page-kit";
+import { useAuth } from "@/app/providers";
+import { CheckCircle, Edit, RefreshCw, X, AlertTriangle } from "lucide-react";
+import { formatPHDate } from "@/lib/ph-date";
+import { rentOf, type RentLease } from "@/lib/tenant-rent";
 import { RegisterTenantModal } from "@/components/admin/register-tenant-modal";
 import { RecordCashPaymentModal } from "@/components/admin/record-cash-payment-modal";
 import { RecordPaymentGuide } from "@/components/admin/record-payment-guide";
-import { CustomSelect } from "@/components/ui/custom-select";
 import clsx from "clsx";
 import {
   getAllTenantsAction,
   deleteTenantAction,
   approveTenantAction,
-  updateStorefrontAction,
   getTenantReportDataAction,
   adminUpdateTenantAction,
 } from "@/app/actions/tenant";
@@ -84,8 +55,6 @@ interface Tenant {
   isOpen: boolean;
   status: "ACTIVE" | "INACTIVE" | "SUSPENDED" | "PENDING" | "REJECTED" | "PAST";
   metrics?: {
-    clicks: number;
-    offersClaimed: number;
     rating: number;
     inquiries: number;
   };
@@ -94,6 +63,12 @@ interface Tenant {
     email: string;
     name: string;
   };
+  category?: string;
+  /** Active leases, oldest first, and what they add up to (see lib/tenant-rent). */
+  leases: RentLease[];
+  units: string[];
+  sqm: number;
+  rentSource: "lease" | "listed" | "none";
   contractStart?: string;
   contractEnd?: string;
   rentCost?: number;
@@ -104,83 +79,51 @@ interface Tenant {
   avgRating?: number;
   reviewCount?: number;
   nextDueDate?: string;
+  nextDueAt?: string | null;
 }
 
-const STATUS_CONFIG = {
-  ACTIVE: {
-    color: "bg-emerald-500",
-    bg: "bg-emerald-500/10",
-    border: "border-emerald-500/20",
-    text: "text-emerald-600",
-  },
-  INACTIVE: {
-    color: "bg-slate-400",
-    bg: "bg-slate-400/10",
-    border: "border-slate-400/20",
-    text: "text-slate-500",
-  },
-  SUSPENDED: {
-    color: "bg-red-500",
-    bg: "bg-red-500/10",
-    border: "border-red-500/20",
-    text: "text-red-600",
-  },
-  PENDING: {
-    color: "bg-amber-500",
-    bg: "bg-amber-500/10",
-    border: "border-amber-500/20",
-    text: "text-amber-600",
-  },
-  REJECTED: {
-    color: "bg-red-600",
-    bg: "bg-red-600/10",
-    border: "border-red-600/20",
-    text: "text-red-700",
-  },
-  PAST: {
-    color: "bg-zinc-400",
-    bg: "bg-zinc-400/10",
-    border: "border-zinc-400/20",
-    text: "text-zinc-500",
-  },
+const STATUS_TEXT: Record<string, { label: string; className: string }> = {
+  ACTIVE: { label: "Active", className: "text-kumo-success" },
+  PENDING: { label: "Waiting for approval", className: "text-kumo-warning" },
+  INACTIVE: { label: "Inactive", className: "text-kumo-subtle" },
+  SUSPENDED: { label: "Suspended", className: "text-kumo-danger" },
+  REJECTED: { label: "Rejected", className: "text-kumo-danger" },
+  PAST: { label: "Past tenant", className: "text-kumo-subtle" },
 };
 
-const PAYMENT_CONFIG = {
-  "🟢 Cleared": {
-    label: "Cleared",
-    dot: "bg-emerald-500",
-    bg: "bg-emerald-500/10",
-    text: "text-emerald-600",
-    border: "border-emerald-500/20",
-  },
-  "🟡 Pending Verification": {
-    label: "Verifying",
-    dot: "bg-amber-500",
-    bg: "bg-amber-500/10",
-    text: "text-amber-600",
-    border: "border-amber-500/20",
-  },
-  "🔴 Overdue": {
-    label: "Overdue",
-    dot: "bg-red-500",
-    bg: "bg-red-500/10",
-    text: "text-red-600",
-    border: "border-red-500/20",
-  },
-  PENDING: {
-    label: "Bill Pending",
-    dot: "bg-slate-400",
-    bg: "bg-slate-500/10",
-    text: "text-slate-600",
-    border: "border-slate-500/20",
-  },
+// These exact strings are how a tenant's payment state is stored on this page.
+const CLEARED = "🟢 Cleared";
+const VERIFYING = "🟡 Pending Verification";
+const OVERDUE = "🔴 Overdue";
+const PAYMENT_TEXT: Record<string, { label: string; className: string }> = {
+  [CLEARED]: { label: "Cleared", className: "text-kumo-success" },
+  [VERIFYING]: { label: "Verifying", className: "text-kumo-warning" },
+  [OVERDUE]: { label: "Overdue", className: "text-kumo-danger" },
+  PENDING: { label: "Bill pending", className: "text-kumo-default" },
 };
+const paymentOf = (status?: string) => PAYMENT_TEXT[status ?? CLEARED] ?? PAYMENT_TEXT[CLEARED];
+
+const STATUS_FILTERS: Record<string, string> = {
+  all: "All current",
+  ACTIVE: "Active",
+  PENDING: "Pending",
+  INACTIVE: "Inactive",
+  SUSPENDED: "Suspended",
+  REJECTED: "Rejected",
+  PAST: "Past tenants",
+};
+const PAYMENT_FILTERS: Record<string, string> = {
+  all: "All payments",
+  [CLEARED]: "Cleared",
+  [VERIFYING]: "Verifying",
+  [OVERDUE]: "Overdue",
+  PENDING: "Bill pending",
+};
+const PERIODS: Record<string, string> = { daily: "Today", weekly: "Last 7 days", monthly: "Last 30 days", yearly: "This year" };
+const PAGE_SIZES: Record<string, string> = { "8": "8", "12": "12", "24": "24", "48": "48" };
+const YEARS: Record<string, string> = Object.fromEntries([2024, 2025, 2026, 2027, 2028].map((y) => [String(y), String(y)]));
 
 const UNASSIGNED_UNIT = "PENDING_ASSIGNMENT";
-
-const TH_CLASS =
-  "px-4 py-4 text-xs font-semibold text-slate-400 whitespace-nowrap";
-const TH_SORT_CLASS = `${TH_CLASS} cursor-pointer hover:text-charcoal dark:hover:text-white transition-colors`;
 
 type Timeframe = "daily" | "weekly" | "monthly" | "yearly";
 
@@ -295,44 +238,10 @@ export default function TenantMonitoring() {
     pendingRevenue: 0,
   });
   const [isExporting, setIsExporting] = useState(false);
-  const [isReportDropdownOpen, setIsReportDropdownOpen] = useState(false);
   const [reportMonth, setReportMonth] = useState(new Date().getMonth());
   const [reportYear, setReportYear] = useState(new Date().getFullYear());
   const [reportYearFilter, setReportYearFilter] = useState(new Date().getFullYear());
-  const reportDropdownRef = useRef<HTMLDivElement>(null);
-  const [dropdownAlign, setDropdownAlign] = useState<"left" | "right">("left");
-
-  useEffect(() => {
-    if (isReportDropdownOpen && reportDropdownRef.current) {
-      const rect = reportDropdownRef.current.getBoundingClientRect();
-      const dropdownWidth = 384;
-      const wouldOverflowRight = rect.left + dropdownWidth > window.innerWidth - 20;
-      const hasRoomOnLeft = rect.right - dropdownWidth > 300;
-
-      if (wouldOverflowRight && hasRoomOnLeft) {
-        setDropdownAlign("right");
-      } else {
-        setDropdownAlign("left");
-      }
-    }
-  }, [isReportDropdownOpen]);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        reportDropdownRef.current &&
-        !reportDropdownRef.current.contains(event.target as Node)
-      ) {
-        setIsReportDropdownOpen(false);
-      }
-    };
-    if (isReportDropdownOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [isReportDropdownOpen]);
+  const [isReportOpen, setIsReportOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingTenant, setEditingTenant] = useState<Tenant | null>(null);
   const [editFormData, setEditFormData] = useState({
@@ -375,7 +284,7 @@ export default function TenantMonitoring() {
       if (result.success && result.data) {
 
         const enhancedTenants: Tenant[] = result.data.map(
-          (item: any, index: number) => {
+          (item: any) => {
             const tenantInvoices = invoicesResult.filter(
               (inv: any) => inv.tenantId === item.id,
             );
@@ -400,22 +309,6 @@ export default function TenantMonitoring() {
                 paymentStatus = "PENDING";
             }
 
-            const createdDate = item.createdAt
-              ? new Date(item.createdAt)
-              : new Date();
-            const startStr = createdDate.toLocaleDateString("en-US", {
-              year: "numeric",
-              month: "short",
-              day: "numeric",
-            });
-            const endObj = new Date(createdDate);
-            endObj.setFullYear(endObj.getFullYear() + 1);
-            const endStr = endObj.toLocaleDateString("en-US", {
-              year: "numeric",
-              month: "short",
-              day: "numeric",
-            });
-
             const unpaid = tenantInvoices.filter(
               (inv: any) => inv.status !== "PAID",
             );
@@ -430,29 +323,23 @@ export default function TenantMonitoring() {
               })
               : "N/A";
 
-            const slot =
-              allSlots.find((s: any) => s.unit_id === item.unitId) ||
-              allSlots.find(
-                (s: any) => s.tenant_id === item.id || s.tenant_id === item.userId,
-              );
-            const activeRentCost =
-              slot?.base_rent ||
-              tenantInvoices[0]?.amount ||
-              3000 + index * 500;
+            const rent = rentOf(item, allSlots);
 
             return {
               ...item,
-              contractStart: startStr,
-              contractEnd: endStr,
+              leases: rent.leases,
+              units: rent.units,
+              sqm: rent.sqm,
+              rentSource: rent.source,
+              contractStart: rent.startDate ? formatPHDate(rent.startDate) : undefined,
+              contractEnd: rent.paidThrough ? formatPHDate(rent.paidThrough) : undefined,
               description: item.description || "No store description provided.",
-              rentCost: activeRentCost,
+              rentCost: rent.monthlyRent,
               paymentStatus,
               hasSlipToVerify,
               nextDueDate,
-              violations: 0,
+              nextDueAt: nextInv?.dueDate ? new Date(nextInv.dueDate).toISOString() : null,
               metrics: {
-                clicks: 500 + index * 200,
-                offersClaimed: 50 + index * 20,
                 rating: item.avgRating || 0,
                 inquiries: item.reviewCount || 0,
               },
@@ -655,18 +542,18 @@ export default function TenantMonitoring() {
     }
   };
 
-  const handleDownloadVoucher = async (tenant: Tenant) => {
+  const handleDownloadVoucher = async (tenant: Tenant, lease: RentLease) => {
     try {
-      setGeneratingDoc("voucher");
+      setGeneratingDoc(`voucher-${lease.unitId}`);
       await generateVoucherPDF({
         shopName: tenant.shopName,
-        category: (tenant as any).category || "Retail",
-        email: tenant.user?.email || "tenant@srmall.com",
+        category: tenant.category || "Other",
+        email: tenant.user?.email || "Not recorded",
         tempPass: "••••••••",
-        slotId: tenant.unitId,
-        rentCost: tenant.rentCost || 0,
-        startDate: tenant.contractStart || "N/A",
-        endDate: tenant.contractEnd || "N/A",
+        slotId: lease.unitId,
+        rentCost: lease.monthlyRent,
+        startDate: formatPHDate(lease.startDate),
+        endDate: formatPHDate(lease.endDate),
       });
       setToast({ msg: "✓ Lease agreement voucher downloaded", type: "success" });
     } catch (e: any) {
@@ -697,16 +584,16 @@ export default function TenantMonitoring() {
         {
           shopName: tenant.shopName,
           tenantOwner: tenant.user?.name || tenant.user?.email || "N/A",
-          category: (tenant as any).category || "Retail",
-          unitId: tenant.unitId,
+          category: tenant.category || "Other",
+          unitId: tenant.units.join(", ") || tenant.unitId,
           monthlyRent: tenant.rentCost || 0,
           balance: allInvoices
             .filter((i: any) => i.tenantId === tenant.id && i.status !== "PAID")
             .reduce((sum: number, i: any) => sum + i.amount, 0),
           status: tenant.status,
-          nextDueDate: tenant.nextDueDate,
-          leaseExpiryDate: tenant.contractEnd || new Date().toISOString(),
-          sqmSize: availableSlots.find((s: any) => s.unit_id === tenant.unitId)?.sqm_size || 50,
+          nextDueDate: tenant.nextDueAt,
+          leaseExpiryDate: tenant.leases.length ? tenant.contractEnd : null,
+          sqmSize: tenant.sqm,
         },
       ]);
       setToast({ msg: "✓ Tenant report downloaded", type: "success" });
@@ -721,7 +608,8 @@ export default function TenantMonitoring() {
   const handlePostMonthlyBill = () => {
     if (!selectedTenant) return;
     setBillFormData({
-      amount: selectedTenant.rentCost || 3000,
+      // A bill without a unit is recorded against the first one.
+      amount: selectedTenant.leases[0]?.monthlyRent ?? selectedTenant.rentCost ?? 0,
       month: new Date().toLocaleString("default", { month: "short", year: "numeric" }),
       dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
       description: "Manual Billing - Rent & Utilities",
@@ -800,7 +688,7 @@ export default function TenantMonitoring() {
         const monthLabel = MONTH_NAMES[reportMonth];
         await generateTenantPDF(
           result.data,
-          `Tenant Summary Report — ${monthLabel} ${reportYear}`,
+          `Tenant Summary Report, ${monthLabel} ${reportYear}`,
           `Tenant_Report_${monthLabel}_${reportYear}.pdf`,
         );
         setToast({
@@ -818,7 +706,7 @@ export default function TenantMonitoring() {
       setToast({ msg: "Error generating monthly report", type: "error" });
     } finally {
       setIsExporting(false);
-      setIsReportDropdownOpen(false);
+      setIsReportOpen(false);
     }
   };
 
@@ -832,7 +720,7 @@ export default function TenantMonitoring() {
       if (result.success && result.data) {
         await generateTenantPDF(
           result.data,
-          `Annual Tenant Summary Report — ${reportYearFilter}`,
+          `Annual Tenant Summary Report, ${reportYearFilter}`,
           `Tenant_Report_Annual_${reportYearFilter}.pdf`,
         );
         setToast({
@@ -850,7 +738,7 @@ export default function TenantMonitoring() {
       setToast({ msg: "Error generating yearly report", type: "error" });
     } finally {
       setIsExporting(false);
-      setIsReportDropdownOpen(false);
+      setIsReportOpen(false);
     }
   };
 
@@ -877,7 +765,7 @@ export default function TenantMonitoring() {
       setToast({ msg: "Error generating report", type: "error" });
     } finally {
       setIsExporting(false);
-      setIsReportDropdownOpen(false);
+      setIsReportOpen(false);
     }
   };
 
@@ -885,7 +773,7 @@ export default function TenantMonitoring() {
     .filter((t) => {
       const matchesSearch =
         t.shopName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        t.unitId?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        [t.unitId, ...t.units].some((u) => u?.toLowerCase().includes(searchQuery.toLowerCase())) ||
         t.user?.email?.toLowerCase().includes(searchQuery.toLowerCase());
       // "all" excludes PAST tenants and REJECTED applicants — pick them
       // explicitly from the status filter to see them.
@@ -957,67 +845,50 @@ export default function TenantMonitoring() {
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    const config =
-      STATUS_CONFIG[status as keyof typeof STATUS_CONFIG] ||
-      STATUS_CONFIG.INACTIVE;
-    return (
-      <span
-        className={clsx(
-          "flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-bold",
-          config.bg,
-          config.text,
-          config.border,
-        )}
-      >
-        <span className={clsx("w-1.5 h-1.5 rounded-full", config.color)}></span>
-        {status}
-      </span>
-    );
+  const showOnly = (status: string, payment: string) => {
+    setStatusFilter(status);
+    setPaymentFilter(payment);
   };
 
-  const getPaymentBadge = (status: string) => {
-    const config =
-      PAYMENT_CONFIG[status as keyof typeof PAYMENT_CONFIG] ||
-      PAYMENT_CONFIG["🟢 Cleared"];
-    return (
-      <span
-        className={clsx(
-          "px-2 py-0.5 rounded-md text-xs font-semibold border",
-          config.bg,
-          config.text,
-          config.border,
-        )}
-      >
-        {status}
-      </span>
-    );
+  const sortHeader = (field: "name" | "status" | "rent", label: string) => (
+    <button type="button" onClick={() => toggleSort(field)} className="flex cursor-pointer items-center gap-1 font-semibold">
+      {label}
+      <CaretUpDown size={14} aria-hidden className={sortBy === field ? "text-kumo-brand" : "text-kumo-subtle"} />
+    </button>
+  );
+
+  const tenantBills = selectedTenant ? allInvoices.filter((i: any) => i.tenantId === selectedTenant.id) : [];
+  const monthItems = Object.fromEntries(MONTH_NAMES.map((m, i) => [String(i), m]));
+  const subDialogOpen = isBillModalOpen || isDocumentsModalOpen || !!tenantToDelete || !!cashPaymentInvoice || isEditModalOpen;
+
+  const approveSlip = async (invoiceId: string) => {
+    try {
+      setToast({ msg: "Processing approval...", type: "success" });
+      const res = await updateInvoiceStatus(invoiceId, "PAID");
+      if (res.success) {
+        setToast({ msg: "Payment Cleared!", type: "success" });
+        loadTenants();
+      } else {
+        setToast({ msg: "Error: " + res.error, type: "error" });
+      }
+    } catch (e: any) {
+      setToast({ msg: "Error: " + e.message, type: "error" });
+    }
   };
 
   return (
     <>
-      {/* Toast Notification */}
       {toast && (
         <div
-          className={clsx(
-            "fixed top-24 right-8 z-300 flex items-center gap-3 px-5 py-4 font-bold text-sm rounded-2xl shadow-2xl animate-fade-in-up",
-            toast.type === "success"
-              ? "bg-emerald-500 text-white shadow-emerald-500/30"
-              : "bg-red-500 text-white shadow-red-500/30",
-          )}
+          role="status"
+          className="fixed right-4 top-24 z-300 flex max-w-sm items-start gap-3 rounded-lg border border-kumo-line bg-kumo-base p-4 shadow-lg"
         >
-          {toast.type === "success" ? (
-            <CheckCircle size={18} />
-          ) : (
-            <AlertTriangle size={18} />
-          )}
-          {toast.msg}
-          <button
-            onClick={() => setToast(null)}
-            className={clsx("ml-2", "opacity-70", "hover:opacity-100")}
-          >
-            <X size={16} />
-          </button>
+          <p className={cn("text-sm font-medium", toast.type === "success" ? "text-kumo-success" : "text-kumo-danger")}>
+            {toast.msg}
+          </p>
+          <Button size="sm" variant="ghost" onClick={() => setToast(null)}>
+            Close
+          </Button>
         </div>
       )}
 
@@ -1213,162 +1084,6 @@ export default function TenantMonitoring() {
         </div>
       )}
 
-      {/* Bill Tenant Modal */}
-      {isBillModalOpen && selectedTenant && (
-        <div
-          className={clsx(
-            "fixed",
-            "inset-0",
-            "z-250",
-            "flex",
-            "items-center",
-            "justify-center",
-            "p-4",
-          )}
-        >
-          <div
-            className={clsx(
-              "absolute",
-              "inset-0",
-              "bg-black/60",
-              "backdrop-blur-xs",
-            )}
-            onClick={() => setIsBillModalOpen(false)}
-          />
-          <div
-            className={clsx(
-              "relative",
-              "w-full",
-              "max-w-lg",
-              "bg-white",
-              "dark:bg-zinc-950",
-              "rounded-2xl",
-              "shadow-2xl",
-              "overflow-hidden",
-              "animate-fade-in-up",
-            )}
-          >
-            <div
-              className={clsx("bg-[#BE1E2D]", "p-8", "text-white", "relative")}
-            >
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-md">
-                  <Receipt size={24} />
-                </div>
-                <div>
-                  <h2 className="text-xl font-semibold tracking-tight">
-                    Post Monthly Bill
-                  </h2>
-                  <p className="text-xs text-white/70 font-bold">
-                    Billing Information
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setIsBillModalOpen(false)}
-                className="absolute top-8 right-8 text-white/60 hover:text-white transition-colors"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <div className="p-5 sm:p-8 space-y-5">
-              <div>
-                <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mb-2">
-                  Amount to Bill (₱)
-                </label>
-                <input
-                  type="number"
-                  value={billFormData.amount}
-                  onChange={(e) =>
-                    setBillFormData({
-                      ...billFormData,
-                      amount: Number(e.target.value),
-                    })
-                  }
-                  className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-xl text-sm font-semibold text-emerald-500 focus:border-[#BE1E2D] focus:outline-hidden transition-all"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mb-2">
-                    Billing Month
-                  </label>
-                  <input
-                    type="text"
-                    value={billFormData.month}
-                    onChange={(e) =>
-                      setBillFormData({
-                        ...billFormData,
-                        month: e.target.value,
-                      })
-                    }
-                    placeholder="e.g. Nov 2026"
-                    className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-xl text-sm font-bold focus:border-[#BE1E2D] focus:outline-hidden transition-all"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mb-2">
-                    Due Date
-                  </label>
-                  <input
-                    type="date"
-                    value={billFormData.dueDate}
-                    onChange={(e) =>
-                      setBillFormData({
-                        ...billFormData,
-                        dueDate: e.target.value,
-                      })
-                    }
-                    className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-xl text-sm font-bold focus:border-[#BE1E2D] focus:outline-hidden transition-all"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mb-2">
-                  Description
-                </label>
-                <textarea
-                  value={billFormData.description}
-                  onChange={(e) =>
-                    setBillFormData({
-                      ...billFormData,
-                      description: e.target.value,
-                    })
-                  }
-                  rows={2}
-                  className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-xl text-sm font-medium focus:border-[#BE1E2D] focus:outline-hidden transition-all resize-none"
-                />
-              </div>
-
-              <div className="flex gap-3 pt-4">
-                <button
-                  onClick={() => setIsBillModalOpen(false)}
-                  className="flex-1 py-3.5 bg-slate-100 dark:bg-zinc-900 text-slate-600 dark:text-slate-400 font-bold text-xs rounded-xl hover:bg-slate-200 transition-all"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSubmitBill}
-                  disabled={saving}
-                  className="flex-2 py-3.5 bg-[#BE1E2D] text-white font-semibold text-xs rounded-xl shadow-xl shadow-red-500/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
-                >
-                  {saving ? (
-                    <RefreshCw size={16} className="animate-spin" />
-                  ) : (
-                    <>
-                      <CheckCircle size={16} /> Post Bill
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Record Cash Payment Modal */}
       {cashPaymentInvoice && (
         <RecordCashPaymentModal
@@ -1383,2561 +1098,741 @@ export default function TenantMonitoring() {
         />
       )}
 
-      {/* Tenant Documents Modal */}
-      {isDocumentsModalOpen && selectedTenant && (
-        <div className="fixed inset-0 z-250 flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-xs"
-            onClick={() => setIsDocumentsModalOpen(false)}
-          />
-          <div className="relative w-full max-w-2xl bg-white dark:bg-zinc-950 rounded-2xl shadow-2xl overflow-hidden animate-fade-in-up flex flex-col max-h-[90vh]">
-            {/* Header */}
-            <div className="bg-linear-to-r from-slate-900 to-slate-800 dark:from-zinc-900 dark:to-zinc-950 p-6 text-white relative shrink-0 border-b border-white/10">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-primary/20 text-primary rounded-2xl flex items-center justify-center border border-primary/30">
-                  <FileText size={24} />
-                </div>
-                <div>
-                  <h2 className="text-xl font-semibold tracking-tight">
-                    Tenant Documents & Records
-                  </h2>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 font-bold mt-0.5">
-                    {selectedTenant.shopName} • {selectedTenant.unitId}
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setIsDocumentsModalOpen(false)}
-                className="absolute top-6 right-6 p-2 rounded-full hover:bg-white/10 text-slate-500 dark:text-slate-400 hover:text-white transition-colors"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            {/* Content Area */}
-            <div className="p-6 overflow-y-auto space-y-6">
-              {/* Section 1: Lease Contract & Official Voucher */}
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <h4 className="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-2">
-                    <Calendar size={14} /> Official Lease Agreement & Voucher
-                  </h4>
-                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
-                    Active Document
-                  </span>
-                </div>
-
-                <div className="bg-slate-50 dark:bg-zinc-900/60 rounded-2xl border border-slate-200 dark:border-white/5 p-5 space-y-4">
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-left">
-                    <div>
-                      <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mb-1">
-                        Unit Assignment
-                      </span>
-                      <span className="text-sm font-semibold text-charcoal dark:text-white">
-                        {selectedTenant.unitId}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mb-1">
-                        Monthly Lease
-                      </span>
-                      <span className="text-sm font-semibold text-charcoal dark:text-white">
-                        ₱{(selectedTenant.rentCost || 0).toLocaleString()}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mb-1">
-                        Effective Date
-                      </span>
-                      <span className="text-xs font-bold text-slate-600 dark:text-slate-300">
-                        {selectedTenant.contractStart || "N/A"}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mb-1">
-                        Term Expiry
-                      </span>
-                      <span className="text-xs font-bold text-slate-600 dark:text-slate-300">
-                        {selectedTenant.contractEnd || "N/A"}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="pt-3 border-t border-slate-200 dark:border-white/5 flex items-center justify-between gap-3">
-                    <p className="text-xs text-slate-500">
-                      Standard SR-Mall Commercial Space Lease Agreement Voucher with system verification code and security credentials.
-                    </p>
-                    <button
-                      onClick={() => handleDownloadVoucher(selectedTenant)}
-                      disabled={generatingDoc === "voucher"}
-                      className="px-4 py-2.5 bg-[#BE1E2D] hover:bg-[#a01825] text-white rounded-xl text-xs font-semibold transition-all shadow-md shadow-red-500/20 hover:scale-105 active:scale-95 inline-flex items-center gap-2 shrink-0 disabled:opacity-50"
-                    >
-                      {generatingDoc === "voucher" ? (
-                        <>
-                          <RefreshCw size={12} className="animate-spin" /> Generating...
-                        </>
-                      ) : (
-                        <>
-                          <Download size={12} /> Download Lease PDF
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Section 2: Invoices & Receipts Ledger */}
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <h4 className="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-2">
-                    <Receipt size={14} /> Official Payment Receipts & Invoices
-                  </h4>
-                  <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                    {allInvoices.filter((i: any) => i.tenantId === selectedTenant.id).length} Documents
-                  </span>
-                </div>
-
-                <div className="bg-slate-50 dark:bg-zinc-900/60 rounded-2xl border border-slate-200 dark:border-white/5 overflow-hidden">
-                  {allInvoices.filter((i: any) => i.tenantId === selectedTenant.id).length > 0 ? (
-                    <div className="divide-y divide-slate-200 dark:divide-white/5 max-h-60 overflow-y-auto">
-                      {allInvoices
-                        .filter((i: any) => i.tenantId === selectedTenant.id)
-                        .map((inv: any) => (
-                          <div
-                            key={inv.id}
-                            className="p-4 flex items-center justify-between gap-4 hover:bg-slate-100/60 dark:hover:bg-white/5 transition-colors"
-                          >
-                            <div className="flex items-center gap-3">
-                              <div
-                                className={clsx(
-                                  "w-9 h-9 rounded-xl flex items-center justify-center shrink-0",
-                                  inv.status === "PAID"
-                                    ? "bg-emerald-500/10 text-emerald-500"
-                                    : "bg-amber-500/10 text-amber-500",
-                                )}
-                              >
-                                <Receipt size={16} />
-                              </div>
-                              <div>
-                                <div className="flex items-center gap-2">
-                                  <span className="text-xs font-semibold text-charcoal dark:text-white tracking-tight">
-                                    {inv.invoiceNumber}
-                                  </span>
-                                  <span
-                                    className={clsx(
-                                      "text-xs font-semibold px-2 py-0.5 rounded-sm",
-                                      inv.status === "PAID"
-                                        ? "bg-emerald-500/20 text-emerald-600"
-                                        : inv.status === "OVERDUE"
-                                          ? "bg-red-500/20 text-red-600"
-                                          : "bg-amber-500/20 text-amber-600",
-                                    )}
-                                  >
-                                    {inv.status === "REVIEWING" ? "PENDING" : inv.status}
-                                  </span>
-                                </div>
-                                <p className="text-xs text-slate-500 dark:text-slate-400 font-bold mt-0.5">
-                                  {inv.month} • Due {new Date(inv.dueDate).toLocaleDateString()} • ₱{inv.amount.toLocaleString()}
-                                </p>
-                              </div>
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                              {inv.depositSlipUrl && (
-                                <a
-                                  href={inv.depositSlipUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="px-3 py-1.5 bg-white dark:bg-zinc-800 text-slate-600 dark:text-slate-300 hover:text-primary rounded-lg text-xs font-semibold border border-slate-200 dark:border-white/10 transition-colors inline-flex items-center gap-1.5"
-                                >
-                                  <Eye size={12} /> View Slip
-                                </a>
-                              )}
-                              {inv.status === "PAID" && (
-                                <button
-                                  onClick={() => handleDownloadReceipt(inv, selectedTenant)}
-                                  disabled={generatingDoc === `receipt-${inv.id}`}
-                                  className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-xs font-semibold shadow-xs transition-all hover:scale-105 active:scale-95 inline-flex items-center gap-1.5 disabled:opacity-50"
-                                >
-                                  <Download size={12} /> Official Receipt
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                    </div>
-                  ) : (
-                    <div className="p-5 sm:p-8 text-center text-slate-400">
-                      <FileText size={28} className="mx-auto mb-2 opacity-20" />
-                      <p className="text-xs font-bold">
-                        No billing ledger records found
-                      </p>
-                      <p className="text-xs text-slate-500 mt-1">
-                        Posted invoices and official payments will be logged and downloadable here.
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Section 3: Intelligence & Audit Report */}
-              <div>
-                <h4 className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-3 flex items-center gap-2">
-                  <BarChart3 size={14} /> Intelligence & Compliance Export
-                </h4>
-
-                <div className="bg-slate-50 dark:bg-zinc-900/60 rounded-2xl border border-slate-200 dark:border-white/5 p-4 flex items-center justify-between gap-4">
-                  <div>
-                    <h5 className="text-xs font-semibold text-charcoal dark:text-white tracking-tight">
-                      Comprehensive Tenant Audit Report
-                    </h5>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      Full administrative summary including occupancy area, rental figures, ledger status, and ratings.
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => handleDownloadTenantSummary(selectedTenant)}
-                    disabled={generatingDoc === "summary"}
-                    className="px-4 py-2.5 bg-slate-900 dark:bg-zinc-800 hover:bg-black text-white rounded-xl text-xs font-semibold transition-all hover:scale-105 active:scale-95 inline-flex items-center gap-2 shrink-0 disabled:opacity-50"
-                  >
-                    {generatingDoc === "summary" ? (
-                      <>
-                        <RefreshCw size={12} className="animate-spin" /> Generating...
-                      </>
-                    ) : (
-                      <>
-                        <Download size={12} /> Export Report
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Footer */}
-            <div className="p-5 bg-slate-50 dark:bg-zinc-900 border-t border-slate-200 dark:border-white/5 shrink-0 flex justify-end">
-              <button
-                onClick={() => setIsDocumentsModalOpen(false)}
-                className="px-6 py-2.5 bg-slate-200 dark:bg-zinc-800 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-xl hover:bg-slate-300 dark:hover:bg-zinc-700 transition-colors"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Delete Tenant Confirmation Modal */}
-      {tenantToDelete && (
-        <div className="fixed inset-0 z-300 flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-xs"
-            onClick={() => !isDeletingTenant && setTenantToDelete(null)}
-          />
-          <div className="relative w-full max-w-md bg-white dark:bg-zinc-950 rounded-2xl shadow-2xl overflow-hidden animate-fade-in-up border border-red-200 dark:border-red-900/30">
-            <div className="p-6 text-center space-y-4">
-              <div className="w-16 h-16 bg-red-500/10 text-red-600 rounded-3xl flex items-center justify-center mx-auto border border-red-500/20">
-                <Trash2 size={32} />
-              </div>
-
-              <div>
-                <h3 className="text-xl font-semibold text-charcoal dark:text-white tracking-tight">
-                  Delete Tenant
-                </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 font-bold mt-1">
-                  Permanent Administrative Action
-                </p>
-              </div>
-
-              <div className="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-900/20 rounded-2xl p-4 text-left">
-                <p className="text-xs text-red-900 dark:text-red-300 font-medium leading-relaxed">
-                  Are you sure you want to delete{" "}
-                  <strong className="font-semibold text-red-600 dark:text-red-400">
-                    {tenantToDelete.shopName}
-                  </strong>
-                  ?
-                </p>
-                <ul className="text-xs text-slate-600 dark:text-slate-400 mt-2 space-y-1 list-disc list-inside">
-                  <li>Tenant profile and its invoices will be permanently deleted</li>
-                  <li>A summary (unit, lease dates, payments) is kept in User Management → Tenant History</li>
-                  <li>
-                    Assigned Unit{" "}
-                    <span className="font-bold text-charcoal dark:text-white">
-                      {tenantToDelete.unitId}
-                    </span>{" "}
-                    will be released to Available
-                  </li>
-                  <li>Merchant account will revert to standard customer</li>
-                </ul>
-              </div>
-
-              <div className="flex gap-3 pt-2">
-                <button
-                  onClick={() => setTenantToDelete(null)}
-                  disabled={isDeletingTenant}
-                  className="flex-1 py-3.5 bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-slate-300 font-bold text-xs rounded-xl hover:bg-slate-200 transition-all disabled:opacity-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleConfirmDelete}
-                  disabled={isDeletingTenant}
-                  className="flex-1 py-3.5 bg-red-600 hover:bg-red-700 text-white font-semibold text-xs rounded-xl shadow-lg shadow-red-600/30 transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50"
-                >
-                  {isDeletingTenant ? (
-                    <>
-                      <RefreshCw size={14} className="animate-spin" /> Deleting...
-                    </>
-                  ) : (
-                    <>
-                      <Trash2 size={14} /> Confirm Delete
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div
-        className={clsx(
-          "min-h-screen",
-          "bg-transparent",
-          "p-4",
-          "lg:p-8",
-          "animate-fade-in-up",
-          "max-w-[1600px]",
-          "mx-auto",
-        )}
-      >
-        {/* Background Decor */}
-        <div
-          className={clsx(
-            "fixed",
-            "inset-0",
-            "pointer-events-none",
-            "opacity-20",
-            "dark:opacity-40",
-            "overflow-hidden",
-            "-z-10",
-          )}
-        >
-          <div
-            className={clsx(
-              "absolute",
-              "top-[20%]",
-              "right-[-5%]",
-              "w-[30%]",
-              "h-[30%]",
-              "bg-primary/10",
-              "blur-[120px]",
-              "rounded-full",
-            )}
-          />
-        </div>
-
-        {/* Professional Header */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-10">
-          <div className="space-y-2">
-            <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-charcoal dark:text-white">
-            Tenant Monitoring
-          </h1>
-            <p className="text-sm font-medium text-slate-500 max-w-xl">
-              Monitor tenant performance, store occupancy, lease payments, and store operations.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3">
+      <AdminPage
+        title="Tenant Monitoring"
+        description="Monitor tenant performance, store occupancy, lease payments, and store operations."
+        actions={
+          <>
             <RecordPaymentGuide
               onShowTenants={(onlyVerifying) => {
                 setSearchQuery("");
                 setStatusFilter("all");
-                setPaymentFilter(onlyVerifying ? "🟡 Pending Verification" : "all");
+                setPaymentFilter(onlyVerifying ? VERIFYING : "all");
               }}
             />
-            <button
-              type="button"
-              onClick={() => setLedgerOpen(true)}
-              title="See who paid each month"
-              className="p-4 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-2xl shadow-xs flex items-center gap-4 text-left hover:border-primary/40 hover:shadow-md transition-all focus-visible:outline-2 focus-visible:outline-primary"
-            >
-              <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center text-emerald-500">
-                <TrendingUp size={20} />
-              </div>
-              <div>
-                <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                  Est. Revenue{" "}
-                  <span className="text-xs px-1.5 py-0.5 rounded-sm bg-emerald-500/10 text-emerald-500 font-bold">
-                    {tfDetails.periodBadge}
-                  </span>
-                </p>
-                <p className="text-lg font-semibold text-charcoal dark:text-white">
-                  ₱{Math.round((stats.totalRevenue || 0) * multiplier).toLocaleString()}
-                </p>
-                <p className="text-xs font-bold text-primary">View payments</p>
-              </div>
-            </button>
-            <button
-              onClick={() => setIsRegisterOpen(true)}
-              className="h-14 px-8 bg-primary text-white rounded-2xl font-semibold text-xs flex items-center gap-3 hover:scale-105 transition-all shadow-xl shadow-primary/20 active:scale-95"
-            >
-              <UserPlus size={18} /> Add Account
-            </button>
-          </div>
-        </div>
-
+            <Button variant="secondary" icon={<DownloadSimple />} loading={isExporting} onClick={() => setIsReportOpen(true)}>
+              Download Report
+            </Button>
+            <Button variant="primary" icon={<UserPlus />} onClick={() => setIsRegisterOpen(true)}>
+              Add Account
+            </Button>
+          </>
+        }
+      >
         <PaymentLedgerDialog open={ledgerOpen} onOpenChange={setLedgerOpen} adminId={adminUser?.id} />
 
-        {/* Executive Summary Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
-          <div className="group relative p-1">
-            <div className="absolute inset-0 bg-linear-to-br from-blue-500 to-indigo-600 rounded-2xl blur-xl opacity-0 group-hover:opacity-10 transition-opacity"></div>
-            <div className="relative p-6 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-2xl shadow-xs overflow-hidden h-full">
-              <div className="flex flex-col items-center text-center gap-3 mb-5">
-                <div className="w-12 h-12 bg-blue-500/10 rounded-2xl flex items-center justify-center text-blue-500 group-hover:scale-110 transition-transform">
-                  <Store size={22} />
-                </div>
-                <div className="flex flex-col items-center gap-1">
-                  <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                    Active Units
-                  </span>
-                </div>
-              </div>
-              <p className="text-3xl 2xl:text-4xl font-semibold text-charcoal dark:text-white tracking-tight tabular-nums text-center whitespace-nowrap">
-                {stats.active}
-              </p>
-              <div className="mt-2 h-1 w-full bg-slate-100 dark:bg-zinc-800 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-blue-500 rounded-full transition-all duration-1000"
-                  style={{ width: `${(stats.active / stats.total) * 100}%` }}
-                ></div>
-              </div>
-            </div>
-          </div>
+        <StatRow>
+          <Stat label="Total tenants" value={stats.total} onClick={() => showOnly("all", "all")} />
+          <Stat label="Active" value={stats.active} onClick={() => showOnly("ACTIVE", "all")} active={statusFilter === "ACTIVE"} />
+          <Stat
+            label="Waiting for approval"
+            value={stats.pending}
+            tone={stats.pending ? "warning" : "default"}
+            onClick={() => showOnly("PENDING", "all")}
+            active={statusFilter === "PENDING"}
+          />
+          <Stat
+            label="Overdue"
+            value={stats.overdue}
+            tone={stats.overdue ? "danger" : "default"}
+            onClick={() => showOnly("all", OVERDUE)}
+            active={paymentFilter === OVERDUE}
+          />
+          <Stat
+            label={`Estimated revenue, ${tfDetails.periodBadge.toLowerCase()}`}
+            value={money(Math.round((stats.totalRevenue || 0) * multiplier))}
+            hint="View payments"
+            onClick={() => setLedgerOpen(true)}
+          />
+          <Stat
+            label={`Collected, ${tfDetails.periodBadge.toLowerCase()}`}
+            value={money(stats.collectedRevenue * multiplier)}
+            hint={`Pending ${money(stats.pendingRevenue * multiplier)}`}
+            tone="success"
+          />
+          <Stat label="Paid tenants" value={stats.paidTenants} hint="Settled accounts" />
+        </StatRow>
 
-          <div className="group relative p-1">
-            <div className="absolute inset-0 bg-linear-to-br from-emerald-500 to-teal-600 rounded-2xl blur-xl opacity-0 group-hover:opacity-10 transition-opacity"></div>
-            <div className="relative p-6 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-2xl shadow-xs overflow-hidden h-full">
-              <div className="flex flex-col items-center text-center gap-3 mb-5">
-                <div className="w-12 h-12 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-500 group-hover:scale-110 transition-transform">
-                  <PhilippinePeso size={22} />
-                </div>
-                <div className="flex flex-col items-center gap-1">
-                  <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                    Collected{" "}
-                    <span className="text-xs px-1.5 py-0.5 rounded-sm bg-emerald-500/10 text-emerald-600 font-bold">
-                      {tfDetails.periodBadge}
-                    </span>
-                  </span>
-                </div>
-              </div>
-              <p className="text-3xl 2xl:text-4xl font-semibold text-charcoal dark:text-white tracking-tight tabular-nums text-center whitespace-nowrap">
-                ₱
-                {(stats.collectedRevenue * multiplier).toLocaleString("en-PH", {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })}
-              </p>
-              <p className="text-xs font-bold text-slate-500 mt-1 text-center tabular-nums">
-                Pending: ₱
-                {(stats.pendingRevenue * multiplier).toLocaleString("en-PH", {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })}
-              </p>
-            </div>
-          </div>
-
-          <div className="group relative p-1">
-            <div className="absolute inset-0 bg-linear-to-br from-amber-500 to-orange-600 rounded-2xl blur-xl opacity-0 group-hover:opacity-10 transition-opacity"></div>
-            <div className="relative p-6 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-2xl shadow-xs overflow-hidden h-full">
-              <div className="flex flex-col items-center text-center gap-3 mb-5">
-                <div className="w-12 h-12 bg-amber-500/10 rounded-2xl flex items-center justify-center text-amber-500 group-hover:scale-110 transition-transform">
-                  <Clock size={22} />
-                </div>
-                <div className="flex flex-col items-center gap-1">
-                  <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                    Applications
-                  </span>
-                  <div className="flex items-center gap-1 text-amber-500">
-                    <Activity size={10} />
-                    <span className="text-xs font-bold">Pending</span>
-                  </div>
-                </div>
-              </div>
-              <p className="text-3xl 2xl:text-4xl font-semibold text-charcoal dark:text-white tracking-tight tabular-nums text-center whitespace-nowrap">
-                {stats.pending}
-              </p>
-              <p className="text-xs font-bold text-slate-500 mt-1 text-center tabular-nums">
-                Awaiting Onboarding
-              </p>
-            </div>
-          </div>
-
-          <div className="group relative p-1">
-            <div className="absolute inset-0 bg-linear-to-br from-red-500 to-pink-600 rounded-2xl blur-xl opacity-0 group-hover:opacity-10 transition-opacity"></div>
-            <div className="relative p-6 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-2xl shadow-xs overflow-hidden h-full">
-              <div className="flex flex-col items-center text-center gap-3 mb-5">
-                <div className="w-12 h-12 bg-red-500/10 rounded-2xl flex items-center justify-center text-red-500 group-hover:scale-110 transition-transform">
-                  <AlertTriangle size={22} />
-                </div>
-                <div className="flex flex-col items-center gap-1">
-                  <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                    Deficits
-                  </span>
-                  <div className="flex items-center gap-1 text-red-500 font-semibold">
-                    <ShieldAlert size={10} />
-                    <span className="text-xs">Overdue</span>
-                  </div>
-                </div>
-              </div>
-              <p className="text-3xl 2xl:text-4xl font-semibold text-charcoal dark:text-white tracking-tight tabular-nums text-center whitespace-nowrap">
-                {stats.overdue}
-              </p>
-              <p className="text-xs font-bold text-slate-500 mt-1 text-center tabular-nums">
-                Urgent Action Items
-              </p>
-            </div>
-          </div>
-
-          {/* Paid Tenants Card */}
-          <div className="group relative p-1">
-            <div className="absolute inset-0 bg-linear-to-br from-emerald-500 to-teal-600 rounded-2xl blur-xl opacity-0 group-hover:opacity-10 transition-opacity"></div>
-            <div className="relative p-6 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-2xl shadow-xs overflow-hidden h-full">
-              <div className="flex flex-col items-center text-center gap-3 mb-5">
-                <div className="w-12 h-12 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-500 group-hover:scale-110 transition-transform">
-                  <CheckCircle size={22} />
-                </div>
-                <div className="flex flex-col items-center gap-1">
-                  <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                    Paid Tenants
-                  </span>
-                  <div className="flex items-center gap-1 text-emerald-500 font-semibold">
-                    <CheckCircle size={10} />
-                    <span className="text-xs">Cleared</span>
-                  </div>
-                </div>
-              </div>
-              <p className="text-3xl 2xl:text-4xl font-semibold text-charcoal dark:text-white tracking-tight tabular-nums text-center whitespace-nowrap">
-                {stats.paidTenants}
-              </p>
-              <p className="text-xs font-bold text-slate-500 mt-1 text-center tabular-nums">
-                Settled Accounts
-              </p>
-            </div>
-          </div>
-
-          {/* Total Tenants Card */}
-          <div className="group relative p-1">
-            <div className="absolute inset-0 bg-linear-to-br from-indigo-500 to-purple-600 rounded-2xl blur-xl opacity-0 group-hover:opacity-10 transition-opacity"></div>
-            <div className="relative p-6 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-2xl shadow-xs overflow-hidden h-full">
-              <div className="flex flex-col items-center text-center gap-3 mb-5">
-                <div className="w-12 h-12 bg-indigo-500/10 rounded-2xl flex items-center justify-center text-indigo-500 group-hover:scale-110 transition-transform">
-                  <Users size={22} />
-                </div>
-                <div className="flex flex-col items-center gap-1">
-                  <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                    Total Tenants
-                  </span>
-                  <div className="flex items-center gap-1 text-indigo-500 font-semibold">
-                    <TrendingUp size={10} />
-                    <span className="text-xs">Directory</span>
-                  </div>
-                </div>
-              </div>
-              <p className="text-3xl 2xl:text-4xl font-semibold text-charcoal dark:text-white tracking-tight tabular-nums text-center whitespace-nowrap">
-                {stats.total}
-              </p>
-              <p className="text-xs font-bold text-slate-500 mt-1 text-center tabular-nums">
-                All Merchants
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Control Bar */}
-        <div className="mb-6 p-4 md:p-5 bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl shadow-xs space-y-4">
-          {/* Row 1 — search + view + export */}
-          <div className="flex flex-col md:flex-row md:items-center gap-3">
-            <div className="relative flex-1 min-w-0 group">
-              <Search
-                size={18}
-                className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors pointer-events-none"
-              />
-              <input
-                type="text"
-                placeholder="Search by shop name, unit or email…"
-                aria-label="Search tenants"
+        <Panel flush>
+          <div className="space-y-3 border-b border-kumo-line p-4 sm:px-5">
+            <div className="flex flex-wrap items-center gap-2">
+              <SearchField
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full h-12 pl-11 pr-10 bg-slate-50 dark:bg-zinc-950/50 border border-slate-200 dark:border-white/5 rounded-2xl text-sm font-medium text-charcoal dark:text-white placeholder:text-slate-400 focus:outline-hidden focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all"
+                onChange={setSearchQuery}
+                placeholder="Search shop name, unit or email"
+                className="sm:w-80"
               />
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery("")}
-                  aria-label="Clear search"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-lg text-slate-500 dark:text-slate-400 hover:text-charcoal dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-white/10 transition-colors"
+              <Choice label="Status" value={statusFilter} items={STATUS_FILTERS} onChange={setStatusFilter} className="w-40" />
+              <Choice label="Payment" value={paymentFilter} items={PAYMENT_FILTERS} onChange={setPaymentFilter} className="w-44" />
+              <Choice label="Period" value={timeframe} items={PERIODS} onChange={(v) => setTimeframe(v as Timeframe)} className="w-40" />
+              <div role="group" aria-label="View mode" className="ml-auto hidden gap-1 lg:flex">
+                <Button
+                  variant={viewMode === "table" ? "primary" : "secondary"}
+                  shape="square"
+                  icon={<ListDashes />}
+                  aria-label="Table view"
+                  aria-pressed={viewMode === "table"}
+                  onClick={() => setViewMode("table")}
+                />
+                <Button
+                  variant={viewMode === "grid" ? "primary" : "secondary"}
+                  shape="square"
+                  icon={<SquaresFour />}
+                  aria-label="Card view"
+                  aria-pressed={viewMode === "grid"}
+                  onClick={() => setViewMode("grid")}
+                />
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-sm text-kumo-subtle">
+                Showing {filteredTenants.length === 0 ? 0 : pageStart + 1} to{" "}
+                {Math.min(pageStart + pageSize, filteredTenants.length)} of {filteredTenants.length} tenant
+                {filteredTenants.length === 1 ? "" : "s"}
+                {filteredTenants.length !== tenants.length && ` (${tenants.length} total)`}
+              </p>
+              {(searchQuery || statusFilter !== "all" || paymentFilter !== "all") && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    setSearchQuery("");
+                    showOnly("all", "all");
+                  }}
                 >
-                  <X size={14} />
-                </button>
+                  Clear filters
+                </Button>
               )}
             </div>
-
-            <div className="flex items-center gap-3">
-              {/* View Toggle */}
-              <div
-                role="group"
-                aria-label="View mode"
-                className="flex items-center gap-1 h-12 p-1 bg-slate-50 dark:bg-zinc-950/50 border border-slate-200 dark:border-white/5 rounded-2xl"
-              >
-                {([
-                  { mode: "table", icon: List, label: "Table view" },
-                  { mode: "grid", icon: LayoutGrid, label: "Card view" },
-                ] as const).map(({ mode, icon: Icon, label }) => (
-                  <button
-                    key={mode}
-                    type="button"
-                    onClick={() => setViewMode(mode)}
-                    aria-label={label}
-                    aria-pressed={viewMode === mode}
-                    title={label}
-                    className={clsx(
-                      "h-full aspect-square flex items-center justify-center rounded-xl transition-all",
-                      viewMode === mode
-                        ? "bg-primary text-white shadow-md shadow-primary/25"
-                        : "text-slate-400 hover:text-charcoal dark:hover:text-white",
-                    )}
-                  >
-                    <Icon size={18} />
-                  </button>
-                ))}
-              </div>
-
-          {/* Export Dropdown */}
-          <div className="relative z-30" ref={reportDropdownRef}>
-            <button
-              onClick={() => setIsReportDropdownOpen((prev) => !prev)}
-              disabled={isExporting}
-              className={clsx(
-                "flex items-center gap-2 h-12 px-5 bg-primary hover:bg-primary-hover text-white rounded-2xl text-xs font-semibold shadow-lg shadow-primary/25 transition-all active:scale-95 whitespace-nowrap",
-                isExporting && "opacity-50 cursor-not-allowed",
-              )}
-            >
-              {isExporting ? (
-                <RefreshCw size={16} className="animate-spin" />
-              ) : (
-                <Download size={16} />
-              )}
-              <span>{isExporting ? "Generating…" : "Download Report"}</span>
-              <ChevronDown
-                size={16}
-                className={clsx(
-                  "transition-transform duration-200",
-                  isReportDropdownOpen && "rotate-180",
-                )}
-              />
-            </button>
-
-            {isReportDropdownOpen && (
-              <div
-                className={clsx(
-                  "absolute top-full mt-2 w-80 sm:w-96 max-w-[calc(100vw-2rem)] bg-white dark:bg-[#161b26] border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-4 z-50 animate-fade-in-up",
-                  dropdownAlign === "right" ? "right-0" : "left-0",
-                )}
-              >
-                <div className="pb-3 border-b border-slate-100 dark:border-slate-800">
-                  <h4 className="text-sm font-semibold text-charcoal dark:text-white flex items-center gap-2">
-                    <Download size={16} className="text-[#BE1E2D]" />
-                    Export Tenant Reports
-                  </h4>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                    Select a periodic breakdown or export complete records.
-                  </p>
-                </div>
-
-                <div className="py-3 space-y-4">
-                  {/* Option 1: Monthly Report */}
-                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 space-y-2.5">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Calendar size={15} className="text-[#BE1E2D]" />
-                        <span className="text-xs font-bold text-charcoal dark:text-white">
-                          Monthly Report
-                        </span>
-                      </div>
-                      <span className="text-xs text-slate-500 dark:text-slate-400 font-bold">
-                        Specific Month
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <select
-                        value={reportMonth}
-                        onChange={(e) => setReportMonth(Number(e.target.value))}
-                        className="px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#161b26] text-charcoal dark:text-white font-medium focus:outline-hidden focus:border-[#BE1E2D]"
-                      >
-                        {MONTH_NAMES.map((m, idx) => (
-                          <option key={m} value={idx}>
-                            {m}
-                          </option>
-                        ))}
-                      </select>
-                      <select
-                        value={reportYear}
-                        onChange={(e) => setReportYear(Number(e.target.value))}
-                        className="px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#161b26] text-charcoal dark:text-white font-medium focus:outline-hidden focus:border-[#BE1E2D]"
-                      >
-                        {[2024, 2025, 2026, 2027, 2028].map((yr) => (
-                          <option key={yr} value={yr}>
-                            {yr}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <button
-                      onClick={handleExportMonthlyReport}
-                      disabled={isExporting}
-                      className="w-full py-2 bg-[#BE1E2D] hover:bg-[#a01825] text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition-all active:scale-95 disabled:opacity-50"
-                    >
-                      <Download size={14} />
-                      Download {MONTH_NAMES[reportMonth]} {reportYear} PDF
-                    </button>
-                  </div>
-
-                  {/* Option 2: Yearly Report */}
-                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 space-y-2.5">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Calendar size={15} className="text-[#BE1E2D]" />
-                        <span className="text-xs font-bold text-charcoal dark:text-white">
-                          Yearly Report
-                        </span>
-                      </div>
-                      <span className="text-xs text-slate-500 dark:text-slate-400 font-bold">
-                        Full Year
-                      </span>
-                    </div>
-                    <select
-                      value={reportYearFilter}
-                      onChange={(e) => setReportYearFilter(Number(e.target.value))}
-                      className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#161b26] text-charcoal dark:text-white font-medium focus:outline-hidden focus:border-[#BE1E2D]"
-                    >
-                      {[2024, 2025, 2026, 2027, 2028].map((yr) => (
-                        <option key={yr} value={yr}>
-                          Year {yr}
-                        </option>
-                      ))}
-                    </select>
-                    <button
-                      onClick={handleExportYearlyReport}
-                      disabled={isExporting}
-                      className="w-full py-2 bg-[#BE1E2D] hover:bg-[#a01825] text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition-all active:scale-95 disabled:opacity-50"
-                    >
-                      <Download size={14} />
-                      Download {reportYearFilter} Annual PDF
-                    </button>
-                  </div>
-
-                  {/* Option 3: Overall Report */}
-                  <div className="pt-1">
-                    <button
-                      onClick={handleExportReport}
-                      disabled={isExporting}
-                      className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-charcoal dark:text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 border border-slate-200 dark:border-white/10 transition-all active:scale-95 disabled:opacity-50"
-                    >
-                      <FileText size={15} className="text-[#BE1E2D]" />
-                      Download Overall Report (All-Time)
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
+
+          {loading ? (
+            <div className="flex justify-center py-24">
+              <Loader />
             </div>
-          </div>
-
-          {/* Row 2 — filters + result count */}
-          <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-slate-100 dark:border-white/5">
-            <FilterSelect
-              label="Status"
-              value={statusFilter}
-              onChange={setStatusFilter}
-              options={[
-                { value: "all", label: "All active" },
-                { value: "ACTIVE", label: "Active", dot: "bg-emerald-500" },
-                { value: "PENDING", label: "Pending", dot: "bg-amber-500" },
-                { value: "INACTIVE", label: "Inactive", dot: "bg-slate-400" },
-                { value: "SUSPENDED", label: "Suspended", dot: "bg-orange-500" },
-                { value: "REJECTED", label: "Rejected", dot: "bg-red-500" },
-                { value: "PAST", label: "Past tenants", dot: "bg-zinc-500" },
-              ]}
-            />
-            <FilterSelect
-              label="Payment"
-              value={paymentFilter}
-              onChange={setPaymentFilter}
-              options={[
-                { value: "all", label: "All" },
-                { value: "🟢 Cleared", label: "Cleared", dot: "bg-emerald-500" },
-                { value: "🟡 Pending Verification", label: "Verifying", dot: "bg-amber-500" },
-                { value: "🔴 Overdue", label: "Overdue", dot: "bg-red-500" },
-                { value: "PENDING", label: "Bill pending", dot: "bg-sky-500" },
-              ]}
-            />
-            <FilterSelect
-              label="Period"
-              icon={<Calendar size={14} />}
-              value={timeframe}
-              onChange={(v) => setTimeframe(v as Timeframe)}
-              options={[
-                { value: "daily", label: "Today" },
-                { value: "weekly", label: "Last 7 days" },
-                { value: "monthly", label: "Last 30 days" },
-                { value: "yearly", label: "This year" },
-              ]}
-            />
-
-            {(searchQuery || statusFilter !== "all" || paymentFilter !== "all") && (
-              <button
-                type="button"
-                onClick={() => {
-                  setSearchQuery("");
-                  setStatusFilter("all");
-                  setPaymentFilter("all");
-                }}
-                className="h-10 px-3 flex items-center gap-1.5 rounded-xl text-xs font-semibold text-primary hover:bg-primary/10 transition-colors"
-              >
-                <X size={14} /> Clear filters
-              </button>
-            )}
-
-            <p className="ml-auto text-xs font-semibold text-slate-500 dark:text-slate-400">
-              Showing{" "}
-              <span className="text-charcoal dark:text-white">
-                {filteredTenants.length === 0 ? 0 : pageStart + 1}–
-                {Math.min(pageStart + pageSize, filteredTenants.length)}
-              </span>{" "}
-              of {filteredTenants.length} tenant{filteredTenants.length === 1 ? "" : "s"}
-              {filteredTenants.length !== tenants.length && (
-                <span className="text-slate-500 dark:text-slate-600"> ({tenants.length} total)</span>
-              )}
-            </p>
-          </div>
-        </div>
-
-        {/* Loading State */}
-        {loading ? (
-          <div
-            className={clsx(
-              "flex",
-              "flex-col",
-              "items-center",
-              "justify-center",
-              "h-96",
-              "gap-6",
-            )}
-          >
-            <div className="relative">
-              <div
-                className={clsx(
-                  "w-20",
-                  "h-20",
-                  "border-4",
-                  "border-primary/10",
-                  "border-t-primary",
-                  "rounded-full",
-                  "animate-spin",
-                )}
-              />
-              <div
-                className={clsx(
-                  "absolute",
-                  "inset-0",
-                  "w-20",
-                  "h-20",
-                  "border-4",
-                  "border-transparent",
-                  "border-b-primary/40",
-                  "rounded-full",
-                  "animate-reverse-spin",
-                )}
-              />
-            </div>
-            <p
-              className={clsx(
-                "animate-pulse",
-                "text-xs",
-                "font-semibold",
-                "text-slate-500 dark:text-slate-400",
-              )}
-            >
-              Loading Tenant Data
-            </p>
-          </div>
-        ) : (
-          <>
-            {/* Table View */}
-            {viewMode === "table" && (
-              <div
-                className={clsx(
-                  "hidden",
-                  "lg:block",
-                  "bg-white",
-                  "dark:bg-zinc-900",
-                  "rounded-3xl",
-                  "border",
-                  "border-slate-200",
-                  "dark:border-white/5",
-                  "shadow-xs",
-                  "overflow-hidden",
-                )}
-              >
-                <table className="w-full table-fixed text-left border-collapse">
-                  <colgroup>
-                    <col />
-                    <col className="w-[13%]" />
-                    <col className="w-[13%]" />
-                    <col className="w-[17%]" />
-                    <col className="w-[14%]" />
-                    <col className="w-14" />
-                  </colgroup>
-                  <thead>
-                    <tr className="border-b border-slate-200 dark:border-white/5 bg-slate-50/50 dark:bg-white/5">
-                      <th className={TH_SORT_CLASS} onClick={() => toggleSort("name")}>
-                        <div className="flex items-center gap-2">
-                          Tenant
-                          <ArrowUpDown size={12} className={sortBy === "name" ? "text-primary" : ""} />
-                        </div>
-                      </th>
-                      <th className={TH_CLASS}>Unit</th>
-                      <th className={TH_SORT_CLASS} onClick={() => toggleSort("status")}>
-                        <div className="flex items-center gap-2">
-                          Status
-                          <ArrowUpDown size={12} className={sortBy === "status" ? "text-primary" : ""} />
-                        </div>
-                      </th>
-                      <th className={TH_CLASS}>Payment</th>
-                      <th className={TH_SORT_CLASS} onClick={() => toggleSort("rent")}>
-                        <div className="flex items-center gap-2">
-                          <span className="truncate">{tfDetails.rentColumnTitle}</span>
-                          <ArrowUpDown size={12} className={clsx("shrink-0", sortBy === "rent" ? "text-primary" : "")} />
-                        </div>
-                      </th>
-                      <th className={TH_CLASS}>
-                        <span className="sr-only">Actions</span>
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-white/5">
-                    {paginatedTenants.map((tenant) => {
-                      const statusConfig =
-                        STATUS_CONFIG[tenant.status] || STATUS_CONFIG.INACTIVE;
-                      const paymentConfig =
-                        PAYMENT_CONFIG[
-                          tenant.paymentStatus as keyof typeof PAYMENT_CONFIG
-                        ] || PAYMENT_CONFIG["🟢 Cleared"];
-                      const isOverdue = tenant.paymentStatus === "🔴 Overdue";
-                      const isUnassigned =
-                        !tenant.unitId || tenant.unitId === UNASSIGNED_UNIT;
-                      const rating = tenant.metrics?.rating || 0;
-
-                      return (
-                        <tr
-                          key={tenant.id}
-                          onClick={() => setSelectedTenant(tenant)}
-                          className={clsx(
-                            "hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer",
-                            selectedTenant?.id === tenant.id
-                              ? "bg-primary/5 dark:bg-primary/10 border-l-4 border-primary"
-                              : "border-l-4 border-transparent",
-                          )}
-                        >
-                          {/* Tenant — name, email and rating; long text truncates */}
-                          <td className="px-4 py-4">
-                            <div className="flex items-center gap-3 min-w-0">
-                              <div className="w-10 h-10 shrink-0 rounded-xl bg-slate-100 dark:bg-zinc-800 flex items-center justify-center text-slate-500 overflow-hidden">
-                                {tenant.logoUrl ? (
-                                  <img src={tenant.logoUrl} alt="" className="w-full h-full object-cover" />
-                                ) : (
-                                  <Store size={18} />
-                                )}
-                              </div>
-                              <div className="min-w-0">
-                                <p
-                                  className="font-bold text-charcoal dark:text-white truncate"
-                                  title={tenant.shopName}
-                                >
-                                  {tenant.shopName}
-                                </p>
-                                <div className="flex items-center gap-2 text-xs text-slate-400 min-w-0">
-                                  <span className="truncate" title={tenant.user?.email}>
-                                    {tenant.user?.email}
-                                  </span>
-                                  {rating > 0 && (
-                                    <span className="flex items-center gap-0.5 shrink-0 font-bold text-amber-500">
-                                      <Star size={10} className="fill-current" />
-                                      {rating.toFixed(1)}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          </td>
-
-                          {/* Unit */}
-                          <td className="px-4 py-4">
-                            {isUnassigned ? (
-                              <span className="inline-flex px-2.5 py-1 rounded-full text-xs font-bold whitespace-nowrap bg-slate-100 dark:bg-white/5 text-slate-500 border border-slate-200 dark:border-white/10">
-                                Unassigned
-                              </span>
-                            ) : (
-                              <span
-                                className="block font-bold text-charcoal dark:text-white truncate"
-                                title={tenant.unitId}
+          ) : filteredTenants.length === 0 ? (
+            <EmptyNote title="No tenants match">Try a different search or filter.</EmptyNote>
+          ) : (
+            <>
+              {viewMode === "table" && (
+                <div className="hidden overflow-x-auto lg:block">
+                  <Table>
+                    <Table.Header>
+                      <Table.Row>
+                        <Table.Head>{sortHeader("name", "Tenant")}</Table.Head>
+                        <Table.Head>Unit</Table.Head>
+                        <Table.Head>{sortHeader("status", "Status")}</Table.Head>
+                        <Table.Head>Payment</Table.Head>
+                        <Table.Head>{sortHeader("rent", tfDetails.rentColumnTitle)}</Table.Head>
+                        <Table.Head className="text-right">Actions</Table.Head>
+                      </Table.Row>
+                    </Table.Header>
+                    <Table.Body>
+                      {paginatedTenants.map((tenant) => {
+                        const pay = paymentOf(tenant.paymentStatus);
+                        const rating = tenant.metrics?.rating || 0;
+                        return (
+                          <Table.Row key={tenant.id} className="cursor-pointer" onClick={() => setSelectedTenant(tenant)}>
+                            <Table.Cell className="max-w-72">
+                              <Person
+                                square
+                                name={tenant.shopName}
+                                image={tenant.logoUrl}
+                                detail={`${tenant.user?.email ?? ""}${rating > 0 ? `, ${rating.toFixed(1)} stars` : ""}`}
+                              />
+                            </Table.Cell>
+                            <Table.Cell className="whitespace-nowrap text-sm text-kumo-default">{unitsText(tenant)}</Table.Cell>
+                            <Table.Cell>
+                              <TenantStatus status={tenant.status} />
+                            </Table.Cell>
+                            <Table.Cell className="whitespace-nowrap">
+                              <p className={cn("text-sm font-medium", pay.className)}>{pay.label}</p>
+                              {tenant.nextDueDate !== "N/A" && <p className="text-sm text-kumo-subtle">Due {tenant.nextDueDate}</p>}
+                            </Table.Cell>
+                            <Table.Cell className="whitespace-nowrap">
+                              <p className="text-sm font-medium tabular-nums text-kumo-default">
+                                {rentText(tenant, multiplier)}
+                              </p>
+                              {tenant.rentSource === "listed" && <p className="text-sm text-kumo-subtle">Listed rent, no lease</p>}
+                              {timeframe !== "monthly" && tenant.rentSource !== "none" && (
+                                <p className="text-sm text-kumo-subtle">Base {money(tenant.rentCost || 0)} a month</p>
+                              )}
+                            </Table.Cell>
+                            <Table.Cell className="text-right">
+                              <Button
+                                size="sm"
+                                variant={tenant.hasSlipToVerify || tenant.status === "PENDING" ? "primary" : "secondary"}
+                                aria-label={`Open ${tenant.shopName}`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedTenant(tenant);
+                                }}
                               >
-                                {tenant.unitId}
-                              </span>
-                            )}
-                          </td>
+                                {tenant.hasSlipToVerify ? "Check slip" : tenant.status === "PENDING" ? "Review" : "Open"}
+                              </Button>
+                            </Table.Cell>
+                          </Table.Row>
+                        );
+                      })}
+                    </Table.Body>
+                  </Table>
+                </div>
+              )}
 
-                          {/* Status */}
-                          <td className="px-4 py-4">
-                            <span
-                              className={clsx(
-                                "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border whitespace-nowrap",
-                                statusConfig.bg,
-                                statusConfig.text,
-                                statusConfig.border,
-                              )}
-                            >
-                              <span className={clsx("w-1.5 h-1.5 rounded-full shrink-0", statusConfig.color)} />
-                              {tenant.status}
-                            </span>
-                          </td>
-
-                          {/* Payment — status pill with the next due date under it */}
-                          <td className="px-4 py-4">
-                            <div className="flex flex-col items-start gap-1">
-                              <span
-                                className={clsx(
-                                  "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border whitespace-nowrap",
-                                  paymentConfig.bg,
-                                  paymentConfig.text,
-                                  paymentConfig.border,
-                                )}
-                              >
-                                <span className={clsx("w-1.5 h-1.5 rounded-full shrink-0", paymentConfig.dot)} />
-                                {paymentConfig.label}
-                              </span>
-                              {tenant.nextDueDate !== "N/A" && (
-                                <span
-                                  className={clsx(
-                                    "flex items-center gap-1 text-xs font-bold whitespace-nowrap",
-                                    isOverdue ? "text-primary" : "text-slate-500 dark:text-slate-400",
-                                  )}
-                                >
-                                  <Calendar size={10} className="shrink-0" />
-                                  Due {tenant.nextDueDate}
-                                </span>
-                              )}
-                            </div>
-                          </td>
-
-                          {/* Rent */}
-                          <td className="px-4 py-4">
-                            <div className="flex flex-col">
-                              <span className="font-semibold text-charcoal dark:text-white text-sm whitespace-nowrap">
-                                ₱{Math.round((tenant.rentCost || 0) * multiplier).toLocaleString()}
-                              </span>
-                              {timeframe !== "monthly" && (
-                                <span className="text-xs text-slate-500 dark:text-slate-400 font-medium whitespace-nowrap">
-                                  Base: ₱{(tenant.rentCost || 0).toLocaleString()}/mo
-                                </span>
-                              )}
-                            </div>
-                          </td>
-
-                          {/* Actions */}
-                          <td className="px-2 py-4 text-right">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedTenant(tenant);
-                              }}
-                              aria-label={`Open ${tenant.shopName}`}
-                              className="p-2 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors text-slate-500 dark:text-slate-400 hover:text-primary"
-                            >
-                              <MoreVertical size={18} />
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-
-                {filteredTenants.length === 0 && (
-                  <div className={clsx("py-20", "text-center")}>
-                    <Store
-                      size={48}
-                      className={clsx("mx-auto", "text-slate-300", "mb-4")}
-                    />
-                    <p className={clsx("text-slate-500", "font-medium")}>
-                      No tenants found matching your criteria
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Grid View — also shown instead of the table below the lg breakpoint */}
-            <div
-                className={clsx(
+              {/* Cards: the chosen view, and always below the lg breakpoint. */}
+              <ul
+                className={cn(
+                  "grid gap-3 p-4 sm:grid-cols-2 sm:px-5 lg:grid-cols-3 xl:grid-cols-4",
                   viewMode === "table" && "lg:hidden",
-                  "grid",
-                  "grid-cols-1",
-                  "md:grid-cols-2",
-                  "lg:grid-cols-3",
-                  "xl:grid-cols-4",
-                  "gap-6",
                 )}
               >
                 {paginatedTenants.map((tenant) => {
-                  const statusConfig =
-                    STATUS_CONFIG[tenant.status] || STATUS_CONFIG.INACTIVE;
-
+                  const pay = paymentOf(tenant.paymentStatus);
                   return (
-                    <div
-                      key={tenant.id}
-                      onClick={() => setSelectedTenant(tenant)}
-                      className={clsx(
-                        "group bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-white/5 p-6 cursor-pointer transition-all hover:shadow-xl hover:border-primary/30",
-                        selectedTenant?.id === tenant.id &&
-                        "ring-2 ring-primary",
-                      )}
-                    >
-                      <div
-                        className={clsx(
-                          "flex",
-                          "items-start",
-                          "justify-between",
-                          "mb-4",
-                        )}
+                    <li key={tenant.id}>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedTenant(tenant)}
+                        className="block h-full w-full cursor-pointer space-y-3 rounded-lg border border-kumo-line p-4 text-left hover:bg-kumo-tint"
                       >
-                        <div
-                          className={clsx(
-                            "w-14",
-                            "h-14",
-                            "rounded-xl",
-                            "bg-slate-100",
-                            "dark:bg-zinc-800",
-                            "flex",
-                            "items-center",
-                            "justify-center",
-                            "text-slate-500",
-                            "overflow-hidden",
-                          )}
-                        >
-                          {tenant.logoUrl ? (
-                            <img
-                              src={tenant.logoUrl}
-                              alt=""
-                              className={clsx(
-                                "w-full",
-                                "h-full",
-                                "object-cover",
-                              )}
-                            />
-                          ) : (
-                            <Store size={24} />
-                          )}
-                        </div>
-                        <span
-                          className={clsx(
-                            "px-2 py-1 rounded-full text-xs font-bold border",
-                            statusConfig.bg,
-                            statusConfig.text,
-                            statusConfig.border,
-                          )}
-                        >
-                          {tenant.status}
+                        <Person square name={tenant.shopName} image={tenant.logoUrl} detail={unitsText(tenant)} />
+                        <span className="flex items-center justify-between gap-2">
+                          <TenantStatus status={tenant.status} />
+                          <span className={cn("text-sm font-medium", pay.className)}>{pay.label}</span>
                         </span>
-                      </div>
-
-                      <h3
-                        className={clsx(
-                          "font-bold",
-                          "text-charcoal",
-                          "dark:text-white",
-                          "mb-1",
-                        )}
-                      >
-                        {tenant.shopName}
-                      </h3>
-                      <p className={clsx("text-sm", "text-slate-500 dark:text-slate-400", "mb-4")}>
-                        {tenant.unitId}
-                      </p>
-
-                      <div
-                        className={clsx("grid", "grid-cols-2", "gap-3", "mb-4")}
-                      >
-                        <div
-                          className={clsx(
-                            "p-3",
-                            "bg-slate-50",
-                            "dark:bg-white/5",
-                            "rounded-xl",
-                          )}
-                        >
-                          <p
-                            className={clsx(
-                              "text-xs",
-                              "text-slate-500 dark:text-slate-400",
-                              "font-bold",
-                              "mb-1",
+                        <span className="flex items-center justify-between gap-2 text-sm">
+                          <span className="font-medium tabular-nums text-kumo-default">
+                            {rentText(tenant, multiplier)}
+                            {tenant.rentSource !== "none" && (
+                              <span className="font-normal text-kumo-subtle">{tfDetails.unitSuffix}</span>
                             )}
-                          >
-                            Rent ({tfDetails.unitSuffix})
-                          </p>
-                          <p
-                            className={clsx(
-                              "font-semibold",
-                              "text-charcoal",
-                              "dark:text-white",
-                            )}
-                          >
-                            ₱{Math.round((tenant.rentCost || 0) * multiplier).toLocaleString()}
-                          </p>
-                        </div>
-                        <div
-                          className={clsx(
-                            "p-3",
-                            "bg-slate-50",
-                            "dark:bg-white/5",
-                            "rounded-xl",
-                          )}
-                        >
-                          <p
-                            className={clsx(
-                              "text-xs",
-                              "text-slate-500 dark:text-slate-400",
-                              "font-bold",
-                              "mb-1",
-                            )}
-                          >
-                            Rating
-                          </p>
-                          <p
-                            className={clsx(
-                              "font-semibold",
-                              "text-charcoal",
-                              "dark:text-white",
-                              "flex",
-                              "items-center",
-                              "gap-1",
-                            )}
-                          >
-                            <Star size={12} className="text-amber-500" />
-                            {(tenant.metrics?.rating || 0).toFixed(1)}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div
-                        className={clsx(
-                          "flex",
-                          "items-center",
-                          "justify-between",
-                          "text-xs",
-                          "text-slate-500",
-                        )}
-                      >
-                        <span className={clsx("flex", "items-center", "gap-1")}>
-                          <TrendingUp size={12} /> {tenant.metrics?.clicks || 0}{" "}
-                          clicks
+                          </span>
+                          <span className="text-kumo-subtle">{(tenant.metrics?.rating || 0).toFixed(1)} stars</span>
                         </span>
-                        <span
-                          className={clsx(
-                            "px-2 py-0.5 rounded-sm text-xs font-bold",
-                            (
-                              PAYMENT_CONFIG[
-                              tenant.paymentStatus as keyof typeof PAYMENT_CONFIG
-                              ] || PAYMENT_CONFIG["🟢 Cleared"]
-                            ).bg,
-                            (
-                              PAYMENT_CONFIG[
-                              tenant.paymentStatus as keyof typeof PAYMENT_CONFIG
-                              ] || PAYMENT_CONFIG["🟢 Cleared"]
-                            ).text,
-                          )}
-                        >
-                          {tenant.paymentStatus}
-                        </span>
-                      </div>
-                    </div>
+                      </button>
+                    </li>
                   );
                 })}
-              </div>
+              </ul>
 
-            {/* Pagination */}
-            {filteredTenants.length > 0 && (
-              <div className="mt-6 flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-xs dark:border-white/5 dark:bg-zinc-900 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-kumo-line p-4 sm:px-5">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                    Rows
-                  </span>
-                  <CustomSelect
+                  <span className="text-sm text-kumo-subtle">Rows</span>
+                  <Choice
+                    label="Tenants per page"
                     value={String(pageSize)}
-                    onChange={(value) => setPageSize(Number(value))}
-                    options={[8, 12, 24, 48].map((size) => ({
-                      value: String(size),
-                      label: String(size),
-                    }))}
-                    ariaLabel="Tenants per page"
+                    items={PAGE_SIZES}
+                    onChange={(v) => setPageSize(Number(v))}
                     className="w-20"
-                    buttonClassName="px-3! py-1.5!"
-                    menuClassName="bottom-full! mb-2! mt-0!"
                   />
                 </div>
-
-                <div className="flex flex-wrap items-center justify-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => setPage(Math.max(1, currentPage - 1))}
-                    disabled={currentPage <= 1}
+                <nav aria-label="Pages" className="flex flex-wrap items-center gap-1">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    shape="square"
+                    icon={<CaretLeft />}
                     aria-label="Previous page"
-                    className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition-colors hover:border-primary/30 hover:text-primary disabled:cursor-not-allowed disabled:opacity-40 dark:border-white/10 dark:text-slate-300"
-                  >
-                    <ChevronLeft size={16} />
-                  </button>
-
+                    disabled={currentPage <= 1}
+                    onClick={() => setPage(Math.max(1, currentPage - 1))}
+                  />
                   {pageNumbers.map((entry, index) =>
                     entry === "ellipsis" ? (
-                      <span
-                        key={`ellipsis-${index}`}
-                        className="px-1 text-xs font-semibold text-slate-500 dark:text-slate-400"
-                      >
+                      <span key={`ellipsis-${index}`} className="px-1 text-sm text-kumo-subtle">
                         …
                       </span>
                     ) : (
-                      <button
+                      <Button
                         key={entry}
-                        type="button"
-                        onClick={() => setPage(entry)}
+                        size="sm"
+                        variant={entry === currentPage ? "primary" : "secondary"}
                         aria-label={`Page ${entry}`}
                         aria-current={entry === currentPage ? "page" : undefined}
-                        className={clsx(
-                          "h-9 min-w-9 rounded-xl px-2 text-xs font-semibold transition-colors",
-                          entry === currentPage
-                            ? "bg-primary text-white shadow-md shadow-primary/25"
-                            : "border border-slate-200 text-slate-500 hover:border-primary/30 hover:text-primary dark:border-white/10 dark:text-slate-300",
-                        )}
+                        onClick={() => setPage(entry)}
                       >
                         {entry}
-                      </button>
+                      </Button>
                     ),
                   )}
-
-                  <button
-                    type="button"
-                    onClick={() => setPage(Math.min(totalPages, currentPage + 1))}
-                    disabled={currentPage >= totalPages}
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    shape="square"
+                    icon={<CaretRight />}
                     aria-label="Next page"
-                    className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition-colors hover:border-primary/30 hover:text-primary disabled:cursor-not-allowed disabled:opacity-40 dark:border-white/10 dark:text-slate-300"
-                  >
-                    <ChevronRight size={16} />
-                  </button>
-                </div>
-
-                <p className="text-center text-xs font-semibold text-slate-500 dark:text-slate-400 sm:text-right">
-                  Page <span className="text-charcoal dark:text-white">{currentPage}</span> of{" "}
-                  {totalPages}
+                    disabled={currentPage >= totalPages}
+                    onClick={() => setPage(Math.min(totalPages, currentPage + 1))}
+                  />
+                </nav>
+                <p className="text-sm text-kumo-subtle">
+                  Page {currentPage} of {totalPages}
                 </p>
               </div>
-            )}
-          </>
-        )}
+            </>
+          )}
+        </Panel>
+      </AdminPage>
 
-        {/* Tenant Detail Modal */}
-        {selectedTenant && (
-          <div
-            className={clsx(
-              "fixed",
-              "inset-0",
-              "z-60",
-              "flex",
-              "justify-end",
-            )}
-          >
-            <div
-              className={clsx(
-                "absolute",
-                "inset-0",
-                "bg-charcoal/40",
-                "dark:bg-black/80",
-                "backdrop-blur-md",
-                "animate-in",
-                "fade-in",
-                "duration-300",
-              )}
-              onClick={() => setSelectedTenant(null)}
-            />
-            <div
-              className={clsx(
-                "relative",
-                "w-full",
-                "max-w-lg",
-                "bg-white",
-                "dark:bg-zinc-950",
-                "border-l",
-                "border-slate-200",
-                "dark:border-white/10",
-                "flex",
-                "flex-col",
-                "h-full",
-                "animate-in",
-                "slide-in-from-right",
-                "duration-500",
-                "shadow-[-40px_0_80px_rgba(0,0,0,0.2)]",
-              )}
-            >
-              {/* Modal Header */}
-              <div
-                className={clsx(
-                  "h-20",
-                  "border-b",
-                  "border-slate-200",
-                  "dark:border-white/5",
-                  "flex",
-                  "items-center",
-                  "justify-between",
-                  "px-6",
-                  "shrink-0",
-                  "bg-slate-50/50",
-                  "dark:bg-zinc-900/50",
-                )}
-              >
-                <h2
-                  className={clsx(
-                    "font-semibold",
-                    "text-lg",
-                    "text-charcoal",
-                    "dark:text-white",
-                    "flex",
-                    "items-center",
-                    "gap-2",
-                  )}
-                >
-                  <Eye size={18} className="text-primary" />
-                  Tenant Details
-                </h2>
-                <button
-                  onClick={() => setSelectedTenant(null)}
-                  className={clsx(
-                    "p-2",
-                    "hover:bg-slate-200",
-                    "dark:hover:bg-white/10",
-                    "rounded-full",
-                    "transition-colors",
-                    "text-slate-500",
-                  )}
-                >
-                  <X size={18} />
-                </button>
-              </div>
-
-              {/* Modal Content */}
-              <div
-                className={clsx(
-                  "flex-1",
-                  "overflow-y-auto",
-                  "p-6",
-                  "space-y-8",
-                )}
-              >
-                {/* Tenant Identity */}
-                <div className={clsx("flex", "items-start", "gap-4")}>
-                  <div
-                    className={clsx(
-                      "w-20",
-                      "h-20",
-                      "rounded-2xl",
-                      "bg-slate-100",
-                      "dark:bg-zinc-800",
-                      "flex",
-                      "items-center",
-                      "justify-center",
-                      "text-slate-500",
-                      "overflow-hidden",
-                    )}
-                  >
-                    {selectedTenant.logoUrl ? (
-                      <img
-                        src={selectedTenant.logoUrl}
-                        alt=""
-                        className={clsx("w-full", "h-full", "object-cover")}
-                      />
-                    ) : (
-                      <Store size={32} />
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <h3
-                      className={clsx(
-                        "text-2xl",
-                        "font-semibold",
-                        "text-charcoal",
-                        "dark:text-white",
-                      )}
-                    >
-                      {selectedTenant.shopName}
-                    </h3>
-                    <p className={clsx("text-sm", "text-slate-500 dark:text-slate-400", "mt-1")}>
-                      {selectedTenant.unitId}
-                    </p>
-                    {selectedTenant.description && (
-                      <p
-                        className={clsx(
-                          "text-xs",
-                          "text-slate-500",
-                          "mt-2",
-                          "leading-relaxed",
-                        )}
-                      >
-                        {selectedTenant.description}
-                      </p>
-                    )}
-                    <div
-                      className={clsx("flex", "items-center", "gap-2", "mt-3")}
-                    >
-                      <span
-                        className={clsx(
-                          "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border",
-                          STATUS_CONFIG[selectedTenant.status].bg,
-                          STATUS_CONFIG[selectedTenant.status].text,
-                          STATUS_CONFIG[selectedTenant.status].border,
-                        )}
-                      >
-                        <span
-                          className={clsx(
-                            "w-1.5 h-1.5 rounded-full",
-                            STATUS_CONFIG[selectedTenant.status].color,
-                          )}
-                        ></span>
-                        {selectedTenant.status}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Quick Actions */}
-                <div className={clsx("grid", "grid-cols-2", "gap-3")}>
-                  <button
-                    onClick={handleSendMessage}
-                    className={clsx(
-                      "flex",
-                      "flex-col",
-                      "items-center",
-                      "justify-center",
-                      "p-4",
-                      "bg-slate-50",
-                      "dark:bg-zinc-900",
-                      "border",
-                      "border-slate-200",
-                      "dark:border-white/5",
-                      "rounded-2xl",
-                      "hover:border-primary",
-                      "hover:bg-primary/5",
-                      "transition-all",
-                      "group",
-                    )}
-                  >
-                    <MessageSquare
-                      size={20}
-                      className={clsx(
-                        "text-slate-400",
-                        "group-hover:text-primary",
-                        "mb-2",
-                        "transition-colors",
-                      )}
-                    />
-                    <span
-                      className={clsx(
-                        "text-xs",
-                        "font-bold",
-                        "text-slate-500",
-                        "group-hover:text-primary",
-                      )}
-                    >
-                      Message
-                    </span>
-                  </button>
-                  <button
-                    onClick={handlePostMonthlyBill}
-                    className={clsx(
-                      "flex",
-                      "flex-col",
-                      "items-center",
-                      "justify-center",
-                      "p-4",
-                      "bg-slate-50",
-                      "dark:bg-zinc-900",
-                      "border",
-                      "border-slate-200",
-                      "dark:border-white/5",
-                      "rounded-2xl",
-                      "hover:border-red-500",
-                      "hover:bg-red-500/5",
-                      "transition-all",
-                      "group",
-                    )}
-                  >
-                    <Receipt
-                      size={20}
-                      className={clsx(
-                        "text-slate-400",
-                        "group-hover:text-red-500",
-                        "mb-2",
-                        "transition-colors",
-                      )}
-                    />
-                    <span
-                      className={clsx(
-                        "text-xs",
-                        "font-bold",
-                        "text-slate-500",
-                        "group-hover:text-red-500",
-                      )}
-                    >
-                      Bill
-                    </span>
-                  </button>
-                </div>
-
-                {/* One tenant, two tabs: who they are, and what they pay */}
-                <div role="tablist" aria-label="Tenant sections" className="flex gap-1 rounded-xl bg-slate-100 dark:bg-white/5 p-1">
-                  {(["details", "payments"] as const).map((t) => (
-                    <button
-                      key={t}
-                      type="button"
-                      role="tab"
-                      aria-selected={detailTab === t}
-                      onClick={() => selectedTenant && setTabChoice({ id: selectedTenant.id, tab: t })}
-                      className={clsx(
-                        "flex-1 rounded-lg px-3 py-2 text-sm font-semibold transition-colors",
-                        detailTab === t
-                          ? "bg-white dark:bg-zinc-800 text-charcoal dark:text-white shadow-xs"
-                          : "text-slate-500 dark:text-slate-400 hover:text-charcoal dark:hover:text-white",
-                      )}
-                    >
-                      {t === "details" ? "Details" : "Payments"}
-                      {t === "payments" && selectedTenant.hasSlipToVerify && (
-                        <span className="ml-2 rounded-md bg-amber-500/15 px-1.5 py-0.5 text-xs text-amber-700 dark:text-amber-400">Slip to check</span>
-                      )}
-                    </button>
-                  ))}
-                </div>
-                
-                {detailTab === "details" && (
-                <>
-                {/* Contract Info */}
-                <div>
-                  <h4
-                    className={clsx(
-                      "text-xs",
-                      "font-semibold",
-                      "text-slate-500 dark:text-slate-400",
-                      "mb-4",
-                      "flex",
-                      "items-center",
-                      "gap-2",
-                    )}
-                  >
-                    <Calendar size={14} /> Contract Details
-                  </h4>
-                  <div
-                    className={clsx(
-                      "bg-slate-50",
-                      "dark:bg-zinc-900",
-                      "rounded-2xl",
-                      "border",
-                      "border-slate-200",
-                      "dark:border-white/5",
-                      "p-5",
-                      "space-y-4",
-                    )}
-                  >
-                    <div
-                      className={clsx(
-                        "flex",
-                        "items-center",
-                        "justify-between",
-                      )}
-                    >
-                      <span
-                        className={clsx(
-                          "text-xs",
-                          "font-bold",
-                          "text-slate-600",
-                          "dark:text-slate-300",
-                        )}
-                      >
-                        Start Date
-                      </span>
-                      <span
-                        className={clsx(
-                          "text-sm",
-                          "font-semibold",
-                          "text-charcoal",
-                          "dark:text-white",
-                        )}
-                      >
-                        {selectedTenant.contractStart}
-                      </span>
-                    </div>
-                    <div
-                      className={clsx(
-                        "h-px",
-                        "w-full",
-                        "bg-slate-200",
-                        "dark:bg-white/5",
-                      )}
-                    ></div>
-                    <div
-                      className={clsx(
-                        "flex",
-                        "items-center",
-                        "justify-between",
-                      )}
-                    >
-                      <span
-                        className={clsx(
-                          "text-xs",
-                          "font-bold",
-                          "text-slate-600",
-                          "dark:text-slate-300",
-                        )}
-                      >
-                        End Date
-                      </span>
-                      <span
-                        className={clsx(
-                          "text-sm",
-                          "font-semibold",
-                          "text-charcoal",
-                          "dark:text-white",
-                        )}
-                      >
-                        {selectedTenant.contractEnd}
-                      </span>
-                    </div>
-                    <div
-                      className={clsx(
-                        "h-px",
-                        "w-full",
-                        "bg-slate-200",
-                        "dark:bg-white/5",
-                      )}
-                    ></div>
-                    <div
-                      className={clsx(
-                        "flex",
-                        "items-center",
-                        "justify-between",
-                      )}
-                    >
-                      <span
-                        className={clsx(
-                          "text-xs",
-                          "font-bold",
-                          "text-slate-600",
-                          "dark:text-slate-300",
-                        )}
-                      >
-                        {tfDetails.rentColumnTitle}
-                      </span>
-                      <div className="text-right">
-                        <span
-                          className={clsx(
-                            "text-sm",
-                            "font-semibold",
-                            "text-charcoal",
-                            "dark:text-white",
-                          )}
-                        >
-                          ₱{Math.round((selectedTenant.rentCost || 0) * multiplier).toLocaleString()}
-                        </span>
-                        {timeframe !== "monthly" && (
-                          <span className="text-xs text-slate-500 dark:text-slate-400 block font-medium">
-                            Base: ₱{(selectedTenant.rentCost || 0).toLocaleString()}/mo
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Performance Metrics */}
-                <div>
-                  <h4
-                    className={clsx(
-                      "text-xs",
-                      "font-semibold",
-                      "text-slate-500 dark:text-slate-400",
-                      "mb-4",
-                      "flex",
-                      "items-center",
-                      "gap-2",
-                    )}
-                  >
-                    <BarChart3 size={14} /> Performance Metrics
-                  </h4>
-                  <div className={clsx("grid", "grid-cols-2", "gap-4")}>
-                    <div
-                      className={clsx(
-                        "bg-slate-50",
-                        "dark:bg-zinc-900",
-                        "rounded-2xl",
-                        "border",
-                        "border-slate-200",
-                        "dark:border-white/5",
-                        "p-4",
-                      )}
-                    >
-                      <p
-                        className={clsx(
-                          "text-xs",
-                          "text-slate-500 dark:text-slate-400",
-                          "font-bold",
-                          "mb-2",
-                        )}
-                      >
-                        Ad Clicks
-                      </p>
-                      <p
-                        className={clsx(
-                          "text-2xl",
-                          "font-semibold",
-                          "text-charcoal",
-                          "dark:text-white",
-                        )}
-                      >
-                        {selectedTenant.metrics?.clicks || 0}
-                      </p>
-                    </div>
-                    <div
-                      className={clsx(
-                        "bg-slate-50",
-                        "dark:bg-zinc-900",
-                        "rounded-2xl",
-                        "border",
-                        "border-slate-200",
-                        "dark:border-white/5",
-                        "p-4",
-                      )}
-                    >
-                      <p
-                        className={clsx(
-                          "text-xs",
-                          "text-slate-500 dark:text-slate-400",
-                          "font-bold",
-                          "mb-2",
-                        )}
-                      >
-                        Offers Claimed
-                      </p>
-                      <p
-                        className={clsx(
-                          "text-2xl",
-                          "font-semibold",
-                          "text-charcoal",
-                          "dark:text-white",
-                        )}
-                      >
-                        {selectedTenant.metrics?.offersClaimed || 0}
-                      </p>
-                    </div>
-                    <div
-                      className={clsx(
-                        "bg-slate-50",
-                        "dark:bg-zinc-900",
-                        "rounded-2xl",
-                        "border",
-                        "border-slate-200",
-                        "dark:border-white/5",
-                        "p-4",
-                      )}
-                    >
-                      <p
-                        className={clsx(
-                          "text-xs",
-                          "text-slate-500 dark:text-slate-400",
-                          "font-bold",
-                          "mb-2",
-                        )}
-                      >
-                        Rating
-                      </p>
-                      <p
-                        className={clsx(
-                          "text-2xl",
-                          "font-semibold",
-                          "text-charcoal",
-                          "dark:text-white",
-                          "flex",
-                          "items-center",
-                          "gap-1",
-                        )}
-                      >
-                        <Star size={18} className="text-amber-500" />
-                        {(selectedTenant.metrics?.rating || 0).toFixed(1)}
-                      </p>
-                    </div>
-                    <div
-                      className={clsx(
-                        "bg-slate-50",
-                        "dark:bg-zinc-900",
-                        "rounded-2xl",
-                        "border",
-                        "border-slate-200",
-                        "dark:border-white/5",
-                        "p-4",
-                      )}
-                    >
-                      <p
-                        className={clsx(
-                          "text-xs",
-                          "text-slate-500 dark:text-slate-400",
-                          "font-bold",
-                          "mb-2",
-                        )}
-                      >
-                        Inquiries
-                      </p>
-                      <p
-                        className={clsx(
-                          "text-2xl",
-                          "font-semibold",
-                          "text-charcoal",
-                          "dark:text-white",
-                        )}
-                      >
-                        {selectedTenant.metrics?.inquiries || 0}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Violations */}
-                {selectedTenant.violations && selectedTenant.violations > 0 && (
-                  <div
-                    className={clsx(
-                      "bg-red-50",
-                      "dark:bg-red-900/10",
-                      "border",
-                      "border-red-200",
-                      "dark:border-red-900/30",
-                      "rounded-2xl",
-                      "p-4",
-                    )}
-                  >
-                    <div
-                      className={clsx(
-                        "flex",
-                        "items-center",
-                        "gap-2",
-                        "text-red-600",
-                        "mb-2",
-                      )}
-                    >
-                      <AlertTriangle size={16} />
-                      <span
-                        className={clsx(
-                          "text-xs",
-                          "font-bold",
-                        )}
-                      >
-                        Violations
-                      </span>
-                    </div>
-                    <p
-                      className={clsx("text-2xl", "font-semibold", "text-red-600")}
-                    >
-                      {selectedTenant.violations}
-                    </p>
-                  </div>
-                )}
-
-                </>
-                )}
-                {detailTab === "payments" && (
-                <>
-                {/* Financial Intelligence & Ledger */}
-                <div>
-                  <h4
-                    className={clsx(
-                      "text-xs",
-                      "font-semibold",
-                      "text-slate-500 dark:text-slate-400",
-                      "mb-4",
-                      "flex",
-                      "items-center",
-                      "gap-2",
-                    )}
-                  >
-                    <PhilippinePeso size={14} /> Payments
-                  </h4>
-
-                  <div className="space-y-4">
-                    {/* Summary Row */}
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="p-4 bg-emerald-500/5 border border-emerald-500/10 rounded-2xl">
-                        <p className="text-xs font-semibold text-emerald-600 mb-1">
-                          Total Paid
-                        </p>
-                        <p className="text-lg font-semibold text-charcoal dark:text-white">
-                          ₱
-                          {allInvoices
-                            .filter(
-                              (i) =>
-                                i.tenantId === selectedTenant.id &&
-                                i.status === "PAID",
-                            )
-                            .reduce((sum, i) => sum + i.amount, 0)
-                            .toLocaleString()}
-                        </p>
-                      </div>
-                      <div className="p-4 bg-amber-500/5 border border-amber-500/10 rounded-2xl">
-                        <p className="text-xs font-semibold text-amber-600 mb-1">
-                          Outstanding
-                        </p>
-                        <p className="text-lg font-semibold text-charcoal dark:text-white">
-                          ₱
-                          {allInvoices
-                            .filter(
-                              (i) =>
-                                i.tenantId === selectedTenant.id &&
-                                i.status !== "PAID",
-                            )
-                            .reduce((sum, i) => sum + i.amount, 0)
-                            .toLocaleString()}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div
-                      className={clsx(
-                        "bg-slate-50",
-                        "dark:bg-zinc-900",
-                        "rounded-2xl",
-                        "border",
-                        "border-slate-200",
-                        "dark:border-white/5",
-                        "overflow-hidden",
-                      )}
-                    >
-                      <div className="p-4 border-b border-slate-200 dark:border-white/5 bg-slate-100/50 dark:bg-white/5">
-                        <span className="text-xs font-semibold text-slate-500">
-                          Recent Ledger Items
-                        </span>
-                      </div>
-
-                      <div className="divide-y divide-slate-200 dark:divide-white/5 max-h-[400px] overflow-y-auto">
-                        {allInvoices.filter(
-                          (i) => i.tenantId === selectedTenant.id,
-                        ).length > 0 ? (
-                          allInvoices
-                            .filter((i) => i.tenantId === selectedTenant.id)
-                            .map((inv: any) => (
-                              <div
-                                key={inv.id}
-                                className="p-4 flex flex-col gap-3 group hover:bg-slate-100 dark:hover:bg-white/5 transition-colors"
-                              >
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center gap-3">
-                                    <div
-                                      className={clsx(
-                                        "w-8 h-8 rounded-lg flex items-center justify-center",
-                                        inv.status === "PAID"
-                                          ? "bg-emerald-500/10 text-emerald-500"
-                                          : "bg-amber-500/10 text-amber-500",
-                                      )}
-                                    >
-                                      <PaymentIcon size={14} />
-                                    </div>
-                                    <div>
-                                      <p className="text-xs font-semibold text-charcoal dark:text-white tracking-tight">
-                                        {inv.invoiceNumber}
-                                      </p>
-                                      <p className="text-xs font-bold text-slate-500 dark:text-slate-400">
-                                        {inv.month} • Due{" "}
-                                        {new Date(
-                                          inv.dueDate,
-                                        ).toLocaleDateString()}
-                                      </p>
-                                    </div>
-                                  </div>
-                                  <div className="text-right">
-                                    <p className="text-xs font-semibold text-charcoal dark:text-white">
-                                      ₱{inv.amount.toLocaleString()}
-                                    </p>
-                                    <span
-                                      className={clsx(
-                                        "text-xs font-semibold px-1.5 py-0.5 rounded-sm",
-                                        inv.status === "PAID"
-                                          ? "bg-emerald-500/20 text-emerald-600"
-                                          : inv.status === "OVERDUE"
-                                            ? "bg-red-500/20 text-red-600"
-                                            : "bg-amber-500/20 text-amber-600",
-                                      )}
-                                    >
-                                      {inv.status === "REVIEWING" ? "PENDING" : inv.status}
-                                    </span>
-                                  </div>
-                                </div>
-
-                                {inv.status === "REVIEWING" &&
-                                  inv.depositSlipUrl && (
-                                    <div className="flex items-center gap-2 p-2 bg-amber-500/5 border border-amber-500/10 rounded-xl mt-2">
-                                      <a
-                                        href={inv.depositSlipUrl}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="flex-1 px-3 py-2 bg-white dark:bg-zinc-800 text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary rounded-lg text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 border border-slate-200 dark:border-white/5"
-                                      >
-                                        <Eye size={12} /> View Slip
-                                      </a>
-                                      <button
-                                        onClick={async () => {
-                                          try {
-                                            setToast({
-                                              msg: "Processing approval...",
-                                              type: "success",
-                                            });
-                                            const res =
-                                              await updateInvoiceStatus(
-                                                inv.id,
-                                                "PAID",
-                                              );
-                                            if (res.success) {
-                                              setToast({
-                                                msg: "Payment Cleared!",
-                                                type: "success",
-                                              });
-                                              loadTenants();
-                                            } else {
-                                              setToast({
-                                                msg: "Error: " + res.error,
-                                                type: "error",
-                                              });
-                                            }
-                                          } catch (e: any) {
-                                            setToast({
-                                              msg: "Error: " + e.message,
-                                              type: "error",
-                                            });
-                                          }
-                                        }}
-                                        className="flex-1 px-3 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-xs font-semibold shadow-md shadow-emerald-500/20 transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-1.5"
-                                      >
-                                        <CheckCircle size={12} /> Approve
-                                      </button>
-                                    </div>
-                                  )}
-
-                                {(inv.status === "PENDING" ||
-                                  inv.status === "OVERDUE") && (
-                                    <div className="mt-2 text-right">
-                                      <button
-                                        onClick={() => openCashPaymentModal(inv)}
-                                        className="px-4 py-2 bg-[#BE1E2D] hover:bg-[#a01825] text-white rounded-lg text-xs font-semibold shadow-md shadow-red-500/20 transition-all hover:scale-105 active:scale-95 inline-flex items-center gap-1.5"
-                                      >
-                                        <PhilippinePeso size={12} /> Record Cash
-                                        Payment
-                                      </button>
-                                    </div>
-                                  )}
-
-                                {inv.status === "PAID" && inv.referenceNo && (
-                                  <div className="mt-1 flex items-center gap-2 text-xs font-bold text-slate-400">
-                                    <FileText size={10} /> Ref:{" "}
-                                    {inv.referenceNo}
-                                  </div>
-                                )}
-                              </div>
-                            ))
-                        ) : (
-                          <div className="p-5 sm:p-10 text-center text-slate-400">
-                            <PaymentIcon
-                              size={32}
-                              className="mx-auto mb-3 opacity-20"
-                            />
-                            <p className="text-xs font-semibold">
-                              No ledger items found
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                </>
-                )}
-                {detailTab === "details" && (
-                <>
-                {/* Account Security & Compliance */}
-                <div className="pt-4 border-t border-slate-200 dark:border-white/5">
-                  <div className="bg-slate-900 border border-white/10 rounded-2xl p-5 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 bg-primary/20 rounded-xl flex items-center justify-center text-primary">
-                        <ShieldCheck size={20} />
-                      </div>
-                      <div>
-                        <p className="text-xs font-semibold text-white/40">
-                          Compliance Status
-                        </p>
-                        <p className="text-sm font-semibold text-white">
-                          Verified Authority
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1 text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded-full border border-emerald-500/20">
-                      <CheckCircle size={10} />
-                      <span className="text-xs font-semibold">
-                        Secure
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                </>
-                )}
-              </div>
-
-              {/* Approval Section for PENDING tenants */}
-              {selectedTenant.status === "PENDING" && (
-                <div
-                  className={clsx(
-                    "p-6",
-                    "border-t",
-                    "border-amber-200",
-                    "dark:border-amber-900/30",
-                    "bg-amber-50",
-                    "dark:bg-amber-900/10",
-                    "shrink-0",
-                    "space-y-4",
-                  )}
-                >
-                  <div
-                    className={clsx(
-                      "flex",
-                      "items-center",
-                      "gap-2",
-                      "text-amber-700",
-                      "dark:text-amber-400",
-                    )}
-                  >
-                    <CheckCircle size={18} />
-                    <span
-                      className={clsx(
-                        "font-bold",
-                        "text-sm",
-                      )}
-                    >
-                      Approve Application
-                    </span>
-                  </div>
-                  <p
-                    className={clsx(
-                      "text-xs",
-                      "text-slate-600",
-                      "dark:text-slate-400",
-                    )}
-                  >
-                    Assign a Unit ID to approve this merchant. This will change
-                    their account role to TENANT.
-                  </p>
-                  <select
-                    value={selectedUnitForApproval}
-                    onChange={(e) => setSelectedUnitForApproval(e.target.value)}
-                    className={clsx(
-                      "w-full",
-                      "p-3",
-                      "bg-white",
-                      "dark:bg-zinc-800",
-                      "border",
-                      "border-slate-200",
-                      "dark:border-white/10",
-                      "rounded-xl",
-                      "text-sm",
-                      "focus:ring-2",
-                      "focus:ring-primary",
-                      "focus:border-primary",
-                    )}
-                  >
-                    <option value="">Select Unit ID...</option>
-                    {availableSlots.map((slot) => (
-                      <option key={slot.unit_id} value={slot.unit_id}>
-                        {slot.unit_id} - {slot.sqm_size} sqm
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    onClick={() => handleApproveTenant(selectedTenant.id)}
-                    disabled={
-                      isApproving === selectedTenant.id ||
-                      !selectedUnitForApproval
-                    }
-                    className={clsx(
-                      "w-full",
-                      "py-3",
-                      "font-semibold",
-                      "text-xs",
-                      "rounded-xl",
-                      "transition-all",
-                      "flex",
-                      "items-center",
-                      "justify-center",
-                      "gap-2",
-                      isApproving === selectedTenant.id ||
-                        !selectedUnitForApproval
-                        ? "bg-slate-200 dark:bg-zinc-700 text-slate-400 cursor-not-allowed"
-                        : "bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg hover:scale-[1.02]",
-                    )}
-                  >
-                    {isApproving === selectedTenant.id ? (
-                      <>
-                        <RefreshCw size={16} className="animate-spin" />{" "}
-                        Approving...
-                      </>
-                    ) : (
-                      <>
-                        <CheckCircle size={16} /> Approve & Assign Unit
-                      </>
-                    )}
-                  </button>
-                </div>
-              )}
-
-              {/* Modal Footer */}
-              <div
-                className={clsx(
-                  "p-6",
-                  "border-t",
-                  "border-slate-200",
-                  "dark:border-white/5",
-                  "bg-slate-50",
-                  "dark:bg-zinc-900",
-                  "shrink-0",
-                  "space-y-3",
-                )}
-              >
-                <button
-                  onClick={handlePostMonthlyBill}
-                  className={clsx(
-                    "w-full",
-                    "h-14",
-                    "bg-[#BE1E2D]",
-                    "text-white",
-                    "rounded-2xl",
-                    "font-semibold",
-                    "text-xs",
-                    "hover:bg-[#a01825]",
-                    "transition-colors",
-                    "flex",
-                    "items-center",
-                    "justify-center",
-                    "gap-2",
-                    "shadow-lg",
-                    "shadow-red-500/20",
-                  )}
-                >
-                  <Receipt size={16} /> Post Monthly Bill
-                </button>
-                <div className={clsx("grid", "grid-cols-2", "gap-3")}>
-                  <button
-                    onClick={handleViewDocuments}
-                    className={clsx(
-                      "py-2.5",
-                      "bg-white",
-                      "dark:bg-zinc-800",
-                      "border",
-                      "border-slate-200",
-                      "dark:border-white/10",
-                      "text-slate-600",
-                      "dark:text-slate-300",
-                      "font-bold",
-                      "text-xs",
-                      "rounded-xl",
-                      "hover:bg-slate-50",
-                      "dark:hover:bg-zinc-700",
-                      "transition-colors",
-                      "flex",
-                      "items-center",
-                      "justify-center",
-                      "gap-2",
-                    )}
-                  >
-                    <FileText size={14} /> Documents
-                  </button>
-                  <button
-                    onClick={() => setTenantToDelete(selectedTenant)}
-                    className={clsx(
-                      "py-2.5",
-                      "bg-red-50",
-                      "dark:bg-red-900/10",
-                      "border",
-                      "border-red-200",
-                      "dark:border-red-900/30",
-                      "text-red-600",
-                      "font-bold",
-                      "text-xs",
-                      "rounded-xl",
-                      "hover:bg-red-100",
-                      "dark:hover:bg-red-900/20",
-                      "transition-colors",
-                      "flex",
-                      "items-center",
-                      "justify-center",
-                      "gap-2",
-                    )}
-                  >
-                    <Trash2 size={14} /> Delete
-                  </button>
-                </div>
-              </div>
+      {/* Report downloads */}
+      <AdminDialog
+        open={isReportOpen}
+        onClose={() => setIsReportOpen(false)}
+        title="Download tenant reports"
+        description="Choose a month, a year, or all records. Each downloads as a PDF."
+      >
+        <div className="space-y-5">
+          <section className="space-y-3 rounded-lg border border-kumo-line p-4">
+            <h3 className="text-sm font-semibold text-kumo-default">Monthly report</h3>
+            <div className="grid grid-cols-2 gap-2">
+              <Choice label="Month" value={String(reportMonth)} items={monthItems} onChange={(v) => setReportMonth(Number(v))} className="w-full" />
+              <Choice label="Year" value={String(reportYear)} items={YEARS} onChange={(v) => setReportYear(Number(v))} className="w-full" />
             </div>
+            <Button variant="primary" icon={<DownloadSimple />} loading={isExporting} onClick={handleExportMonthlyReport}>
+              Download {MONTH_NAMES[reportMonth]} {reportYear}
+            </Button>
+          </section>
+          <section className="space-y-3 rounded-lg border border-kumo-line p-4">
+            <h3 className="text-sm font-semibold text-kumo-default">Yearly report</h3>
+            <Choice
+              label="Report year"
+              value={String(reportYearFilter)}
+              items={YEARS}
+              onChange={(v) => setReportYearFilter(Number(v))}
+              className="w-full"
+            />
+            <Button variant="primary" icon={<DownloadSimple />} loading={isExporting} onClick={handleExportYearlyReport}>
+              Download {reportYearFilter}
+            </Button>
+          </section>
+          <Button variant="secondary" icon={<FileText />} disabled={isExporting} onClick={handleExportReport}>
+            Download all-time report
+          </Button>
+        </div>
+      </AdminDialog>
+
+      {/* One tenant: hidden while a bill, document, payment or delete window is open above it. */}
+      <AdminDialog
+        open={!!selectedTenant && !subDialogOpen}
+        onClose={() => setSelectedTenant(null)}
+        size="lg"
+        title={selectedTenant?.shopName ?? ""}
+        description={selectedTenant ? unitsText(selectedTenant) : undefined}
+      >
+        {selectedTenant && (
+          <div className="space-y-5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <Person
+                square
+                name={selectedTenant.user?.name || selectedTenant.user?.email || "No owner on file"}
+                detail={selectedTenant.user?.email}
+                image={selectedTenant.logoUrl}
+              />
+              <TenantStatus status={selectedTenant.status} />
+            </div>
+            {selectedTenant.description && <p className="text-sm text-kumo-subtle">{selectedTenant.description}</p>}
+
+            <div className="flex flex-wrap gap-2">
+              <Button variant="primary" icon={<Receipt />} onClick={handlePostMonthlyBill}>
+                Post Monthly Bill
+              </Button>
+              <Button variant="secondary" icon={<ChatCircle />} onClick={handleSendMessage}>
+                Message
+              </Button>
+              <Button variant="secondary" icon={<FileText />} onClick={handleViewDocuments}>
+                Documents
+              </Button>
+              <Button variant="secondary-destructive" icon={<Trash />} className="ml-auto" onClick={() => setTenantToDelete(selectedTenant)}>
+                Delete
+              </Button>
+            </div>
+
+            {selectedTenant.status === "PENDING" && (
+              <section className="space-y-3 rounded-lg border border-kumo-line bg-kumo-recessed p-4">
+                <div>
+                  <h3 className="text-sm font-semibold text-kumo-default">Approve Application</h3>
+                  <p className="text-sm text-kumo-subtle">
+                    Assign a unit to approve this merchant. This changes their account role to Tenant.
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Choice
+                    label="Unit to assign"
+                    value={selectedUnitForApproval || "none"}
+                    items={{
+                      none: "Select a unit",
+                      ...Object.fromEntries(availableSlots.map((slot) => [slot.unit_id, `${slot.unit_id}, ${slot.sqm_size} sqm`])),
+                    }}
+                    onChange={(v) => setSelectedUnitForApproval(v === "none" ? "" : v)}
+                    className="w-60"
+                  />
+                  <Button
+                    variant="primary"
+                    loading={isApproving === selectedTenant.id}
+                    disabled={!selectedUnitForApproval}
+                    onClick={() => handleApproveTenant(selectedTenant.id)}
+                  >
+                    Approve &amp; Assign Unit
+                  </Button>
+                </div>
+              </section>
+            )}
+
+            <PageTabs
+              value={detailTab}
+              onValueChange={(v) => setTabChoice({ id: selectedTenant.id, tab: v as "details" | "payments" })}
+              tabs={[
+                { value: "details", label: "Details" },
+                { value: "payments", label: selectedTenant.hasSlipToVerify ? "Payments (slip to check)" : "Payments" },
+              ]}
+            />
+
+            {detailTab === "details" ? (
+              <div className="space-y-3">
+                <LeaseList tenant={selectedTenant} />
+                <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  <Fact label={tfDetails.rentColumnTitle}>{rentText(selectedTenant, multiplier)}</Fact>
+                  <Fact label="Rating">{(selectedTenant.metrics?.rating || 0).toFixed(1)} out of 5</Fact>
+                  <Fact label="Reviews">{selectedTenant.metrics?.inquiries || 0}</Fact>
+                  {!!selectedTenant.violations && <Fact label="Violations">{selectedTenant.violations}</Fact>}
+                </dl>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <dl className="grid grid-cols-2 gap-3">
+                  <Fact label="Total paid">{money(sumOf(tenantBills, true))}</Fact>
+                  <Fact label="Outstanding">{money(sumOf(tenantBills, false))}</Fact>
+                </dl>
+                {tenantBills.length === 0 ? (
+                  <p className="rounded-lg border border-kumo-line p-4 text-center text-sm text-kumo-subtle">No bills yet.</p>
+                ) : (
+                  <ul className="divide-y divide-kumo-line rounded-lg border border-kumo-line">
+                    {tenantBills.map((inv: any) => (
+                      <li key={inv.id} className="space-y-2 p-3">
+                        <BillLine invoice={inv} />
+                        <div className="flex flex-wrap justify-end gap-2">
+                          {inv.status === "REVIEWING" && inv.depositSlipUrl && (
+                            <>
+                              <SlipLink url={inv.depositSlipUrl} />
+                              <Button size="sm" variant="primary" onClick={() => approveSlip(inv.id)}>
+                                Approve
+                              </Button>
+                            </>
+                          )}
+                          {(inv.status === "PENDING" || inv.status === "OVERDUE") && (
+                            <Button size="sm" variant="primary" onClick={() => openCashPaymentModal(inv)}>
+                              Record Cash Payment
+                            </Button>
+                          )}
+                        </div>
+                        {inv.status === "PAID" && inv.referenceNo && (
+                          <p className="text-xs text-kumo-subtle">Reference {inv.referenceNo}</p>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
           </div>
         )}
-      </div>
+      </AdminDialog>
+
+      {/* Post a bill */}
+      <AdminDialog
+        open={isBillModalOpen && !!selectedTenant}
+        onClose={() => setIsBillModalOpen(false)}
+        title="Post Monthly Bill"
+        description={selectedTenant?.shopName}
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setIsBillModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="primary" loading={saving} onClick={handleSubmitBill}>
+              Post Bill
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <Input
+            label="Amount to bill (PHP)"
+            description={
+              !selectedTenant?.rentCost
+                ? "No rent is saved for this tenant. Type the amount."
+                : selectedTenant.units.length > 1
+                  ? `Recorded against Unit ${selectedTenant.units[0]}, filled in with that unit's rent.`
+                  : undefined
+            }
+            type="number"
+            value={billFormData.amount}
+            onChange={(e) => setBillFormData({ ...billFormData, amount: Number(e.target.value) })}
+            className="w-full"
+          />
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              label="Billing month"
+              placeholder="e.g. Nov 2026"
+              value={billFormData.month}
+              onChange={(e) => setBillFormData({ ...billFormData, month: e.target.value })}
+            />
+            <Input
+              label="Due date"
+              type="date"
+              value={billFormData.dueDate}
+              onChange={(e) => setBillFormData({ ...billFormData, dueDate: e.target.value })}
+            />
+          </div>
+          <InputArea
+            label="Description"
+            rows={2}
+            value={billFormData.description}
+            onValueChange={(v) => setBillFormData({ ...billFormData, description: v })}
+            className="w-full"
+          />
+        </div>
+      </AdminDialog>
+
+      {/* Documents and receipts */}
+      <AdminDialog
+        open={isDocumentsModalOpen && !!selectedTenant}
+        onClose={() => setIsDocumentsModalOpen(false)}
+        size="lg"
+        title="Tenant documents and records"
+        description={selectedTenant ? `${selectedTenant.shopName}, ${unitsText(selectedTenant)}` : undefined}
+        footer={
+          <Button variant="secondary" onClick={() => setIsDocumentsModalOpen(false)}>
+            Close
+          </Button>
+        }
+      >
+        {selectedTenant && (
+          <div className="space-y-6">
+            <section className="space-y-3">
+              <h3 className="text-sm font-semibold text-kumo-default">Lease agreement and voucher</h3>
+              <LeaseList
+                tenant={selectedTenant}
+                action={(lease) => (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    icon={<DownloadSimple />}
+                    loading={generatingDoc === `voucher-${lease.unitId}`}
+                    onClick={() => handleDownloadVoucher(selectedTenant, lease)}
+                  >
+                    Download Lease PDF
+                  </Button>
+                )}
+              />
+            </section>
+
+            <section className="space-y-2">
+              <h3 className="text-sm font-semibold text-kumo-default">
+                Receipts and invoices ({tenantBills.length})
+              </h3>
+              {tenantBills.length === 0 ? (
+                <p className="rounded-lg border border-kumo-line p-4 text-center text-sm text-kumo-subtle">
+                  Posted invoices and official payments will be listed here.
+                </p>
+              ) : (
+                <ul className="max-h-72 divide-y divide-kumo-line overflow-y-auto rounded-lg border border-kumo-line">
+                  {tenantBills.map((inv: any) => (
+                    <li key={inv.id} className="space-y-2 p-3">
+                      <BillLine invoice={inv} />
+                      {(inv.depositSlipUrl || inv.status === "PAID") && (
+                        <div className="flex flex-wrap justify-end gap-2">
+                          {inv.depositSlipUrl && <SlipLink url={inv.depositSlipUrl} />}
+                          {inv.status === "PAID" && (
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              icon={<DownloadSimple />}
+                              loading={generatingDoc === `receipt-${inv.id}`}
+                              onClick={() => handleDownloadReceipt(inv, selectedTenant)}
+                            >
+                              Official Receipt
+                            </Button>
+                          )}
+                        </div>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+
+            <section className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-kumo-line p-4">
+              <div className="min-w-0">
+                <h3 className="text-sm font-semibold text-kumo-default">Tenant report</h3>
+                <p className="text-sm text-kumo-subtle">Space, rent, balance and ratings in one PDF.</p>
+              </div>
+              <Button
+                variant="secondary"
+                icon={<DownloadSimple />}
+                loading={generatingDoc === "summary"}
+                onClick={() => handleDownloadTenantSummary(selectedTenant)}
+              >
+                Export Report
+              </Button>
+            </section>
+          </div>
+        )}
+      </AdminDialog>
+
+      {/* Delete confirmation */}
+      <AdminDialog
+        open={!!tenantToDelete}
+        onClose={() => !isDeletingTenant && setTenantToDelete(null)}
+        size="sm"
+        title="Delete Tenant"
+        description="This can't be undone."
+        footer={
+          <>
+            <Button variant="secondary" disabled={isDeletingTenant} onClick={() => setTenantToDelete(null)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" loading={isDeletingTenant} onClick={handleConfirmDelete}>
+              Confirm Delete
+            </Button>
+          </>
+        }
+      >
+        {tenantToDelete && (
+          <div className="space-y-3 text-sm text-kumo-default">
+            <p>
+              Are you sure you want to delete <strong>{tenantToDelete.shopName}</strong>?
+            </p>
+            <ul className="list-disc space-y-1 pl-5 text-kumo-subtle">
+              <li>The tenant profile and its invoices are permanently deleted.</li>
+              <li>A summary (unit, lease dates, payments) is kept in User Management, Tenant History.</li>
+              <li>{unitsText(tenantToDelete)} is released and becomes available.</li>
+              <li>The merchant account goes back to a customer account.</li>
+            </ul>
+          </div>
+        )}
+      </AdminDialog>
     </>
   );
 }
 
+const money = (n: number) =>
+  `₱${Number(n || 0).toLocaleString("en-PH", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
 
-type FilterOption = { value: string; label: string; /** Tailwind bg class for the colour dot */ dot?: string };
+const unitsText = (t: { units: string[] }) => {
+  const units = t.units.filter((u) => u !== UNASSIGNED_UNIT && u !== "PENDING");
+  return units.length ? `Unit ${units.join(", ")}` : "No unit yet";
+};
 
-/**
- * Labelled filter dropdown used in the Tenant Monitoring control bar.
- * A custom menu instead of a native <select>, so the open list follows the
- * app's light/dark theme (native option lists render white in dark mode).
- */
-function FilterSelect({
+/** Rent for the chosen period, or "Not set" when none is recorded. */
+const rentText = (t: { rentCost?: number; rentSource: string }, multiplier: number) =>
+  t.rentSource === "none" ? "Not set" : money(Math.round((t.rentCost || 0) * multiplier));
+
+/** One row per leased unit: its rent and real dates. */
+function LeaseList({ tenant, action }: { tenant: Tenant; action?: (lease: RentLease) => React.ReactNode }) {
+  if (!tenant.leases.length) {
+    return (
+      <p className="rounded-lg border border-kumo-line p-4 text-sm text-kumo-subtle">
+        No lease on record, so there are no lease dates.
+        {tenant.rentSource === "listed" ? ` The unit's listed rent is ${money(tenant.rentCost || 0)} a month.` : ""}
+      </p>
+    );
+  }
+  return (
+    <ul className="divide-y divide-kumo-line rounded-lg border border-kumo-line">
+      {tenant.leases.map((lease) => (
+        <li key={lease.unitId} className="flex flex-wrap items-center justify-between gap-3 p-3">
+          <div>
+            <p className="text-sm font-semibold text-kumo-default">
+              Unit {lease.unitId}, {money(lease.monthlyRent)} a month
+            </p>
+            <p className="text-sm text-kumo-subtle">
+              Started {formatPHDate(lease.startDate)}, paid through {formatPHDate(lease.endDate)}
+            </p>
+          </div>
+          {action?.(lease)}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+const sumOf = (bills: any[], paid: boolean) =>
+  bills.filter((i) => (i.status === "PAID") === paid).reduce((sum, i) => sum + i.amount, 0);
+
+/** A labelled Kumo dropdown. `items` maps each value to the text shown. */
+function Choice({
   label,
   value,
-  options,
+  items,
   onChange,
-  icon,
+  className,
 }: {
   label: string;
   value: string;
-  options: FilterOption[];
+  items: Record<string, string>;
   onChange: (value: string) => void;
-  icon?: React.ReactNode;
+  className?: string;
 }) {
-  const [open, setOpen] = useState(false);
-  const [highlight, setHighlight] = useState(0);
-  const rootRef = useRef<HTMLDivElement>(null);
-  const listRef = useRef<HTMLUListElement>(null);
-  const active = value !== "all" && label !== "Period";
-  const selected = options.find((o) => o.value === value) ?? options[0];
-  const listId = `filter-${label.toLowerCase()}-list`;
-
-  useEffect(() => {
-    if (!open) return;
-    setHighlight(Math.max(0, options.findIndex((o) => o.value === value)));
-    const onDown = (e: MouseEvent) => {
-      if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener("mousedown", onDown);
-    return () => document.removeEventListener("mousedown", onDown);
-  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    if (open) listRef.current?.children[highlight]?.scrollIntoView({ block: "nearest" });
-  }, [open, highlight]);
-
-  const choose = (v: string) => {
-    onChange(v);
-    setOpen(false);
-  };
-
-  const onKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Escape") return setOpen(false);
-    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
-      e.preventDefault();
-      if (!open) return setOpen(true);
-      const step = e.key === "ArrowDown" ? 1 : -1;
-      setHighlight((h) => (h + step + options.length) % options.length);
-    }
-    if ((e.key === "Enter" || e.key === " ") && open) {
-      e.preventDefault();
-      choose(options[highlight].value);
-    }
-  };
-
   return (
-    <div ref={rootRef} className="relative" onKeyDown={onKeyDown}>
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        aria-controls={listId}
-        aria-label={`${label}: ${selected?.label}`}
-        className={clsx(
-          "flex items-center gap-2 h-10 pl-3.5 pr-3 rounded-xl border transition-all focus:outline-hidden focus-visible:ring-2 focus-visible:ring-primary/40",
-          active
-            ? "bg-primary/10 border-primary/30 dark:bg-primary/15"
-            : "bg-white dark:bg-zinc-900 border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20",
-          open && "border-primary/40 ring-2 ring-primary/15",
-        )}
-      >
-        {icon && <span className={active ? "text-primary" : "text-slate-500 dark:text-slate-400"}>{icon}</span>}
-        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">{label}</span>
-        <span className="h-4 w-px bg-slate-200 dark:bg-white/10" />
-        {selected?.dot && <span className={clsx("w-2 h-2 rounded-full shrink-0", selected.dot)} />}
-        <span className={clsx("text-sm font-bold whitespace-nowrap", active ? "text-primary" : "text-charcoal dark:text-white")}>
-          {selected?.label}
-        </span>
-        <ChevronDown
-          size={14}
-          className={clsx("ml-0.5 transition-transform duration-200", open && "rotate-180", active ? "text-primary" : "text-slate-400")}
-        />
-      </button>
+    <Select
+      aria-label={label}
+      value={value}
+      items={items}
+      onValueChange={(v) => v != null && onChange(v as string)}
+      className={className}
+    >
+      {Object.entries(items).map(([key, text]) => (
+        <Select.Option key={key} value={key}>
+          {text}
+        </Select.Option>
+      ))}
+    </Select>
+  );
+}
 
-      {open && (
-        <ul
-          ref={listRef}
-          id={listId}
-          role="listbox"
-          aria-label={label}
-          className="absolute left-0 top-full mt-2 z-50 min-w-full w-max max-w-[16rem] max-h-72 overflow-y-auto p-1.5 rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-zinc-900 shadow-xl shadow-black/10 dark:shadow-black/50 animate-fade-in"
-        >
-          {options.map((o, i) => {
-            const isSelected = o.value === value;
-            return (
-              <li
-                key={o.value}
-                role="option"
-                aria-selected={isSelected}
-                onMouseEnter={() => setHighlight(i)}
-                onClick={() => choose(o.value)}
-                className={clsx(
-                  "flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm cursor-pointer select-none transition-colors",
-                  isSelected ? "font-semibold text-primary" : "font-semibold text-charcoal dark:text-slate-200",
-                  i === highlight && (isSelected ? "bg-primary/10" : "bg-slate-100 dark:bg-white/5"),
-                )}
-              >
-                <span className={clsx("w-2 h-2 rounded-full shrink-0", o.dot ?? "bg-transparent border border-slate-300 dark:border-white/20")} />
-                <span className="flex-1 whitespace-nowrap">{o.label}</span>
-                <Check size={14} className={clsx("shrink-0", isSelected ? "text-primary" : "invisible")} />
-              </li>
-            );
-          })}
-        </ul>
-      )}
+function TenantStatus({ status }: { status: string }) {
+  const s = STATUS_TEXT[status] ?? STATUS_TEXT.INACTIVE;
+  return <span className={cn("whitespace-nowrap text-sm font-medium", s.className)}>{s.label}</span>;
+}
+
+function Fact({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="rounded-lg border border-kumo-line p-3">
+      <dt className="text-xs text-kumo-subtle">{label}</dt>
+      <dd className="mt-1 text-sm font-semibold text-kumo-default">{children === 0 ? 0 : children || "-"}</dd>
     </div>
+  );
+}
+
+function BillLine({ invoice: inv }: { invoice: any }) {
+  const status = inv.status === "REVIEWING" ? "Checking slip" : inv.status.charAt(0) + inv.status.slice(1).toLowerCase();
+  return (
+    <div className="flex items-start justify-between gap-3">
+      <div className="min-w-0">
+        <p className="text-sm font-medium text-kumo-default">{inv.invoiceNumber}</p>
+        <p className="text-sm text-kumo-subtle">
+          {inv.month}, due {new Date(inv.dueDate).toLocaleDateString()}
+        </p>
+      </div>
+      <div className="shrink-0 text-right">
+        <p className="text-sm font-semibold tabular-nums text-kumo-default">{money(inv.amount)}</p>
+        <p
+          className={cn(
+            "text-sm font-medium",
+            inv.status === "PAID" ? "text-kumo-success" : inv.status === "OVERDUE" ? "text-kumo-danger" : "text-kumo-warning",
+          )}
+        >
+          {status}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function SlipLink({ url }: { url: string }) {
+  return (
+    <a href={url} target="_blank" rel="noopener noreferrer" className="self-center text-sm font-medium text-kumo-link hover:underline">
+      View deposit slip
+    </a>
   );
 }

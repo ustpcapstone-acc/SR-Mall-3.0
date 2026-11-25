@@ -1,38 +1,9 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import {
-  User,
-  Store,
-  CheckCircle2,
-  XCircle,
-  Loader2,
-  Mail,
-  ExternalLink,
-  MapPin,
-  Calendar as CalendarIcon,
-  Clock,
-  ChevronLeft,
-  ChevronRight,
-  X,
-  MessageSquare,
-  ShieldAlert,
-  AlertTriangle,
-  Building,
-  Bookmark,
-  Sparkles,
-  Search,
-  Filter,
-  ChevronDown,
-  Save,
-  MoreVertical,
-  ArrowRight,
-  Monitor,
-  FileText,
-} from "lucide-react";
-import {
-  upsertAreaSlot,
-} from "@/app/actions/space-slot";
+import { Button, InputArea, Table, cn } from "@cloudflare/kumo";
+import { ArrowClockwise, CaretLeft, CaretRight, FileText } from "@phosphor-icons/react";
+import { AdminDialog, AdminPage, EmptyNote, Panel, Person, Stat, StatRow, PageTabs } from "@/components/admin/page-kit";
 import {
   updateInquiryStatusAction,
 } from "@/app/actions/inquiry";
@@ -41,7 +12,6 @@ import { useLiveSlots } from "@/lib/slot-live";
 import { DashboardSkeleton } from "@/components/dashboard-skeleton";
 import { toast } from "sonner";
 import { ReservationDecisionModal } from "@/components/admin/reservation-decision-modal";
-import clsx from "clsx";
 
 // Calendar Helpers
 const getDaysInMonth = (year: number, month: number) =>
@@ -225,610 +195,308 @@ export default function MasterBookingsPage() {
     return <DashboardSkeleton />;
   }
 
-  const tabs = [
-    {
-      id: "event",
-      label: "Event Bookings",
-      icon: CalendarIcon,
-      count: pendingEvents.length,
-    },
-    {
-      id: "reservation",
-      label: "Space Reservations",
-      icon: Bookmark,
-      count: reservedSlots.length,
-    },
-  ];
+  const upcoming = acceptedEvents.filter((i) => new Date(i.eventDate).getTime() >= Date.now() - 864e5);
+  const urgentReservations = reservedSlots.filter((r: any) => r.isUrgent).length;
+  const eventsThisMonth = days.reduce((sum, d) => sum + getEventsForDay(d).length, 0);
+  const shortDate = (value: string) =>
+    new Date(value).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 
   return (
-    <div className="p-4 md:p-8 lg:p-10 animate-fade-in-up space-y-10 min-h-screen max-w-[1800px] mx-auto">
-      {/* Premium Header */}
-      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 pb-8 border-b border-slate-200 dark:border-white/10">
-        <div className="space-y-4">
-          <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-charcoal dark:text-white">
-            Bookings and Reservations
-          </h1>
-          <p className="text-slate-500 font-medium max-w-2xl text-lg">
-            Manage event inquiries and space reservations in one place.
-          </p>
-        </div>
+    <AdminPage
+      title="Bookings and Reservations"
+      description="Manage event inquiries and space reservations in one place."
+      actions={
+        <Button variant="secondary" icon={<ArrowClockwise />} loading={isSyncing} onClick={() => loadData(true)}>
+          Refresh
+        </Button>
+      }
+    >
+      <StatRow>
+        <Stat
+          label="Event requests waiting"
+          value={pendingEvents.length}
+          tone={pendingEvents.length ? "warning" : "default"}
+          onClick={() => setActiveTab("event")}
+        />
+        <Stat label="Approved events ahead" value={upcoming.length} onClick={() => setActiveTab("event")} />
+        <Stat
+          label="Reservations waiting"
+          value={reservedSlots.length}
+          tone={reservedSlots.length ? "warning" : "default"}
+          onClick={() => setActiveTab("reservation")}
+        />
+        <Stat
+          label="Expiring within 6 hours"
+          value={urgentReservations}
+          tone={urgentReservations ? "danger" : "default"}
+          onClick={() => setActiveTab("reservation")}
+        />
+      </StatRow>
 
-        <div className="flex items-center gap-4">
-          {isSyncing && (
-            <div className="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-zinc-800 rounded-full animate-pulse">
-              <Loader2 size={12} className="animate-spin text-primary" />
-              <span className="text-xs font-semibold text-slate-500">
-                Live Sync
-              </span>
-            </div>
-          )}
-          <div className="h-10 w-px bg-slate-200 dark:bg-white/10 hidden md:block mx-2" />
-          <button
-            onClick={() => loadData(true)}
-            className="p-4 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-2xl text-slate-500 dark:text-slate-400 hover:text-primary transition-all shadow-xs"
+      <PageTabs
+        value={activeTab}
+        onValueChange={(v) => setActiveTab(v as "event" | "reservation")}
+        tabs={[
+          { value: "event", label: `Event Bookings (${pendingEvents.length})` },
+          { value: "reservation", label: `Space Reservations (${reservedSlots.length})` },
+        ]}
+      />
+
+      {activeTab === "event" && (
+        <div className="grid items-start gap-6 xl:grid-cols-5">
+          <Panel
+            className="xl:col-span-3"
+            title="Event requests"
+            description={`${pendingEvents.length} waiting for a decision`}
+            flush
           >
-            <Monitor size={20} />
-          </button>
-        </div>
-      </div>
-
-      {/* Modern Tabs */}
-      <div className="bg-white dark:bg-zinc-900/50 p-2 rounded-2xl border border-slate-200 dark:border-white/5 flex flex-wrap gap-2 w-fit max-w-full shadow-xs">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id as any)}
-            className={clsx(
-              "flex items-center gap-3 px-4 sm:px-8 py-3 sm:py-4 rounded-2xl transition-all relative whitespace-nowrap active:scale-95",
-              activeTab === tab.id
-                ? "bg-primary text-white shadow-xl shadow-primary/25"
-                : "text-slate-400 hover:text-charcoal dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5",
-            )}
-          >
-            <tab.icon size={18} />
-            <span className="text-xs font-semibold">
-              {tab.label}
-            </span>
-            {tab.count > 0 && (
-              <span
-                className={clsx(
-                  "px-2 py-0.5 rounded-full text-xs font-bold border",
-                  activeTab === tab.id
-                    ? "bg-white text-primary border-white"
-                    : "bg-primary/10 text-primary border-primary/20",
-                )}
-              >
-                {tab.count}
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
-
-      {/* Dynamic Content Area */}
-      <main className="animate-fade-in group">
-        {activeTab === "event" && (
-          <div className="grid grid-cols-1 xl:grid-cols-5 gap-10">
-            {/* Inquiry List */}
-            <div className="xl:col-span-3 space-y-8">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold text-charcoal dark:text-white tracking-tight">
-                  Event requests
-                </h2>
-                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                  {pendingEvents.length} waiting for a decision
-                </span>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {pendingEvents.length === 0 ? (
-                  <div className="md:col-span-2 py-14 sm:py-32 text-center bg-white dark:bg-zinc-900 rounded-2xl border-2 border-dashed border-slate-100 dark:border-white/5">
-                    <CalendarIcon
-                      size={48}
-                      className="text-slate-200 mx-auto mb-4"
-                    />
-                    <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                      No event requests waiting
-                    </p>
-                  </div>
-                ) : (
-                  pendingEvents.map((inq) => (
-                    <div
-                      key={inq.id}
-                      className="bg-white dark:bg-zinc-900 p-5 sm:p-8 rounded-2xl border border-slate-100 dark:border-white/5 flex flex-col justify-between group/card hover:shadow-2xl hover:shadow-primary/5 transition-all duration-500 group-hover:blur-[2px] hover:!blur-0"
-                    >
-                      <div>
-                        <div className="flex justify-between items-start mb-6">
-                          <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary">
-                            <Clock size={20} />
-                          </div>
-                          <div className="text-right">
-                            <p className="text-xs font-semibold text-charcoal dark:text-white">
-                              {new Date(inq.eventDate).toLocaleDateString(
-                                "en-US",
-                                {
-                                  month: "short",
-                                  day: "numeric",
-                                  year: "numeric",
-                                },
-                              )}
-                            </p>
-                            <p className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-1">
-                              {inq.eventTime}
-                            </p>
-                          </div>
+            {pendingEvents.length === 0 ? (
+              <EmptyNote title="No event requests waiting">New inquiries from customers will appear here.</EmptyNote>
+            ) : (
+              <ul className="divide-y divide-kumo-line">
+                {pendingEvents.map((inq) => {
+                  const date = new Date(inq.eventDate);
+                  return (
+                    <li key={inq.id} className="space-y-3 p-4 sm:p-5">
+                      <div className="flex gap-4">
+                        <div
+                          aria-hidden
+                          className="flex w-14 shrink-0 flex-col items-center justify-center self-start rounded-lg bg-kumo-recessed py-2"
+                        >
+                          <span className="text-xs text-kumo-subtle">{date.toLocaleDateString("en-US", { month: "short" })}</span>
+                          <span className="text-xl font-semibold tabular-nums text-kumo-default">{date.getDate()}</span>
                         </div>
-                        <span className="px-2 py-1 bg-primary text-white text-xs font-semibold rounded-sm mb-3 inline-block">
-                          {inq.eventType}
-                        </span>
-                        <h3 className="text-xl font-semibold text-charcoal dark:text-white tracking-tight leading-tight">
-                          {inq.user?.name || "Anonymous User"}
-                        </h3>
-                        <p className="text-xs text-slate-500 font-bold mt-1 mb-6">
-                          {inq.user?.email}
-                        </p>
-                        <div className="p-4 bg-slate-50 dark:bg-black rounded-2xl border border-slate-100 dark:border-white/5 mb-8">
-                          <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 flex items-center gap-2">
-                            <MessageSquare size={12} /> Inquiry Message
+                        <div className="min-w-0 flex-1">
+                          <h3 className="text-base font-semibold text-kumo-default">{inq.eventType}</h3>
+                          <p className="text-sm text-kumo-subtle">
+                            {shortDate(inq.eventDate)}, {inq.eventTime}
                           </p>
-                          <p className="text-xs text-charcoal dark:text-white/80 leading-relaxed line-clamp-2">
-                            "{inq.message || "No contextual message provided."}"
+                          <p className="mt-1 break-words text-sm text-kumo-default">
+                            {inq.user?.name || "Anonymous User"}
+                            {inq.user?.email ? <span className="text-kumo-subtle">, {inq.user.email}</span> : null}
                           </p>
-                          {inq.imageUrl && (
-                            <div className="mt-4 pt-4 border-t border-slate-200 dark:border-white/5">
-                              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2 flex items-center gap-2">
-                                <Sparkles size={12} /> Attached Image
-                              </p>
-                              <div className="aspect-video w-full rounded-xl overflow-hidden bg-slate-100 dark:bg-zinc-800">
-                                <img
-                                  src={inq.imageUrl}
-                                  alt="Inquiry Attachment"
-                                  className="w-full h-full object-cover"
-                                />
-                              </div>
-                            </div>
-                          )}
                         </div>
                       </div>
-                      <div className="flex gap-3">
-                        <button
-                          onClick={() =>
-                            handleEventActionClick(inq, "ACCEPTED")
-                          }
-                          className="flex-1 py-4 bg-emerald-500 text-white rounded-2xl font-semibold text-xs shadow-lg shadow-emerald-500/20 hover:scale-105 active:scale-95 transition-all"
-                        >
-                          Secure
-                        </button>
-                        <button
-                          onClick={() =>
-                            handleEventActionClick(inq, "REJECTED")
-                          }
-                          className="flex-1 py-4 border border-slate-200 dark:border-white/10 text-slate-500 hover:text-red-500 rounded-2xl font-semibold text-xs active:scale-95 transition-all"
-                        >
-                          Deny
-                        </button>
+                      <p className="rounded-lg bg-kumo-recessed p-3 text-sm text-kumo-default">
+                        {inq.message || "No message provided."}
+                      </p>
+                      {inq.imageUrl && (
+                        <a href={inq.imageUrl} target="_blank" rel="noreferrer" className="block max-w-xs">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={inq.imageUrl}
+                            alt="Image attached to the inquiry"
+                            className="aspect-video w-full rounded-lg border border-kumo-line object-cover"
+                          />
+                        </a>
+                      )}
+                      <div className="flex justify-end gap-2">
+                        <Button variant="secondary-destructive" onClick={() => handleEventActionClick(inq, "REJECTED")}>
+                          Reject
+                        </Button>
+                        <Button variant="primary" onClick={() => handleEventActionClick(inq, "ACCEPTED")}>
+                          Approve
+                        </Button>
                       </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </Panel>
 
-            {/* Master Schedule Calendar */}
-            <div className="xl:col-span-2 space-y-8">
-              <h2 className="text-xl font-semibold text-charcoal dark:text-white tracking-tight">
-                Event calendar
-              </h2>
-              <div className="bg-white dark:bg-zinc-900 rounded-2xl p-5 sm:p-10 border border-slate-100 dark:border-white/5 shadow-xs">
-                <div className="flex items-center justify-between mb-10">
-                  <button
-                    onClick={handlePrevMonth}
-                    className="p-3 bg-slate-100 dark:bg-white/5 rounded-2xl text-slate-500 hover:text-charcoal dark:hover:text-white transition-all"
-                  >
-                    <ChevronLeft size={20} />
-                  </button>
-                  <div className="text-center">
-                    <h3 className="text-2xl font-semibold text-charcoal dark:text-white tracking-tight leading-none">
-                      {MONTHS[month]}
-                    </h3>
-                    <p className="text-xs font-semibold text-primary mt-1">
-                      {year}
-                    </p>
-                  </div>
-                  <button
-                    onClick={handleNextMonth}
-                    className="p-3 bg-slate-100 dark:bg-white/5 rounded-2xl text-slate-500 hover:text-charcoal dark:hover:text-white transition-all"
-                  >
-                    <ChevronRight size={20} />
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-7 gap-2">
-                  {DAYS_OF_WEEK.map((d) => (
-                    <div
-                      key={d}
-                      className="text-center text-xs font-semibold text-slate-300 mb-4"
-                    >
-                      {d}
-                    </div>
-                  ))}
-                  {blanks.map((b) => (
-                    <div
-                      key={`b-${b}`}
-                      className="aspect-square bg-slate-50/50 dark:bg-white/2 rounded-2xl"
-                    />
-                  ))}
-                  {days.map((d) => {
-                    const evs = getEventsForDay(d);
-                    const isToday =
-                      new Date().getDate() === d &&
-                      new Date().getMonth() === month &&
-                      new Date().getFullYear() === year;
-                    return (
-                      <div
-                        key={d}
-                        onClick={() => handleDayClick(d)}
-                        className={clsx(
-                          "aspect-square rounded-2xl flex items-center justify-center relative cursor-pointer transition-all border group",
-                          evs.length > 0
-                            ? "bg-primary border-primary text-white shadow-xl shadow-primary/20 scale-105 z-10"
-                            : "bg-white dark:bg-zinc-900 border-transparent hover:border-slate-200 dark:hover:border-white/10",
-                        )}
-                      >
-                        <span
-                          className={clsx(
-                            "text-xs font-semibold",
-                            isToday && evs.length === 0 ? "text-primary" : "",
-                          )}
-                        >
-                          {d}
-                        </span>
-                        {evs.length > 0 && (
-                          <div className="absolute top-2 right-2 w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <div className="mt-10 pt-10 border-t border-slate-100 dark:border-white/5 space-y-4">
-                  <div className="flex items-center justify-between text-xs font-semibold text-slate-400">
-                    <span>Confirmed Slates</span>
-                    <span className="text-emerald-500">
-                      {acceptedEvents.length} Active
-                    </span>
-                  </div>
-                  <p className="text-xs font-medium leading-relaxed grey-text">
-                    Click any high-intensity date to view detailed engagement
-                    manifests.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-        {activeTab === "reservation" && (
-          <div className="space-y-8">
-            <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl shadow-xs overflow-hidden">
-              <div className="overflow-x-auto custom-scrollbar">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-slate-50/50 dark:bg-white/5">
-                      <th className="px-4 sm:px-8 py-6 text-xs font-semibold text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-white/5">
-                        Commercial Space
-                      </th>
-                      <th className="px-4 sm:px-8 py-6 text-xs font-semibold text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-white/5">
-                        Reserving Customer
-                      </th>
-                      <th className="px-4 sm:px-8 py-6 text-xs font-semibold text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-white/5">
-                        2-Day Review Window
-                      </th>
-                      <th className="px-4 sm:px-8 py-6 text-xs font-semibold text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-white/5 text-right">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-white/5">
-                    {reservedSlots.length === 0 ? (
-                      <tr>
-                        <td
-                          colSpan={4}
-                          className="p-24 text-center text-slate-500 dark:text-slate-400 font-bold text-xs"
-                        >
-                          <div className="max-w-md mx-auto space-y-3">
-                            <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-white/5 text-slate-400 flex items-center justify-center mx-auto">
-                              <Building size={24} />
-                            </div>
-                            <p className="text-sm font-semibold text-charcoal dark:text-white tracking-tight">
-                              No Pending Space Reservations
-                            </p>
-                            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                              All commercial units are currently available or occupied. New reservations will appear here with a 2-day review timer.
-                            </p>
-                          </div>
-                        </td>
-                      </tr>
-                    ) : (
-                      reservedSlots.map((res) => (
-                        <tr
-                          key={res.id}
-                          className="hover:bg-slate-50/80 dark:hover:bg-white/2 transition-colors group/row"
-                        >
-                          <td className="px-4 sm:px-8 py-6">
-                            <div className="flex items-center gap-4">
-                              <div className="w-14 h-14 bg-amber-500/10 rounded-2xl flex items-center justify-center text-amber-500 transition-transform group-hover/row:scale-105 shrink-0">
-                                <Building size={24} />
-                              </div>
-                              <div>
-                                <p className="font-semibold text-lg text-charcoal dark:text-white tracking-tight leading-none">
-                                  Unit {res.unit_id}
-                                </p>
-                                <div className="flex items-center gap-2 mt-1.5">
-                                  <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
-                                    {res.sqm_size} SQM
-                                  </span>
-                                  <span className="text-slate-500 dark:text-white/20">&bull;</span>
-                                  <span className="text-xs font-semibold text-primary">
-                                    ₱{res.base_rent?.toLocaleString()} / mo
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                          </td>
-
-                          <td className="px-4 sm:px-8 py-6">
-                            <div className="flex items-center gap-3.5">
-                              <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 flex items-center justify-center font-semibold text-sm text-charcoal dark:text-white overflow-hidden shrink-0">
-                                {res.reservingUser?.avatarUrl ? (
-                                  <img
-                                    src={res.reservingUser.avatarUrl}
-                                    alt="User Avatar"
-                                    className="w-full h-full object-cover"
-                                  />
-                                ) : (
-                                  <span>{res.reservingUser?.name?.charAt(0) || "U"}</span>
-                                )}
-                              </div>
-                              <div>
-                                <p className="text-sm font-semibold text-charcoal dark:text-white leading-snug">
-                                  {res.reservingUser?.name || "Registered Customer"}
-                                </p>
-                                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                                  {res.reservingUser?.email || "No email available"}
-                                </p>
-                                {res.reservedAt && (
-                                  <p className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-0.5">
-                                    Reserved: {new Date(res.reservedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-                          </td>
-
-                          <td className="px-4 sm:px-8 py-6">
-                            <div className="space-y-1.5">
-                              <div
-                                className={clsx(
-                                  "inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold border shadow-xs",
-                                  res.isUrgent
-                                    ? "bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 border-red-500/30 animate-pulse"
-                                    : res.isWarning
-                                      ? "bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 border-amber-500/30"
-                                      : "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
-                                )}
-                              >
-                                <Clock size={13} className={res.isUrgent ? "animate-spin" : ""} />
-                                <span>{res.remainingFormatted || `${res.hoursRemaining ?? 24}h left`}</span>
-                                {res.isUrgent && <AlertTriangle size={13} />}
-                              </div>
-                              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                                {res.isUrgent
-                                  ? "Auto-rejects in < 6h if unreviewed"
-                                  : "Auto-rejection after 2 days without a decision"}
-                              </p>
-                            </div>
-                          </td>
-
-                          <td className="px-4 sm:px-8 py-6 text-right">
-                            <div className="flex justify-end items-center gap-2.5">
-                              <button
-                                onClick={() => handleReservationDetails(res)}
-                                className="px-5 py-2.5 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-white/10 text-slate-500 hover:text-primary hover:border-primary/30 rounded-xl font-semibold text-xs hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5"
-                                title="See details and business permit"
-                              >
-                                <FileText size={15} /> See details
-                              </button>
-                              <button
-                                onClick={() => handleApproveReservation(res.unit_id)}
-                                className="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold text-xs rounded-xl shadow-lg shadow-emerald-500/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5"
-                                title="Approve Reservation"
-                              >
-                                <CheckCircle2 size={15} /> Approve
-                              </button>
-                              <button
-                                onClick={() => handleRejectReservation(res)}
-                                className="px-5 py-2.5 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-white/10 text-slate-500 hover:text-red-500 hover:border-red-500/30 rounded-xl font-semibold text-xs hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5"
-                                title="Reject Reservation"
-                              >
-                                <XCircle size={15} /> Reject
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        )}
-      </main>
-
-      {/* Shared Modals */}
-      {modalInquiry && (
-        <div className="fixed inset-0 bg-charcoal/80 backdrop-blur-md z-100 flex items-center justify-center p-6 animate-fade-in">
-          <div className="bg-white dark:bg-zinc-900 rounded-2xl p-5 sm:p-10 max-w-lg w-full shadow-2xl relative border border-white/10 animate-scale-in">
-            <button
-              onClick={() => setModalInquiry(null)}
-              className="absolute top-8 right-8 w-12 h-12 rounded-2xl bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-slate-400 hover:text-charcoal transition-all flex items-center justify-center active:scale-90"
-            >
-              <X size={20} />
-            </button>
-            <div className="flex items-center gap-4 mb-8">
-              <div
-                className={clsx(
-                  "w-16 h-16 rounded-3xl flex items-center justify-center shadow-lg",
-                  modalAction === "ACCEPTED"
-                    ? "bg-emerald-500 text-white shadow-emerald-500/20"
-                    : "bg-red-500 text-white shadow-red-500/20",
-                )}
-              >
-                {modalAction === "ACCEPTED" ? (
-                  <CheckCircle2 size={28} />
-                ) : (
-                  <XCircle size={28} />
-                )}
-              </div>
-              <div>
-                <h2 className="font-display text-2xl font-semibold text-charcoal dark:text-white tracking-tight leading-none">
-                  {modalAction === "ACCEPTED" ? "Approve" : "Reject"}{" "}
-                  this event?
-                </h2>
-                <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-1">
-                  The customer is told your decision.
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 pl-2">
-                  Note to the customer
-                </label>
-                <textarea
-                  value={feedback}
-                  onChange={(e) => setFeedback(e.target.value)}
-                  placeholder={
-                    modalAction === "REJECTED"
-                      ? "Say why the event can't be approved (required)"
-                      : "Add a note (optional)"
-                  }
-                  className="w-full bg-slate-50 dark:bg-black border border-slate-200 dark:border-white/5 rounded-3xl p-6 text-sm font-bold text-charcoal dark:text-white focus:ring-2 focus:ring-primary/20 transition-all min-h-[160px] resize-none outline-hidden"
-                />
-              </div>
-
-              <button
-                onClick={submitEventAction}
-                disabled={
-                  isProcessingEvent !== null ||
-                  (modalAction === "REJECTED" && !feedback.trim())
-                }
-                className={clsx(
-                  "w-full py-6 rounded-2xl text-xs font-semibold text-white transition-all shadow-2xl active:scale-95 disabled:opacity-50",
-                  modalAction === "ACCEPTED"
-                    ? "bg-emerald-500 shadow-emerald-500/30"
-                    : "bg-red-500 shadow-red-500/30",
-                )}
-              >
-                {isProcessingEvent ? (
-                  <Loader2 className="animate-spin mx-auto" />
-                ) : (
-                  modalAction === "ACCEPTED" ? "Approve event" : "Reject event"
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {selectedCalendarDate && (
-        <div
-          className="fixed inset-0 bg-charcoal/80 backdrop-blur-xs z-100 flex items-center justify-center p-6 animate-fade-in"
-          onClick={() => setSelectedCalendarDate(null)}
-        >
-          <div
-            className="bg-white dark:bg-zinc-900 w-full max-w-md rounded-2xl p-5 sm:p-10 border border-white/10 relative animate-scale-in shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
+          <Panel
+            className="xl:col-span-2"
+            title="Event calendar"
+            description={`${eventsThisMonth} approved in ${MONTHS[month]}`}
           >
-            <div className="flex items-center gap-4 mb-8">
-              <div className="w-14 h-14 bg-primary text-white rounded-2xl flex items-center justify-center shadow-lg shadow-primary/20">
-                <CalendarIcon size={24} />
-              </div>
-              <div>
-                <h3 className="text-2xl font-semibold text-charcoal dark:text-white tracking-tight leading-none">
-                  Events on this day
-                </h3>
-                <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-1">
-                  {selectedCalendarDate.toLocaleDateString("en-US", {
-                    weekday: "long",
-                    month: "long",
-                    day: "numeric",
-                  })}
-                </p>
-              </div>
+            <div className="mb-4 flex items-center justify-between gap-2">
+              <Button variant="secondary" shape="square" icon={<CaretLeft />} aria-label="Previous month" onClick={handlePrevMonth} />
+              <p className="text-base font-semibold text-kumo-default" aria-live="polite">
+                {MONTHS[month]} {year}
+              </p>
+              <Button variant="secondary" shape="square" icon={<CaretRight />} aria-label="Next month" onClick={handleNextMonth} />
             </div>
 
-            <div className="space-y-4 max-h-[40vh] overflow-y-auto custom-scrollbar pr-2">
-              {calendarModalEvents.map((ev) => (
-                <div
-                  key={ev.id}
-                  className="p-6 rounded-2xl bg-slate-50 dark:bg-black border border-slate-100 dark:border-white/5 group hover:border-primary/50 transition-all"
-                >
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-xs font-semibold text-primary">
-                      {ev.eventTime}
-                    </span>
-                    <ArrowRight
-                      size={14}
-                      className="text-slate-300 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all"
-                    />
-                  </div>
-                  <h4 className="text-sm font-semibold text-charcoal dark:text-white tracking-tight">
-                    {ev.eventType}
-                  </h4>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 font-bold mt-0.5 mb-3">
-                    {ev.user?.name || "Customer"}
-                  </p>
-
-                  {ev.message && (
-                    <div className="p-3 bg-white dark:bg-zinc-900 rounded-xl border border-slate-100 dark:border-white/5">
-                      <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 flex items-center gap-1.5">
-                        <MessageSquare size={10} /> Message
-                      </p>
-                      <p className="text-xs text-charcoal dark:text-white/80 leading-relaxed italic line-clamp-3">
-                        "{ev.message}"
-                      </p>
-                    </div>
-                  )}
+            <div className="grid grid-cols-7 gap-1">
+              {DAYS_OF_WEEK.map((d) => (
+                <div key={d} className="pb-1 text-center text-xs font-medium text-kumo-subtle">
+                  {d}
                 </div>
               ))}
+              {blanks.map((b) => (
+                <div key={`b-${b}`} />
+              ))}
+              {days.map((d) => {
+                const count = getEventsForDay(d).length;
+                const isToday =
+                  new Date().getDate() === d && new Date().getMonth() === month && new Date().getFullYear() === year;
+                return (
+                  <button
+                    key={d}
+                    type="button"
+                    disabled={!count}
+                    onClick={() => handleDayClick(d)}
+                    aria-label={`${MONTHS[month]} ${d}${count ? `, ${count} approved event${count === 1 ? "" : "s"}` : ""}`}
+                    className={cn(
+                      "flex aspect-square flex-col items-center justify-center rounded-lg border text-sm tabular-nums",
+                      count
+                        ? "cursor-pointer border-kumo-brand bg-kumo-brand font-semibold text-white hover:bg-kumo-brand-hover"
+                        : "border-transparent text-kumo-default",
+                      isToday && !count && "border-kumo-brand font-semibold text-kumo-brand",
+                    )}
+                  >
+                    {d}
+                    {count > 1 && <span className="text-xs font-normal leading-none">{count}</span>}
+                  </button>
+                );
+              })}
             </div>
 
-            <button
-              onClick={() => setSelectedCalendarDate(null)}
-              className="w-full mt-8 py-4 bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-slate-400 font-semibold text-xs rounded-2xl hover:bg-slate-200 dark:hover:bg-zinc-700 transition-all"
-            >
-              Close
-            </button>
-          </div>
+            <p className="mt-4 border-t border-kumo-line pt-3 text-sm text-kumo-subtle">
+              Filled days have approved events. Select one to see them.
+            </p>
+          </Panel>
         </div>
       )}
 
-      {/* Styled Components - Persistence */}
-      <style jsx global>{`
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 4px;
-          height: 4px;
+      {activeTab === "reservation" && (
+        <Panel
+          title="Space reservations"
+          description="A reservation is rejected automatically after 2 days without a decision."
+          flush
+        >
+          {reservedSlots.length === 0 ? (
+            <EmptyNote title="No space reservations waiting">
+              New reservations appear here with the time left to review them.
+            </EmptyNote>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <Table.Header>
+                  <Table.Row>
+                    <Table.Head>Space</Table.Head>
+                    <Table.Head>Customer</Table.Head>
+                    <Table.Head>Time left</Table.Head>
+                    <Table.Head className="text-right">Actions</Table.Head>
+                  </Table.Row>
+                </Table.Header>
+                <Table.Body>
+                  {reservedSlots.map((res: any) => (
+                    <Table.Row key={res.id}>
+                      <Table.Cell>
+                        <p className="font-medium text-kumo-default">Unit {res.unit_id}</p>
+                        <p className="whitespace-nowrap text-sm text-kumo-subtle">
+                          {res.sqm_size} sqm, ₱{res.base_rent?.toLocaleString()} a month
+                        </p>
+                      </Table.Cell>
+                      <Table.Cell>
+                        <Person
+                          name={res.reservingUser?.name || "Registered customer"}
+                          detail={res.reservingUser?.email || "No email available"}
+                          image={res.reservingUser?.avatarUrl}
+                        />
+                        {res.reservedAt && (
+                          <p className="mt-1 text-xs text-kumo-subtle">
+                            Reserved{" "}
+                            {new Date(res.reservedAt).toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                              hour: "numeric",
+                              minute: "2-digit",
+                            })}
+                          </p>
+                        )}
+                      </Table.Cell>
+                      <Table.Cell>
+                        <p
+                          className={cn(
+                            "whitespace-nowrap text-sm font-semibold",
+                            res.isUrgent ? "text-kumo-danger" : res.isWarning ? "text-kumo-warning" : "text-kumo-success",
+                          )}
+                        >
+                          {res.remainingFormatted || `${res.hoursRemaining ?? 24}h left`}
+                        </p>
+                        {res.isUrgent && <p className="text-xs text-kumo-subtle">Review soon</p>}
+                      </Table.Cell>
+                      <Table.Cell>
+                        <div className="flex justify-end gap-2">
+                          <Button size="sm" variant="secondary" icon={<FileText />} onClick={() => handleReservationDetails(res)}>
+                            See details
+                          </Button>
+                          <Button size="sm" variant="secondary-destructive" onClick={() => handleRejectReservation(res)}>
+                            Reject
+                          </Button>
+                          <Button size="sm" variant="primary" onClick={() => handleApproveReservation(res.unit_id)}>
+                            Approve
+                          </Button>
+                        </div>
+                      </Table.Cell>
+                    </Table.Row>
+                  ))}
+                </Table.Body>
+              </Table>
+            </div>
+          )}
+        </Panel>
+      )}
+
+      <AdminDialog
+        open={!!modalInquiry}
+        onClose={() => setModalInquiry(null)}
+        title={`${modalAction === "ACCEPTED" ? "Approve" : "Reject"} this event?`}
+        description={
+          modalInquiry
+            ? `${modalInquiry.eventType} on ${shortDate(modalInquiry.eventDate)}. The customer is told your decision.`
+            : undefined
         }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: rgba(var(--primary-rgb), 0.1);
-          border-radius: 10px;
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setModalInquiry(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant={modalAction === "ACCEPTED" ? "primary" : "destructive"}
+              loading={isProcessingEvent !== null}
+              disabled={modalAction === "REJECTED" && !feedback.trim()}
+              onClick={submitEventAction}
+            >
+              {modalAction === "ACCEPTED" ? "Approve event" : "Reject event"}
+            </Button>
+          </>
         }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: rgba(var(--primary-rgb), 0.3);
-        }
-      `}</style>
+      >
+        <InputArea
+          label="Note to the customer"
+          description={modalAction === "REJECTED" ? "Say why the event can't be approved." : "Optional"}
+          required={modalAction === "REJECTED"}
+          value={feedback}
+          onValueChange={setFeedback}
+          rows={5}
+          className="w-full"
+        />
+      </AdminDialog>
+
+      <AdminDialog
+        open={!!selectedCalendarDate}
+        onClose={() => setSelectedCalendarDate(null)}
+        size="sm"
+        title="Events on this day"
+        description={selectedCalendarDate?.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+      >
+        <ul className="divide-y divide-kumo-line rounded-lg border border-kumo-line">
+          {calendarModalEvents.map((ev) => (
+            <li key={ev.id} className="p-3">
+              <p className="text-sm font-semibold text-kumo-default">{ev.eventType}</p>
+              <p className="text-sm text-kumo-subtle">
+                {ev.eventTime}, {ev.user?.name || "Customer"}
+              </p>
+              {ev.message && <p className="mt-2 rounded-lg bg-kumo-recessed p-2 text-sm text-kumo-default">{ev.message}</p>}
+            </li>
+          ))}
+        </ul>
+      </AdminDialog>
+
       {reservationDecision && (
         <ReservationDecisionModal
           reservation={reservationDecision.reservation}
@@ -837,6 +505,6 @@ export default function MasterBookingsPage() {
           onDone={() => loadData(true)}
         />
       )}
-    </div>
+    </AdminPage>
   );
 }

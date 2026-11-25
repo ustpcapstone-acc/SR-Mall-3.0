@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { RefreshCw, Shield } from "lucide-react";
+import { Button } from "@cloudflare/kumo";
 import { toast } from "sonner";
 import { checkUserRolesAction, fixUserRolesAction } from "@/app/actions/fix-roles";
 
@@ -41,19 +41,16 @@ export function FixUserRolesBanner({ onFixed }: { onFixed?: () => void }) {
   };
 
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl border border-amber-500/30 bg-amber-50 dark:bg-amber-500/10">
-      <p className="text-sm text-amber-800 dark:text-amber-200">
-        <span className="font-bold">{legacyCount} account{legacyCount === 1 ? "" : "s"}</span>{" "}
+    <div className="flex flex-col gap-3 rounded-xl border border-kumo-line bg-kumo-base p-4 sm:flex-row sm:items-center sm:justify-between">
+      <p className="text-sm text-kumo-default">
+        <span className="font-semibold text-kumo-warning">
+          {legacyCount} account{legacyCount === 1 ? "" : "s"}
+        </span>{" "}
         still use the legacy &quot;USER&quot; role and should be converted to Customer.
       </p>
-      <button
-        onClick={fix}
-        disabled={fixing}
-        className="shrink-0 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-xl transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2"
-      >
-        {fixing ? <RefreshCw size={14} className="animate-spin" /> : <Shield size={14} />}
+      <Button variant="secondary" loading={fixing} onClick={fix} className="shrink-0">
         Fix roles
-      </button>
+      </Button>
     </div>
   );
 }

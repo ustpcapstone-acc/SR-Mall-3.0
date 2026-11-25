@@ -1,5 +1,6 @@
 "use client";
 
+import { formatPrice } from "@/lib/price";
 import React from "react";
 import { X, ShoppingBag, ArrowRight } from "lucide-react";
 import Link from "next/link";
@@ -101,16 +102,13 @@ export const ProductDetailModal = ({
             <h3 className="text-2xl sm:text-4xl lg:text-5xl font-semibold text-charcoal dark:text-white tracking-tight leading-none">
               {product.name}
             </h3>
-            <p className="text-xl sm:text-2xl font-semibold text-emerald-600 dark:text-emerald-400 tracking-tight mt-2">
-              {product.price}
+            <p className="text-xl sm:text-2xl font-semibold text-primary tracking-tight mt-2">
+              {formatPrice(product.price) || "Ask for price"}
             </p>
           </div>
 
-          <p className="text-sm sm:text-base lg:text-lg text-slate-600 dark:text-slate-400 font-medium leading-relaxed italic">
-            "
-            {product.description ||
-              "No detailed description provided for this premium item."}
-            "
+          <p className="text-base leading-relaxed text-slate-600 dark:text-slate-400">
+            {product.description || "The shop hasn't added a description for this item yet."}
           </p>
 
           <div className="pt-3 sm:pt-6 space-y-3 sm:space-y-4">

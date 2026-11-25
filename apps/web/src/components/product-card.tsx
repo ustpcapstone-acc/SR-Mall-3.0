@@ -2,9 +2,10 @@
 
 import { optimizedImage } from "@/lib/media";
 import React from "react";
-import { ShoppingBag, ArrowRight } from "lucide-react";
-import clsx from "clsx";
+import { ShoppingBag } from "lucide-react";
+import { cn } from "@cloudflare/kumo";
 import { isOutOfStock } from "@/lib/products";
+import { formatPrice } from "@/lib/price";
 
 interface ProductCardProps {
   product: {
@@ -22,85 +23,58 @@ interface ProductCardProps {
   style?: React.CSSProperties;
 }
 
-export const ProductCard = ({
-  product,
-  onClick,
-  className,
-  style,
-}: ProductCardProps) => {
+/** Picture on top, then name, shop and price. Nothing sits over the picture. */
+export const ProductCard = ({ product, onClick, className, style }: ProductCardProps) => {
+  const price = formatPrice(product.price);
+  const soldOut = isOutOfStock(product);
   return (
-    <div
+    <button
+      type="button"
       onClick={() => onClick(product)}
       style={style}
-      className={clsx(
-        "group relative aspect-3/4 bg-white dark:bg-zinc-900 rounded-4xl overflow-hidden",
-        "border-2 border-slate-100 dark:border-white/5 hover:border-primary/30",
-        "shadow-lg hover:shadow-[0_30px_60px_-15px_rgba(190,30,45,0.25)]",
-        "transition-all duration-700 cursor-pointer",
+      className={cn(
+        "group flex h-full w-full cursor-pointer flex-col overflow-hidden rounded-2xl border border-kumo-line bg-kumo-base text-left",
+        "transition-[transform,box-shadow] duration-300 hover:-translate-y-1 hover:shadow-xl",
+        "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
         className,
       )}
     >
-      {/* Background Image */}
-      <div className="absolute inset-0 z-0">
+      <span className="relative block aspect-square w-full overflow-hidden bg-kumo-recessed">
         {product.image_url ? (
-          <img loading="lazy" decoding="async"
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            loading="lazy"
+            decoding="async"
             src={optimizedImage(product.image_url, 600)}
-            className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
             alt={product.name}
+            className={cn(
+              "absolute inset-0 size-full object-cover transition-transform duration-700 group-hover:scale-105",
+              soldOut && "opacity-60 grayscale",
+            )}
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-slate-200 dark:text-zinc-800 bg-slate-50 dark:bg-black">
-            <ShoppingBag size={64} />
-          </div>
+          <span className="absolute inset-0 flex items-center justify-center text-kumo-subtle">
+            <ShoppingBag size={40} aria-hidden />
+          </span>
         )}
-      </div>
+        {soldOut && (
+          <span className="absolute inset-x-0 bottom-0 bg-black/70 py-1.5 text-center text-xs font-semibold text-white">
+            Out of stock
+          </span>
+        )}
+      </span>
 
-      {/* Overlays */}
-      <div className="absolute inset-0 bg-linear-to-t from-black via-black/30 to-transparent opacity-80 group-hover:opacity-90 transition-opacity duration-700 z-10" />
-      <div className="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity duration-700 z-11" />
-
-      {/* Out of stock */}
-      {isOutOfStock(product) && (
-        <div className="absolute top-3 right-3 z-20 bg-black/70 backdrop-blur-md px-2.5 py-1.5 rounded-xl text-xs font-semibold text-white">
-          Out of stock
-        </div>
-      )}
-
-      {/* Shop Label */}
-      <div className="absolute top-3 left-3 z-20">
-        <div className="bg-white/10 backdrop-blur-xl border border-white/20 px-3 py-1.5 rounded-xl text-xs font-semibold text-white">
-          {product.shopName}
-        </div>
-      </div>
-
-      {/* Content Overlay */}
-      <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-5 md:p-6 z-30 transform translate-y-0 md:translate-y-3 group-hover:translate-y-0 transition-all duration-700 text-left">
-        <div className="space-y-2">
-          <div className="overflow-hidden">
-            <h4 className="text-base sm:text-lg font-semibold text-white tracking-tight leading-tight line-clamp-2">
-              {product.name}
-            </h4>
-          </div>
-
-          <div className="flex items-end justify-between gap-2">
-            <div className="space-y-0.5">
-              <p className="text-xs font-bold text-white/75">
-                Curated Item
-              </p>
-              <p className="text-lg sm:text-xl font-semibold text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.6)]">
-                {product.price}
-              </p>
-            </div>
-
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white text-primary flex items-center justify-center shadow-xl transform translate-x-0 md:translate-x-3 opacity-100 md:opacity-0 group-hover:translate-x-0 group-hover:opacity-100 transition-all duration-700 delay-200">
-              <ArrowRight size={16} />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Glass Border Effect on Hover */}
-      <div className="absolute inset-4 border border-white/0 group-hover:border-white/20 rounded-[2.5rem] transition-all duration-700 z-40 pointer-events-none" />
-    </div>
+      <span className="flex flex-1 flex-col gap-1 p-3 sm:p-4">
+        <span className="line-clamp-2 text-sm font-semibold leading-snug text-kumo-default sm:text-base">{product.name}</span>
+        <span className="truncate text-sm text-kumo-subtle">{product.shopName}</span>
+        <span className="mt-auto pt-2">
+          {price ? (
+            <span className="text-lg font-semibold tabular-nums text-primary">{price}</span>
+          ) : (
+            <span className="text-sm text-kumo-subtle">Ask for price</span>
+          )}
+        </span>
+      </span>
+    </button>
   );
 };

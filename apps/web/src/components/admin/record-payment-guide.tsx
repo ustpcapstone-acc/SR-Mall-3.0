@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Dialog } from "@cloudflare/kumo";
+import { Button, Dialog } from "@cloudflare/kumo";
 import { ArrowRight, Money } from "@phosphor-icons/react";
 import { getMyStaffAccessAction } from "@/app/actions/staff";
 import { DialogHeader } from "@/components/leasing/shared";
@@ -70,14 +70,9 @@ export function RecordPaymentGuide({
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-hover focus:outline-hidden focus-visible:ring-4 focus-visible:ring-primary/30"
-      >
-        <Money size={18} aria-hidden />
+      <Button variant="secondary" icon={<Money />} onClick={() => setOpen(true)}>
         Record a payment
-      </button>
+      </Button>
       <Dialog.Root open={open} onOpenChange={setOpen}>
         <Dialog className="max-h-[90svh] w-[calc(100vw-1.5rem)] max-w-lg overflow-y-auto p-5 sm:p-7">
           <DialogHeader title="Record a payment" description="What is the payment for?" />

@@ -204,11 +204,13 @@ export const generateTenantPDF = async (
           day: "numeric",
         })
       : "N/A",
-    new Date(t.leaseExpiryDate).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    }),
+    t.leaseExpiryDate
+      ? new Date(t.leaseExpiryDate).toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+        })
+      : "No lease",
   ]);
 
   autoTable(doc, {

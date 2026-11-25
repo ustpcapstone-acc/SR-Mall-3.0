@@ -48,6 +48,9 @@ import {
   mapEmbedSrc,
 } from "@/lib/theme";
 import clsx from "clsx";
+import { Button, Checkbox, Select, cn } from "@cloudflare/kumo";
+import { ArrowSquareOut, PencilSimple, Plus as PlusIcon, Trash } from "@phosphor-icons/react";
+import { AdminDialog, AdminPage, EmptyNote, PageTabs, Panel } from "@/components/admin/page-kit";
 import { formatSaleDate, isSaleActive, saleEndsAt } from "@/lib/post-sales";
 import { CustomSelect } from "@/components/ui/custom-select";
 
@@ -714,104 +717,63 @@ export default function PublicViewCMSPage() {
   ];
 
   return (
-    <div className="p-4 md:p-8 lg:p-10 animate-fade-in-up space-y-10 min-h-screen">
-      {/* Premium Header */}
-      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 pb-8 border-b border-slate-200 dark:border-white/10">
-        <div className="space-y-4">
-          <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-charcoal dark:text-white">
-            Website Content
-          </h1>
-          <p className="text-slate-500 font-medium max-w-xl text-lg">
-            Manage homepage banners, event photos, sales announcements, and mall information shown to visitors.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <a
-            href="/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 px-6 py-4 bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-slate-300 font-semibold text-xs rounded-2xl hover:bg-slate-200 dark:hover:bg-zinc-700 transition-all border border-slate-200 dark:border-white/5 shadow-xs active:scale-95"
-          >
-            <ExternalLink size={16} /> Live Preview
+    <AdminPage
+      title="Website Content"
+      description="Manage homepage banners, event photos, sales announcements, and mall information shown to visitors."
+      actions={
+        <>
+          <a href="/" target="_blank" rel="noopener noreferrer" className={cn(LINK_BUTTON, "border border-kumo-line text-kumo-default hover:bg-kumo-tint")}>
+            <ArrowSquareOut size={16} aria-hidden /> Live Preview
           </a>
-          <button
-            onClick={handleSaveConfig}
-            disabled={isSaving || !isDirty}
-            className="flex items-center gap-2 px-8 py-4 bg-charcoal dark:bg-white text-white dark:text-charcoal font-semibold text-xs rounded-2xl shadow-xl shadow-charcoal/20 dark:shadow-white/10 hover:scale-[1.02] transition-all disabled:opacity-50 active:scale-95"
-          >
-            {isSaving ? (
-              <Loader2 size={16} className="animate-spin" />
-            ) : (
-              <Save size={16} />
-            )}
+          <Button variant="primary" loading={isSaving} disabled={!isDirty} onClick={handleSaveConfig}>
             {isDirty ? "Save changes" : "Saved"}
-          </button>
-        </div>
-      </div>
-
-      {/* Main Grid Layout */}
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-12">
-        {/* Sidebar Navigation */}
-        <aside className="xl:col-span-3 space-y-2 xl:sticky xl:top-24 xl:self-start">
-          {navItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => setActiveTab(item.id)}
-              className={clsx(
-                "w-full flex items-center gap-4 p-5 rounded-3xl transition-all border text-left active:scale-[0.98]",
-                activeTab === item.id
-                  ? "bg-primary border-primary text-white shadow-lg shadow-primary/20"
-                  : "bg-white/50 dark:bg-white/5 border-transparent text-slate-500 hover:bg-white dark:hover:bg-white/10 hover:border-slate-200 dark:hover:border-white/10",
-              )}
-            >
-              <item.icon
-                size={20}
-                className={clsx(
-                  activeTab === item.id ? "opacity-100" : "opacity-40",
-                )}
-              />
-              <div>
-                <p className="font-semibold text-xs leading-none">
-                  {item.label}
-                </p>
-                <p
-                  className={clsx(
-                    "text-xs font-medium mt-1 opacity-60",
-                    activeTab === item.id ? "text-white/80" : "text-slate-500 dark:text-slate-400",
+          </Button>
+        </>
+      }
+    >
+      <div className="grid gap-6 xl:grid-cols-12">
+        {/* Sections */}
+        <nav aria-label="Website content sections" className="xl:col-span-3 xl:sticky xl:top-24 xl:self-start">
+          <ul className="grid gap-1 rounded-xl border border-kumo-line bg-kumo-base p-2 sm:grid-cols-2 xl:grid-cols-1">
+            {navItems.map((item) => (
+              <li key={item.id}>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab(item.id)}
+                  aria-current={activeTab === item.id ? "page" : undefined}
+                  className={cn(
+                    "flex w-full cursor-pointer items-start gap-3 rounded-lg border-l-4 p-3 text-left hover:bg-kumo-tint",
+                    activeTab === item.id ? "border-l-kumo-brand bg-kumo-tint" : "border-l-transparent",
                   )}
                 >
-                  {item.desc}
-                </p>
-              </div>
-              {activeTab === item.id && (
-                <ChevronRight size={16} className="ml-auto opacity-60" />
-              )}
-            </button>
-          ))}
+                  <item.icon size={18} aria-hidden className={cn("mt-0.5 shrink-0", activeTab === item.id ? "text-kumo-brand" : "text-kumo-subtle")} />
+                  <span className="min-w-0">
+                    <span className="block text-sm font-semibold text-kumo-default">{item.label}</span>
+                    <span className="block text-xs text-kumo-subtle">{item.desc}</span>
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </nav>
 
-        </aside>
-
-        {/* Dynamic Workspace */}
-        <main className="xl:col-span-9 animate-fade-in">
+        {/* Workspace */}
+        <div className="min-w-0 xl:col-span-9">
           {activeTab === "general" && (
             <div className="space-y-8">
               <SectionHeader
-                icon={Globe}
                 title="General Settings"
                 sub="Your mall's name, logo, contact details, map, home page content and footer."
               />
 
               {/* ── Branding ─────────────────────────────────────────────── */}
               <SettingsCard
-                icon={ImageIcon}
-                tone="bg-primary/10 text-primary"
                 title="Branding"
                 sub="Shown in the public navbar and footer"
               >
                 <div className="flex flex-col md:flex-row gap-8">
                   <div className="flex items-start gap-5">
-                    <div className="w-28 h-28 shrink-0 bg-slate-50 dark:bg-zinc-800 rounded-3xl border-2 border-dashed border-slate-200 dark:border-white/10 flex items-center justify-center overflow-hidden group relative">
+                    <div className="w-28 h-28 shrink-0 bg-kumo-recessed rounded-lg border-2 border-dashed border-kumo-line flex items-center justify-center overflow-hidden group relative">
                       {config.logoUrl ? (
                         <img src={config.logoUrl} alt="Mall logo" className="w-full h-full object-contain p-3" />
                       ) : (
@@ -824,9 +786,9 @@ export default function PublicViewCMSPage() {
                       </label>
                     </div>
                     <div className="space-y-3 pt-1">
-                      <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Logo</p>
+                      <p className="text-sm font-medium text-kumo-default">Logo</p>
                       <div className="flex flex-wrap gap-2">
-                        <label className="cursor-pointer inline-flex items-center gap-2 h-10 px-4 bg-primary text-white rounded-xl text-xs font-semibold shadow-md shadow-primary/20 active:scale-95 transition-all">
+                        <label className={cn(LINK_BUTTON, "bg-kumo-brand text-white hover:bg-kumo-brand-hover")}>
                           <Upload size={14} /> Upload
                           <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload("logoUrl", e)} />
                         </label>
@@ -834,13 +796,13 @@ export default function PublicViewCMSPage() {
                           <button
                             type="button"
                             onClick={() => handleConfigChange("logoUrl", "")}
-                            className="inline-flex items-center gap-2 h-10 px-4 bg-red-500/10 text-red-600 rounded-xl text-xs font-semibold hover:bg-red-500 hover:text-white transition-all"
+                            className={cn(LINK_BUTTON, "border border-kumo-line text-kumo-danger hover:bg-kumo-tint")}
                           >
                             <Trash2 size={14} /> Remove
                           </button>
                         )}
                       </div>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">Square PNG or SVG, at least 512 × 512.</p>
+                      <p className="text-sm text-kumo-subtle">Square PNG or SVG, at least 512 × 512.</p>
                     </div>
                   </div>
 
@@ -867,8 +829,6 @@ export default function PublicViewCMSPage() {
 
               {/* ── Contact information ──────────────────────────────────── */}
               <SettingsCard
-                icon={Phone}
-                tone="bg-emerald-500/10 text-emerald-600"
                 title="Contact information"
                 sub="Used on the location section, merchant applications, and as the footer fallback"
               >
@@ -905,13 +865,11 @@ export default function PublicViewCMSPage() {
 
               {/* ── Google Maps ──────────────────────────────────────────── */}
               <SettingsCard
-                icon={MapPin}
-                tone="bg-blue-500/10 text-blue-600"
                 title="Google Maps"
                 sub="The map on the public Location section"
                 badge={
                   config.googleMapsEmbedUrl || config.googleMapsApiKey ? (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-500/10 text-blue-600 rounded-full text-xs font-semibold">
+                    <span className="text-sm font-medium text-kumo-subtle">
                       <CheckCircle size={12} /> Connected
                     </span>
                   ) : undefined
@@ -942,7 +900,7 @@ export default function PublicViewCMSPage() {
                     />
                   </Field>
                 </div>
-                <div className="rounded-3xl overflow-hidden border border-slate-200 dark:border-white/10 aspect-video max-h-72 w-full bg-slate-100 dark:bg-zinc-800">
+                <div className="rounded-lg overflow-hidden border border-kumo-line aspect-video max-h-72 w-full bg-kumo-recessed">
                   <iframe
                     src={mapEmbedSrc(config)}
                     className="w-full h-full"
@@ -956,14 +914,12 @@ export default function PublicViewCMSPage() {
 
               {/* ── Homepage section text ────────────────────────────────── */}
               <SettingsCard
-                icon={Layers}
-                tone="bg-amber-500/10 text-amber-600"
                 title="Homepage section text"
                 sub="Headings and descriptions shown on the public home page"
               >
                 <div className="space-y-6">
                   <div className="space-y-4">
-                    <p className="text-xs font-semibold text-charcoal dark:text-white">
+                    <p className="text-sm font-semibold text-kumo-default">
                       Featured Products
                     </p>
                     <Field
@@ -987,8 +943,8 @@ export default function PublicViewCMSPage() {
                     </Field>
                   </div>
 
-                  <div className="space-y-4 pt-6 border-t border-slate-100 dark:border-white/5">
-                    <p className="text-xs font-semibold text-charcoal dark:text-white">
+                  <div className="space-y-4 pt-6 border-t border-kumo-line">
+                    <p className="text-sm font-semibold text-kumo-default">
                       Mall Directory
                     </p>
                     <Field
@@ -1012,8 +968,8 @@ export default function PublicViewCMSPage() {
                     </Field>
                   </div>
 
-                  <div className="space-y-4 pt-6 border-t border-slate-100 dark:border-white/5">
-                    <p className="text-xs font-semibold text-charcoal dark:text-white">
+                  <div className="space-y-4 pt-6 border-t border-kumo-line">
+                    <p className="text-sm font-semibold text-kumo-default">
                       Available Spaces
                     </p>
                     <Field
@@ -1037,8 +993,8 @@ export default function PublicViewCMSPage() {
                     </Field>
                   </div>
 
-                  <div className="space-y-4 pt-6 border-t border-slate-100 dark:border-white/5">
-                    <p className="text-xs font-semibold text-charcoal dark:text-white">
+                  <div className="space-y-4 pt-6 border-t border-kumo-line">
+                    <p className="text-sm font-semibold text-kumo-default">
                       Venue booking
                     </p>
                     <Field label="Eyebrow label">
@@ -1069,8 +1025,8 @@ export default function PublicViewCMSPage() {
                       />
                     </Field>
                     <div className="space-y-2">
-                      <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Section photo</p>
-                      <div className="aspect-4/3 w-full max-w-sm bg-slate-100 dark:bg-zinc-800 rounded-2xl border-2 border-dashed border-slate-300 dark:border-white/10 flex items-center justify-center overflow-hidden">
+                      <p className="text-sm font-medium text-kumo-default">Section photo</p>
+                      <div className="aspect-4/3 w-full max-w-sm bg-kumo-recessed rounded-lg border-2 border-dashed border-kumo-line flex items-center justify-center overflow-hidden">
                         {/* The homepage's built-in picture shows until one is uploaded. */}
                         <img
                           src={config.venueImageUrl || DEFAULT_VENUE_IMAGE}
@@ -1079,7 +1035,7 @@ export default function PublicViewCMSPage() {
                         />
                       </div>
                       <div className="flex flex-wrap items-center gap-3">
-                        <label className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-white text-xs font-semibold cursor-pointer hover:bg-primary-hover focus-within:ring-4 focus-within:ring-primary/30">
+                        <label className={cn(LINK_BUTTON, "bg-kumo-brand text-white hover:bg-kumo-brand-hover")}>
                           <Edit size={14} />
                           {config.venueImageUrl ? "Change photo" : "Upload photo"}
                           <input
@@ -1125,8 +1081,8 @@ export default function PublicViewCMSPage() {
                     </Field>
                   </div>
 
-                  <div className="space-y-4 pt-6 border-t border-slate-100 dark:border-white/5">
-                    <p className="text-xs font-semibold text-charcoal dark:text-white">
+                  <div className="space-y-4 pt-6 border-t border-kumo-line">
+                    <p className="text-sm font-semibold text-kumo-default">
                       Customer Experiences
                     </p>
                     <Field label="Heading">
@@ -1147,8 +1103,8 @@ export default function PublicViewCMSPage() {
                     </Field>
                   </div>
 
-                  <div className="space-y-4 pt-6 border-t border-slate-100 dark:border-white/5">
-                    <p className="text-xs font-semibold text-charcoal dark:text-white">
+                  <div className="space-y-4 pt-6 border-t border-kumo-line">
+                    <p className="text-sm font-semibold text-kumo-default">
                       Location
                     </p>
                     <Field label="Heading" hint="Use a line break for “Prime location.” and “Endless access.”">
@@ -1173,17 +1129,15 @@ export default function PublicViewCMSPage() {
 
               {/* ── About Our Vision ─────────────────────────────────────── */}
               <SettingsCard
-                icon={Sparkles}
-                tone="bg-rose-500/10 text-rose-600"
                 title="About Our Vision"
                 sub="Tell the story behind the mall."
               >
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                   <div className="md:col-span-1 space-y-4">
-                    <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                    <p className="text-sm font-medium text-kumo-default">
                       Section photo
                     </p>
-                    <div className="aspect-4/5 bg-slate-100 dark:bg-zinc-800 rounded-3xl border-2 border-dashed border-slate-300 dark:border-white/10 flex items-center justify-center overflow-hidden relative group">
+                    <div className="aspect-4/5 bg-kumo-recessed rounded-lg border-2 border-dashed border-kumo-line flex items-center justify-center overflow-hidden relative group">
                       {config.aboutImageUrl ? (
                         <img
                           src={config.aboutImageUrl}
@@ -1236,13 +1190,11 @@ export default function PublicViewCMSPage() {
 
               {/* ── Featured video ───────────────────────────────────────── */}
               <SettingsCard
-                icon={Monitor}
-                tone="bg-indigo-500/10 text-indigo-600"
                 title="Featured video"
                 sub="The cinematic section below the featured products"
               >
                 <div className="flex flex-col md:flex-row md:items-start items-center gap-8">
-                  <div className="w-full md:w-48 shrink-0 aspect-video bg-slate-100 dark:bg-zinc-800 rounded-3xl border-2 border-dashed border-slate-300 dark:border-white/10 flex items-center justify-center overflow-hidden group relative">
+                  <div className="w-full md:w-48 shrink-0 aspect-video bg-kumo-recessed rounded-lg border-2 border-dashed border-kumo-line flex items-center justify-center overflow-hidden group relative">
                     <video
                       key={config.featuredVideoUrl || "default"}
                       src={config.featuredVideoUrl || "/vid/Download.mp4"}
@@ -1302,8 +1254,6 @@ export default function PublicViewCMSPage() {
 
               {/* ── Footer ───────────────────────────────────────────────── */}
               <SettingsCard
-                icon={Layout}
-                tone="bg-violet-500/10 text-violet-600"
                 title="Footer"
                 sub="The bottom of every public page"
               >
@@ -1316,10 +1266,10 @@ export default function PublicViewCMSPage() {
                   />
                 </Field>
 
-                <div className="pt-6 border-t border-slate-100 dark:border-white/5 space-y-4">
+                <div className="pt-6 border-t border-kumo-line space-y-4">
                   <div>
-                    <p className="text-xs font-semibold text-charcoal dark:text-white">Find us</p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    <p className="text-sm font-semibold text-kumo-default">Find us</p>
+                    <p className="text-sm text-kumo-subtle mt-0.5">
                       Leave a field empty to use the matching Contact information value.
                     </p>
                   </div>
@@ -1352,8 +1302,8 @@ export default function PublicViewCMSPage() {
                   </div>
                 </div>
 
-                <div className="pt-6 border-t border-slate-100 dark:border-white/5 space-y-4">
-                  <p className="text-xs font-semibold text-charcoal dark:text-white">Social links</p>
+                <div className="pt-6 border-t border-kumo-line space-y-4">
+                  <p className="text-sm font-semibold text-kumo-default">Social links</p>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                     <Field label="Instagram" error={configErrors.footerInstagram}>
                       <input
@@ -1407,246 +1357,87 @@ export default function PublicViewCMSPage() {
           )}
 
           {activeTab === "postsales" && (
-            <div className="space-y-10">
-              <SectionHeader
-                icon={Monitor}
-                title="Shop Sales Monitoring"
-                sub="Manage tenant promotional posts and sales announcements."
-              />
+            <div className="space-y-6">
+              <SectionHeader title="Shop Sales Monitoring" sub="Manage tenant promotional posts and sales announcements." />
 
-              <div className="bg-white dark:bg-zinc-900/50 border border-slate-100 dark:border-white/5 rounded-2xl p-6 shadow-xs">
-                {activePostSales.length === 0 ? (
-                  <div className="py-20 text-center">
-                    <Monitor size={48} className="mx-auto text-slate-300 mb-4" />
-                    <h3 className="text-xl font-semibold text-slate-500 dark:text-slate-400">
-                      No Active Posts
-                    </h3>
-                    <p className="text-slate-500 mt-2 font-medium">
-                      {allPostSales.length === 0 ? "Tenants haven't posted any sales yet." : "No sales are running right now."}
-                    </p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {activePostSales.map((sale: any) => (
-                      <div key={sale.id} className={`group relative bg-slate-50 dark:bg-zinc-800/50 rounded-3xl border border-slate-200 dark:border-white/10 overflow-hidden flex flex-col ${isSaleActive(sale) ? "" : "opacity-70"}`}>
-                        <div className="aspect-video relative overflow-hidden bg-black/5">
-                          {sale.image_url && (sale.image_url.startsWith("data:video") || sale.image_url.match(/\.(mp4|webm|ogg)$/i)) ? (
-                            <video src={sale.image_url} className="w-full h-full object-cover" autoPlay muted loop />
-                          ) : sale.image_url ? (
-                            <img src={sale.image_url} className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full bg-slate-200 dark:bg-zinc-800 flex items-center justify-center">
-                              <ImageIcon size={32} className="text-slate-400" />
-                            </div>
-                          )}
-                          <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full text-xs font-semibold text-white border border-white/10">
-                            {sale.shopName}
-                          </div>
-
-                          {/* Admin Media Update */}
-                          <label className="absolute top-3 right-3 p-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl text-white cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white/30">
-                            <ImageIcon size={14} />
-                            <input
-                              type="file"
-                              accept="image/*,video/*"
-                              className="hidden"
-                              onChange={(e) => handleUpdatePostSaleImage(sale.tenantId, sale.id, sale.title, e)}
-                            />
-                          </label>
-                        </div>
-                        <div className="p-5 flex-1 flex flex-col justify-between">
-                          <h4 className="font-semibold text-charcoal dark:text-white tracking-tight text-sm mb-2">{sale.title}</h4>
-                          <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-200 dark:border-white/10">
-                            <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
-                              {formatSaleDate(new Date(sale.date || new Date()))}
-                              {" · "}
-                              <span className={isSaleActive(sale) ? "text-emerald-500" : "text-amber-500"}>
-                                {isSaleActive(sale) ? "Ends" : "Ended"} {formatSaleDate(saleEndsAt(sale))}
-                              </span>
-                            </span>
-                            <button
-                              onClick={() => handleDeletePostSale(sale.tenantId, sale.id)}
-                              className="w-8 h-8 flex items-center justify-center bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500 hover:text-white transition-colors"
-                              title="Delete Post"
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+              {activePostSales.length === 0 ? (
+                <Panel flush>
+                  <EmptyNote title="No active posts">
+                    {allPostSales.length === 0 ? "Tenants haven't posted any sales yet." : "No sales are running right now."}
+                  </EmptyNote>
+                </Panel>
+              ) : (
+                <SaleGrid sales={activePostSales} onImage={handleUpdatePostSaleImage} onDelete={handleDeletePostSale} />
+              )}
 
               {pastPostSales.length > 0 && (
-                <div className="space-y-6">
-                  <div>
-                    <h3 className="text-sm font-semibold text-charcoal dark:text-white tracking-tight">
-                      Past Shop Sales <span className="text-slate-500 dark:text-slate-400 font-bold normal-case tracking-normal">· no longer shown on the public page</span>
-                    </h3>
-                  </div>
-                  <div className="bg-white dark:bg-zinc-900/50 border border-slate-100 dark:border-white/5 rounded-2xl p-6 shadow-xs">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {pastPostSales.map((sale: any) => (
-                      <div key={sale.id} className={`group relative bg-slate-50 dark:bg-zinc-800/50 rounded-3xl border border-slate-200 dark:border-white/10 overflow-hidden flex flex-col ${isSaleActive(sale) ? "" : "opacity-70"}`}>
-                        <div className="aspect-video relative overflow-hidden bg-black/5">
-                          {sale.image_url && (sale.image_url.startsWith("data:video") || sale.image_url.match(/\.(mp4|webm|ogg)$/i)) ? (
-                            <video src={sale.image_url} className="w-full h-full object-cover" autoPlay muted loop />
-                          ) : sale.image_url ? (
-                            <img src={sale.image_url} className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full bg-slate-200 dark:bg-zinc-800 flex items-center justify-center">
-                              <ImageIcon size={32} className="text-slate-400" />
-                            </div>
-                          )}
-                          <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full text-xs font-semibold text-white border border-white/10">
-                            {sale.shopName}
-                          </div>
-
-                          {/* Admin Media Update */}
-                          <label className="absolute top-3 right-3 p-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl text-white cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white/30">
-                            <ImageIcon size={14} />
-                            <input
-                              type="file"
-                              accept="image/*,video/*"
-                              className="hidden"
-                              onChange={(e) => handleUpdatePostSaleImage(sale.tenantId, sale.id, sale.title, e)}
-                            />
-                          </label>
-                        </div>
-                        <div className="p-5 flex-1 flex flex-col justify-between">
-                          <h4 className="font-semibold text-charcoal dark:text-white tracking-tight text-sm mb-2">{sale.title}</h4>
-                          <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-200 dark:border-white/10">
-                            <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
-                              {formatSaleDate(new Date(sale.date || new Date()))}
-                              {" · "}
-                              <span className={isSaleActive(sale) ? "text-emerald-500" : "text-amber-500"}>
-                                {isSaleActive(sale) ? "Ends" : "Ended"} {formatSaleDate(saleEndsAt(sale))}
-                              </span>
-                            </span>
-                            <button
-                              onClick={() => handleDeletePostSale(sale.tenantId, sale.id)}
-                              className="w-8 h-8 flex items-center justify-center bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500 hover:text-white transition-colors"
-                              title="Delete Post"
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                    </div>
-                  </div>
-                </div>
+                <section className="space-y-3">
+                  <h3 className="text-base font-semibold text-kumo-default">
+                    Past shop sales <span className="text-sm font-normal text-kumo-subtle">(no longer shown on the public page)</span>
+                  </h3>
+                  <SaleGrid sales={pastPostSales} onImage={handleUpdatePostSaleImage} onDelete={handleDeletePostSale} />
+                </section>
               )}
             </div>
           )}
 
           {activeTab === "carousel" && (
-            <div className="space-y-10">
-              <div className="flex items-center justify-between">
-                <SectionHeader
-                  icon={Layout}
-                  title="Digital Billboards"
-                  sub="Manage high-priority advertising banners."
-                />
-                <button
-                  onClick={() => openCarouselModal()}
-                  className="flex items-center gap-2 px-6 py-3 bg-primary text-white font-semibold text-xs rounded-2xl shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
-                >
-                  <Plus size={16} /> New Asset
-                </button>
-              </div>
+            <div className="space-y-6">
+              <SectionHeader
+                title="Digital Billboards"
+                sub="Manage high-priority advertising banners."
+                action={
+                  <Button variant="primary" icon={<PlusIcon />} onClick={() => openCarouselModal()}>
+                    New banner
+                  </Button>
+                }
+              />
 
-              <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-8">
-                {carouselItems.length === 0 ? (
-                  <div className="md:col-span-2 2xl:col-span-3 py-14 sm:py-32 text-center border-2 border-dashed border-slate-200 dark:border-white/5 rounded-2xl bg-white/50 dark:bg-white/5">
-                    <ImageIcon
-                      size={48}
-                      className="text-slate-300 mx-auto mb-6"
-                    />
-                    <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">
-                      No Active Billboards Found
-                    </p>
-                  </div>
-                ) : (
-                  carouselItems.map((item: any) => (
-                    <div
-                      key={item.id}
-                      className="bg-white dark:bg-zinc-900/50 border border-slate-100 dark:border-white/5 rounded-2xl overflow-hidden group shadow-xs hover:shadow-xl transition-all"
-                    >
-                      <div className="aspect-video relative">
-                        <img
-                          src={item.imageUrl}
-                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                        />
-                        <div className="absolute top-4 right-4 flex gap-2">
-                          <button
-                            onClick={() => handleToggleCarouselItem(item.id)}
-                            className={clsx(
-                              "p-2.5 rounded-xl backdrop-blur-xl transition-all shadow-lg",
-                              item.isActive
-                                ? "bg-emerald-500 text-white"
-                                : "bg-white/20 text-white",
-                            )}
-                          >
-                            {item.isActive ? (
-                              <Eye size={16} />
-                            ) : (
-                              <EyeOff size={16} />
-                            )}
-                          </button>
-                          <button
-                            onClick={() => openCarouselModal(item)}
-                            className="p-2.5 bg-white/20 backdrop-blur-xl text-white rounded-xl shadow-lg hover:bg-white/40 transition-all"
-                          >
-                            <Edit size={16} />
-                          </button>
-                        </div>
-                        <div className="absolute bottom-4 left-4">
-                          <span className="px-3 py-1 bg-charcoal text-white text-xs font-semibold rounded-full">
-                            {item.priority} Priority
+              {carouselItems.length === 0 ? (
+                <Panel flush>
+                  <EmptyNote title="No billboards yet">Add a banner to show it on the homepage.</EmptyNote>
+                </Panel>
+              ) : (
+                <ul className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
+                  {carouselItems.map((item: any) => (
+                    <li key={item.id} className={CMS_CARD}>
+                      <Thumb url={item.imageUrl} alt={item.title} />
+                      <div className="flex flex-1 flex-col gap-1 p-4">
+                        <h3 className="line-clamp-1 text-base font-semibold text-kumo-default">{item.title}</h3>
+                        <p className="line-clamp-2 text-sm text-kumo-subtle">{item.description}</p>
+                        <p className="text-sm">
+                          <span className={cn("font-medium", item.isActive ? "text-kumo-success" : "text-kumo-subtle")}>
+                            {item.isActive ? "Live" : "Hidden"}
                           </span>
-                        </div>
-                      </div>
-                      <div className="p-5 sm:p-8 space-y-2">
-                        <h4 className="font-semibold text-charcoal dark:text-white tracking-tight line-clamp-1">
-                          {item.title}
-                        </h4>
-                        <p className="text-xs text-slate-500 font-medium line-clamp-2 leading-relaxed">
-                          {item.description}
+                          <span className="text-kumo-subtle">, priority {item.priority}</span>
                         </p>
-                        <div className="pt-4 flex items-center justify-between">
-                          <span
-                            className={clsx(
-                              "text-xs font-semibold",
-                              item.isActive
-                                ? "text-emerald-500"
-                                : "text-slate-500 dark:text-slate-400",
-                            )}
-                          >
-                            ● {item.isActive ? "Live Status" : "Draft Mode"}
-                          </span>
-                          <button
+                        <div className="mt-auto flex flex-wrap justify-end gap-2 pt-3">
+                          <Button size="sm" variant="secondary" onClick={() => handleToggleCarouselItem(item.id)}>
+                            {item.isActive ? "Hide" : "Show"}
+                          </Button>
+                          <Button size="sm" variant="secondary" icon={<PencilSimple />} onClick={() => openCarouselModal(item)}>
+                            Edit
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="secondary-destructive"
+                            shape="square"
+                            icon={<Trash />}
+                            aria-label={`Delete ${item.title}`}
                             onClick={() => handleDeleteCarouselItem(item.id)}
-                            className="text-red-500 opacity-40 group-hover:opacity-100 transition-opacity p-2 hover:bg-red-500/10 rounded-xl"
-                          >
-                            <Trash2 size={16} />
-                          </button>
+                          />
                         </div>
                       </div>
-                    </div>
-                  ))
-                )}
-              </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           )}
 
           {activeTab === "events" && (
-            <div className="space-y-10">
+            <div className="space-y-6">
               <SectionHeader
-                icon={CalendarIcon}
                 title="Upcoming Events"
                 sub="Approved events show on the public page until their event day ends. Upload an image to publish one."
               />
@@ -1655,110 +1446,56 @@ export default function PublicViewCMSPage() {
                 const upcoming = approvedEvents.filter((ev: any) => !ev.isPast);
                 const past = approvedEvents.filter((ev: any) => ev.isPast);
                 const renderCard = (ev: any) => (
-                  <div
-                    key={ev.id}
-                    className={clsx(
-                      "bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl p-6 shadow-xs flex flex-col justify-between",
-                      ev.isPast && "opacity-70",
-                    )}
-                  >
-                    <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-semibold border border-primary/20">
-                          {ev.eventType}
-                        </span>
-                        {ev.isPast ? (
-                          <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 dark:bg-white/5 text-slate-500">
-                            Ended · hidden
-                          </span>
-                        ) : ev.isPublic ? (
-                          <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600">
-                            Live on site
-                          </span>
-                        ) : (
-                          <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-600">
-                            Needs image
-                          </span>
+                  <li key={ev.id} className={cn(CMS_CARD, ev.isPast && "opacity-70")}>
+                    <Thumb url={ev.imageUrl} alt={ev.eventName || ev.eventType} empty="No image yet" />
+                    <div className="flex flex-1 flex-col gap-1 p-4">
+                      <h3 className="text-base font-semibold text-kumo-default">{ev.eventName || ev.eventType}</h3>
+                      <p className="text-sm text-kumo-subtle">
+                        {ev.eventType}, {new Date(ev.eventDate).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" })}
+                        {ev.eventTime ? `, ${ev.eventTime}` : ""}
+                      </p>
+                      <p
+                        className={cn(
+                          "text-sm font-medium",
+                          ev.isPast ? "text-kumo-subtle" : ev.isPublic ? "text-kumo-success" : "text-kumo-warning",
                         )}
-                      </div>
-                      <div className="flex flex-wrap items-center gap-2 shrink-0">
-                        <span className="text-xs text-slate-500 dark:text-slate-400 font-bold">
-                          {new Date(ev.eventDate).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" })}
-                          {ev.eventTime ? ` · ${ev.eventTime}` : ""}
-                        </span>
-                        <button
-                          onClick={() => openEventInfoModal(ev)}
-                          className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-500 transition-colors hover:border-blue-500/30 hover:bg-blue-500/10 hover:text-blue-500 dark:border-white/10 dark:text-slate-300"
-                          title="Edit event"
-                        >
-                          <Edit size={12} /> Edit
-                        </button>
-                        <button
-                          onClick={() => setDeleteEventTarget(ev)}
-                          className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-500 transition-colors hover:border-red-500/30 hover:bg-red-500/10 hover:text-red-500 dark:border-white/10 dark:text-slate-300"
-                          title="Delete event"
-                        >
-                          <Trash2 size={12} /> Delete
-                        </button>
+                      >
+                        {ev.isPast ? "Ended, hidden" : ev.isPublic ? "Live on site" : "Needs image"}
+                      </p>
+                      <div className="mt-auto flex flex-wrap justify-end gap-2 pt-3">
+                        {!ev.isPast && (
+                          <FileButton accept="image/*" onChange={(e) => handleEventImageUpload(ev.id, e)}>
+                            {ev.imageUrl ? "Change image" : "Upload image"}
+                          </FileButton>
+                        )}
+                        <Button size="sm" variant="secondary" icon={<PencilSimple />} onClick={() => openEventInfoModal(ev)}>
+                          Edit
+                        </Button>
+                        <Button size="sm" variant="secondary-destructive" icon={<Trash />} onClick={() => setDeleteEventTarget(ev)}>
+                          Delete
+                        </Button>
                       </div>
                     </div>
-                    <h3 className="text-xl font-semibold text-charcoal dark:text-white tracking-tight mb-6">
-                      {ev.eventName || ev.eventType}
-                    </h3>
-                    <div className="aspect-video w-full bg-slate-100 dark:bg-zinc-800 rounded-3xl overflow-hidden relative group">
-                      {ev.imageUrl ? (
-                        <img
-                          src={ev.imageUrl}
-                          className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex flex-col items-center justify-center text-slate-400">
-                          <ImageIcon size={32} className="mb-2" />
-                          <span className="text-xs font-semibold">
-                            No Image Provided
-                          </span>
-                        </div>
-                      )}
-                      {!ev.isPast && (
-                        <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity backdrop-blur-xs">
-                          <div className="flex flex-col items-center">
-                            <Plus size={24} className="text-white mb-2" />
-                            <span className="text-xs font-semibold text-white">
-                              {ev.imageUrl ? "Update Image" : "Upload Image"}
-                            </span>
-                          </div>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={(e) => handleEventImageUpload(ev.id, e)}
-                          />
-                        </label>
-                      )}
-                    </div>
-                  </div>
+                  </li>
                 );
                 return (
                   <>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                      {upcoming.length === 0 ? (
-                        <div className="md:col-span-2 p-5 sm:p-10 bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-3xl flex items-center justify-center text-slate-400 font-bold text-xs">
-                          No upcoming approved events.
-                        </div>
-                      ) : (
-                        upcoming.map(renderCard)
-                      )}
-                    </div>
+                    {upcoming.length === 0 ? (
+                      <Panel flush>
+                        <EmptyNote title="No upcoming approved events" />
+                      </Panel>
+                    ) : (
+                      <ul className="grid gap-4 md:grid-cols-2">{upcoming.map(renderCard)}</ul>
+                    )}
 
                     {past.length > 0 && (
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between gap-4">
-                          <h4 className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                            Past events ({past.length}) · no longer shown on the public page
-                          </h4>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">{past.map(renderCard)}</div>
-                      </div>
+                      <section className="space-y-3">
+                        <h3 className="text-base font-semibold text-kumo-default">
+                          Past events ({past.length}){" "}
+                          <span className="text-sm font-normal text-kumo-subtle">(no longer shown on the public page)</span>
+                        </h3>
+                        <ul className="grid gap-4 md:grid-cols-2">{past.map(renderCard)}</ul>
+                      </section>
                     )}
                   </>
                 );
@@ -1767,285 +1504,130 @@ export default function PublicViewCMSPage() {
           )}
 
           {activeTab === "lostfound" && (
-            <div className="space-y-10">
-              <div className="flex items-center justify-between">
-                <SectionHeader
-                  icon={Search}
-                  title="Lost & Found"
-                  sub="Manage reported lost and found items."
-                />
-                <button
-                  onClick={() => setIsLostFoundModalOpen(true)}
-                  className="flex items-center gap-2 px-6 py-3 bg-primary text-white font-semibold text-xs rounded-2xl shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
-                >
-                  <Plus size={16} /> New Item
-                </button>
-              </div>
+            <div className="space-y-6">
+              <SectionHeader
+                title="Lost & Found"
+                sub="Manage reported lost and found items."
+                action={
+                  <Button variant="primary" icon={<PlusIcon />} onClick={() => setIsLostFoundModalOpen(true)}>
+                    New item
+                  </Button>
+                }
+              />
 
-              {/* Category Filter Tabs */}
-              <div className="flex flex-wrap gap-2.5 mb-6">
-                {[
-                  { id: "ALL", label: "All" },
-                  { id: "FOUND", label: "Found Item" },
-                  { id: "LOST", label: "Lost Item" },
-                  { id: "REPORT", label: "Report Item" },
-                  { id: "CLAIMED", label: "Claimed Item" },
-                ].map((cat) => {
-                  const count = lostAndFoundItems.filter((item) => {
-                    if (cat.id === "ALL") return true;
-                    if (cat.id === "CLAIMED") return item.status === "CLAIMED";
-                    if (cat.id === "REPORT") return item.status === "PENDING";
-                    if (cat.id === "FOUND")
-                      return (
-                        item.type === "FOUND" &&
-                        item.status !== "CLAIMED" &&
-                        item.status !== "PENDING"
-                      );
-                    if (cat.id === "LOST")
-                      return (
-                        item.type === "LOST" &&
-                        item.status !== "CLAIMED" &&
-                        item.status !== "PENDING"
-                      );
-                    return true;
-                  }).length;
-                  const isSelected = lfFilter === cat.id;
-                  const isReport = cat.id === "REPORT";
+              <PageTabs
+                value={lfFilter}
+                onValueChange={(v) => setLfFilter(v)}
+                tabs={LOST_FOUND_FILTERS.map((f) => ({
+                  value: f.id,
+                  label: `${f.label} (${lostAndFoundItems.filter((item) => matchesLostFound(item, f.id)).length})`,
+                }))}
+              />
 
-                  return (
-                    <button
-                      key={cat.id}
-                      onClick={() => setLfFilter(cat.id)}
-                      className={clsx(
-                        "px-5 py-2.5 rounded-full text-xs font-semibold transition-all flex items-center gap-2.5 border",
-                        isSelected
-                          ? "bg-primary text-white border-primary shadow-lg shadow-primary/30 scale-105"
-                          : "bg-slate-100 dark:bg-zinc-800 text-slate-500 hover:text-charcoal dark:hover:text-white border-transparent"
-                      )}
-                    >
-                      <span>{cat.label}</span>
-                      <span
-                        className={clsx(
-                          "px-2 py-0.5 rounded-full text-xs font-semibold",
-                          isSelected
-                            ? "bg-white/20 text-white"
-                            : isReport && count > 0
-                              ? "bg-amber-500 text-white animate-pulse"
-                              : "bg-slate-200 dark:bg-zinc-700 text-slate-600 dark:text-zinc-300"
-                        )}
-                      >
-                        {count}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              <div className="bg-white dark:bg-zinc-900/50 border border-slate-100 dark:border-white/5 rounded-2xl p-6 shadow-xs">
-                {lostAndFoundItems.filter((item) => {
-                  if (lfFilter === "ALL") return true;
-                  if (lfFilter === "CLAIMED") return item.status === "CLAIMED";
-                  if (lfFilter === "REPORT") return item.status === "PENDING";
-                  if (lfFilter === "FOUND")
-                    return (
-                      item.type === "FOUND" &&
-                      item.status !== "CLAIMED" &&
-                      item.status !== "PENDING"
-                    );
-                  if (lfFilter === "LOST")
-                    return (
-                      item.type === "LOST" &&
-                      item.status !== "CLAIMED" &&
-                      item.status !== "PENDING"
-                    );
-                  return true;
-                }).length === 0 ? (
-                  <div className="py-20 text-center">
-                    <Search size={48} className="mx-auto text-slate-300 mb-4" />
-                    <h3 className="text-xl font-semibold text-slate-500 dark:text-slate-400">
-                      No Items Found
-                    </h3>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {lostAndFoundItems
-                      .filter((item) => {
-                        if (lfFilter === "ALL") return true;
-                        if (lfFilter === "CLAIMED") return item.status === "CLAIMED";
-                        if (lfFilter === "REPORT") return item.status === "PENDING";
-                        if (lfFilter === "FOUND")
-                          return (
-                            item.type === "FOUND" &&
-                            item.status !== "CLAIMED" &&
-                            item.status !== "PENDING"
-                          );
-                        if (lfFilter === "LOST")
-                          return (
-                            item.type === "LOST" &&
-                            item.status !== "CLAIMED" &&
-                            item.status !== "PENDING"
-                          );
-                        return true;
-                      })
-                      .map((item: any) => (
-                        <div
-                          key={item.id}
-                          className="group relative bg-slate-50 dark:bg-zinc-800/50 rounded-3xl border border-slate-200 dark:border-white/10 overflow-hidden flex flex-col hover:border-primary/30 transition-all"
-                        >
-                          <div className="aspect-video relative overflow-hidden bg-black/5">
-                            {item.imageUrl ? (
-                              <img src={item.imageUrl} className="w-full h-full object-cover" />
-                            ) : (
-                              <div className="w-full h-full bg-slate-200 dark:bg-zinc-800 flex items-center justify-center">
-                                <ImageIcon size={32} className="text-slate-400" />
-                              </div>
-                            )}
-                            <div className="absolute top-3 left-3 flex items-center gap-1.5">
-                              <span
-                                className={clsx(
-                                  "px-3 py-1 rounded-full text-xs font-semibold text-white border border-white/10",
-                                  item.type === "LOST" ? "bg-orange-500" : "bg-primary"
-                                )}
-                              >
-                                {item.type}
-                              </span>
-                              {item.status === "CLAIMED" && (
-                                <span className="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500 text-white border border-white/10 shadow-xs flex items-center gap-1">
-                                  <CheckCircle size={10} /> CLAIMED
-                                </span>
+              {lostAndFoundItems.filter((item) => matchesLostFound(item, lfFilter)).length === 0 ? (
+                <Panel flush>
+                  <EmptyNote title="No items found" />
+                </Panel>
+              ) : (
+                <ul className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {lostAndFoundItems
+                    .filter((item) => matchesLostFound(item, lfFilter))
+                    .map((item: any) => (
+                      <li key={item.id} className={CMS_CARD}>
+                        <Thumb url={item.imageUrl} alt={item.title} empty="No photo" />
+                        <div className="flex flex-1 flex-col gap-1 p-4">
+                          <p className="text-sm">
+                            <span className="font-medium text-kumo-default">{item.type === "LOST" ? "Lost" : "Found"}</span>
+                            {item.status === "CLAIMED" && <span className="font-medium text-kumo-success">, claimed</span>}
+                            {item.status === "PENDING" && <span className="font-medium text-kumo-warning">, new report</span>}
+                          </p>
+                          <h3 className="text-base font-semibold text-kumo-default">{item.title}</h3>
+                          <p className="text-sm text-kumo-subtle">
+                            {item.location}, {new Date(item.date).toLocaleDateString()}
+                          </p>
+                          {item.description && <p className="line-clamp-2 text-sm text-kumo-default">{item.description}</p>}
+                          {item.user && <p className="text-sm text-kumo-subtle">Reported by {item.user.name || item.user.email}</p>}
+                          <div className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-3">
+                            <Select
+                              aria-label={`Status of ${item.title}`}
+                              value={item.status}
+                              items={LOST_FOUND_STATUS}
+                              onValueChange={(v) => v != null && v !== item.status && handleUpdateStatus(item.id, v as string)}
+                              className="w-44"
+                            >
+                              {Object.entries(LOST_FOUND_STATUS).map(([value, label]) => (
+                                <Select.Option key={value} value={value}>
+                                  {label}
+                                </Select.Option>
+                              ))}
+                            </Select>
+                            <div className="flex gap-2">
+                              {item.status !== "CLAIMED" && (
+                                <Button size="sm" variant="primary" onClick={() => handleUpdateStatus(item.id, "CLAIMED")}>
+                                  Claim
+                                </Button>
                               )}
-                              {item.status === "PENDING" && (
-                                <span className="px-3 py-1 rounded-full text-xs font-semibold bg-amber-500 text-white border border-white/10 shadow-xs animate-pulse">
-                                  NEW REPORT
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                          <div className="p-5 flex-1 flex flex-col justify-between">
-                            <div>
-                              <h4 className="font-semibold text-charcoal dark:text-white tracking-tight text-sm mb-1">
-                                {item.title}
-                              </h4>
-                              <p className="text-xs text-slate-500 font-medium line-clamp-2 mb-2">
-                                {item.location} • {new Date(item.date).toLocaleDateString()}
-                              </p>
-                              {item.description && (
-                                <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mb-2 italic">
-                                  "{item.description}"
-                                </p>
-                              )}
-                              {item.user && (
-                                <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold mb-2">
-                                  <span className="text-primary font-bold">
-                                    Reported by:
-                                  </span>{" "}
-                                  {item.user.name || item.user.email}
-                                </p>
-                              )}
-                            </div>
-                            <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-200 dark:border-white/10 gap-2">
-                              <select
-                                value={item.status}
-                                onChange={(e) => handleUpdateStatus(item.id, e.target.value)}
-                                className={clsx(
-                                  "border rounded-lg text-xs font-bold px-2.5 py-1.5 outline-hidden transition-all",
-                                  item.status === "CLAIMED"
-                                    ? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800"
-                                    : item.status === "PENDING"
-                                      ? "bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-800"
-                                      : "bg-slate-100 dark:bg-zinc-700 text-charcoal dark:text-white border-slate-200 dark:border-white/5"
-                                )}
-                              >
-                                <option value="PENDING">Pending (Report)</option>
-                                <option value="LOOKING">Looking / Active</option>
-                                <option value="CLAIMED">Claimed</option>
-                                <option value="RESOLVED">Resolved</option>
-                                <option value="UNCLAIMED">Unclaimed</option>
-                              </select>
-
-                              <div className="flex items-center gap-1.5">
-                                {item.status !== "CLAIMED" && (
-                                  <button
-                                    onClick={() => handleUpdateStatus(item.id, "CLAIMED")}
-                                    className="px-2.5 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-semibold rounded-lg transition-all shadow-xs flex items-center gap-1 shrink-0"
-                                    title="Mark this item as Claimed"
-                                  >
-                                    <CheckCircle size={12} /> Claim
-                                  </button>
-                                )}
-                                <button
-                                  onClick={() => handleDeleteLostFound(item.id)}
-                                  className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-lg transition-colors shrink-0"
-                                  title="Delete Item"
-                                >
-                                  <Trash2 size={14} />
-                                </button>
-                              </div>
+                              <Button
+                                size="sm"
+                                variant="secondary-destructive"
+                                shape="square"
+                                icon={<Trash />}
+                                aria-label={`Delete ${item.title}`}
+                                onClick={() => handleDeleteLostFound(item.id)}
+                              />
                             </div>
                           </div>
                         </div>
-                      ))}
-                  </div>
-                )}
-              </div>
+                      </li>
+                    ))}
+                </ul>
+              )}
             </div>
           )}
           {isDirty && (
-            <div className="sticky bottom-4 z-30 mt-8 animate-fade-in-up">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 pl-6 bg-charcoal dark:bg-zinc-800 text-white rounded-2xl shadow-2xl shadow-black/20 border border-white/10">
-                <p className="flex items-center gap-2 text-xs font-semibold">
-                  <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+            <div className="sticky bottom-4 z-30 mt-6">
+              <div className="flex flex-col justify-between gap-3 rounded-xl border border-kumo-line bg-kumo-base p-4 shadow-lg sm:flex-row sm:items-center">
+                <p className={cn("text-sm font-semibold", hasConfigErrors ? "text-kumo-danger" : "text-kumo-warning")}>
                   {hasConfigErrors ? "Fix the highlighted fields to save" : "You have unsaved changes"}
                 </p>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={handleDiscardConfig}
-                    disabled={isSaving}
-                    className="h-10 px-4 rounded-xl text-xs font-semibold text-white/70 hover:text-white hover:bg-white/10 transition-colors disabled:opacity-50"
-                  >
+                <div className="flex justify-end gap-2">
+                  <Button variant="secondary" onClick={handleDiscardConfig} disabled={isSaving}>
                     Discard
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleSaveConfig}
-                    disabled={isSaving || hasConfigErrors}
-                    className="h-10 px-5 flex items-center gap-2 rounded-xl bg-primary text-white text-xs font-semibold shadow-lg shadow-primary/30 hover:bg-primary-hover active:scale-95 transition-all disabled:opacity-50"
-                  >
-                    {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                  </Button>
+                  <Button variant="primary" loading={isSaving} disabled={hasConfigErrors} onClick={handleSaveConfig}>
                     Save changes
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>
           )}
-        </main>
+        </div>
       </div>
 
       {/* Carousel Modal */}
-      {isCarouselModalOpen && (
-        <div className="fixed inset-0 bg-charcoal/80 backdrop-blur-md z-100 flex items-center justify-center p-6 animate-fade-in">
-          <div className="bg-white dark:bg-zinc-900 w-full max-w-2xl rounded-2xl border border-white/10 shadow-2xl overflow-hidden animate-scale-in">
-            <div className="p-5 sm:p-10 border-b border-slate-100 dark:border-white/5 flex items-center justify-between bg-slate-50/50 dark:bg-white/5">
-              <div>
-                <h3 className="text-2xl font-semibold text-charcoal dark:text-white tracking-tight">
-                  Homepage banner
-                </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-1">
-                  Configure asset visual and priority.
-                </p>
-              </div>
-              <button
-                onClick={closeCarouselModal}
-                className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-zinc-800 text-slate-500 flex items-center justify-center hover:scale-110 active:scale-90 transition-all"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <div className="p-5 sm:p-10 space-y-8 max-h-[60vh] overflow-y-auto custom-scrollbar">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <InputGroup label="Billboard Title" icon={Layers}>
+      <AdminDialog
+        open={isCarouselModalOpen}
+        onClose={closeCarouselModal}
+        size="lg"
+        title="Homepage banner"
+        description="Set the picture, text and priority."
+        footer={
+          <>
+            <Button variant="secondary" onClick={closeCarouselModal}>
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              loading={isSaving}
+              onClick={editingCarouselItem ? handleUpdateCarouselItem : handleCreateCarouselItem}
+            >
+              Publish banner
+            </Button>
+          </>
+        }
+      >
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <InputGroup label="Billboard Title">
                   <input
                     value={carouselForm.title}
                     onChange={(e) =>
@@ -2057,7 +1639,7 @@ export default function PublicViewCMSPage() {
                     className="cms-input"
                   />
                 </InputGroup>
-                <InputGroup label="Display Priority" icon={Plus}>
+                <InputGroup label="Display Priority">
                   <input
                     type="number"
                     value={carouselForm.priority}
@@ -2071,7 +1653,7 @@ export default function PublicViewCMSPage() {
                   />
                 </InputGroup>
                 <div className="md:col-span-2">
-                  <InputGroup label="Narrative Text" icon={Globe}>
+                  <InputGroup label="Narrative Text">
                     <textarea
                       value={carouselForm.description}
                       onChange={(e) =>
@@ -2085,7 +1667,7 @@ export default function PublicViewCMSPage() {
                   </InputGroup>
                 </div>
                 <div className="md:col-span-2">
-                  <InputGroup label="Visual Asset URL" icon={Monitor}>
+                  <InputGroup label="Visual Asset URL">
                     <div className="flex gap-4">
                       <input
                         value={carouselForm.imageUrl}
@@ -2110,7 +1692,7 @@ export default function PublicViewCMSPage() {
                     </div>
                   </InputGroup>
                 </div>
-                <InputGroup label="Action Link" icon={Sparkles}>
+                <InputGroup label="Action Link">
                   <input
                     value={carouselForm.linkUrl}
                     onChange={(e) =>
@@ -2123,87 +1705,36 @@ export default function PublicViewCMSPage() {
                     placeholder="/offers"
                   />
                 </InputGroup>
-                <div className="flex items-center gap-3 pt-8">
-                  <div
-                    onClick={() =>
-                      setCarouselForm((prev: any) => ({
-                        ...prev,
-                        isActive: !prev.isActive,
-                      }))
-                    }
-                    className={clsx(
-                      "w-12 h-6 rounded-full p-1 cursor-pointer transition-colors",
-                      carouselForm.isActive ? "bg-emerald-500" : "bg-slate-300",
-                    )}
-                  >
-                    <div
-                      className={clsx(
-                        "w-4 h-4 bg-white rounded-full transition-transform",
-                        carouselForm.isActive
-                          ? "translate-x-6"
-                          : "translate-x-0",
-                      )}
-                    />
-                  </div>
-                  <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                    Status: {carouselForm.isActive ? "Live" : "Hidden"}
-                  </span>
+                <div className="flex items-end pb-2">
+                  <Checkbox
+                    label="Show on the homepage"
+                    checked={!!carouselForm.isActive}
+                    onCheckedChange={(v) => setCarouselForm((prev: any) => ({ ...prev, isActive: Boolean(v) }))}
+                  />
                 </div>
               </div>
-            </div>
-
-            <div className="p-5 sm:p-10 bg-slate-50/50 dark:bg-white/5 border-t border-slate-100 dark:border-white/5 flex gap-4">
-              <button
-                onClick={closeCarouselModal}
-                className="flex-1 py-4 text-xs font-semibold text-slate-500 hover:text-charcoal transition-all"
-              >
-                Discard Changes
-              </button>
-              <button
-                onClick={
-                  editingCarouselItem
-                    ? handleUpdateCarouselItem
-                    : handleCreateCarouselItem
-                }
-                disabled={isSaving}
-                className="flex-2 py-4 bg-primary text-white font-semibold text-xs rounded-2xl shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
-              >
-                {isSaving ? (
-                  <Loader2 size={16} className="animate-spin" />
-                ) : (
-                  <Save size={16} />
-                )}
-                Publish banner
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      </AdminDialog>
 
       {/* Event Info Modal */}
-      {isEventInfoModalOpen && (
-        <div className="fixed inset-0 bg-charcoal/80 backdrop-blur-md z-100 flex items-center justify-center p-4 sm:p-6 animate-fade-in">
-          <div className="bg-white dark:bg-zinc-900 w-full max-w-2xl rounded-2xl border border-white/10 shadow-2xl overflow-hidden animate-scale-in flex flex-col max-h-[90vh]">
-            <div className="p-6 sm:p-8 border-b border-slate-100 dark:border-white/5 flex items-center justify-between bg-slate-50/50 dark:bg-white/5 shrink-0">
-              <div>
-                <h3 className="text-xl font-semibold text-charcoal dark:text-white tracking-tight">
-                  Edit event
-                </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-1">
-                  Update the event details shown on the public page
-                </p>
-              </div>
-              <button
-                onClick={() => setIsEventInfoModalOpen(false)}
-                className="w-10 h-10 rounded-2xl bg-slate-100 dark:bg-zinc-800 text-slate-500 flex items-center justify-center hover:scale-110 active:scale-90 transition-all"
-                aria-label="Close"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <div className="p-6 sm:p-8 space-y-5 overflow-y-auto custom-scrollbar flex-1">
-              <InputGroup label="Event Name" icon={Sparkles}>
+      <AdminDialog
+        open={isEventInfoModalOpen}
+        onClose={() => setIsEventInfoModalOpen(false)}
+        size="lg"
+        title="Edit event"
+        description="Update the event details shown on the public page."
+        footer={
+          <>
+            <Button variant="secondary" disabled={isSaving} onClick={() => setIsEventInfoModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="primary" loading={isSaving} onClick={handleUpdateEventInfo}>
+              Save changes
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+              <InputGroup label="Event Name">
                 <input
                   value={eventInfoForm.eventName}
                   onChange={(e) =>
@@ -2277,7 +1808,7 @@ export default function PublicViewCMSPage() {
                     className="cms-input"
                   />
                 </div>
-                <InputGroup label="FB Account URL/Name" icon={Globe}>
+                <InputGroup label="FB Account URL/Name">
                   <input
                     value={eventInfoForm.fbAccount}
                     onChange={(e) =>
@@ -2292,7 +1823,7 @@ export default function PublicViewCMSPage() {
                 </InputGroup>
               </div>
 
-              <InputGroup label="Contact Number" icon={Phone}>
+              <InputGroup label="Contact Number">
                 <input
                   value={eventInfoForm.contactNumber}
                   onChange={(e) =>
@@ -2306,7 +1837,7 @@ export default function PublicViewCMSPage() {
                 />
               </InputGroup>
 
-              <InputGroup label="Event Message / Notes" icon={Info}>
+              <InputGroup label="Event Message / Notes">
                 <textarea
                   value={eventInfoForm.message}
                   onChange={(e) =>
@@ -2320,94 +1851,56 @@ export default function PublicViewCMSPage() {
                   placeholder="Optional details shown with the event"
                 />
               </InputGroup>
-            </div>
-
-            <div className="p-6 sm:p-8 bg-slate-50/50 dark:bg-white/5 border-t border-slate-100 dark:border-white/5 flex gap-4 shrink-0">
-              <button
-                onClick={() => setIsEventInfoModalOpen(false)}
-                disabled={isSaving}
-                className="flex-1 py-3 text-xs font-semibold text-slate-500 hover:text-charcoal transition-all disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleUpdateEventInfo}
-                disabled={isSaving}
-                className="flex-2 py-3 bg-primary text-white font-semibold text-xs rounded-2xl shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:hover:scale-100"
-              >
-                {isSaving ? "Saving…" : "Save changes"}
-              </button>
-            </div>
-          </div>
         </div>
-      )}
+      </AdminDialog>
 
-      {deleteEventTarget && (
-        <div className="fixed inset-0 bg-charcoal/80 backdrop-blur-md z-100 flex items-center justify-center p-4 sm:p-6 animate-fade-in">
-          <div className="bg-white dark:bg-zinc-900 w-full max-w-md rounded-2xl border border-white/10 shadow-2xl overflow-hidden animate-scale-in">
-            <div className="p-5 sm:p-8 space-y-5">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-red-500/10 text-red-500">
-                <Trash2 size={26} />
-              </div>
-              <div className="space-y-2">
-                <h3 className="text-xl font-semibold tracking-tight text-charcoal dark:text-white">
-                  Delete this event?
-                </h3>
-                <p className="text-sm font-medium leading-relaxed text-slate-500">
-                  <span className="font-bold text-charcoal dark:text-white">
-                    {deleteEventTarget.eventName || deleteEventTarget.eventType}
-                  </span>{" "}
-                  will be removed from the public page along with its uploaded
-                  image. This can&apos;t be undone.
-                </p>
-              </div>
-            </div>
-            <div className="flex gap-3 border-t border-slate-100 bg-slate-50/60 p-6 dark:border-white/5 dark:bg-white/2">
-              <button
-                type="button"
-                disabled={isSaving}
-                onClick={() => setDeleteEventTarget(null)}
-                className="flex-1 rounded-2xl bg-slate-100 px-4 py-3.5 text-xs font-semibold text-slate-500 transition-all hover:bg-slate-200 disabled:opacity-50 dark:bg-zinc-800 dark:text-slate-300 dark:hover:bg-zinc-700"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                disabled={isSaving}
-                onClick={confirmDeleteEvent}
-                className="flex-1 rounded-2xl bg-red-500 px-4 py-3.5 text-xs font-semibold text-white shadow-xl shadow-red-500/20 transition-all hover:bg-red-600 active:scale-95 disabled:opacity-50"
-              >
-                {isSaving ? "Deleting…" : "Delete event"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <AdminDialog
+        open={!!deleteEventTarget}
+        onClose={() => !isSaving && setDeleteEventTarget(null)}
+        size="sm"
+        title="Delete this event?"
+        footer={
+          <>
+            <Button variant="secondary" disabled={isSaving} onClick={() => setDeleteEventTarget(null)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" loading={isSaving} onClick={confirmDeleteEvent}>
+              Delete event
+            </Button>
+          </>
+        }
+      >
+        <p className="text-sm text-kumo-default">
+          <strong>{deleteEventTarget?.eventName || deleteEventTarget?.eventType}</strong> will be removed from the public page
+          along with its uploaded image. This can&apos;t be undone.
+        </p>
+      </AdminDialog>
 
       {/* Lost and Found Modal */}
-      {isLostFoundModalOpen && (
-        <div className="fixed inset-0 bg-charcoal/80 backdrop-blur-md z-100 flex items-center justify-center p-4 sm:p-6 animate-fade-in">
-          <div className="bg-white dark:bg-zinc-900 w-full max-w-2xl rounded-2xl sm:rounded-2xl border border-white/10 shadow-2xl overflow-hidden animate-scale-in flex flex-col max-h-[90vh]">
-            <div className="p-6 sm:p-8 md:p-10 border-b border-slate-100 dark:border-white/5 flex items-center justify-between bg-slate-50/50 dark:bg-white/5 shrink-0">
-              <div>
-                <h3 className="text-2xl font-semibold text-charcoal dark:text-white tracking-tight">
-                  Post item
-                </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-1">
-                  Report a lost or found item.
-                </p>
-              </div>
-              <button
-                onClick={() => setIsLostFoundModalOpen(false)}
-                className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-zinc-800 text-slate-500 flex items-center justify-center hover:scale-110 active:scale-90 transition-all"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <div className="p-6 sm:p-8 md:p-10 space-y-6 overflow-y-auto custom-scrollbar flex-1">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <InputGroup label="Type" icon={Layers}>
+      <AdminDialog
+        open={isLostFoundModalOpen}
+        onClose={() => setIsLostFoundModalOpen(false)}
+        size="lg"
+        title="Post item"
+        description="Report a lost or found item."
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setIsLostFoundModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              loading={isSaving}
+              disabled={!lostFoundForm.title || !lostFoundForm.location}
+              onClick={handleCreateLostFound}
+            >
+              Post item
+            </Button>
+          </>
+        }
+      >
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <InputGroup label="Type">
                   <select
                     value={lostFoundForm.type}
                     onChange={(e) => setLostFoundForm(prev => ({ ...prev, type: e.target.value as "LOST" | "FOUND" }))}
@@ -2417,7 +1910,7 @@ export default function PublicViewCMSPage() {
                     <option value="LOST">Lost Item</option>
                   </select>
                 </InputGroup>
-                <InputGroup label="Title" icon={Layers}>
+                <InputGroup label="Title">
                   <input
                     value={lostFoundForm.title}
                     onChange={(e) => setLostFoundForm(prev => ({ ...prev, title: e.target.value }))}
@@ -2425,7 +1918,7 @@ export default function PublicViewCMSPage() {
                     placeholder="E.g. Blue Umbrella"
                   />
                 </InputGroup>
-                <InputGroup label="Location" icon={Monitor}>
+                <InputGroup label="Location">
                   <input
                     value={lostFoundForm.location}
                     onChange={(e) => setLostFoundForm(prev => ({ ...prev, location: e.target.value }))}
@@ -2433,7 +1926,7 @@ export default function PublicViewCMSPage() {
                     placeholder="E.g. Near Entrance 1"
                   />
                 </InputGroup>
-                <InputGroup label="Date" icon={CalendarIcon}>
+                <InputGroup label="Date">
                   <input
                     type="date"
                     value={lostFoundForm.date}
@@ -2442,7 +1935,7 @@ export default function PublicViewCMSPage() {
                   />
                 </InputGroup>
                 <div className="md:col-span-2">
-                  <InputGroup label="Description" icon={Globe}>
+                  <InputGroup label="Description">
                     <textarea
                       value={lostFoundForm.description}
                       onChange={(e) => setLostFoundForm(prev => ({ ...prev, description: e.target.value }))}
@@ -2451,14 +1944,13 @@ export default function PublicViewCMSPage() {
                   </InputGroup>
                 </div>
                 <div className="md:col-span-2">
-                  <InputGroup label="Image" icon={ImageIcon}>
+                  <InputGroup label="Image">
                     <div className="flex gap-4 items-center">
                       {lostFoundForm.imageUrl && (
                         <img src={lostFoundForm.imageUrl} className="w-16 h-16 rounded-xl object-cover" />
                       )}
-                      <label className="shrink-0 p-4 bg-primary/10 text-primary border border-primary/20 rounded-2xl cursor-pointer hover:bg-primary/20 transition-all flex items-center gap-2">
-                        {isSaving ? <Loader2 size={20} className="animate-spin" /> : <ImageIcon size={20} />}
-                        <span className="text-xs font-bold">Upload Image</span>
+                      <label className={cn(LINK_BUTTON, "shrink-0 border border-kumo-line text-kumo-default hover:bg-kumo-tint")}>
+                        {isSaving ? "Uploading..." : "Upload image"}
                         <input
                           type="file"
                           className="hidden"
@@ -2470,58 +1962,24 @@ export default function PublicViewCMSPage() {
                   </InputGroup>
                 </div>
               </div>
-            </div>
-
-            <div className="p-6 sm:p-8 md:p-10 bg-slate-50/50 dark:bg-white/5 border-t border-slate-100 dark:border-white/5 flex gap-4 shrink-0">
-              <button
-                onClick={() => setIsLostFoundModalOpen(false)}
-                className="flex-1 py-4 text-xs font-semibold text-slate-500 hover:text-charcoal transition-all"
-              >
-                Discard
-              </button>
-              <button
-                onClick={handleCreateLostFound}
-                disabled={isSaving || !lostFoundForm.title || !lostFoundForm.location}
-                className="flex-2 py-4 bg-primary text-white font-semibold text-xs rounded-2xl shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-              >
-                {isSaving ? (
-                  <Loader2 size={16} className="animate-spin" />
-                ) : (
-                  <Save size={16} />
-                )}
-                Post Item
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      </AdminDialog>
 
       {/* Styled Components - Logic */}
       <style jsx global>{`
         .cms-input {
           width: 100%;
-          background: rgba(0, 0, 0, 0.03);
-          border: 1px solid rgba(0, 0, 0, 0.1);
-          border-radius: 1.25rem;
-          padding: 1rem 1.25rem;
+          background: var(--color-kumo-base, #fff);
+          border: 1px solid var(--color-kumo-line, rgba(0, 0, 0, 0.12));
+          border-radius: 0.5rem;
+          padding: 0.55rem 0.75rem;
           font-size: 0.875rem;
-          font-weight: 700;
+          font-weight: 400;
           color: inherit;
           outline: none;
-          transition: all 0.2s;
-        }
-        .dark .cms-input {
-          background: rgba(255, 255, 255, 0.05);
-          border: 1px solid rgba(255, 255, 255, 0.1);
         }
         .cms-input:focus {
-          background: white;
-          border-color: #be1e2d; /* Primary Crimson */
-          box-shadow: 0 0 0 4px rgba(190, 30, 45, 0.1);
-        }
-        .dark .cms-input:focus {
-          background: rgba(255, 255, 255, 0.1);
           border-color: #be1e2d;
+          box-shadow: 0 0 0 2px rgba(190, 30, 45, 0.25);
         }
         .custom-scrollbar::-webkit-scrollbar {
           width: 4px;
@@ -2531,53 +1989,128 @@ export default function PublicViewCMSPage() {
           border-radius: 10px;
         }
       `}</style>
-    </div>
+    </AdminPage>
   );
 }
 
-function SectionHeader({
-  icon: Icon,
-  title,
-  sub,
-}: {
-  icon: any;
-  title: string;
-  sub: string;
-}) {
+const LINK_BUTTON = "inline-flex h-9 cursor-pointer items-center gap-2 rounded-lg px-3 text-sm font-medium";
+const CMS_CARD = "flex flex-col overflow-hidden rounded-xl border border-kumo-line bg-kumo-base";
+
+const LOST_FOUND_FILTERS = [
+  { id: "ALL", label: "All" },
+  { id: "FOUND", label: "Found" },
+  { id: "LOST", label: "Lost" },
+  { id: "REPORT", label: "New reports" },
+  { id: "CLAIMED", label: "Claimed" },
+];
+const LOST_FOUND_STATUS: Record<string, string> = {
+  PENDING: "Pending (report)",
+  LOOKING: "Looking / active",
+  CLAIMED: "Claimed",
+  RESOLVED: "Resolved",
+  UNCLAIMED: "Unclaimed",
+};
+
+/** Which items each Lost & Found filter shows. */
+function matchesLostFound(item: any, filter: string) {
+  if (filter === "CLAIMED") return item.status === "CLAIMED";
+  if (filter === "REPORT") return item.status === "PENDING";
+  if (filter === "FOUND" || filter === "LOST") {
+    return item.type === filter && item.status !== "CLAIMED" && item.status !== "PENDING";
+  }
+  return true;
+}
+
+const isVideoUrl = (url: string) => url.startsWith("data:video") || /\.(mp4|webm|ogg)$/i.test(url);
+
+/** A 16:9 picture or video, or a note when there is none. */
+function Thumb({ url, alt, empty = "No image" }: { url?: string | null; alt: string; empty?: string }) {
   return (
-    <div className="space-y-1">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 bg-primary/10 rounded-2xl flex items-center justify-center text-primary">
-          <Icon size={20} />
-        </div>
-        <h2 className="font-display text-2xl font-semibold text-charcoal dark:text-white tracking-tight">
-          {title}
-        </h2>
-      </div>
-      <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 pl-[52px]">
-        {sub}
-      </p>
+    <div className="relative aspect-video w-full overflow-hidden bg-kumo-recessed">
+      {!url ? (
+        <p className="absolute inset-0 flex items-center justify-center text-sm text-kumo-subtle">{empty}</p>
+      ) : isVideoUrl(url) ? (
+        <video src={url} className="absolute inset-0 size-full object-cover" autoPlay muted loop playsInline aria-label={alt} />
+      ) : (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={url} alt={alt} className="absolute inset-0 size-full object-cover" />
+      )}
     </div>
   );
 }
 
-function InputGroup({
-  label,
-  icon: Icon,
+/** A small button that opens the file picker. */
+function FileButton({
+  accept,
+  onChange,
   children,
 }: {
-  label: string;
-  icon: any;
+  accept: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   children: React.ReactNode;
 }) {
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2 text-slate-400">
-        <Icon size={14} className="opacity-60" />
-        <label className="text-xs font-semibold">
-          {label}
-        </label>
+    <label className="inline-flex h-6.5 cursor-pointer items-center rounded-md border border-kumo-line px-2 text-xs font-medium text-kumo-default hover:bg-kumo-tint focus-within:ring-2 focus-within:ring-kumo-brand">
+      {children}
+      <input type="file" accept={accept} className="sr-only" onChange={onChange} />
+    </label>
+  );
+}
+
+function SaleGrid({
+  sales,
+  onImage,
+  onDelete,
+}: {
+  sales: any[];
+  onImage: (tenantId: string, saleId: string, title: string, e: React.ChangeEvent<HTMLInputElement>) => void;
+  onDelete: (tenantId: string, saleId: string) => void;
+}) {
+  return (
+    <ul className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      {sales.map((sale: any) => (
+        <li key={sale.id} className={cn(CMS_CARD, !isSaleActive(sale) && "opacity-70")}>
+          <Thumb url={sale.image_url} alt={sale.title} />
+          <div className="flex flex-1 flex-col gap-1 p-4">
+            <h3 className="text-base font-semibold text-kumo-default">{sale.title}</h3>
+            <p className="text-sm text-kumo-subtle">{sale.shopName}</p>
+            <p className="text-sm text-kumo-subtle">
+              Posted {formatSaleDate(new Date(sale.date || new Date()))},{" "}
+              <span className={cn("font-medium", isSaleActive(sale) ? "text-kumo-success" : "text-kumo-warning")}>
+                {isSaleActive(sale) ? "ends" : "ended"} {formatSaleDate(saleEndsAt(sale))}
+              </span>
+            </p>
+            <div className="mt-auto flex flex-wrap justify-end gap-2 pt-3">
+              <FileButton accept="image/*,video/*" onChange={(e) => onImage(sale.tenantId, sale.id, sale.title, e)}>
+                Change media
+              </FileButton>
+              <Button size="sm" variant="secondary-destructive" icon={<Trash />} onClick={() => onDelete(sale.tenantId, sale.id)}>
+                Delete
+              </Button>
+            </div>
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function SectionHeader({ title, sub, action }: { title: string; sub: string; action?: React.ReactNode }) {
+  return (
+    <div className="flex flex-wrap items-end justify-between gap-3">
+      <div className="min-w-0">
+        <h2 className="font-display text-xl font-semibold tracking-tight text-kumo-default">{title}</h2>
+        <p className="text-sm text-kumo-subtle">{sub}</p>
       </div>
+      {action}
+    </div>
+  );
+}
+
+function InputGroup({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-1.5">
+      <p className="text-sm font-medium text-kumo-default">{label}</p>
       {children}
     </div>
   );
@@ -2604,11 +2137,7 @@ function validateConfig(config: Record<string, any>) {
 }
 
 function FieldError({ message }: { message: string }) {
-  return (
-    <p className="flex items-center gap-1.5 text-xs font-bold text-red-600">
-      <AlertTriangle size={12} /> {message}
-    </p>
-  );
+  return <p className="text-sm font-medium text-kumo-danger">{message}</p>;
 }
 
 function Field({
@@ -2623,46 +2152,28 @@ function Field({
   children: React.ReactNode;
 }) {
   return (
-    <div className={clsx("space-y-2", error && "[&_.cms-input]:border-red-500!")}>
-      <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 block">{label}</label>
+    <div className={cn("space-y-1.5", error && "[&_.cms-input]:border-red-500!")}>
+      <label className="block text-sm font-medium text-kumo-default">{label}</label>
       {children}
-      {error ? <FieldError message={error} /> : hint ? <p className="text-xs text-slate-500 dark:text-slate-400">{hint}</p> : null}
+      {error ? <FieldError message={error} /> : hint ? <p className="text-sm text-kumo-subtle">{hint}</p> : null}
     </div>
   );
 }
 
 function SettingsCard({
-  icon: Icon,
-  tone,
   title,
   sub,
   badge,
   children,
 }: {
-  icon: any;
-  tone: string;
   title: string;
   sub: string;
   badge?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
-    <section className="bg-white dark:bg-zinc-900/50 border border-slate-100 dark:border-white/5 p-6 md:p-8 rounded-2xl shadow-xs space-y-6">
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className={clsx("w-11 h-11 rounded-2xl flex items-center justify-center", tone)}>
-            <Icon size={20} />
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold text-charcoal dark:text-white tracking-tight leading-none">
-              {title}
-            </h3>
-            <p className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-1.5">{sub}</p>
-          </div>
-        </div>
-        {badge}
-      </div>
-      {children}
-    </section>
+    <Panel title={title} description={sub} actions={badge}>
+      <div className="space-y-5">{children}</div>
+    </Panel>
   );
 }

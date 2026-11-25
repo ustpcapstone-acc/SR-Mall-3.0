@@ -11,6 +11,7 @@ import { DigitalStorefront } from "@/types/storefront";
 import { revalidatePath } from "next/cache";
 import { occupySlot } from "./space-slot";
 import { recordTenantExit } from "@/lib/tenant-history";
+import { rentOf } from "@/lib/tenant-rent";
 import { findShop, listPublicShops, ownShop, shopKey, shopOfLease, type Shop } from "@/lib/shops";
 import { resolveWorkspace } from "@/lib/workspace-server";
 import type { Account } from "@/lib/auth-server";
@@ -430,6 +431,10 @@ export async function getAllTenantsAction() {
           where: { isApproved: true },
           select: { rating: true },
         },
+        leases: {
+          where: { status: "ACTIVE" },
+          select: { unitId: true, startDate: true, endDate: true, monthlyRent: true },
+        },
       },
     });
 
@@ -456,6 +461,9 @@ export async function getAllTenantsAction() {
           postSales: t.postSales,
           avgRating,
           reviewCount: t.reviews.length,
+          category: t.category,
+          createdAt: t.createdAt,
+          leases: t.leases,
         };
       }),
     };
@@ -747,6 +755,10 @@ export async function getTenantReportDataAction(filter?: {
         invoices: {
           orderBy: { createdAt: "desc" },
         },
+        leases: {
+          where: { status: "ACTIVE" },
+          select: { unitId: true, startDate: true, endDate: true, monthlyRent: true },
+        },
       },
     });
 
@@ -761,10 +773,7 @@ export async function getTenantReportDataAction(filter?: {
     const paidDate = (inv: any) => paidAtById.get(inv.id) || inv.updatedAt || inv.createdAt;
 
     const data: any[] = tenants.map((t: any) => {
-      const slot = slots.find((s: any) => s.unit_id === t.unitId);
-
-      const expiryDate = new Date(t.createdAt);
-      expiryDate.setFullYear(expiryDate.getFullYear() + 1);
+      const rent = rentOf(t, slots);
 
       const relevantInvoices = t.invoices.filter((inv: any) => {
         if (!filter) return true;
@@ -804,28 +813,19 @@ export async function getTenantReportDataAction(filter?: {
         }
       }
 
-      let category = "Retail";
-      if (t.description && t.description.includes("provider")) {
-        const parts = t.description.split(" ");
-        const providerIndex = parts.indexOf("provider");
-        if (providerIndex > 0) {
-          category = parts[providerIndex - 1];
-        }
-      }
-
       return {
         id: t.id,
         shopName: t.shopName,
         tenantOwner: t.user?.name || t.user?.email || "N/A",
-        unitId: t.unitId,
-        sqmSize: slot?.sqm_size || 0,
-        monthlyRent: slot?.base_rent || 0,
+        unitId: rent.units.join(", ") || t.unitId,
+        sqmSize: rent.sqm,
+        monthlyRent: rent.monthlyRent,
         balance,
         lastPaymentDate,
         lastReceiptNo,
         nextDueDate,
-        leaseExpiryDate: expiryDate,
-        category: category,
+        leaseExpiryDate: rent.paidThrough,
+        category: t.category || "Other",
         status:
           relevantInvoices[0]?.status === "PAID"
             ? "PAID"

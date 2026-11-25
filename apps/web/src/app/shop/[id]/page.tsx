@@ -1,5 +1,6 @@
 "use client";
 
+import { formatPrice } from "@/lib/price";
 import { optimizedImage } from "@/lib/media";
 import {
   availabilityLabel,
@@ -16,7 +17,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock,
-  Flame,
   Heart,
   Loader2,
   MapPin,
@@ -74,20 +74,6 @@ const getSafeUrl = (url: string | null | undefined, index: number) => {
 // Helper function to return gallery_urls (now native array)
 const getGalleryUrls = (galleryUrls: string[] | null | undefined): string[] => {
   return Array.isArray(galleryUrls) ? galleryUrls : [];
-};
-
-/** Prices are raw strings ("99.0", "1111", "---"); only format real numbers. */
-const formatPrice = (raw?: string | null): string | null => {
-  const value = (raw || "").trim();
-  if (!value) return null;
-  const numeric = Number(value.replace(/,/g, ""));
-  if (!Number.isFinite(numeric) || !/\d/.test(value)) return value;
-  return new Intl.NumberFormat("en-PH", {
-    style: "currency",
-    currency: "PHP",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: Number.isInteger(numeric) ? 0 : 2,
-  }).format(numeric);
 };
 
 const priceValue = (raw?: string | null): number | null => {
@@ -266,7 +252,7 @@ export default function ShopProfilePage() {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center space-y-6 bg-[#FAF7F3] dark:bg-zinc-950">
         <Loader2 className="h-12 w-12 animate-spin text-[#C51D30]" />
-        <p className="animate-pulse text-xs font-bold text-[#A79E98]">
+        <p className="animate-pulse text-xs font-medium text-[#8B7F76]">
           Consulting Mall Concierge...
         </p>
       </div>
@@ -565,7 +551,7 @@ export default function ShopProfilePage() {
                 <button
                   type="button"
                   onClick={openChat}
-                  className="mt-4 inline-flex items-center gap-2 rounded-full bg-[#C51D30] px-5 py-2.5 text-xs font-semibold text-white shadow-lg shadow-[#C51D30]/30 transition-all hover:bg-[#A8172A] hover:shadow-xl active:scale-[0.98]"
+                  className="mt-4 inline-flex cursor-pointer items-center gap-2 rounded-xl bg-[#C51D30] px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[#C51D30]/30 transition-all hover:bg-[#A8172A] hover:shadow-xl active:scale-[0.98]"
                 >
                   <MessageCircle size={15} /> Chat
                 </button>
@@ -579,8 +565,8 @@ export default function ShopProfilePage() {
               </p>
               <p className="mt-1 text-[13px] font-medium text-[#70656A] dark:text-slate-400">
                 {shop.is_open
-                  ? "Open now — browse the catalog or say hello."
-                  : "Currently closed — you can still browse the catalog."}
+                  ? "Open now. Browse the products or say hello."
+                  : "Closed right now. You can still browse the products."}
               </p>
 
               <div className="mt-4 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
@@ -593,10 +579,10 @@ export default function ShopProfilePage() {
                       <item.icon size={15} />
                     </span>
                     <div className="min-w-0">
-                      <p className="text-xs font-bold text-[#A79E98]">
+                      <p className="text-xs font-medium text-[#8B7F76]">
                         {item.label}
                       </p>
-                      <div className="mt-0.5 truncate text-[12.5px] font-semibold text-[#21191B] dark:text-slate-200">
+                      <div className="mt-0.5 truncate text-sm font-semibold text-[#21191B] dark:text-slate-200">
                         {item.value}
                       </div>
                     </div>
@@ -607,7 +593,7 @@ export default function ShopProfilePage() {
               {shop.description && (
                 <div className="mt-auto pt-4">
                   <div className="border-t border-[#F0EAE4] pt-4 dark:border-white/10">
-                    <p className="text-xs font-bold text-[#A79E98]">
+                    <p className="text-xs font-medium text-[#8B7F76]">
                       About
                     </p>
                     <p className="mt-1.5 line-clamp-3 whitespace-pre-line text-[12.5px] leading-relaxed text-[#70656A] dark:text-slate-400">
@@ -666,7 +652,7 @@ export default function ShopProfilePage() {
                 onClick={() => setActiveTab(tab.id)}
                 aria-pressed={isActive}
                 className={clsx(
-                  "inline-flex shrink-0 items-center gap-1.5 rounded-xl px-2.5 py-2.5 text-[11.5px] font-semibold transition-all sm:gap-2 sm:px-5 sm:text-[12.5px]",
+                  "inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-xl px-2.5 py-2.5 text-[13px] font-semibold transition-all sm:gap-2 sm:px-5 sm:text-sm",
                   isActive
                     ? "bg-[#C51D30] text-white shadow-md shadow-[#C51D30]/25"
                     : "text-[#70656A] hover:bg-[#FAF7F3] hover:text-[#21191B] dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-white",
@@ -677,14 +663,9 @@ export default function ShopProfilePage() {
                 <span className="sm:hidden">{tab.shortLabel || tab.label}</span>
                 {tab.count > 0 && (
                   <span
-                    className={clsx(
-                      "rounded-full px-1.5 py-0.5 text-[10px] font-bold leading-none",
-                      isActive
-                        ? "bg-white/20 text-white"
-                        : "bg-[#C51D30]/10 text-[#C51D30]",
-                    )}
+                    className={clsx("text-xs font-medium tabular-nums", isActive ? "text-white/80" : "text-[#8B7F76]")}
                   >
-                    {tab.count}
+                    ({tab.count})
                   </span>
                 )}
               </button>
@@ -723,7 +704,7 @@ export default function ShopProfilePage() {
                 {/* Predictive matches (existing behaviour) */}
                 {productSearch.trim() && (
                   <div className="absolute left-0 right-0 top-full z-30 mt-2 overflow-hidden rounded-2xl border border-[#E8E2DE] bg-white shadow-2xl dark:border-white/10 dark:bg-zinc-900">
-                    <div className="border-b border-[#F0EAE4] px-4 py-2.5 text-xs font-bold text-[#A79E98] dark:border-white/10">
+                    <div className="border-b border-[#F0EAE4] px-4 py-2.5 text-xs font-medium text-[#8B7F76] dark:border-white/10">
                       Matching products
                     </div>
                     <div className="max-h-72 overflow-y-auto">
@@ -755,7 +736,7 @@ export default function ShopProfilePage() {
                                 {p.name || "Untitled product"}
                               </p>
                               <p className="text-[11px] font-bold text-[#C51D30]">
-                                {price || "Price on inquiry"}
+                                {price || "Ask for price"}
                               </p>
                             </div>
                             <ChevronRight size={13} className="shrink-0 text-[#C4B8AE]" />
@@ -802,7 +783,7 @@ export default function ShopProfilePage() {
                       onClick={() => setActiveCategory(category)}
                       aria-pressed={isActive}
                       className={clsx(
-                        "rounded-full border px-3.5 py-1.5 text-[11.5px] font-semibold transition-all",
+                        "h-9 cursor-pointer rounded-lg border px-3.5 text-sm font-medium transition-colors",
                         isActive
                           ? "border-[#C51D30] bg-[#C51D30] text-white shadow-xs shadow-[#C51D30]/20"
                           : "border-[#E8E2DE] bg-white text-[#70656A] hover:border-[#C51D30]/45 hover:text-[#C51D30] dark:border-white/10 dark:bg-zinc-950 dark:text-slate-300",
@@ -880,28 +861,23 @@ export default function ShopProfilePage() {
                       )}
 
                       {soldOut && (
-                        <>
-                          <div className="absolute inset-0 bg-black/40" />
-                          <span className="absolute inset-0 flex items-center justify-center p-3 text-center">
-                            <span className="rounded-full border border-white/20 bg-black/75 px-4 py-1.5 text-xs font-bold text-white">
-                              Sold out
-                            </span>
-                          </span>
-                        </>
+                        <span className="absolute inset-x-0 bottom-0 bg-black/70 py-1.5 text-center text-xs font-semibold text-white">
+                          Sold out
+                        </span>
                       )}
                     </div>
 
                     <div className="flex flex-1 flex-col p-3 sm:p-3.5">
                       {product.category && (
-                        <span className="mb-1.5 inline-flex w-fit rounded-full bg-[#C51D30]/10 px-2 py-0.5 text-xs font-bold text-[#C51D30]">
+                        <span className="mb-1 text-xs text-[#8B7F76] dark:text-slate-400">
                           {product.category}
                         </span>
                       )}
-                      <h3 className="line-clamp-2 text-[13px] font-semibold leading-snug text-[#21191B] transition-colors group-hover:text-[#C51D30] dark:text-white sm:text-sm">
+                      <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-[#21191B] transition-colors group-hover:text-[#C51D30] dark:text-white sm:text-base">
                         {product.name || "Untitled product"}
                       </h3>
                       {plainPreview(product.description) && (
-                        <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-[#8B7F76] dark:text-slate-500">
+                        <p className="mt-1 line-clamp-2 text-[13px] leading-relaxed text-[#8B7F76] dark:text-slate-500">
                           {plainPreview(product.description)}
                         </p>
                       )}
@@ -911,8 +887,8 @@ export default function ShopProfilePage() {
                             {price}
                           </span>
                         ) : (
-                          <span className="text-[11px] font-medium text-[#A79E98]">
-                            Price on inquiry
+                          <span className="text-[13px] text-[#8B7F76]">
+                            Ask for price
                           </span>
                         )}
                         <span
@@ -974,10 +950,10 @@ export default function ShopProfilePage() {
                       <item.icon size={14} />
                     </span>
                     <div className="min-w-0">
-                      <p className="text-xs font-bold text-[#A79E98]">
+                      <p className="text-xs font-medium text-[#8B7F76]">
                         {item.label}
                       </p>
-                      <div className="mt-0.5 wrap-break-word text-[12.5px] font-semibold text-[#21191B] dark:text-slate-200">
+                      <div className="mt-0.5 wrap-break-word text-sm font-semibold text-[#21191B] dark:text-slate-200">
                         {item.value}
                       </div>
                     </div>
@@ -987,7 +963,7 @@ export default function ShopProfilePage() {
               <button
                 type="button"
                 onClick={openChat}
-                className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-[#C51D30] px-4 py-2.5 text-xs font-semibold text-white shadow-lg shadow-[#C51D30]/25 transition-all hover:bg-[#A8172A] hover:shadow-xl active:scale-[0.99]"
+                className="mt-5 flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#C51D30] px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-[#C51D30]/25 transition-all hover:bg-[#A8172A] hover:shadow-xl active:scale-[0.99]"
               >
                 <MessageCircle size={14} /> Chat with the shop
               </button>
@@ -1006,13 +982,9 @@ export default function ShopProfilePage() {
 
             {activeSales.length > 0 && (
               <section>
-                <div className="mb-3 flex items-center gap-2">
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[#C51D30]/10 px-3 py-1 text-xs font-bold text-[#C51D30]">
-                    <Flame size={12} /> Sales
-                  </span>
-                  <span className="text-xs font-semibold text-[#A79E98]">
-                    {activeSales.length} running now
-                  </span>
+                <div className="mb-3">
+                  <h2 className="font-display text-xl font-semibold text-[#21191B] dark:text-white">Sales</h2>
+                  <p className="text-sm text-[#8B7F76]">{activeSales.length} running now</p>
                 </div>
                 <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
                   {activeSales.map((sale) => (
@@ -1034,9 +1006,6 @@ export default function ShopProfilePage() {
                             <Tag size={34} />
                           </div>
                         )}
-                        <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-[#C51D30] px-3 py-1 text-xs font-bold text-white shadow-lg shadow-[#C51D30]/30">
-                          <Flame size={11} fill="currentColor" /> Sale
-                        </span>
                       </div>
                       <div className="space-y-2 p-4 sm:p-5">
                         <h3 className="text-lg font-semibold leading-tight text-[#21191B] dark:text-white sm:text-xl">

@@ -1,8 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import clsx from "clsx";
-import { Download, Loader2, MapPin, Search, Star, Store, X } from "lucide-react";
+import { Button, Loader, Select, Table, cn } from "@cloudflare/kumo";
+import { DownloadSimple } from "@phosphor-icons/react";
+import { AdminDialog, EmptyNote, Panel, Person, SearchField } from "@/components/admin/page-kit";
 
 export interface TenantHistoryRow {
   id: string;
@@ -26,11 +27,11 @@ export interface TenantHistoryRow {
   endedByName: string | null;
 }
 
-const REASONS: Record<string, { label: string; cls: string }> = {
-  REMOVED: { label: "Removed by admin", cls: "bg-red-50 text-red-600 border-red-100 dark:bg-red-900/20 dark:border-red-800/30" },
-  ROLE_CHANGED: { label: "Changed to customer", cls: "bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-900/20 dark:border-blue-800/30" },
-  MARKED_PAST: { label: "Marked as past tenant", cls: "bg-slate-100 text-slate-600 border-slate-200 dark:bg-white/5 dark:border-white/10 dark:text-slate-300" },
-  RESERVATION_REJECTED: { label: "Reservation rejected", cls: "bg-amber-50 text-amber-700 border-amber-100 dark:bg-amber-900/20 dark:border-amber-800/30 dark:text-amber-400" },
+const REASONS: Record<string, string> = {
+  REMOVED: "Removed by admin",
+  ROLE_CHANGED: "Changed to customer",
+  MARKED_PAST: "Marked as past tenant",
+  RESERVATION_REJECTED: "Reservation rejected",
 };
 const FLOORS: Record<string, string> = { ground: "Ground Floor", first: "First Floor", second: "Second Floor" };
 
@@ -50,7 +51,7 @@ function stayLength(from: string, to: string) {
 
 function location(r: TenantHistoryRow) {
   if (!r.unitId) return "No unit assigned";
-  return `Unit ${r.unitId}${r.floor ? ` · ${FLOORS[r.floor] || r.floor}` : ""}`;
+  return `Unit ${r.unitId}${r.floor ? `, ${FLOORS[r.floor] || r.floor}` : ""}`;
 }
 
 function exportCsv(rows: TenantHistoryRow[]) {
@@ -59,7 +60,7 @@ function exportCsv(rows: TenantHistoryRow[]) {
   const lines = rows.map((r) =>
     [
       r.shopName, r.ownerName, r.ownerEmail, r.unitId, r.floor ? FLOORS[r.floor] || r.floor : "", r.category,
-      day(r.leaseStart), day(r.endedAt), stayLength(r.leaseStart, r.endedAt), REASONS[r.reason]?.label || r.reason, r.note,
+      day(r.leaseStart), day(r.endedAt), stayLength(r.leaseStart, r.endedAt), REASONS[r.reason] || r.reason, r.note,
       r.totalPaid, r.outstanding, r.invoiceCount, r.reviewCount ? r.avgRating.toFixed(1) : "", r.reviewCount, r.endedByName,
     ].map(esc).join(","),
   );
@@ -90,237 +91,143 @@ export function TenantHistory({ rows, loading }: { rows: TenantHistoryRow[]; loa
     return matchesQ && (reason === "ALL" || r.reason === reason) && (year === "ALL" || String(new Date(r.endedAt).getFullYear()) === year);
   });
   const unpaidTotal = filtered.reduce((n, r) => n + (r.outstanding || 0), 0);
+  const reasonLabel = (key: string) => REASONS[key] ?? REASONS.MARKED_PAST;
+  const reasonItems: Record<string, string> = { ALL: "All reasons", ...REASONS };
+  const yearItems: Record<string, string> = { ALL: "All years", ...Object.fromEntries(years.map((y) => [String(y), String(y)])) };
 
   return (
-    <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl shadow-xs overflow-hidden">
-      {/* Header + controls */}
-      <div className="p-5 sm:p-6 border-b border-slate-100 dark:border-white/5 space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 bg-primary/10 rounded-2xl flex items-center justify-center text-primary">
-              <Store size={22} />
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-charcoal dark:text-white">Tenant History</h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                {rows.length} former tenant{rows.length === 1 ? "" : "s"} · saved automatically whenever a tenant leaves
-              </p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={() => exportCsv(filtered)}
-            disabled={filtered.length === 0}
-            className="inline-flex items-center gap-2 h-10 px-4 rounded-xl border border-slate-200 dark:border-white/10 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 disabled:opacity-40"
-          >
-            <Download size={14} /> Export CSV
-          </button>
-        </div>
-        <div className="flex flex-col sm:flex-row gap-2">
-          <div className="relative flex-1">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search shop, owner, email or unit…"
-              className="w-full h-10 pl-9 pr-3 rounded-xl bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 text-sm text-charcoal dark:text-white outline-hidden focus:border-primary"
-            />
-          </div>
-          <select
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            className="h-10 px-3 rounded-xl bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 text-sm text-charcoal dark:text-white outline-hidden focus:border-primary"
-          >
-            <option value="ALL">All reasons</option>
-            {Object.entries(REASONS).map(([k, v]) => (
-              <option key={k} value={k}>{v.label}</option>
-            ))}
-          </select>
-          <select
-            value={year}
-            onChange={(e) => setYear(e.target.value)}
-            className="h-10 px-3 rounded-xl bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 text-sm text-charcoal dark:text-white outline-hidden focus:border-primary"
-          >
-            <option value="ALL">All years</option>
-            {years.map((y) => (
-              <option key={y} value={y}>{y}</option>
-            ))}
-          </select>
-        </div>
+    <Panel
+      flush
+      title="Tenant History"
+      description={`${rows.length} former tenant${rows.length === 1 ? "" : "s"}, saved automatically whenever a tenant leaves`}
+      actions={
+        <Button variant="secondary" icon={<DownloadSimple />} disabled={filtered.length === 0} onClick={() => exportCsv(filtered)}>
+          Export CSV
+        </Button>
+      }
+    >
+      <div className="flex flex-wrap items-center gap-2 border-b border-kumo-line p-4 sm:px-5">
+        <SearchField value={query} onChange={setQuery} placeholder="Search shop, owner, email or unit" className="sm:w-80" />
+        <Select aria-label="Reason" value={reason} items={reasonItems} onValueChange={(v) => setReason((v as string) || "ALL")} className="w-52">
+          {Object.entries(reasonItems).map(([value, label]) => (
+            <Select.Option key={value} value={value}>
+              {label}
+            </Select.Option>
+          ))}
+        </Select>
+        <Select aria-label="Year" value={year} items={yearItems} onValueChange={(v) => setYear((v as string) || "ALL")} className="w-36">
+          {Object.entries(yearItems).map(([value, label]) => (
+            <Select.Option key={value} value={value}>
+              {label}
+            </Select.Option>
+          ))}
+        </Select>
         {unpaidTotal > 0 && (
-          <p className="text-xs font-bold text-amber-600">
-            ⚠ {peso(unpaidTotal)} left unpaid by former tenants in this list.
-          </p>
+          <p className="text-sm font-medium text-kumo-warning">{peso(unpaidTotal)} left unpaid by former tenants in this list.</p>
         )}
       </div>
 
-      {/* Table */}
       {loading ? (
-        <div className="py-24 flex justify-center">
-          <Loader2 className="w-8 h-8 text-primary animate-spin" />
+        <div className="flex justify-center py-20">
+          <Loader />
         </div>
       ) : filtered.length === 0 ? (
-        <div className="py-20 text-center px-6">
-          <Store className="w-10 h-10 mx-auto text-slate-200 mb-3" />
-          <p className="font-bold text-charcoal dark:text-white">{rows.length === 0 ? "No former tenants yet" : "Nothing matches your filters"}</p>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            {rows.length === 0 ? "When a tenant leaves, a summary is saved here automatically." : "Try a different search, reason or year."}
-          </p>
-        </div>
+        <EmptyNote title={rows.length === 0 ? "No former tenants yet" : "Nothing matches your filters"}>
+          {rows.length === 0 ? "When a tenant leaves, a summary is saved here automatically." : "Try a different search, reason or year."}
+        </EmptyNote>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead>
-              <tr className="bg-slate-50/60 dark:bg-white/2 text-xs font-semibold text-slate-400">
-                <th className="px-6 py-4">Shop</th>
-                <th className="px-6 py-4">Unit / Floor</th>
-                <th className="px-6 py-4">Stayed</th>
-                <th className="px-6 py-4">Reason</th>
-                <th className="px-6 py-4">Balance</th>
-                <th className="px-6 py-4 text-right" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-white/5">
+          <Table>
+            <Table.Header>
+              <Table.Row>
+                <Table.Head>Shop</Table.Head>
+                <Table.Head>Unit and floor</Table.Head>
+                <Table.Head>Stayed</Table.Head>
+                <Table.Head>Reason</Table.Head>
+                <Table.Head>Balance</Table.Head>
+                <Table.Head className="text-right">Actions</Table.Head>
+              </Table.Row>
+            </Table.Header>
+            <Table.Body>
               {filtered.map((r) => (
-                <tr key={r.id} className="hover:bg-slate-50/70 dark:hover:bg-white/2">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-zinc-800 overflow-hidden flex items-center justify-center font-semibold text-slate-500 shrink-0">
-                        {r.logoUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={r.logoUrl} alt="" className="w-full h-full object-cover" />
-                        ) : (
-                          r.shopName.charAt(0).toUpperCase()
-                        )}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="font-bold text-charcoal dark:text-white truncate">{r.shopName}</p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{r.ownerName || r.ownerEmail || "Unknown owner"}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-slate-600 dark:text-slate-300 whitespace-nowrap">{location(r)}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <p className="text-charcoal dark:text-white">{day(r.leaseStart)} → {day(r.endedAt)}</p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">{stayLength(r.leaseStart, r.endedAt)}</p>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={clsx("inline-flex px-2.5 py-1 rounded-full border text-xs font-bold whitespace-nowrap", REASONS[r.reason]?.cls || REASONS.MARKED_PAST.cls)}>
-                      {REASONS[r.reason]?.label || r.reason}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {r.outstanding > 0 ? (
-                      <span className="font-bold text-amber-600">⚠ {peso(r.outstanding)} unpaid</span>
-                    ) : (
-                      <span className="font-bold text-emerald-600">Paid up ✓</span>
-                    )}
-                    <p className="text-xs text-slate-500 dark:text-slate-400">{peso(r.totalPaid)} paid</p>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <button
-                      type="button"
-                      onClick={() => setSelected(r)}
-                      className="h-9 px-4 rounded-xl border border-slate-200 dark:border-white/10 text-xs font-semibold text-charcoal dark:text-white hover:bg-slate-50 dark:hover:bg-white/5"
-                    >
+                <Table.Row key={r.id}>
+                  <Table.Cell>
+                    <Person square name={r.shopName} detail={r.ownerName || r.ownerEmail || "Unknown owner"} image={r.logoUrl} />
+                  </Table.Cell>
+                  <Table.Cell className="whitespace-nowrap text-sm text-kumo-default">{location(r)}</Table.Cell>
+                  <Table.Cell className="whitespace-nowrap">
+                    <p className="text-sm text-kumo-default">
+                      {day(r.leaseStart)} to {day(r.endedAt)}
+                    </p>
+                    <p className="text-sm text-kumo-subtle">{stayLength(r.leaseStart, r.endedAt)}</p>
+                  </Table.Cell>
+                  <Table.Cell className="text-sm text-kumo-default">{reasonLabel(r.reason)}</Table.Cell>
+                  <Table.Cell className="whitespace-nowrap">
+                    <p className={cn("text-sm font-medium", r.outstanding > 0 ? "text-kumo-warning" : "text-kumo-success")}>
+                      {r.outstanding > 0 ? `${peso(r.outstanding)} unpaid` : "Paid up"}
+                    </p>
+                    <p className="text-sm text-kumo-subtle">{peso(r.totalPaid)} paid</p>
+                  </Table.Cell>
+                  <Table.Cell className="text-right">
+                    <Button size="sm" variant="secondary" onClick={() => setSelected(r)}>
                       Details
-                    </button>
-                  </td>
-                </tr>
+                    </Button>
+                  </Table.Cell>
+                </Table.Row>
               ))}
-            </tbody>
-          </table>
+            </Table.Body>
+          </Table>
         </div>
       )}
 
-      {/* Details */}
-      {selected && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs" onClick={() => setSelected(null)}>
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-lg bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-white/10 shadow-2xl overflow-hidden"
-          >
-            <div className="p-6 border-b border-slate-100 dark:border-white/5 flex items-start justify-between gap-3">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-zinc-800 overflow-hidden flex items-center justify-center font-semibold text-slate-500 shrink-0">
-                  {selected.logoUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={selected.logoUrl} alt="" className="w-full h-full object-cover" />
-                  ) : (
-                    selected.shopName.charAt(0).toUpperCase()
-                  )}
-                </div>
-                <div className="min-w-0">
-                  <h4 className="text-lg font-semibold text-charcoal dark:text-white truncate">{selected.shopName}</h4>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 inline-flex items-center gap-1">
-                    <MapPin size={11} className="text-primary" /> {location(selected)}
-                    {selected.category ? ` · ${selected.category}` : ""}
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSelected(null)}
-                aria-label="Close"
-                className="w-9 h-9 rounded-full bg-slate-100 dark:bg-zinc-800 text-slate-500 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-zinc-700"
-              >
-                <X size={16} />
-              </button>
-            </div>
-
-            <div className="p-6 space-y-5">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className={clsx("inline-flex px-2.5 py-1 rounded-full border text-xs font-bold", REASONS[selected.reason]?.cls || REASONS.MARKED_PAST.cls)}>
-                  {REASONS[selected.reason]?.label || selected.reason}
-                </span>
-                {selected.endedByName && <span className="text-xs text-slate-500 dark:text-slate-400">by {selected.endedByName}</span>}
-              </div>
-              {selected.note && <p className="text-sm text-slate-600 dark:text-slate-300">{selected.note}</p>}
-
-              <dl className="grid grid-cols-2 gap-3 text-sm">
-                {[
-                  ["Lease start", day(selected.leaseStart)],
-                  ["Moved out", day(selected.endedAt)],
-                  ["Stayed", stayLength(selected.leaseStart, selected.endedAt)],
-                  ["Invoices", String(selected.invoiceCount)],
-                  ["Total paid", peso(selected.totalPaid)],
-                  ["Unpaid balance", selected.outstanding > 0 ? peso(selected.outstanding) : "None"],
-                ].map(([k, v]) => (
-                  <div key={k} className="p-3 rounded-2xl bg-slate-50 dark:bg-white/3 border border-slate-100 dark:border-white/5">
-                    <dt className="text-xs font-semibold text-slate-500 dark:text-slate-400">{k}</dt>
-                    <dd className={clsx("mt-0.5 font-bold", k === "Unpaid balance" && selected.outstanding > 0 ? "text-amber-600" : "text-charcoal dark:text-white")}>{v}</dd>
-                  </div>
-                ))}
-              </dl>
-
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div className="p-3 rounded-2xl bg-slate-50 dark:bg-white/3 border border-slate-100 dark:border-white/5">
-                  <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Rating when they left</p>
-                  <p className="mt-0.5 font-bold text-charcoal dark:text-white inline-flex items-center gap-1">
-                    {selected.reviewCount ? (
-                      <>
-                        <Star size={13} className="text-amber-400" fill="currentColor" /> {selected.avgRating.toFixed(1)}
-                        <span className="text-xs font-normal text-slate-500 dark:text-slate-400">({selected.reviewCount})</span>
-                      </>
-                    ) : (
-                      "No reviews"
+      <AdminDialog
+        open={!!selected}
+        onClose={() => setSelected(null)}
+        title={selected?.shopName ?? ""}
+        description={selected ? `${location(selected)}${selected.category ? `, ${selected.category}` : ""}` : undefined}
+      >
+        {selected && (
+          <div className="space-y-5">
+            <p className="text-sm text-kumo-default">
+              <strong>{reasonLabel(selected.reason)}</strong>
+              {selected.endedByName && <span className="text-kumo-subtle"> by {selected.endedByName}</span>}
+            </p>
+            {selected.note && <p className="rounded-lg bg-kumo-recessed p-3 text-sm text-kumo-default">{selected.note}</p>}
+            <dl className="grid grid-cols-2 gap-4">
+              {[
+                ["Lease start", day(selected.leaseStart)],
+                ["Moved out", day(selected.endedAt)],
+                ["Stayed", stayLength(selected.leaseStart, selected.endedAt)],
+                ["Invoices", String(selected.invoiceCount)],
+                ["Total paid", peso(selected.totalPaid)],
+                ["Unpaid balance", selected.outstanding > 0 ? peso(selected.outstanding) : "None"],
+                [
+                  "Rating when they left",
+                  selected.reviewCount ? `${selected.avgRating.toFixed(1)} out of 5 (${selected.reviewCount})` : "No reviews",
+                ],
+                ["Owner", selected.ownerName || "Unknown"],
+              ].map(([label, value]) => (
+                <div key={label}>
+                  <dt className="text-xs text-kumo-subtle">{label}</dt>
+                  <dd
+                    className={cn(
+                      "text-sm",
+                      label === "Unpaid balance" && selected.outstanding > 0 ? "font-semibold text-kumo-warning" : "text-kumo-default",
                     )}
-                  </p>
+                  >
+                    {value}
+                  </dd>
                 </div>
-                <div className="p-3 rounded-2xl bg-slate-50 dark:bg-white/3 border border-slate-100 dark:border-white/5 min-w-0">
-                  <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Owner</p>
-                  <p className="mt-0.5 font-bold text-charcoal dark:text-white truncate">{selected.ownerName || "—"}</p>
-                  {selected.ownerEmail && (
-                    <a href={`mailto:${selected.ownerEmail}`} className="text-xs text-primary hover:underline break-all">
-                      {selected.ownerEmail}
-                    </a>
-                  )}
-                </div>
-              </div>
-            </div>
+              ))}
+            </dl>
+            {selected.ownerEmail && (
+              <a href={`mailto:${selected.ownerEmail}`} className="break-all text-sm text-kumo-link hover:underline">
+                {selected.ownerEmail}
+              </a>
+            )}
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </AdminDialog>
+    </Panel>
   );
 }

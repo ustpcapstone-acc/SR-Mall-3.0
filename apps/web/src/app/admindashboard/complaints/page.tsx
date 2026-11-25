@@ -2,8 +2,9 @@
 
 import React, { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import clsx from "clsx";
-import { AlertTriangle, CheckCircle2, ClipboardList, Clock, Inbox, Loader2, MessageSquare, RefreshCw, Search, Store } from "lucide-react";
+import { Button, Loader, Select, cn } from "@cloudflare/kumo";
+import { ArrowClockwise } from "@phosphor-icons/react";
+import { AdminPage, EmptyNote, Panel, SearchField, Stat, StatRow } from "@/components/admin/page-kit";
 import { toast } from "sonner";
 import { useAuth } from "@/app/providers";
 import { getAdminComplaintsAction, getComplaintAction } from "@/app/actions/complaint";
@@ -18,9 +19,6 @@ import {
   type ComplaintSummary,
 } from "@/lib/complaints";
 import { CARD, ComplaintView, PriorityBadge, StatusBadge, formatWhen } from "@/components/complaints/complaint-view";
-
-const SELECT =
-  "h-11 px-3 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-bold text-charcoal dark:text-white focus:outline-hidden focus:border-primary cursor-pointer";
 
 type Stats = { new: number; inProgress: number; urgentOpen: number; resolvedThisMonth: number };
 
@@ -92,138 +90,167 @@ function AdminComplaints() {
     });
   }, [complaints, status, category, priority, query]);
 
-  const cards = [
-    { label: "New", value: stats.new, icon: Inbox, tone: "text-blue-500 bg-blue-500/10", onClick: () => setStatus("NEW") },
-    { label: "In Progress", value: stats.inProgress, icon: Clock, tone: "text-amber-500 bg-amber-500/10", onClick: () => setStatus("IN_PROGRESS") },
-    { label: "Urgent (open)", value: stats.urgentOpen, icon: AlertTriangle, tone: "text-red-500 bg-red-500/10", onClick: () => { setStatus("OPEN"); setPriority("URGENT"); } },
-    { label: "Resolved this month", value: stats.resolvedThisMonth, icon: CheckCircle2, tone: "text-emerald-500 bg-emerald-500/10", onClick: () => setStatus("RESOLVED") },
-  ];
+  const statusItems: Record<string, string> = {
+    OPEN: "Open (new and in progress)",
+    ALL: "All statuses",
+    ...Object.fromEntries(COMPLAINT_STATUSES.map((s) => [s, STATUS_META[s].label])),
+  };
+  const categoryItems: Record<string, string> = {
+    any: "All categories",
+    ...Object.fromEntries(COMPLAINT_CATEGORIES.map((c) => [c, c])),
+  };
+  const priorityItems: Record<string, string> = {
+    any: "All priorities",
+    ...Object.fromEntries(COMPLAINT_PRIORITIES.map((p) => [p, PRIORITY_META[p].label])),
+  };
+  const filtering = !!query || status !== "OPEN" || !!category || !!priority;
 
   if (!user?.id) return null;
 
   return (
-    <div className="min-h-screen pt-6 sm:pt-10 px-4 sm:px-8 pb-24 lg:pb-10 animate-fade-in-up space-y-6 sm:space-y-8">
-      {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-        <div className="space-y-2">
-          <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-charcoal dark:text-white">
-            Tenant Complaints
-          </h1>
-          <p className="text-sm font-medium text-slate-500 max-w-xl">Reply to tenants, track each issue and close it out — all in one thread.</p>
-        </div>
-        <button onClick={refreshAll} className="self-start lg:self-auto inline-flex items-center gap-2 h-11 px-4 rounded-2xl border border-slate-200 dark:border-white/10 text-xs font-semibold text-slate-500 hover:text-primary hover:border-primary">
-          <RefreshCw size={14} /> Refresh
-        </button>
+    <AdminPage
+      title="Tenant Complaints"
+      description="Reply to tenants, track each issue and close it out in one thread."
+      actions={
+        <Button variant="secondary" icon={<ArrowClockwise />} onClick={refreshAll}>
+          Refresh
+        </Button>
+      }
+    >
+      <StatRow>
+        <Stat label="New" value={stats.new} onClick={() => setStatus("NEW")} active={status === "NEW"} />
+        <Stat label="In progress" value={stats.inProgress} onClick={() => setStatus("IN_PROGRESS")} active={status === "IN_PROGRESS"} />
+        <Stat
+          label="Urgent (open)"
+          value={stats.urgentOpen}
+          tone={stats.urgentOpen ? "danger" : "default"}
+          active={priority === "URGENT"}
+          onClick={() => {
+            setStatus("OPEN");
+            setPriority("URGENT");
+          }}
+        />
+        <Stat
+          label="Resolved this month"
+          value={stats.resolvedThisMonth}
+          tone="success"
+          onClick={() => setStatus("RESOLVED")}
+          active={status === "RESOLVED"}
+        />
+      </StatRow>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <SearchField value={query} onChange={setQuery} placeholder="Search subject, shop, unit or owner" className="sm:w-80" />
+        <Choice label="Status" value={status} items={statusItems} onChange={setStatus} className="w-60" />
+        <Choice label="Category" value={category || "any"} items={categoryItems} onChange={(v) => setCategory(v === "any" ? "" : v)} className="w-48" />
+        <Choice label="Priority" value={priority || "any"} items={priorityItems} onChange={(v) => setPriority(v === "any" ? "" : v)} className="w-40" />
+        {filtering && (
+          <Button
+            variant="ghost"
+            onClick={() => {
+              setQuery("");
+              setStatus("OPEN");
+              setCategory("");
+              setPriority("");
+            }}
+          >
+            Clear filters
+          </Button>
+        )}
       </div>
 
-      {/* Counters */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        {cards.map((c) => (
-          <button key={c.label} onClick={c.onClick} className={clsx(CARD, "p-4 sm:p-5 text-left hover:border-primary/30 transition-colors")}>
-            <div className={clsx("w-9 h-9 rounded-xl flex items-center justify-center mb-3", c.tone)}>
-              <c.icon size={18} />
-            </div>
-            <p className="text-2xl sm:text-3xl font-semibold text-charcoal dark:text-white">{c.value}</p>
-            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-1">{c.label}</p>
-          </button>
-        ))}
-      </div>
-
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2">
-        <div className="relative flex-1 min-w-48">
-          <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search subject, shop, unit or owner"
-            className="w-full h-11 pl-10 pr-3 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-xl text-sm text-charcoal dark:text-white focus:outline-hidden focus:border-primary"
-          />
-        </div>
-        <select value={status} onChange={(e) => setStatus(e.target.value)} className={SELECT}>
-          <option value="OPEN">Open (New + In Progress)</option>
-          <option value="ALL">All statuses</option>
-          {COMPLAINT_STATUSES.map((s) => (
-            <option key={s} value={s}>{STATUS_META[s].label}</option>
-          ))}
-        </select>
-        <select value={category} onChange={(e) => setCategory(e.target.value)} className={SELECT}>
-          <option value="">All categories</option>
-          {COMPLAINT_CATEGORIES.map((c) => (
-            <option key={c} value={c}>{c}</option>
-          ))}
-        </select>
-        <select value={priority} onChange={(e) => setPriority(e.target.value)} className={SELECT}>
-          <option value="">All priorities</option>
-          {COMPLAINT_PRIORITIES.map((p) => (
-            <option key={p} value={p}>{PRIORITY_META[p].label}</option>
-          ))}
-        </select>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <div className="grid items-start gap-4 lg:grid-cols-12">
         {/* List */}
-        <div className={clsx("lg:col-span-5 space-y-2", selectedId && "hidden lg:block")}>
+        <Panel
+          flush
+          className={cn("lg:col-span-5", selectedId && "hidden lg:block")}
+          title="Complaints"
+          description={loading ? "Loading..." : `${filtered.length} shown`}
+        >
           {loading ? (
-            <div className="py-16 flex justify-center"><Loader2 className="animate-spin text-slate-300" /></div>
-          ) : filtered.length === 0 ? (
-            <div className={clsx(CARD, "py-14 px-6 text-center")}>
-              <ClipboardList size={36} className="mx-auto text-slate-200 dark:text-zinc-700 mb-3" />
-              <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">No complaints match these filters</p>
+            <div className="flex justify-center py-16">
+              <Loader />
             </div>
+          ) : filtered.length === 0 ? (
+            <EmptyNote title="No complaints match these filters" />
           ) : (
-            filtered.map((c) => (
-              <button
-                key={c.id}
-                onClick={() => select(c.id)}
-                className={clsx(
-                  "w-full text-left p-4 rounded-2xl border transition-all",
-                  c.id === selectedId
-                    ? "border-primary/40 bg-primary/5"
-                    : "border-slate-100 dark:border-white/5 bg-white dark:bg-zinc-900 hover:border-slate-200 dark:hover:border-white/10",
-                )}
-              >
-                <div className="flex items-start gap-3">
-                  <div className="flex-1 min-w-0 space-y-1.5">
-                    <div className="flex flex-wrap items-center gap-1.5">
+            <ul className="divide-y divide-kumo-line">
+              {filtered.map((c) => (
+                <li key={c.id}>
+                  <button
+                    type="button"
+                    onClick={() => select(c.id)}
+                    aria-current={c.id === selectedId}
+                    className={cn(
+                      "block w-full cursor-pointer space-y-1 border-l-4 p-4 text-left hover:bg-kumo-tint",
+                      c.id === selectedId ? "border-l-kumo-brand bg-kumo-tint" : "border-l-transparent",
+                    )}
+                  >
+                    <span className="flex items-start justify-between gap-3">
+                      <span className={cn("truncate text-sm text-kumo-default", c.unread ? "font-semibold" : "font-medium")}>
+                        {c.subject}
+                      </span>
+                      {c.unread && <span className="shrink-0 text-xs font-semibold text-kumo-danger">New activity</span>}
+                    </span>
+                    <span className="block truncate text-sm text-kumo-subtle">
+                      {c.shopName}, Unit {c.unitId}
+                    </span>
+                    <span className="flex flex-wrap items-center gap-x-3 text-sm">
                       <StatusBadge status={c.status} />
                       {c.priority !== "NORMAL" && <PriorityBadge priority={c.priority} />}
-                    </div>
-                    <p className={clsx("text-sm text-charcoal dark:text-white truncate", c.unread ? "font-semibold" : "font-bold")}>{c.subject}</p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 truncate inline-flex items-center gap-1 max-w-full">
-                      <Store size={11} className="shrink-0" /> <span className="truncate">{c.shopName} · Unit {c.unitId}</span>
-                    </p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{c.category} · {formatWhen(c.lastActivityAt)}</p>
-                  </div>
-                  <div className="flex flex-col items-end gap-2 shrink-0">
-                    {c.unread && <span className="w-2.5 h-2.5 rounded-full bg-red-500" aria-label="Needs attention" />}
-                    {c.commentCount > 0 && (
-                      <span className="inline-flex items-center gap-1 text-xs font-bold text-slate-500 dark:text-slate-400">
-                        <MessageSquare size={11} /> {c.commentCount}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </button>
-            ))
+                      <span className="text-kumo-subtle">{c.category}</span>
+                    </span>
+                    <span className="block text-xs text-kumo-subtle">
+                      {formatWhen(c.lastActivityAt)}
+                      {c.commentCount > 0 && `, ${c.commentCount} repl${c.commentCount === 1 ? "y" : "ies"}`}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
           )}
-        </div>
+        </Panel>
 
         {/* Detail */}
-        <div className={clsx("lg:col-span-7", !selectedId && "hidden lg:block")}>
+        <div className={cn("lg:col-span-7", !selectedId && "hidden lg:block")}>
           {detailLoading && !detail ? (
-            <div className={clsx(CARD, "py-24 flex justify-center")}><Loader2 className="animate-spin text-slate-300" /></div>
+            <div className={cn(CARD, "flex justify-center py-24")}>
+              <Loader />
+            </div>
           ) : detail ? (
             <ComplaintView complaint={detail} role="ADMIN" userId={user.id} onBack={() => select(null)} onChanged={refreshAll} />
           ) : (
-            <div className={clsx(CARD, "py-24 px-6 text-center")}>
-              <MessageSquare size={36} className="mx-auto text-slate-200 dark:text-zinc-700 mb-3" />
-              <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">Select a complaint to view and reply</p>
+            <div className={CARD}>
+              <EmptyNote title="Select a complaint">Its details and conversation open here.</EmptyNote>
             </div>
           )}
         </div>
       </div>
-    </div>
+    </AdminPage>
+  );
+}
+
+function Choice({
+  label,
+  value,
+  items,
+  onChange,
+  className,
+}: {
+  label: string;
+  value: string;
+  items: Record<string, string>;
+  onChange: (value: string) => void;
+  className?: string;
+}) {
+  return (
+    <Select aria-label={label} value={value} items={items} onValueChange={(v) => v != null && onChange(v as string)} className={className}>
+      {Object.entries(items).map(([key, text]) => (
+        <Select.Option key={key} value={key}>
+          {text}
+        </Select.Option>
+      ))}
+    </Select>
   );
 }
 

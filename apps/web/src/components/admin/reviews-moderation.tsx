@@ -2,28 +2,10 @@
 
 import { spaCache } from "@/utils/cache";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import clsx from "clsx";
 import { toast } from "sonner";
-import {
-  AlertTriangle,
-  Ban,
-  CheckCircle2,
-  ChevronDown,
-  EyeOff,
-  Flag,
-  Inbox,
-  Loader2,
-  MessageSquare,
-  RefreshCw,
-  Search,
-  ShieldCheck,
-  Star,
-  Store,
-  Trash2,
-  UserX,
-  VolumeX,
-  X,
-} from "lucide-react";
+import { Button, DropdownMenu, Loader, Select, cn } from "@cloudflare/kumo";
+import { ArrowClockwise, CaretDown, Star } from "@phosphor-icons/react";
+import { AdminDialog, EmptyNote, Panel, Person, SearchField, Stat, StatRow, PageTabs } from "@/components/admin/page-kit";
 import {
   approveReviewAction,
   deleteReviewAction,
@@ -62,7 +44,6 @@ interface ReviewRow {
 }
 
 const PAGE_SIZE = 10;
-const LABEL = "text-xs font-semibold text-slate-400";
 const MUTE_OPTIONS = [
   { days: 1, label: "1 day" },
   { days: 3, label: "3 days" },
@@ -225,165 +206,101 @@ export function ReviewsModeration({
   if (!reviews) {
     if (error) {
       return (
-        <div className="p-16 text-center space-y-4 bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl">
-          <AlertTriangle className="mx-auto text-primary" size={28} />
-          <p className="font-semibold text-charcoal dark:text-white tracking-tight">
-            Couldn&apos;t load reviews
-          </p>
-          <p className="text-sm text-slate-500">{error}</p>
-          <button
-            onClick={() => load(true)}
-            className="px-6 py-3 bg-primary text-white rounded-xl text-xs font-semibold shadow-lg shadow-primary/25"
+        <Panel flush>
+          <EmptyNote
+            title="Couldn't load reviews"
+            action={
+              <Button variant="primary" onClick={() => load(true)}>
+                Try again
+              </Button>
+            }
           >
-            Try again
-          </button>
-        </div>
+            {error}
+          </EmptyNote>
+        </Panel>
       );
     }
     return (
-      <div className="p-24 flex justify-center">
-        <Loader2 className="animate-spin text-primary" size={32} />
+      <div className="flex justify-center py-24">
+        <Loader />
       </div>
     );
   }
 
-  const tabs: { id: Bucket; label: string; icon: React.ReactNode; tone: string }[] = [
-    { id: "pending", label: "Needs review", icon: <Inbox size={16} />, tone: "bg-amber-500 text-white" },
-    { id: "published", label: "Published", icon: <CheckCircle2 size={16} />, tone: "bg-emerald-500 text-white" },
-    { id: "flagged", label: "Flagged & reported", icon: <Flag size={16} />, tone: "bg-red-500 text-white" },
-  ];
+  const shopItems: Record<string, string> = {
+    all: "All shops",
+    mall: "Mall reviews",
+    ...Object.fromEntries(shops.map((s) => [s.id, s.name])),
+  };
+  const ratingItems: Record<string, string> = {
+    all: "All ratings",
+    ...Object.fromEntries([5, 4, 3, 2, 1].map((n) => [String(n), `${n} star${n === 1 ? "" : "s"}`])),
+  };
+  const filtering = !!search || shopFilter !== "all" || ratingFilter !== "all";
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      {/* Summary */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <SummaryCard label="Total reviews" value={stats.total.toString()} icon={<MessageSquare size={18} />} tone="bg-primary/10 text-primary" />
-        <SummaryCard
-          label="Average rating"
-          value={stats.avg ? stats.avg.toFixed(1) : "—"}
-          sub={`${counts.published} published`}
-          icon={<Star size={18} />}
-          tone="bg-amber-500/10 text-amber-600"
-        />
-        <SummaryCard
+    <div className="space-y-6">
+      <StatRow>
+        <Stat label="Total reviews" value={stats.total} />
+        <Stat label="Average rating" value={stats.avg ? stats.avg.toFixed(1) : "-"} hint={`${counts.published} published`} />
+        <Stat
           label="Needs attention"
-          value={(counts.pending + counts.flagged).toString()}
-          sub={`${counts.pending} to review · ${counts.flagged} flagged`}
-          icon={<AlertTriangle size={18} />}
-          tone={counts.pending + counts.flagged > 0 ? "bg-red-500/10 text-red-600" : "bg-emerald-500/10 text-emerald-600"}
+          value={counts.pending + counts.flagged}
+          hint={`${counts.pending} to review, ${counts.flagged} flagged`}
+          tone={counts.pending + counts.flagged > 0 ? "danger" : "default"}
         />
-        <SummaryCard
-          label="Restricted reviewers"
-          value={stats.restricted.toString()}
-          sub="Muted or banned"
-          icon={<UserX size={18} />}
-          tone="bg-slate-500/10 text-slate-600 dark:text-slate-300"
-        />
-      </div>
+        <Stat label="Restricted reviewers" value={stats.restricted} hint="Muted or banned" />
+      </StatRow>
 
-      <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl shadow-xs overflow-hidden">
-        {/* Tabs + refresh */}
-        <div className="p-4 md:p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-100 dark:border-white/5">
-          <div className="flex gap-1 p-1.5 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/5 w-fit max-w-full overflow-x-auto">
-            {tabs.map((t) => (
-              <button
-                key={t.id}
-                onClick={() => setBucket(t.id)}
-                className={clsx(
-                  "flex items-center gap-2 px-4 py-2.5 rounded-xl whitespace-nowrap transition-all active:scale-95",
-                  activeBucket === t.id
-                    ? "bg-primary text-white shadow-lg shadow-primary/25"
-                    : "text-slate-400 hover:text-charcoal dark:hover:text-white",
-                )}
-              >
-                {t.icon}
-                <span className="text-xs font-semibold">{t.label}</span>
-                <span
-                  className={clsx(
-                    "min-w-6 px-1.5 py-0.5 rounded-full text-xs font-semibold text-center",
-                    activeBucket === t.id
-                      ? "bg-white text-primary"
-                      : counts[t.id] > 0 && t.id !== "published"
-                        ? t.tone
-                        : "bg-slate-200 dark:bg-white/10 text-slate-500",
-                  )}
-                >
-                  {counts[t.id]}
-                </span>
-              </button>
+      <PageTabs
+        value={activeBucket}
+        onValueChange={(v) => setBucket(v as Bucket)}
+        tabs={[
+          { value: "pending", label: `Needs review (${counts.pending})` },
+          { value: "published", label: `Published (${counts.published})` },
+          { value: "flagged", label: `Flagged & reported (${counts.flagged})` },
+        ]}
+      />
+
+      <Panel flush>
+        <div className="flex flex-wrap items-center gap-2 border-b border-kumo-line p-4 sm:px-5">
+          <SearchField value={search} onChange={setSearch} placeholder="Search reviewer, comment or shop" className="sm:w-80" />
+          <Select aria-label="Shop" value={shopFilter} items={shopItems} onValueChange={(v) => setShopFilter((v as string) || "all")} className="w-48">
+            {Object.entries(shopItems).map(([value, label]) => (
+              <Select.Option key={value} value={value}>
+                {label}
+              </Select.Option>
             ))}
-          </div>
-          <button
-            onClick={() => load(true)}
-            disabled={refreshing}
-            aria-label="Refresh reviews"
-            className="self-end lg:self-auto p-3 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-2xl text-slate-500 dark:text-slate-400 hover:text-primary transition-all disabled:opacity-50"
-          >
-            <RefreshCw size={18} className={refreshing ? "animate-spin" : ""} />
-          </button>
-        </div>
-
-        {/* Filters */}
-        <div className="px-4 md:px-5 py-4 flex flex-wrap items-center gap-3 border-b border-slate-100 dark:border-white/5 bg-slate-50/40 dark:bg-white/2">
-          <div className="relative flex-1 min-w-[220px]">
-            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search reviewer, comment or shop…"
-              aria-label="Search reviews"
-              className="w-full h-10 pl-10 pr-9 bg-white dark:bg-zinc-950/50 border border-slate-200 dark:border-white/5 rounded-xl text-sm font-medium text-charcoal dark:text-white placeholder:text-slate-400 focus:outline-hidden focus:border-primary focus:ring-4 focus:ring-primary/10"
-            />
-            {search && (
-              <button
-                onClick={() => setSearch("")}
-                aria-label="Clear search"
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded-md text-slate-500 dark:text-slate-400 hover:text-charcoal dark:hover:text-white"
-              >
-                <X size={14} />
-              </button>
-            )}
-          </div>
-          <Select
-            label="Shop"
-            value={shopFilter}
-            onChange={setShopFilter}
-            options={[
-              { value: "all", label: "All" },
-              { value: "mall", label: "Mall reviews" },
-              ...shops.map((s) => ({ value: s.id, label: s.name })),
-            ]}
-          />
-          <Select
-            label="Rating"
-            value={ratingFilter}
-            onChange={setRatingFilter}
-            options={[
-              { value: "all", label: "All" },
-              ...[5, 4, 3, 2, 1].map((n) => ({ value: String(n), label: `${n} star${n === 1 ? "" : "s"}` })),
-            ]}
-          />
-          <p className={clsx(LABEL, "ml-auto")}>
-            <span className="text-charcoal dark:text-white">{filtered.length}</span> review{filtered.length === 1 ? "" : "s"}
+          </Select>
+          <Select aria-label="Rating" value={ratingFilter} items={ratingItems} onValueChange={(v) => setRatingFilter((v as string) || "all")} className="w-36">
+            {Object.entries(ratingItems).map(([value, label]) => (
+              <Select.Option key={value} value={value}>
+                {label}
+              </Select.Option>
+            ))}
+          </Select>
+          <p className="ml-auto text-sm text-kumo-subtle">
+            {filtered.length} review{filtered.length === 1 ? "" : "s"}
           </p>
+          <Button variant="secondary" icon={<ArrowClockwise />} loading={refreshing} onClick={() => load(true)}>
+            Refresh
+          </Button>
         </div>
 
-        {/* List */}
         {filtered.length === 0 ? (
-          <div className="py-20 flex flex-col items-center gap-3 text-center text-slate-300 dark:text-slate-600">
-            {activeBucket === "published" ? <MessageSquare size={28} /> : <ShieldCheck size={28} />}
-            <p className="text-slate-500 dark:text-slate-400 font-bold text-xs">
-              {search || shopFilter !== "all" || ratingFilter !== "all"
+          <EmptyNote
+            title={
+              filtering
                 ? "No reviews match these filters"
                 : activeBucket === "pending"
                   ? "Nothing waiting for review"
                   : activeBucket === "flagged"
                     ? "No reviews flagged as spam"
-                    : "No published reviews yet"}
-            </p>
-          </div>
+                    : "No published reviews yet"
+            }
+          />
         ) : (
-          <ul className="divide-y divide-slate-100 dark:divide-white/5">
+          <ul className="divide-y divide-kumo-line">
             {filtered.slice(0, visible).map((r) => (
               <ReviewItem
                 key={r.id}
@@ -402,142 +319,72 @@ export function ReviewsModeration({
         )}
 
         {filtered.length > visible && (
-          <div className="p-4 border-t border-slate-100 dark:border-white/5 text-center">
-            <button
-              onClick={() => setVisible((v) => v + PAGE_SIZE)}
-              className="px-6 py-3 rounded-xl bg-slate-100 dark:bg-white/5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors"
-            >
+          <div className="border-t border-kumo-line p-4 text-center">
+            <Button variant="secondary" onClick={() => setVisible((v) => v + PAGE_SIZE)}>
               Show more ({filtered.length - visible} left)
-            </button>
+            </Button>
           </div>
         )}
-      </div>
+      </Panel>
 
-      {confirmDelete && (
-        <DeleteReviewModal
-          review={confirmDelete}
-          busy={busyId === confirmDelete.id}
-          onCancel={() => setConfirmDelete(null)}
-          onConfirm={doDelete}
-        />
-      )}
+      <AdminDialog
+        open={!!confirmDelete}
+        onClose={() => busyId !== confirmDelete?.id && setConfirmDelete(null)}
+        size="sm"
+        title="Delete this review?"
+        description={
+          confirmDelete
+            ? `It will be removed permanently from ${confirmDelete.tenant ? confirmDelete.tenant.shopName : "the mall page"}. This can't be undone.`
+            : undefined
+        }
+        footer={
+          <>
+            <Button variant="secondary" disabled={busyId === confirmDelete?.id} onClick={() => setConfirmDelete(null)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" loading={!!confirmDelete && busyId === confirmDelete.id} onClick={doDelete}>
+              Delete review
+            </Button>
+          </>
+        }
+      >
+        {confirmDelete && (
+          <div className="space-y-2 rounded-lg bg-kumo-recessed p-3">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-semibold text-kumo-default">
+                {confirmDelete.user?.name || confirmDelete.user?.email || "Deleted user"}
+              </span>
+              <Stars rating={confirmDelete.rating} />
+            </div>
+            <p className="line-clamp-3 text-sm text-kumo-default">{confirmDelete.comment || "Rating only, no comment."}</p>
+          </div>
+        )}
+      </AdminDialog>
     </div>
   );
 }
 
 // ─── Pieces ──────────────────────────────────────────────────────────────────
 
-function SummaryCard({
-  label,
-  value,
-  sub,
-  icon,
-  tone,
-}: {
-  label: string;
-  value: string;
-  sub?: string;
-  icon: React.ReactNode;
-  tone: string;
-}) {
-  return (
-    <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl p-5 shadow-xs min-w-0">
-      <span className={clsx("w-10 h-10 rounded-xl flex items-center justify-center", tone)}>{icon}</span>
-      <p className={clsx(LABEL, "mt-4 truncate")}>{label}</p>
-      <p className="mt-1 text-3xl font-semibold tracking-tight text-charcoal dark:text-white">{value}</p>
-      {sub && <p className="mt-1 text-xs font-bold text-slate-500 dark:text-slate-400 truncate">{sub}</p>}
-    </div>
-  );
-}
-
-function Select({
-  label,
-  value,
-  options,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  options: { value: string; label: string }[];
-  onChange: (v: string) => void;
-}) {
-  const active = value !== "all";
-  return (
-    <label
-      className={clsx(
-        "relative flex items-center gap-2 h-10 pl-3.5 pr-9 rounded-xl border cursor-pointer max-w-[260px]",
-        active ? "bg-primary/5 border-primary/30" : "bg-white dark:bg-zinc-950/50 border-slate-200 dark:border-white/5",
-      )}
-    >
-      <span className={LABEL}>{label}</span>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        aria-label={label}
-        className={clsx(
-          "appearance-none bg-transparent text-sm font-bold focus:outline-hidden cursor-pointer truncate",
-          active ? "text-primary" : "text-charcoal dark:text-white",
-        )}
-      >
-        {options.map((o) => (
-          <option key={o.value} value={o.value}>
-            {o.label}
-          </option>
-        ))}
-      </select>
-      <ChevronDown size={14} className="absolute right-3 text-slate-400 pointer-events-none" />
-    </label>
-  );
-}
-
 function Stars({ rating }: { rating: number }) {
   return (
-    <span className="flex items-center gap-0.5" aria-label={`${rating} out of 5 stars`}>
+    <span className="flex items-center gap-0.5" role="img" aria-label={`${rating} out of 5 stars`}>
       {[1, 2, 3, 4, 5].map((i) => (
-        <Star
-          key={i}
-          size={12}
-          className={i <= rating ? "fill-amber-500 text-amber-500" : "text-slate-200 dark:text-zinc-700"}
-        />
+        <Star key={i} size={14} weight={i <= rating ? "fill" : "regular"} className={i <= rating ? "text-kumo-warning" : "text-kumo-subtle"} />
       ))}
     </span>
   );
 }
 
-function UserStatusBadge({ user }: { user: NonNullable<ReviewRow["user"]> }) {
-  const warnings =
-    user.commentStatus === "WARNED_1"
-      ? 1
-      : user.commentStatus === "WARNED_2"
-        ? 2
-        : 0;
-
-  if (warnings > 0) {
-    return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold border whitespace-nowrap bg-amber-500/10 text-amber-600 border-amber-500/20">
-        <AlertTriangle size={10} />
-        Warning {warnings}/2
-      </span>
-    );
-  }
-
+/** Warnings, mute or ban on the reviewer, as plain coloured text. */
+function UserStatusText({ user }: { user: NonNullable<ReviewRow["user"]> }) {
+  const warnings = user.commentStatus === "WARNED_1" ? 1 : user.commentStatus === "WARNED_2" ? 2 : 0;
+  if (warnings > 0) return <span className="text-sm font-medium text-kumo-warning">Warning {warnings}/2</span>;
   if (user.effectiveCommentStatus === "ACTIVE") return null;
   const banned = user.effectiveCommentStatus === "BANNED";
   return (
-    <span
-      className={clsx(
-        "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold border whitespace-nowrap",
-        banned
-          ? "bg-red-500/10 text-red-600 border-red-500/20"
-          : "bg-amber-500/10 text-amber-600 border-amber-500/20",
-      )}
-    >
-      {banned ? <Ban size={10} /> : <VolumeX size={10} />}
-      {banned
-        ? "Banned"
-        : user.commentRestrictedUntil
-          ? `Muted until ${formatDate(user.commentRestrictedUntil)}`
-          : "Muted"}
+    <span className={cn("text-sm font-medium", banned ? "text-kumo-danger" : "text-kumo-warning")}>
+      {banned ? "Banned" : user.commentRestrictedUntil ? `Muted until ${formatDate(user.commentRestrictedUntil)}` : "Muted"}
     </span>
   );
 }
@@ -569,146 +416,81 @@ function ReviewItem({
   const name = r.user?.name || r.user?.email?.split("@")[0] || "Deleted user";
 
   return (
-    <li className={clsx("p-5 md:p-6 transition-colors", busy && "opacity-60 pointer-events-none")}>
-      <div className="flex gap-4">
-        <div className="w-11 h-11 shrink-0 rounded-[0.9rem] bg-primary/10 overflow-hidden flex items-center justify-center font-semibold text-primary">
-          {r.user?.avatarUrl ? (
-            <img src={r.user.avatarUrl} alt="" className="w-full h-full object-cover" />
-          ) : (
-            name.charAt(0).toUpperCase()
-          )}
-        </div>
-
-        <div className="flex-1 min-w-0 space-y-2">
-          {/* Who · where · when */}
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <p className="font-semibold text-sm text-charcoal dark:text-white tracking-tight truncate max-w-[240px]">
-              {name}
-            </p>
-            <Stars rating={r.rating} />
-            {r.user && <UserStatusBadge user={r.user} />}
-          </div>
-          <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-bold text-slate-500 dark:text-slate-400">
-            <span className="inline-flex items-center gap-1 text-slate-500 dark:text-slate-300">
-              <Store size={11} /> {r.tenant ? r.tenant.shopName : "Mall review"}
-            </span>
-            <span>·</span>
-            <span>{formatDate(r.createdAt)}</span>
-            {r.user?.email && (
-              <>
-                <span>·</span>
-                <span className="normal-case tracking-normal font-medium truncate max-w-[220px]">{r.user.email}</span>
-              </>
-            )}
-          </p>
-
-          {/* Comment */}
-          {comment ? (
-            <p
-              className={clsx(
-                "text-sm text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-line wrap-anywhere",
-                !expanded && "line-clamp-2",
-              )}
-            >
-              {comment}
-            </p>
-          ) : (
-            <p className="text-sm italic text-slate-500 dark:text-slate-400">Rating only, no comment.</p>
-          )}
-          {long && (
-            <button
-              onClick={() => setExpanded((v) => !v)}
-              className="text-xs font-semibold text-primary hover:underline"
-            >
-              {expanded ? "Show less" : "Read more"}
-            </button>
-          )}
-
-          {r.reportedAt && !r.isSpam && (
-            <div className="flex items-start gap-2 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-300">
-              <Flag size={14} className="shrink-0 mt-0.5" />
-              <p className="text-xs">
-                <span className="font-semibold text-xs">Reported by the shop · </span>
-                {r.reportReason || "No reason given"}
-              </p>
-            </div>
-          )}
-          {r.reply && (
-            <div className="pl-3 border-l-2 border-primary/40">
-              <p className="text-xs font-semibold text-primary">Shop reply</p>
-              <p className="text-sm text-slate-600 dark:text-slate-300 whitespace-pre-line wrap-anywhere">
-                {r.reply}
-              </p>
-            </div>
-          )}
-
-          {/* Actions */}
-          <div className="flex flex-wrap items-center gap-2 pt-2">
-            {bucket === "pending" && (
-              <ActionButton tone="success" icon={<CheckCircle2 size={14} />} onClick={onApprove}>
-                Approve
-              </ActionButton>
-            )}
-            {bucket === "published" && (
-              <ActionButton tone="neutral" icon={<EyeOff size={14} />} onClick={onUnpublish}>
-                Unpublish
-              </ActionButton>
-            )}
-            {bucket === "flagged" && r.reportedAt && !r.isSpam ? (
-              <>
-                <ActionButton tone="success" icon={<ShieldCheck size={14} />} onClick={onDismissReport}>
-                  Keep published
-                </ActionButton>
-                <ActionButton tone="warning" icon={<Flag size={14} />} onClick={() => onFlag(true)}>
-                  Flag as spam
-                </ActionButton>
-              </>
-            ) : bucket === "flagged" ? (
-              <ActionButton tone="success" icon={<ShieldCheck size={14} />} onClick={() => onFlag(false)}>
-                Not spam · publish
-              </ActionButton>
-            ) : (
-              <ActionButton tone="warning" icon={<Flag size={14} />} onClick={() => onFlag(true)}>
-                Flag as spam
-              </ActionButton>
-            )}
-            <ActionButton tone="danger" icon={<Trash2 size={14} />} onClick={onDelete}>
-              Delete
-            </ActionButton>
-            {r.user && <ModerateUserMenu user={r.user} onChange={onUserStatus} />}
-            {busy && <Loader2 size={14} className="animate-spin text-primary" />}
-          </div>
+    <li className={cn("space-y-3 p-4 sm:p-5", busy && "pointer-events-none opacity-60")}>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <Person
+          name={name}
+          detail={`${r.tenant ? r.tenant.shopName : "Mall review"}, ${formatDate(r.createdAt)}${r.user?.email ? `, ${r.user.email}` : ""}`}
+          image={r.user?.avatarUrl}
+        />
+        <div className="flex items-center gap-3">
+          <Stars rating={r.rating} />
+          {r.user && <UserStatusText user={r.user} />}
         </div>
       </div>
-    </li>
-  );
-}
 
-function ActionButton({
-  tone,
-  icon,
-  onClick,
-  children,
-}: {
-  tone: "success" | "warning" | "danger" | "neutral";
-  icon: React.ReactNode;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={clsx(
-        "inline-flex items-center gap-1.5 h-9 px-3.5 rounded-xl text-xs font-semibold transition-all active:scale-95",
-        tone === "success" && "bg-emerald-500 text-white hover:bg-emerald-600 shadow-md shadow-emerald-500/20",
-        tone === "warning" && "bg-amber-500/10 text-amber-600 hover:bg-amber-500 hover:text-white",
-        tone === "danger" && "bg-red-500/10 text-red-600 hover:bg-red-500 hover:text-white",
-        tone === "neutral" && "bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/10",
+      {comment ? (
+        <p className={cn("whitespace-pre-line text-sm leading-relaxed text-kumo-default wrap-anywhere", !expanded && "line-clamp-2")}>
+          {comment}
+        </p>
+      ) : (
+        <p className="text-sm text-kumo-subtle">Rating only, no comment.</p>
       )}
-    >
-      {icon}
-      {children}
-    </button>
+      {long && (
+        <button type="button" onClick={() => setExpanded((v) => !v)} className="cursor-pointer text-sm text-kumo-link hover:underline">
+          {expanded ? "Show less" : "Read more"}
+        </button>
+      )}
+
+      {r.reportedAt && !r.isSpam && (
+        <p className="rounded-lg bg-kumo-recessed p-3 text-sm text-kumo-default">
+          <span className="font-semibold text-kumo-warning">Reported by the shop: </span>
+          {r.reportReason || "No reason given"}
+        </p>
+      )}
+      {r.reply && (
+        <div className="border-l-2 border-kumo-line pl-3">
+          <p className="text-xs font-semibold text-kumo-subtle">Shop reply</p>
+          <p className="whitespace-pre-line text-sm text-kumo-default wrap-anywhere">{r.reply}</p>
+        </div>
+      )}
+
+      <div className="flex flex-wrap items-center gap-2">
+        {bucket === "pending" && (
+          <Button size="sm" variant="primary" onClick={onApprove}>
+            Approve
+          </Button>
+        )}
+        {bucket === "published" && (
+          <Button size="sm" variant="secondary" onClick={onUnpublish}>
+            Unpublish
+          </Button>
+        )}
+        {bucket === "flagged" && r.reportedAt && !r.isSpam ? (
+          <>
+            <Button size="sm" variant="primary" onClick={onDismissReport}>
+              Keep published
+            </Button>
+            <Button size="sm" variant="secondary" onClick={() => onFlag(true)}>
+              Flag as spam
+            </Button>
+          </>
+        ) : bucket === "flagged" ? (
+          <Button size="sm" variant="primary" onClick={() => onFlag(false)}>
+            Not spam, publish
+          </Button>
+        ) : (
+          <Button size="sm" variant="secondary" onClick={() => onFlag(true)}>
+            Flag as spam
+          </Button>
+        )}
+        <Button size="sm" variant="secondary-destructive" onClick={onDelete}>
+          Delete
+        </Button>
+        {r.user && <ModerateUserMenu user={r.user} onChange={onUserStatus} />}
+        {busy && <Loader />}
+      </div>
+    </li>
   );
 }
 
@@ -719,162 +501,35 @@ function ModerateUserMenu({
   user: NonNullable<ReviewRow["user"]>;
   onChange: (status: UserStatus, days?: number) => void;
 }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const onDown = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
-    document.addEventListener("mousedown", onDown);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onDown);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [open]);
-
-  const pick = (status: UserStatus, days?: number) => {
-    setOpen(false);
-    onChange(status, days);
-  };
-
+  const warned = user.commentStatus === "WARNED_1" || user.commentStatus === "WARNED_2";
   return (
-    <div className="relative ml-auto" ref={ref}>
-      <button
-        onClick={() => setOpen((v) => !v)}
-        aria-haspopup="menu"
-        aria-expanded={open}
-        className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-xl border border-slate-200 dark:border-white/10 text-xs font-semibold text-slate-500 hover:text-charcoal dark:hover:text-white hover:border-slate-300 transition-colors"
-      >
-        <UserX size={14} /> Moderate user
-        <ChevronDown size={12} className={clsx("transition-transform", open && "rotate-180")} />
-      </button>
-      {open && (
-        <div
-          role="menu"
-          className="absolute right-0 bottom-full mb-2 w-60 bg-white dark:bg-[#161b26] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl p-2 z-40 animate-fade-in-up"
-        >
-          <p className={clsx(LABEL, "px-3 pt-2 pb-1")}>Mute from posting</p>
-          <div className="grid grid-cols-2 gap-1 px-1 pb-2">
-            {MUTE_OPTIONS.map((o) => (
-              <button
-                key={o.days}
-                role="menuitem"
-                onClick={() => pick("MUTED", o.days)}
-                className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-amber-500/10 hover:text-amber-600"
-              >
-                <VolumeX size={12} /> {o.label}
-              </button>
-            ))}
-          </div>
-          <div className="border-t border-slate-100 dark:border-white/5 pt-1">
-            {(user.commentStatus === "WARNED_1" ||
-              user.commentStatus === "WARNED_2") && (
-              <button
-                role="menuitem"
-                onClick={() => pick("ACTIVE")}
-                className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs font-bold text-emerald-600 hover:bg-emerald-500/10"
-              >
-                <ShieldCheck size={14} /> Clear language warnings
-              </button>
-            )}
-            {user.effectiveCommentStatus !== "BANNED" && (
-              <button
-                role="menuitem"
-                onClick={() => pick("BANNED")}
-                className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs font-bold text-red-600 hover:bg-red-500/10"
-              >
-                <Ban size={14} /> Ban permanently
-              </button>
-            )}
-            {user.effectiveCommentStatus !== "ACTIVE" && (
-              <button
-                role="menuitem"
-                onClick={() => pick("ACTIVE")}
-                className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs font-bold text-emerald-600 hover:bg-emerald-500/10"
-              >
-                <ShieldCheck size={14} /> Restore posting
-              </button>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function DeleteReviewModal({
-  review,
-  busy,
-  onCancel,
-  onConfirm,
-}: {
-  review: ReviewRow;
-  busy: boolean;
-  onCancel: () => void;
-  onConfirm: () => void;
-}) {
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && !busy && onCancel();
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [busy, onCancel]);
-
-  return (
-    <div className="fixed inset-0 z-250 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-xs" onClick={() => !busy && onCancel()} />
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="delete-review-title"
-        className="relative w-full max-w-md bg-white dark:bg-zinc-950 rounded-2xl shadow-2xl overflow-hidden animate-fade-in-up"
-      >
-        <div className="p-5 sm:p-8 space-y-5">
-          <div className="w-12 h-12 rounded-2xl bg-red-500/10 text-red-600 flex items-center justify-center">
-            <Trash2 size={22} />
-          </div>
-          <div className="space-y-1">
-            <h2 id="delete-review-title" className="text-xl font-semibold tracking-tight text-charcoal dark:text-white">
-              Delete this review?
-            </h2>
-            <p className="text-sm text-slate-500">
-              It will be removed permanently from{" "}
-              <span className="font-bold">{review.tenant ? review.tenant.shopName : "the mall page"}</span>. This can&apos;t be undone.
-            </p>
-          </div>
-          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-zinc-900 border border-slate-100 dark:border-white/5 space-y-2">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-charcoal dark:text-white">
-                {review.user?.name || review.user?.email || "Deleted user"}
-              </span>
-              <Stars rating={review.rating} />
-            </div>
-            <p className="text-sm text-slate-600 dark:text-slate-300 line-clamp-3">
-              {review.comment || "Rating only, no comment."}
-            </p>
-          </div>
-          <div className="flex gap-3 pt-1">
-            <button
-              onClick={onCancel}
-              disabled={busy}
-              className="flex-1 py-3.5 bg-slate-100 dark:bg-zinc-900 text-slate-600 dark:text-slate-400 font-bold text-xs rounded-xl hover:bg-slate-200 transition-all disabled:opacity-50"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={onConfirm}
-              disabled={busy}
-              className="flex-1 py-3.5 bg-red-600 hover:bg-red-700 text-white font-semibold text-xs rounded-xl shadow-lg shadow-red-500/20 transition-all flex items-center justify-center gap-2 disabled:opacity-70"
-            >
-              {busy ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
-              Delete
-            </button>
-          </div>
-        </div>
-      </div>
+    <div className="ml-auto">
+      <DropdownMenu>
+        <DropdownMenu.Trigger
+          render={
+            <Button size="sm" variant="secondary" icon={<CaretDown />}>
+              Moderate user
+            </Button>
+          }
+        />
+        <DropdownMenu.Content>
+          {MUTE_OPTIONS.map((o) => (
+            <DropdownMenu.Item key={o.days} onClick={() => onChange("MUTED", o.days)}>
+              Mute for {o.label}
+            </DropdownMenu.Item>
+          ))}
+          <DropdownMenu.Separator />
+          {warned && <DropdownMenu.Item onClick={() => onChange("ACTIVE")}>Clear language warnings</DropdownMenu.Item>}
+          {user.effectiveCommentStatus !== "BANNED" && (
+            <DropdownMenu.Item variant="danger" onClick={() => onChange("BANNED")}>
+              Ban permanently
+            </DropdownMenu.Item>
+          )}
+          {user.effectiveCommentStatus !== "ACTIVE" && (
+            <DropdownMenu.Item onClick={() => onChange("ACTIVE")}>Restore posting</DropdownMenu.Item>
+          )}
+        </DropdownMenu.Content>
+      </DropdownMenu>
     </div>
   );
 }

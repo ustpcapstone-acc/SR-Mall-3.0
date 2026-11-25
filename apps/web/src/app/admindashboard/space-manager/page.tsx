@@ -7,41 +7,22 @@ import {
   deleteAreaSlot,
   getReservedSlotsWithDetailsAction,
 } from "@/app/actions/space-slot";
+import { Car, Coffee, ShoppingBag, Smartphone, Store } from "lucide-react";
+import { Button, Input, Loader, Select, Table, cn } from "@cloudflare/kumo";
 import {
-  Plus,
-  Search,
-  Map,
-  LayoutGrid,
-  List,
-  SlidersHorizontal,
-  Trash2,
-  Edit3,
-  Camera,
-  Save,
-  X,
-  ExternalLink,
-  Zap,
-  Droplets,
-  Info,
-  Ruler,
-  CreditCard,
-  Maximize2,
-  Move,
+  ArrowsIn,
+  ArrowsOut,
   Eye,
-  EyeOff,
-  Layers,
-  Grid3x3,
-  Store,
-  Coffee,
-  ShoppingBag,
-  Smartphone,
-  Car,
-  Upload,
-  Loader2,
-  CheckCircle2,
-  XCircle,
-} from "lucide-react";
-import clsx from "clsx";
+  ListDashes,
+  MapTrifold,
+  Minus,
+  PencilSimple,
+  Plus,
+  SquaresFour,
+  Trash,
+  UploadSimple,
+} from "@phosphor-icons/react";
+import { AdminDialog, AdminPage, EmptyNote, Panel, SearchField } from "@/components/admin/page-kit";
 import SpaceDetailModal from "@/components/space-detail-modal";
 import { toast } from "sonner";
 import { ReservationDecisionModal, type ReservationRow } from "@/components/admin/reservation-decision-modal";
@@ -70,11 +51,11 @@ interface FloorPlanSlot extends AreaSlot {
 }
 
 const FLOOR_CATEGORIES = [
-  { id: "retail", name: "Retail", icon: ShoppingBag, color: "bg-blue-500" },
-  { id: "food", name: "Food & Beverage", icon: Coffee, color: "bg-orange-500" },
-  { id: "tech", name: "Technology", icon: Smartphone, color: "bg-purple-500" },
-  { id: "services", name: "Services", icon: Store, color: "bg-green-500" },
-  { id: "parking", name: "Parking", icon: Car, color: "bg-gray-500" },
+  { id: "retail", name: "Retail", icon: ShoppingBag },
+  { id: "food", name: "Food & Beverage", icon: Coffee },
+  { id: "tech", name: "Technology", icon: Smartphone },
+  { id: "services", name: "Services", icon: Store },
+  { id: "parking", name: "Parking", icon: Car },
 ];
 
 const FLOORS = [
@@ -82,6 +63,18 @@ const FLOORS = [
   { id: "first", name: "First Floor", level: 1 },
   { id: "second", name: "Second Floor", level: 2 },
 ];
+
+const CATEGORY_ITEMS: Record<string, string> = {
+  all: "All categories",
+  ...Object.fromEntries(FLOOR_CATEGORIES.map((c) => [c.id, c.name])),
+};
+
+const STATUS: Record<string, { label: string; color: string; className: string }> = {
+  AVAILABLE: { label: "Available", color: "#10b981", className: "text-kumo-success" },
+  OCCUPIED: { label: "Occupied", color: "#BE1E2D", className: "text-kumo-brand" },
+  RESERVED: { label: "Reserved", color: "#f59e0b", className: "text-kumo-warning" },
+  MAINTENANCE: { label: "Maintenance", color: "#94a3b8", className: "text-kumo-subtle" },
+};
 
 export default function SpaceManagerPage() {
   const [slots, setSlots] = useState<FloorPlanSlot[]>([]);
@@ -99,6 +92,8 @@ export default function SpaceManagerPage() {
   const [showGrid, setShowGrid] = useState(true);
   const [zoomLevel, setZoomLevel] = useState(1);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  /** The unit selected on the map. */
+  const [pickedId, setPickedId] = useState<string | null>(null);
   const floorPlanRef = useRef<HTMLDivElement>(null);
 
   const [previewSlot, setPreviewSlot] = useState<FloorPlanSlot | null>(null);
@@ -287,1845 +282,500 @@ export default function SpaceManagerPage() {
     (s) => s.floor === selectedFloor,
   );
 
-  const getSlotColor = (status: string, category: string) => {
-    if (status === "AVAILABLE") return "bg-emerald-500/20 border-emerald-500";
-    if (status === "OCCUPIED") return "bg-blue-500/20 border-blue-500";
-    if (status === "MAINTENANCE") return "bg-amber-500/20 border-amber-500";
-    if (status === "RESERVED")
-      return "bg-primary/20 border-primary animate-pulse";
-    return "bg-gray-500/20 border-gray-500";
-  };
-
   const getCategoryIcon = (category: string) => {
     const cat = FLOOR_CATEGORIES.find((c) => c.id === category);
     return cat ? cat.icon : Store;
   };
+  const categoryName = (category?: string) => FLOOR_CATEGORIES.find((c) => c.id === category)?.name ?? category ?? "Retail";
+  const floorName = FLOORS.find((f) => f.id === selectedFloor)?.name;
+  const floorSlots = slots.filter((s) => s.floor === selectedFloor);
+  const countOf = (status: string) => floorSlots.filter((s) => s.status === status).length;
+  const picked = currentFloorSlots.find((s) => s.id === pickedId) ?? null;
 
-  return (
-    <div
-      className={clsx(
-        "min-h-screen bg-transparent p-4 lg:p-8 space-y-6 animate-fade-in-up",
-        isFullscreen ? "p-0" : "max-w-[1600px] mx-auto",
+  const addSpace = () => {
+    setActiveSlot({
+      unit_id: "",
+      status: "AVAILABLE",
+      sqm_size: 0,
+      base_rent: 0,
+      space_images: [],
+      features: [],
+      x: 100,
+      y: 100,
+      width: 120,
+      height: 80,
+      floor: selectedFloor,
+      category: "retail",
+    });
+    setIsEditing(true);
+  };
+  const editSpace = (slot: FloorPlanSlot) => {
+    setActiveSlot(slot);
+    setIsEditing(true);
+  };
+
+  /** What can be done with a unit: used by the map panel, cards and list. */
+  const slotActions = (slot: FloorPlanSlot) => (
+    <div className="flex flex-wrap justify-end gap-2">
+      {slot.status === "RESERVED" && (
+        <>
+          <Button size="sm" variant="primary" onClick={() => void openDecision(slot, "approve")}>
+            Approve
+          </Button>
+          <Button size="sm" variant="secondary-destructive" onClick={() => void openDecision(slot, "reject")}>
+            Reject
+          </Button>
+        </>
       )}
-    >
-      {/* Background Decor */}
-      <div
-        className={clsx(
-          "fixed",
-          "inset-0",
-          "pointer-events-none",
-          "opacity-20",
-          "dark:opacity-40",
-          "overflow-hidden",
-          "-z-10",
-        )}
+      <Button size="sm" variant="secondary" icon={<Eye />} onClick={() => setPreviewSlot(slot)}>
+        Preview
+      </Button>
+      <Button size="sm" variant="secondary" icon={<PencilSimple />} onClick={() => editSpace(slot)}>
+        Edit
+      </Button>
+      <Button
+        size="sm"
+        variant="secondary-destructive"
+        shape="square"
+        icon={<Trash />}
+        aria-label={`Delete Unit ${slot.unit_id}`}
+        onClick={() => setDeleteTarget(slot)}
+      />
+    </div>
+  );
+
+  const toolbar = (
+    <div className="flex flex-wrap items-center gap-2">
+      <div role="group" aria-label="Floor" className="flex flex-wrap gap-1">
+        {FLOORS.map((floor) => (
+          <Button
+            key={floor.id}
+            variant={selectedFloor === floor.id ? "primary" : "secondary"}
+            aria-pressed={selectedFloor === floor.id}
+            onClick={() => setSelectedFloor(floor.id)}
+          >
+            {floor.name}
+          </Button>
+        ))}
+      </div>
+      <SearchField value={searchQuery} onChange={setSearchQuery} placeholder="Search unit number" className="sm:w-56" />
+      <Select
+        aria-label="Category"
+        value={selectedCategory}
+        items={CATEGORY_ITEMS}
+        onValueChange={(v) => v != null && setSelectedCategory(v as string)}
+        className="w-48"
       >
-        <div
-          className={clsx(
-            "absolute",
-            "top-[20%]",
-            "right-[-5%]",
-            "w-[30%]",
-            "h-[30%]",
-            "bg-primary/10",
-            "blur-[120px]",
-            "rounded-full",
-          )}
-        />
+        {Object.entries(CATEGORY_ITEMS).map(([value, label]) => (
+          <Select.Option key={value} value={value}>
+            {label}
+          </Select.Option>
+        ))}
+      </Select>
+      <div role="group" aria-label="View" className="ml-auto flex gap-1">
+        {(
+          [
+            { id: "floorplan", label: "Map", icon: <MapTrifold /> },
+            { id: "grid", label: "Cards", icon: <SquaresFour /> },
+            { id: "list", label: "List", icon: <ListDashes /> },
+          ] as const
+        ).map((view) => (
+          <Button
+            key={view.id}
+            variant={viewMode === view.id ? "primary" : "secondary"}
+            icon={view.icon}
+            aria-pressed={viewMode === view.id}
+            onClick={() => setViewMode(view.id)}
+          >
+            {view.label}
+          </Button>
+        ))}
+      </div>
+    </div>
+  );
+
+  const floorPlan = (
+    <Panel
+      flush
+      title={floorName}
+      description={`${currentFloorSlots.length} space${currentFloorSlots.length === 1 ? "" : "s"} shown`}
+      actions={
+        <>
+          <Button size="sm" variant="secondary" aria-pressed={showGrid} onClick={() => setShowGrid(!showGrid)}>
+            {showGrid ? "Hide grid lines" : "Show grid lines"}
+          </Button>
+          <div role="group" aria-label="Zoom" className="flex items-center gap-1">
+            <Button size="sm" variant="secondary" shape="square" icon={<Minus />} aria-label="Zoom out" onClick={() => setZoomLevel(Math.max(0.5, zoomLevel - 0.1))} />
+            <span className="min-w-12 text-center text-sm tabular-nums text-kumo-subtle">{Math.round(zoomLevel * 100)}%</span>
+            <Button size="sm" variant="secondary" shape="square" icon={<Plus />} aria-label="Zoom in" onClick={() => setZoomLevel(Math.min(2, zoomLevel + 0.1))} />
+          </div>
+          <Button
+            size="sm"
+            variant="secondary"
+            icon={isFullscreen ? <ArrowsIn /> : <ArrowsOut />}
+            onClick={() => setIsFullscreen(!isFullscreen)}
+          >
+            {isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+          </Button>
+        </>
+      }
+    >
+      <div className="flex flex-wrap gap-4 border-b border-kumo-line px-4 py-2 text-sm text-kumo-subtle sm:px-5">
+        {Object.entries(STATUS).map(([key, s]) => (
+          <span key={key} className="flex items-center gap-1.5">
+            <span className="size-2.5 rounded-full" style={{ backgroundColor: s.color }} /> {s.label} ({countOf(key)})
+          </span>
+        ))}
       </div>
 
-      {!isFullscreen && (
-        <>
-          {/* Header section with Enterprise theme */}
-          <div
-            className={clsx(
-              "flex",
-              "flex-col",
-              "lg:flex-row",
-              "lg:items-end",
-              "justify-between",
-              "gap-8",
-              "mb-8",
-            )}
-          >
-            <div className="space-y-2">
-              <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-charcoal dark:text-white">
-            Floor Spaces and Map
-          </h1>
-              <p
-                className={clsx(
-                  "text-slate-500",
-                  "font-medium",
-                  "text-lg",
-                  "max-w-2xl",
-                  "leading-relaxed",
-                )}
-              >
-                Manage mall floors, view rentable spaces, drag-and-drop floor layouts, and update lease units.
-              </p>
-            </div>
+      {/* The chosen unit and what can be done with it. */}
+      <div className="flex min-h-14 flex-wrap items-center justify-between gap-3 border-b border-kumo-line px-4 py-2 sm:px-5" aria-live="polite">
+        {picked ? (
+          <>
+            <p className="text-sm text-kumo-default">
+              <strong>Unit {picked.unit_id}</strong>
+              <span className="text-kumo-subtle">
+                , {categoryName(picked.category)}, {picked.sqm_size} sqm,{" "}
+              </span>
+              <span className={cn("font-medium", STATUS[picked.status]?.className)}>{STATUS[picked.status]?.label}</span>
+            </p>
+            {slotActions(picked)}
+          </>
+        ) : (
+          <p className="text-sm text-kumo-subtle">Select a unit on the map to preview, edit or delete it.</p>
+        )}
+      </div>
 
-            <div className={clsx("flex", "gap-3")}>
-              <button
-                onClick={() => setIsFullscreen(true)}
-                className={clsx(
-                  "flex",
-                  "items-center",
-                  "gap-2",
-                  "px-6",
-                  "py-3",
-                  "bg-slate-100",
-                  "dark:bg-white/5",
-                  "hover:bg-slate-200",
-                  "dark:hover:bg-white/10",
-                  "text-slate-700",
-                  "dark:text-slate-300",
-                  "font-bold",
-                  "rounded-2xl",
-                  "transition-all",
-                )}
-              >
-                <Maximize2 size={18} />
-                Fullscreen
-              </button>
-              <button
-                onClick={() => {
-                  setActiveSlot({
-                    unit_id: "",
-                    status: "AVAILABLE",
-                    sqm_size: 0,
-                    base_rent: 0,
-                    space_images: [],
-                    features: [],
-                    x: 100,
-                    y: 100,
-                    width: 120,
-                    height: 80,
-                    floor: selectedFloor,
-                    category: "retail",
-                  });
-                  setIsEditing(true);
-                }}
-                className={clsx(
-                  "flex",
-                  "items-center",
-                  "gap-3",
-                  "px-8",
-                  "py-4",
-                  "bg-primary",
-                  "hover:bg-primary-hover",
-                  "text-white",
-                  "font-semibold",
-                  "rounded-2xl",
-                  "transition-all",
-                  "shadow-xl",
-                  "shadow-primary/30",
-                  "active:scale-95",
-                  "whitespace-nowrap",
-                  "text-xs",
-                )}
-              >
-                <Plus size={20} strokeWidth={3} />
-                Add Space
-              </button>
-            </div>
-          </div>
-
-          {/* Control Bar - Premium Glassmorphism */}
-          <div
-            className={clsx(
-              "flex",
-              "flex-wrap",
-              "gap-4",
-              "p-4",
-              "glass-premium",
-              "bg-white/40",
-              "dark:bg-white/5",
-              "border",
-              "border-slate-200",
-              "dark:border-white/10",
-              "rounded-3xl",
-              "backdrop-blur-xl",
-              "shadow-2xl",
-              "shadow-black/5",
-            )}
-          >
-            <div
-              className={clsx(
-                "flex-1",
-                "min-w-[200px]",
-                "relative",
-                "flex",
-                "items-center",
-                "group",
-              )}
-            >
-              <Search
-                className={clsx(
-                  "absolute",
-                  "left-4",
-                  "text-slate-400",
-                  "group-focus-within:text-primary",
-                  "transition-colors",
-                )}
-                size={20}
-              />
-              <input
-                type="text"
-                placeholder="Search spaces..."
-                className={clsx(
-                  "w-full",
-                  "pl-12",
-                  "pr-6",
-                  "py-3",
-                  "bg-slate-50",
-                  "dark:bg-zinc-950/50",
-                  "border",
-                  "border-slate-200",
-                  "dark:border-white/5",
-                  "rounded-2xl",
-                  "text-charcoal",
-                  "dark:text-white",
-                  "font-medium",
-                  "focus:outline-hidden",
-                  "focus:border-primary",
-                  "focus:ring-4",
-                  "focus:ring-primary/10",
-                  "transition-all",
-                  "placeholder:text-slate-400",
-                )}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-
-            {/* Floor Selector */}
-            <div
-              className={clsx(
-                "flex",
-                "items-center",
-                "gap-2",
-                "p-2",
-                "bg-slate-50",
-                "dark:bg-zinc-950/50",
-                "border",
-                "border-slate-200",
-                "dark:border-white/5",
-                "rounded-2xl",
-              )}
-            >
-              {FLOORS.map((floor) => (
-                <button
-                  key={floor.id}
-                  onClick={() => setSelectedFloor(floor.id)}
-                  className={clsx(
-                    "px-4 py-2 rounded-xl text-xs font-bold transition-all",
-                    selectedFloor === floor.id
-                      ? "bg-primary text-white"
-                      : "text-slate-600 hover:text-charcoal dark:hover:text-white",
-                  )}
-                >
-                  {floor.name}
-                </button>
-              ))}
-            </div>
-
-            {/* Category Filter */}
-            <div
-              className={clsx(
-                "flex",
-                "items-center",
-                "gap-2",
-                "p-2",
-                "bg-slate-50",
-                "dark:bg-zinc-950/50",
-                "border",
-                "border-slate-200",
-                "dark:border-white/5",
-                "rounded-2xl",
-              )}
-            >
-              <button
-                onClick={() => setSelectedCategory("all")}
-                className={clsx(
-                  "px-3 py-2 rounded-xl text-xs font-bold transition-all",
-                  selectedCategory === "all"
-                    ? "bg-primary text-white"
-                    : "text-slate-600 hover:text-charcoal dark:hover:text-white",
-                )}
-              >
-                All
-              </button>
-              {FLOOR_CATEGORIES.map((cat) => {
-                const Icon = cat.icon;
-                return (
-                  <button
-                    key={cat.id}
-                    onClick={() => setSelectedCategory(cat.id)}
-                    className={clsx(
-                      "p-2 rounded-xl transition-all",
-                      selectedCategory === cat.id
-                        ? "bg-primary text-white"
-                        : "text-slate-600 hover:text-charcoal dark:hover:text-white",
-                    )}
-                  >
-                    <Icon size={16} />
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* View Controls */}
-            <div
-              className={clsx(
-                "flex",
-                "items-center",
-                "gap-2",
-                "p-2",
-                "bg-slate-50",
-                "dark:bg-zinc-950/50",
-                "border",
-                "border-slate-200",
-                "dark:border-white/5",
-                "rounded-2xl",
-              )}
-            >
-              <button
-                onClick={() => setViewMode("floorplan")}
-                className={clsx(
-                  "p-3 rounded-xl transition-all",
-                  viewMode === "floorplan"
-                    ? "bg-primary text-white"
-                    : "text-slate-400",
-                )}
-              >
-                <Grid3x3 size={20} />
-              </button>
-              <button
-                onClick={() => setViewMode("grid")}
-                className={clsx(
-                  "p-3 rounded-xl transition-all",
-                  viewMode === "grid"
-                    ? "bg-primary text-white"
-                    : "text-slate-400",
-                )}
-              >
-                <LayoutGrid size={20} />
-              </button>
-              <button
-                onClick={() => setViewMode("list")}
-                className={clsx(
-                  "p-3 rounded-xl transition-all",
-                  viewMode === "list"
-                    ? "bg-primary text-white"
-                    : "text-slate-400",
-                )}
-              >
-                <List size={20} />
-              </button>
-              <div
-                className={clsx(
-                  "w-px",
-                  "h-6",
-                  "bg-slate-200",
-                  "dark:bg-white/10",
-                  "mx-1",
-                )}
-              />
-              <button
-                onClick={() => setShowGrid(!showGrid)}
-                className={clsx(
-                  "p-3 rounded-xl transition-all",
-                  showGrid ? "bg-primary text-white" : "text-slate-400",
-                )}
-              >
-                {showGrid ? <Eye size={20} /> : <EyeOff size={20} />}
-              </button>
-            </div>
-
-            {/* Zoom Controls */}
-            {viewMode === "floorplan" && (
-              <div
-                className={clsx(
-                  "flex",
-                  "items-center",
-                  "gap-2",
-                  "p-2",
-                  "bg-slate-50",
-                  "dark:bg-zinc-950/50",
-                  "border",
-                  "border-slate-200",
-                  "dark:border-white/5",
-                  "rounded-2xl",
-                )}
-              >
-                <button
-                  onClick={() => setZoomLevel(Math.max(0.5, zoomLevel - 0.1))}
-                  className={clsx(
-                    "p-2",
-                    "rounded-lg",
-                    "text-slate-600",
-                    "hover:text-charcoal",
-                    "dark:hover:text-white",
-                  )}
-                >
-                  -
-                </button>
-                <span
-                  className={clsx(
-                    "text-xs",
-                    "font-bold",
-                    "text-slate-600",
-                    "dark:text-slate-400",
-                    "min-w-[50px]",
-                    "text-center",
-                  )}
-                >
-                  {Math.round(zoomLevel * 100)}%
-                </span>
-                <button
-                  onClick={() => setZoomLevel(Math.min(2, zoomLevel + 0.1))}
-                  className={clsx(
-                    "p-2",
-                    "rounded-lg",
-                    "text-slate-600",
-                    "hover:text-charcoal",
-                    "dark:hover:text-white",
-                  )}
-                >
-                  +
-                </button>
-              </div>
-            )}
-          </div>
-        </>
-      )}
-
-      {loading ? (
-        <div
-          className={clsx(
-            "flex",
-            "flex-col",
-            "items-center",
-            "justify-center",
-            "h-96",
-            "gap-6",
+      <div ref={floorPlanRef} className={cn("overflow-auto p-4", isFullscreen ? "h-[calc(100dvh-14rem)]" : "h-[540px]")}>
+        <div style={{ transform: `scale(${zoomLevel})`, transformOrigin: "top left" }} className="relative min-h-[620px] min-w-[950px] rounded-lg border border-dashed border-kumo-line">
+          {showGrid && (
+            <svg aria-hidden className="pointer-events-none absolute inset-0 size-full text-kumo-subtle opacity-20">
+              <defs>
+                <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+                  <path d="M 20 0 L 0 0 0 20" fill="none" stroke="currentColor" strokeWidth="0.5" />
+                </pattern>
+              </defs>
+              <rect width="100%" height="100%" fill="url(#grid)" />
+            </svg>
           )}
-        >
-          <div className="relative">
-            <div
-              className={clsx(
-                "w-20",
-                "h-20",
-                "border-4",
-                "border-primary/10",
-                "border-t-primary",
-                "rounded-full",
-                "animate-spin",
-              )}
-            />
-            <div
-              className={clsx(
-                "absolute",
-                "inset-0",
-                "w-20",
-                "h-20",
-                "border-4",
-                "border-transparent",
-                "border-b-primary/40",
-                "rounded-full",
-                "animate-reverse-spin",
-              )}
-            />
-          </div>
-          <p
-            className={clsx(
-              "animate-pulse",
-              "text-xs",
-              "font-semibold",
-              "text-slate-500 dark:text-slate-400",
-            )}
-          >
-            Loading Floor Plan
-          </p>
-        </div>
-      ) : (
-        <>
-          {viewMode === "floorplan" ? (
-            <div
-              className={clsx(
-                "relative bg-white dark:bg-[#161b26] rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs",
-                isFullscreen ? "h-screen" : "h-[600px]",
-              )}
-            >
-              {/* Floor Plan Header */}
-              <div
-                className={clsx(
-                  "absolute",
-                  "top-0",
-                  "left-0",
-                  "right-0",
-                  "z-20",
-                  "bg-white/95",
-                  "dark:bg-[#161b26]/95",
-                  "backdrop-blur-xs",
-                  "border-b",
-                  "border-slate-200",
-                  "dark:border-slate-800",
-                  "p-4",
-                )}
-              >
-                <div
-                  className={clsx("flex", "items-center", "justify-between")}
-                >
-                  <div className={clsx("flex", "items-center", "gap-4")}>
-                    <h3
-                      className={clsx(
-                        "text-xl",
-                        "font-semibold",
-                        "text-charcoal",
-                        "dark:text-white",
-                      )}
-                    >
-                      {FLOORS.find((f) => f.id === selectedFloor)?.name}
-                    </h3>
-                    <span className={clsx("text-sm", "text-slate-500")}>
-                      {currentFloorSlots.length} spaces
-                    </span>
-                  </div>
-                  {isFullscreen && (
-                    <button
-                      onClick={() => setIsFullscreen(false)}
-                      className={clsx(
-                        "p-2",
-                        "hover:bg-slate-100",
-                        "dark:hover:bg-white/10",
-                        "rounded-lg",
-                        "transition-all",
-                      )}
-                    >
-                      <X size={20} />
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Interactive Floor Plan Canvas */}
-              <div
-                ref={floorPlanRef}
-                className={clsx(
-                  "relative",
-                  "w-full",
-                  "h-full",
-                  "overflow-auto",
-                  "pt-16 p-4",
+          {currentFloorSlots.map((slot) => {
+            const Icon = getCategoryIcon(slot.category || "retail");
+            const status = STATUS[slot.status] ?? STATUS.MAINTENANCE;
+            return (
+              <button
+                key={slot.id}
+                type="button"
+                onClick={() => setPickedId(slot.id)}
+                aria-pressed={slot.id === pickedId}
+                aria-label={`Unit ${slot.unit_id}, ${status.label}`}
+                className={cn(
+                  "absolute flex cursor-pointer flex-col justify-between rounded-lg border-2 bg-kumo-base p-2 text-left hover:shadow-md",
+                  slot.id === pickedId && "ring-2 ring-kumo-brand ring-offset-2",
                 )}
                 style={{
-                  transform: `scale(${zoomLevel})`,
-                  transformOrigin: "top left",
+                  left: `${slot.x}px`,
+                  top: `${slot.y}px`,
+                  width: `${slot.width}px`,
+                  height: `${slot.height}px`,
+                  borderColor: status.color,
+                  backgroundColor: `${status.color}14`,
                 }}
               >
-                <div
-                  className={clsx(
-                    "relative",
-                    "w-full",
-                    "h-full",
-                    "min-w-[850px]",
-                    "min-h-[620px]",
-                    "bg-slate-50/40 dark:bg-slate-900/40",
-                    "rounded-2xl",
-                  )}
-                >
-                  {/* Defined Floor Map Perimeter Edges & Accents */}
-                  <div className="absolute inset-0 border-2 border-dashed border-slate-300 dark:border-slate-700/70 rounded-2xl pointer-events-none" />
-                  <div className="absolute -top-0.5 -left-0.5 w-4 h-4 border-t-2 border-l-2 border-primary rounded-tl-md pointer-events-none" />
-                  <div className="absolute -top-0.5 -right-0.5 w-4 h-4 border-t-2 border-r-2 border-primary rounded-tr-md pointer-events-none" />
-                  <div className="absolute -bottom-0.5 -left-0.5 w-4 h-4 border-b-2 border-l-2 border-primary rounded-bl-md pointer-events-none" />
-                  <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 border-b-2 border-r-2 border-primary rounded-br-md pointer-events-none" />
-                  <div className="absolute top-3 right-3 flex items-center gap-1.5 pointer-events-none z-10">
-                    <span className="text-xs font-semibold text-slate-500 dark:text-slate-500 bg-white/80 dark:bg-slate-800/80 px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-700">
-                      Floor Map Boundary
-                    </span>
-                  </div>
+                <span className="flex items-center justify-between gap-1">
+                  <span className="truncate text-sm font-semibold text-kumo-default">{slot.unit_id}</span>
+                  <Icon size={14} aria-hidden className="shrink-0 text-kumo-subtle" />
+                </span>
+                <span className="text-xs leading-tight text-kumo-subtle">
+                  <span className="block truncate">{slot.sqm_size} sqm</span>
+                  <span className="block truncate">{status.label}</span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </Panel>
+  );
 
-                  {/* Grid Background */}
-                  {showGrid && (
-                    <div
-                      className={clsx(
-                        "absolute",
-                        "inset-0",
-                        "pointer-events-none",
-                      )}
-                    >
-                      <svg className={clsx("w-full", "h-full")}>
-                        <defs>
-                          <pattern
-                            id="grid"
-                            width="20"
-                            height="20"
-                            patternUnits="userSpaceOnUse"
-                          >
-                            <path
-                              d="M 20 0 L 0 0 0 20"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="0.5"
-                              className={clsx(
-                                "text-slate-200",
-                                "dark:text-slate-700/50",
-                              )}
-                            />
-                          </pattern>
-                        </defs>
-                        <rect width="100%" height="100%" fill="url(#grid)" />
-                      </svg>
-                    </div>
-                  )}
-
-                  {/* Floor Spaces */}
-                  {currentFloorSlots.map((slot) => {
-                    const Icon = getCategoryIcon(slot.category || "retail");
-                    return (
-                      <div
-                        key={slot.id}
-                        className={clsx(
-                          "absolute border-2 rounded-lg cursor-pointer transition-all hover:shadow-lg group",
-                          getSlotColor(slot.status, slot.category || "retail"),
-                        )}
-                        style={{
-                          left: `${slot.x}px`,
-                          top: `${slot.y}px`,
-                          width: `${slot.width}px`,
-                          height: `${slot.height}px`,
-                        }}
-                      >
-                        <div
-                          className={clsx(
-                            "p-2",
-                            "h-full",
-                            "flex",
-                            "flex-col",
-                            "justify-between",
-                          )}
-                        >
-                          <div
-                            className={clsx(
-                              "flex",
-                              "items-start",
-                              "justify-between",
-                            )}
-                          >
-                            <Icon
-                              size={16}
-                              className={clsx(
-                                "text-slate-600",
-                                "dark:text-slate-400",
-                              )}
-                            />
-                            <span
-                              className={clsx(
-                                "text-xs px-1 py-0.5 rounded-sm font-bold",
-                                slot.status === "AVAILABLE"
-                                  ? "bg-emerald-500 text-white"
-                                  : slot.status === "OCCUPIED"
-                                    ? "bg-blue-500 text-white"
-                                    : slot.status === "RESERVED"
-                                      ? "bg-yellow-400 text-charcoal"
-                                      : "bg-amber-600 text-white",
-                              )}
-                            >
-                              {slot.status}
-                            </span>
-                          </div>
-                          <div>
-                            <h4
-                              className={clsx(
-                                "text-xs",
-                                "font-semibold",
-                                "text-charcoal",
-                                "dark:text-white",
-                              )}
-                            >
-                              {slot.unit_id}
-                            </h4>
-                            <p className={clsx("text-xs", "text-slate-500")}>
-                              {slot.sqm_size}m²
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Hover Actions */}
-                        <div
-                          className={clsx(
-                            "absolute",
-                            "inset-0",
-                            "bg-black/80",
-                            "opacity-0",
-                            "group-hover:opacity-100",
-                            "transition-opacity",
-                            "rounded-lg",
-                            "flex",
-                            "items-center",
-                            "justify-center",
-                            "gap-2",
-                            "z-30",
-                          )}
-                        >
-                          {slot.status === "RESERVED" && (
-                            <>
-                              <button
-                                onClick={(e) => {
-e.stopPropagation();
-void openDecision(slot, "approve");
-}}
-                                className={clsx(
-                                  "p-2",
-                                  "bg-emerald-500",
-                                  "rounded-lg",
-                                  "hover:bg-emerald-600",
-                                  "transition-all",
-                                  "text-white",
-                                )}
-                                title="Approve Reservation"
-                              >
-                                <CheckCircle2 size={14} />
-                              </button>
-                              <button
-                                onClick={(e) => {
-e.stopPropagation();
-void openDecision(slot, "reject");
-}}
-                                className={clsx(
-                                  "p-2",
-                                  "bg-red-500",
-                                  "rounded-lg",
-                                  "hover:bg-red-600",
-                                  "transition-all",
-                                  "text-white",
-                                )}
-                                title="Reject Reservation"
-                              >
-                                <XCircle size={14} />
-                              </button>
-                            </>
-                          )}
-                          <button
-                            onClick={() => setPreviewSlot(slot)}
-                            className={clsx(
-                              "p-2",
-                              "bg-white/20",
-                              "backdrop-blur-xs",
-                              "rounded-lg",
-                              "hover:bg-white",
-                              "transition-all",
-                              "text-white",
-                              "hover:text-black",
-                            )}
-                          >
-                            <Eye size={14} />
-                          </button>
-                          <button
-                            onClick={() => {
-                              setActiveSlot(slot);
-                              setIsEditing(true);
-                            }}
-                            className={clsx(
-                              "p-2",
-                              "bg-white/20",
-                              "backdrop-blur-xs",
-                              "rounded-lg",
-                              "hover:bg-white/30",
-                              "transition-all",
-                            )}
-                          >
-                            <Edit3 size={14} className="text-white" />
-                          </button>
-                          <button
-                            onClick={() => setDeleteTarget(slot)}
-                            className={clsx(
-                              "p-2",
-                              "bg-red-500/20",
-                              "backdrop-blur-xs",
-                              "rounded-lg",
-                              "hover:bg-red-500/30",
-                              "transition-all",
-                            )}
-                          >
-                            <Trash2 size={14} className="text-white" />
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
+  const cards = (
+    <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      {filteredSlots.map((slot) => (
+        <li key={slot.id} className="flex flex-col overflow-hidden rounded-xl border border-kumo-line bg-kumo-base">
+          <div className="relative aspect-video w-full overflow-hidden bg-kumo-recessed">
+            {slot.space_images?.[0] ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={slot.space_images[0]} alt={`Unit ${slot.unit_id}`} className="absolute inset-0 size-full object-cover" />
+            ) : (
+              <p className="absolute inset-0 flex items-center justify-center text-sm text-kumo-subtle">No photo</p>
+            )}
+          </div>
+          <div className="flex flex-1 flex-col gap-1 p-4">
+            <div className="flex items-baseline justify-between gap-2">
+              <h3 className="text-base font-semibold text-kumo-default">{slot.unit_id}</h3>
+              <span className={cn("text-sm font-medium", STATUS[slot.status]?.className)}>{STATUS[slot.status]?.label}</span>
             </div>
-          ) : (
-            <div
-              className={
-                viewMode === "grid"
-                  ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-                  : "space-y-4"
-              }
+            <p className="text-sm text-kumo-subtle">
+              {categoryName(slot.category)}, {slot.sqm_size} sqm
+            </p>
+            <p className="text-sm font-medium tabular-nums text-kumo-default">₱{slot.base_rent.toLocaleString()}</p>
+            <div className="mt-auto pt-3">{slotActions(slot)}</div>
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+
+  const list = (
+    <Panel flush>
+      <div className="overflow-x-auto">
+        <Table>
+          <Table.Header>
+            <Table.Row>
+              <Table.Head>Unit</Table.Head>
+              <Table.Head>Floor</Table.Head>
+              <Table.Head>Status</Table.Head>
+              <Table.Head>Size</Table.Head>
+              <Table.Head>Rent</Table.Head>
+              <Table.Head className="text-right">Actions</Table.Head>
+            </Table.Row>
+          </Table.Header>
+          <Table.Body>
+            {filteredSlots.map((slot) => (
+              <Table.Row key={slot.id}>
+                <Table.Cell>
+                  <p className="font-medium text-kumo-default">{slot.unit_id}</p>
+                  <p className="text-sm text-kumo-subtle">{categoryName(slot.category)}</p>
+                </Table.Cell>
+                <Table.Cell className="whitespace-nowrap text-sm">{FLOORS.find((f) => f.id === slot.floor)?.name ?? slot.floor}</Table.Cell>
+                <Table.Cell>
+                  <span className={cn("text-sm font-medium", STATUS[slot.status]?.className)}>{STATUS[slot.status]?.label}</span>
+                </Table.Cell>
+                <Table.Cell className="whitespace-nowrap text-sm">{slot.sqm_size} sqm</Table.Cell>
+                <Table.Cell className="whitespace-nowrap text-sm tabular-nums">₱{slot.base_rent.toLocaleString()}</Table.Cell>
+                <Table.Cell>{slotActions(slot)}</Table.Cell>
+              </Table.Row>
+            ))}
+          </Table.Body>
+        </Table>
+      </div>
+    </Panel>
+  );
+
+  const content = loading ? (
+    <div className="flex justify-center py-24">
+      <Loader />
+    </div>
+  ) : viewMode === "floorplan" ? (
+    floorPlan
+  ) : filteredSlots.length === 0 ? (
+    <Panel flush>
+      <EmptyNote title="No spaces match">Try another floor, category or unit number.</EmptyNote>
+    </Panel>
+  ) : viewMode === "grid" ? (
+    cards
+  ) : (
+    list
+  );
+
+  return (
+    <>
+      {isFullscreen ? (
+        // Fullscreen keeps just the floor choice and the map.
+        <div className="fixed inset-0 z-60 space-y-3 overflow-auto bg-kumo-elevated p-4">
+          {toolbar}
+          {content}
+        </div>
+      ) : (
+        <AdminPage
+          title="Floor Spaces and Map"
+          description="Manage mall floors, view rentable spaces and update lease units."
+          actions={
+            <Button variant="primary" icon={<Plus />} onClick={addSpace}>
+              Add Space
+            </Button>
+          }
+        >
+          {toolbar}
+          {content}
+        </AdminPage>
+      )}
+
+      <AdminDialog
+        open={isEditing}
+        onClose={() => setIsEditing(false)}
+        size="lg"
+        title={activeSlot?.id ? `Edit space ${activeSlot.unit_id ?? ""}` : "Add a space"}
+      >
+        <form onSubmit={handleSave} className="space-y-4">
+          <Input
+            label="Unit ID"
+            placeholder="e.g. L1-105"
+            value={activeSlot?.unit_id || ""}
+            onChange={(e) => setActiveSlot({ ...activeSlot!, unit_id: e.target.value })}
+            required
+            className="w-full"
+          />
+          <div className="grid grid-cols-2 gap-4">
+            <Select
+              label="Floor"
+              value={activeSlot?.floor || "ground"}
+              items={Object.fromEntries(FLOORS.map((f) => [f.id, f.name]))}
+              onValueChange={(v) => v != null && setActiveSlot({ ...activeSlot!, floor: v as string })}
+              className="w-full"
             >
-              {filteredSlots.map((slot) => (
-                <div
-                  key={slot.id}
-                  className={clsx(
-                    "group glass-premium dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-2xl overflow-hidden hover:border-primary/40 transition-all duration-500 hover:shadow-2xl hover:shadow-primary/5",
-                    viewMode === "list"
-                      ? "flex items-center p-6 gap-8"
-                      : "flex flex-col",
-                  )}
+              {FLOORS.map((floor) => (
+                <Select.Option key={floor.id} value={floor.id}>
+                  {floor.name}
+                </Select.Option>
+              ))}
+            </Select>
+            <Select
+              label="Category"
+              value={activeSlot?.category || "retail"}
+              items={Object.fromEntries(FLOOR_CATEGORIES.map((c) => [c.id, c.name]))}
+              onValueChange={(v) => v != null && setActiveSlot({ ...activeSlot!, category: v as string })}
+              className="w-full"
+            >
+              {FLOOR_CATEGORIES.map((cat) => (
+                <Select.Option key={cat.id} value={cat.id}>
+                  {cat.name}
+                </Select.Option>
+              ))}
+            </Select>
+          </div>
+          <Input
+            label="Size (sqm)"
+            type="number"
+            placeholder="0"
+            description="Rent isn't shown here or to the public. It's set per tenant in Tenant Monitoring."
+            value={activeSlot?.sqm_size || ""}
+            onChange={(e) => setActiveSlot({ ...activeSlot!, sqm_size: parseFloat(e.target.value) })}
+            required
+            className="w-full"
+          />
+
+          <div>
+            <p className="mb-1.5 text-sm font-medium text-kumo-default">Status</p>
+            <div role="group" aria-label="Status" className="flex flex-wrap gap-2">
+              {(activeSlot?.status === "RESERVED"
+                ? ["AVAILABLE", "OCCUPIED", "MAINTENANCE", "RESERVED"]
+                : ["AVAILABLE", "OCCUPIED", "MAINTENANCE"]
+              ).map((status) => (
+                <Button
+                  key={status}
+                  type="button"
+                  variant={activeSlot?.status === status ? "primary" : "secondary"}
+                  aria-pressed={activeSlot?.status === status}
+                  onClick={() => setActiveSlot({ ...activeSlot!, status: status as any })}
                 >
-                  {/* Grid View */}
-                  {viewMode === "grid" && (
-                    <>
-                      <div
-                        className={clsx(
-                          "relative",
-                          "h-48",
-                          "overflow-hidden",
-                          "bg-slate-100",
-                          "dark:bg-black/40",
-                        )}
-                      >
-                        {slot.space_images?.[0] ? (
-                          <img
-                            src={slot.space_images[0]}
-                            alt={slot.unit_id}
-                            className={clsx(
-                              "w-full",
-                              "h-full",
-                              "object-cover",
-                              "opacity-90",
-                              "group-hover:opacity-100",
-                              "group-hover:scale-110",
-                              "transition-all",
-                              "duration-700",
-                            )}
-                          />
-                        ) : (
-                          <div
-                            className={clsx(
-                              "w-full",
-                              "h-full",
-                              "flex",
-                              "flex-col",
-                              "items-center",
-                              "justify-center",
-                              "text-slate-300",
-                              "dark:text-white/10",
-                              "space-y-4",
-                            )}
-                          >
-                            {(() => {
-                              const Icon = getCategoryIcon(
-                                slot.category || "retail",
-                              );
-                              return <Icon size={48} strokeWidth={1} />;
-                            })()}
-                            <span
-                              className={clsx(
-                                "text-xs",
-                                "font-semibold",
-                              )}
-                            >
-                              {slot.unit_id}
-                            </span>
-                          </div>
-                        )}
-
-                        {/* Actions Overlay */}
-                        <div
-                          className={clsx(
-                            "absolute",
-                            "inset-0",
-                            "bg-linear-to-t",
-                            "from-black/60",
-                            "to-transparent",
-                            "opacity-0",
-                            "group-hover:opacity-100",
-                            "transition-opacity",
-                            "duration-300",
-                          )}
-                        />
-                        <div
-                          className={clsx(
-                            "absolute",
-                            "bottom-4",
-                            "left-4",
-                            "right-4",
-                            "flex",
-                            "gap-2",
-                            "translate-y-4",
-                            "opacity-0",
-                            "group-hover:translate-y-0",
-                            "group-hover:opacity-100",
-                            "transition-all",
-                            "duration-500",
-                          )}
-                        >
-                          <button
-                            onClick={() => setPreviewSlot(slot)}
-                            className={clsx(
-                              "p-2",
-                              "bg-white/20",
-                              "backdrop-blur-md",
-                              "text-white",
-                              "border",
-                              "border-white/20",
-                              "rounded-lg",
-                              "hover:bg-white",
-                              "hover:text-black",
-                              "transition-all",
-                            )}
-                          >
-                            <Eye size={16} />
-                          </button>
-                          <button
-                            onClick={() => {
-                              setActiveSlot(slot);
-                              setIsEditing(true);
-                            }}
-                            className={clsx(
-                              "flex-1",
-                              "py-2",
-                              "bg-white",
-                              "text-black",
-                              "font-semibold",
-                              "text-xs",
-                              "rounded-lg",
-                              "hover:bg-primary",
-                              "hover:text-white",
-                              "transition-all",
-                            )}
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => setDeleteTarget(slot)}
-                            className={clsx(
-                              "p-2",
-                              "bg-red-500/20",
-                              "backdrop-blur-md",
-                              "text-red-500",
-                              "border",
-                              "border-red-500/20",
-                              "rounded-lg",
-                              "hover:bg-red-500",
-                              "hover:text-white",
-                              "transition-all",
-                            )}
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      </div>
-
-                      <div
-                        className={clsx("p-6", "flex-1", "flex", "flex-col")}
-                      >
-                        <div
-                          className={clsx(
-                            "flex",
-                            "justify-between",
-                            "items-start",
-                            "mb-4",
-                          )}
-                        >
-                          <div>
-                            <h3
-                              className={clsx(
-                                "text-xl",
-                                "font-semibold",
-                                "text-charcoal",
-                                "dark:text-white",
-                                "tracking-tight",
-                              )}
-                            >
-                              {slot.unit_id}
-                            </h3>
-                            <p
-                              className={clsx(
-                                "text-slate-500 dark:text-slate-400",
-                                "text-xs",
-                                "font-semibold",
-                                "mt-1",
-                              )}
-                            >
-                              {slot.category}
-                            </p>
-                          </div>
-                          <span
-                            className={clsx(
-                              "px-3 py-1 rounded-full text-xs font-semibold border",
-                              slot.status === "AVAILABLE"
-                                ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
-                                : slot.status === "OCCUPIED"
-                                  ? "bg-primary/10 text-primary border-primary/20"
-                                  : "bg-amber-500/10 text-amber-500 border-amber-500/20",
-                            )}
-                          >
-                            {slot.status}
-                          </span>
-                        </div>
-
-                        <div
-                          className={clsx(
-                            "grid",
-                            "grid-cols-2",
-                            "gap-3",
-                            "mt-auto",
-                          )}
-                        >
-                          <div
-                            className={clsx(
-                              "p-3",
-                              "bg-slate-50",
-                              "dark:bg-white/5",
-                              "rounded-2xl",
-                              "border",
-                              "border-slate-100",
-                              "dark:border-white/5",
-                            )}
-                          >
-                            <p
-                              className={clsx(
-                                "text-xs",
-                                "text-slate-500 dark:text-slate-400",
-                                "font-semibold",
-                                "mb-1",
-                              )}
-                            >
-                              Size
-                            </p>
-                            <p
-                              className={clsx(
-                                "font-extrabold",
-                                "text-lg",
-                                "text-charcoal",
-                                "dark:text-white",
-                              )}
-                            >
-                              {slot.sqm_size}
-                              <span
-                                className={clsx(
-                                  "text-xs",
-                                  "text-slate-500 dark:text-slate-400",
-                                  "font-bold",
-                                  "ml-1",
-                                )}
-                              >
-                                m²
-                              </span>
-                            </p>
-                          </div>
-                          <div
-                            className={clsx(
-                              "p-3",
-                              "bg-slate-50",
-                              "dark:bg-white/5",
-                              "rounded-2xl",
-                              "border",
-                              "border-slate-100",
-                              "dark:border-white/5",
-                            )}
-                          >
-                            <p
-                              className={clsx(
-                                "text-xs",
-                                "text-slate-500 dark:text-slate-400",
-                                "font-semibold",
-                                "mb-1",
-                              )}
-                            >
-                              Rent
-                            </p>
-                            <p
-                              className={clsx(
-                                "font-extrabold",
-                                "text-lg",
-                                "text-charcoal",
-                                "dark:text-white",
-                              )}
-                            >
-                              ₱{slot.base_rent.toLocaleString()}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </>
-                  )}
-
-                  {/* List View */}
-                  {viewMode === "list" && (
-                    <>
-                      <div
-                        className={clsx(
-                          "w-20",
-                          "h-20",
-                          "bg-slate-100",
-                          "dark:bg-black/40",
-                          "rounded-2xl",
-                          "flex",
-                          "items-center",
-                          "justify-center",
-                          "text-slate-300",
-                          "dark:text-white/20",
-                          "shrink-0",
-                          "border",
-                          "border-slate-200",
-                          "dark:border-white/10",
-                          "group-hover:border-primary/40",
-                          "transition-colors",
-                        )}
-                      >
-                        {(() => {
-                          const Icon = getCategoryIcon(
-                            slot.category || "retail",
-                          );
-                          return <Icon size={32} />;
-                        })()}
-                      </div>
-
-                      <div
-                        className={clsx(
-                          "flex-1",
-                          "grid",
-                          "grid-cols-2",
-                          "md:grid-cols-5",
-                          "items-center",
-                          "gap-6",
-                        )}
-                      >
-                        <div>
-                          <h3
-                            className={clsx(
-                              "text-lg",
-                              "font-semibold",
-                              "text-charcoal",
-                              "dark:text-white",
-                            )}
-                          >
-                            {slot.unit_id}
-                          </h3>
-                          <p
-                            className={clsx(
-                              "text-xs",
-                              "text-slate-500 dark:text-slate-400",
-                              "font-bold",
-                            )}
-                          >
-                            {slot.category}
-                          </p>
-                        </div>
-                        <div className={clsx("flex", "items-center", "gap-2")}>
-                          <div
-                            className={clsx(
-                              "w-2 h-2 rounded-full",
-                              slot.status === "AVAILABLE"
-                                ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"
-                                : slot.status === "OCCUPIED"
-                                  ? "bg-primary"
-                                  : "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]",
-                            )}
-                          />
-                          <span
-                            className={clsx(
-                              "text-xs",
-                              "text-charcoal",
-                              "dark:text-white",
-                              "font-semibold",
-                            )}
-                          >
-                            {slot.status}
-                          </span>
-                        </div>
-                        <div>
-                          <span
-                            className={clsx(
-                              "text-sm",
-                              "font-semibold",
-                              "text-charcoal",
-                              "dark:text-white",
-                            )}
-                          >
-                            {slot.sqm_size}m²
-                          </span>
-                        </div>
-                        <div>
-                          <span
-                            className={clsx(
-                              "text-sm",
-                              "font-semibold",
-                              "text-charcoal",
-                              "dark:text-white",
-                            )}
-                          >
-                            ₱{slot.base_rent.toLocaleString()}
-                          </span>
-                        </div>
-                        <div
-                          className={clsx(
-                            "flex",
-                            "justify-end",
-                            "gap-2",
-                            "opacity-0",
-                            "group-hover:opacity-100",
-                            "transition-all",
-                            "duration-300",
-                          )}
-                        >
-                          {slot.status === "RESERVED" && (
-                            <button
-                              onClick={() => {
-void openDecision(slot, "approve");
-}}
-                              className={clsx(
-                                "p-2",
-                                "bg-primary/20",
-                                "text-primary",
-                                "rounded-xl",
-                                "hover:bg-primary",
-                                "hover:text-white",
-                                "transition-all",
-                              )}
-                              title="Approve Reservation"
-                            >
-                              <CheckCircle2 size={18} />
-                            </button>
-                          )}
-                          <button
-                            onClick={() => setPreviewSlot(slot)}
-                            className={clsx(
-                              "p-2",
-                              "hover:bg-primary",
-                              "hover:text-white",
-                              "text-slate-500",
-                              "dark:text-slate-500",
-                              "rounded-xl",
-                              "transition-all",
-                            )}
-                          >
-                            <Eye size={18} />
-                          </button>
-                          <button
-                            onClick={() => {
-                              setActiveSlot(slot);
-                              setIsEditing(true);
-                            }}
-                            className={clsx(
-                              "p-2",
-                              "hover:bg-primary",
-                              "hover:text-white",
-                              "text-slate-500",
-                              "dark:text-slate-500",
-                              "rounded-xl",
-                              "transition-all",
-                            )}
-                          >
-                            <Edit3 size={18} />
-                          </button>
-                          <button
-                            onClick={() => setDeleteTarget(slot)}
-                            className={clsx(
-                              "p-2",
-                              "hover:bg-red-500",
-                              "hover:text-white",
-                              "text-slate-500",
-                              "dark:text-slate-500",
-                              "rounded-xl",
-                              "transition-all",
-                            )}
-                          >
-                            <Trash2 size={18} />
-                          </button>
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </div>
+                  {STATUS[status].label}
+                </Button>
               ))}
             </div>
-          )}
-        </>
-      )}
+          </div>
 
-      {/* Slide-over Editor */}
-      {isEditing && (
-        <div
-          className={clsx("fixed", "inset-0", "z-60", "flex", "justify-end")}
-        >
-          <div
-            className={clsx(
-              "absolute",
-              "inset-0",
-              "bg-charcoal/40",
-              "dark:bg-black/80",
-              "backdrop-blur-md",
-              "animate-in",
-              "fade-in",
-              "duration-500",
-            )}
-            onClick={() => setIsEditing(false)}
-          />
-          <div
-            className={clsx(
-              "relative",
-              "w-full",
-              "max-w-2xl",
-              "bg-white",
-              "dark:bg-zinc-950",
-              "border-l",
-              "border-slate-200",
-              "dark:border-white/10",
-              "p-8",
-              "lg:p-12",
-              "flex",
-              "flex-col",
-              "h-full",
-              "animate-in",
-              "slide-in-from-right",
-              "duration-700",
-              "shadow-[-40px_0_80px_rgba(0,0,0,0.2)]",
-            )}
-          >
-            <div
-              className={clsx("flex", "justify-between", "items-start", "mb-8")}
-            >
-              <div className="space-y-2">
-                <div
-                  className={clsx(
-                    "flex",
-                    "items-center",
-                    "gap-2",
-                    "text-primary",
-                    "font-semibold",
-                    "text-xs",
-                  )}
-                >
-                  <Info size={14} />
-                  Space Configuration
-                </div>
-                <h2
-                  className={clsx(
-                    "text-3xl",
-                    "font-semibold",
-                    "text-charcoal",
-                    "dark:text-white",
-                    "tracking-tight",
-                  )}
-                >
-                  Edit space
-                </h2>
-              </div>
-              <button
-                onClick={() => setIsEditing(false)}
-                className={clsx(
-                  "p-3",
-                  "bg-slate-50",
-                  "dark:bg-white/5",
-                  "hover:bg-primary/10",
-                  "rounded-full",
-                  "transition-all",
-                  "text-slate-500 dark:text-slate-400",
-                  "hover:text-primary",
-                )}
+          <section className="space-y-2 border-t border-kumo-line pt-4">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm font-medium text-kumo-default">Photos ({activeSlot?.space_images?.length || 0}/10)</p>
+              <input type="file" ref={fileInputRef} accept="image/*" onChange={handleImageUpload} className="sr-only" tabIndex={-1} aria-label="Upload a photo" />
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                icon={<UploadSimple />}
+                loading={isUploading}
+                disabled={(activeSlot?.space_images?.length || 0) >= 10}
+                onClick={() => fileInputRef.current?.click()}
               >
-                <X size={24} />
-              </button>
+                Upload photo
+              </Button>
             </div>
+            {!!activeSlot?.space_images?.length && (
+              <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                {activeSlot.space_images.map((img: string, i: number) => (
+                  <li key={i} className="space-y-1">
+                    <div className="relative aspect-square overflow-hidden rounded-lg border border-kumo-line">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={img} alt={`Photo ${i + 1}`} className="absolute inset-0 size-full object-cover" />
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="secondary-destructive"
+                      className="w-full justify-center"
+                      onClick={() => {
+                        const newImages = [...(activeSlot?.space_images || [])];
+                        newImages.splice(i, 1);
+                        setActiveSlot({ ...activeSlot!, space_images: newImages });
+                      }}
+                    >
+                      Remove
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
 
-            <form
-              onSubmit={handleSave}
-              className={clsx("space-y-6", "flex-1", "overflow-y-auto", "pr-4")}
-            >
-              {/* Basic Info */}
-              <div className="space-y-4">
-                <label
-                  className={clsx(
-                    "text-xs",
-                    "font-semibold",
-                    "text-slate-500 dark:text-slate-400",
-                  )}
-                >
-                  Unit ID
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. L1-105"
-                  className={clsx(
-                    "w-full",
-                    "p-4",
-                    "bg-slate-50",
-                    "dark:bg-zinc-900",
-                    "border",
-                    "border-slate-200",
-                    "dark:border-white/10",
-                    "rounded-xl",
-                    "text-charcoal",
-                    "dark:text-white",
-                    "focus:outline-hidden",
-                    "focus:border-primary",
-                    "transition-all",
-                  )}
-                  value={activeSlot?.unit_id || ""}
-                  onChange={(e) =>
-                    setActiveSlot({ ...activeSlot!, unit_id: e.target.value })
-                  }
-                  required
+          <section className="space-y-2 border-t border-kumo-line pt-4">
+            <p className="text-sm font-medium text-kumo-default">
+              Features ({activeSlot?.features?.length || 0})
+              <span className="font-normal text-kumo-subtle">, shown to the public</span>
+            </p>
+            <div className="flex gap-2">
+              <div className="min-w-0 flex-1">
+                <Input
+                  aria-label="New feature"
+                  placeholder="e.g. Street-facing frontage"
+                  value={newFeatureInput}
+                  onChange={(e) => setNewFeatureInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleAddFeature();
+                    }
+                  }}
+                  className="w-full"
                 />
               </div>
+              <Button type="button" variant="secondary" icon={<Plus />} disabled={!newFeatureInput.trim()} onClick={handleAddFeature}>
+                Add
+              </Button>
+            </div>
+            {activeSlot?.features && activeSlot.features.length > 0 ? (
+              <ul className="divide-y divide-kumo-line rounded-lg border border-kumo-line">
+                {activeSlot.features.map((feat: string, idx: number) => (
+                  <li key={idx} className="flex items-center justify-between gap-3 px-3 py-2">
+                    <span className="min-w-0 truncate text-sm text-kumo-default">{feat}</span>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      shape="square"
+                      icon={<Trash />}
+                      aria-label={`Remove ${feat}`}
+                      onClick={() => handleRemoveFeature(idx)}
+                    />
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="rounded-lg border border-dashed border-kumo-line p-3 text-sm text-kumo-subtle">
+                No features added yet. The public view shows the mall&apos;s standard features until you add your own.
+              </p>
+            )}
+          </section>
 
-              {/* Floor & Category */}
-              <div className={clsx("grid", "grid-cols-2", "gap-4")}>
-                <div className="space-y-4">
-                  <label
-                    className={clsx(
-                      "text-xs",
-                      "font-semibold",
-                      "text-slate-500 dark:text-slate-400",
-                    )}
-                  >
-                    Floor
-                  </label>
-                  <select
-                    className={clsx(
-                      "w-full",
-                      "p-4",
-                      "bg-slate-50",
-                      "dark:bg-zinc-900",
-                      "border",
-                      "border-slate-200",
-                      "dark:border-white/10",
-                      "rounded-xl",
-                      "text-charcoal",
-                      "dark:text-white",
-                      "focus:outline-hidden",
-                      "focus:border-primary",
-                      "transition-all",
-                    )}
-                    value={activeSlot?.floor || "ground"}
-                    onChange={(e) =>
-                      setActiveSlot({ ...activeSlot!, floor: e.target.value })
-                    }
-                  >
-                    {FLOORS.map((floor) => (
-                      <option key={floor.id} value={floor.id}>
-                        {floor.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="space-y-4">
-                  <label
-                    className={clsx(
-                      "text-xs",
-                      "font-semibold",
-                      "text-slate-500 dark:text-slate-400",
-                    )}
-                  >
-                    Category
-                  </label>
-                  <select
-                    className={clsx(
-                      "w-full",
-                      "p-4",
-                      "bg-slate-50",
-                      "dark:bg-zinc-900",
-                      "border",
-                      "border-slate-200",
-                      "dark:border-white/10",
-                      "rounded-xl",
-                      "text-charcoal",
-                      "dark:text-white",
-                      "focus:outline-hidden",
-                      "focus:border-primary",
-                      "transition-all",
-                    )}
-                    value={activeSlot?.category || "retail"}
-                    onChange={(e) =>
-                      setActiveSlot({
-                        ...activeSlot!,
-                        category: e.target.value,
-                      })
-                    }
-                  >
-                    {FLOOR_CATEGORIES.map((cat) => (
-                      <option key={cat.id} value={cat.id}>
-                        {cat.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* Physical Specs (rent is private — it's set per tenant in Tenant Monitoring) */}
-              <div className="grid grid-cols-1 gap-4">
-                <div className="space-y-4">
-                  <label
-                    className={clsx(
-                      "text-xs",
-                      "font-semibold",
-                      "text-slate-500 dark:text-slate-400",
-                    )}
-                  >
-                    Size (SQM)
-                  </label>
-                  <input
-                    type="number"
-                    placeholder="0.00"
-                    className={clsx(
-                      "w-full",
-                      "p-4",
-                      "bg-slate-50",
-                      "dark:bg-zinc-900",
-                      "border",
-                      "border-slate-200",
-                      "dark:border-white/10",
-                      "rounded-xl",
-                      "text-charcoal",
-                      "dark:text-white",
-                      "focus:outline-hidden",
-                      "focus:border-primary",
-                      "transition-all",
-                    )}
-                    value={activeSlot?.sqm_size || ""}
-                    onChange={(e) =>
-                      setActiveSlot({
-                        ...activeSlot!,
-                        sqm_size: parseFloat(e.target.value),
-                      })
-                    }
-                    required
-                  />
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Rent isn&apos;t shown here or to the public — it&apos;s set per tenant in Tenant Monitoring.
-                  </p>
-                </div>
-              </div>
-
-              {/* Status */}
-              <div className="space-y-4">
-                <label
-                  className={clsx(
-                    "text-xs",
-                    "font-semibold",
-                    "text-slate-500 dark:text-slate-400",
-                  )}
-                >
-                  Status
-                </label>
-                <div
-                  className={clsx(
-                    "grid",
-                    "grid-cols-2",
-                    "sm:grid-cols-3",
-                    "gap-3",
-                  )}
-                >
-                  {(activeSlot?.status === "RESERVED"
-                    ? ["AVAILABLE", "OCCUPIED", "MAINTENANCE", "RESERVED"]
-                    : ["AVAILABLE", "OCCUPIED", "MAINTENANCE"]
-                  ).map(
-                    (status) => (
-                      <button
-                        key={status}
-                        type="button"
-                        onClick={() =>
-                          setActiveSlot({
-                            ...activeSlot!,
-                            status: status as any,
-                          })
-                        }
-                        className={clsx(
-                          "p-3 rounded-xl border text-xs font-semibold transition-all",
-                          activeSlot?.status === status
-                            ? "bg-primary border-primary text-white"
-                            : "bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-400 hover:text-charcoal dark:hover:text-white",
-                        )}
-                      >
-                        {status}
-                      </button>
-                    ),
-                  )}
-                </div>
-              </div>
-
-              {/* Images */}
-              <div className="space-y-4">
-                <div
-                  className={clsx("flex", "justify-between", "items-center")}
-                >
-                  <label
-                    className={clsx(
-                      "text-xs",
-                      "font-semibold",
-                      "text-slate-500 dark:text-slate-400",
-                    )}
-                  >
-                    Images ({activeSlot?.space_images?.length || 0}/10)
-                  </label>
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    className="hidden"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={
-                      isUploading ||
-                      (activeSlot?.space_images?.length || 0) >= 10
-                    }
-                    className={clsx(
-                      "text-xs",
-                      "text-primary",
-                      "font-semibold",
-                      "hover:underline",
-                      "flex",
-                      "items-center",
-                      "gap-1",
-                      "disabled:opacity-50",
-                      "disabled:cursor-not-allowed",
-                    )}
-                  >
-                    {isUploading ? (
-                      <Loader2 size={14} className="animate-spin" />
-                    ) : (
-                      <Upload size={14} />
-                    )}
-                    {isUploading ? "Uploading..." : "Upload Image"}
-                  </button>
-                </div>
-
-                <div className={clsx("grid", "grid-cols-3", "gap-3")}>
-                  {activeSlot?.space_images?.map((img: string, i: number) => (
-                    <div
-                      key={i}
-                      className={clsx(
-                        "relative",
-                        "aspect-square",
-                        "rounded-xl",
-                        "overflow-hidden",
-                        "border",
-                        "border-slate-200",
-                        "dark:border-white/10",
-                      )}
-                    >
-                      <img
-                        src={img}
-                        className={clsx("w-full", "h-full", "object-cover")}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const newImages = [
-                            ...(activeSlot?.space_images || []),
-                          ];
-                          newImages.splice(i, 1);
-                          setActiveSlot({
-                            ...activeSlot!,
-                            space_images: newImages,
-                          });
-                        }}
-                        className={clsx(
-                          "absolute",
-                          "inset-0",
-                          "bg-red-500/90",
-                          "flex",
-                          "items-center",
-                          "justify-center",
-                          "opacity-0",
-                          "hover:opacity-100",
-                          "transition-all",
-                          "text-white",
-                        )}
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Integrated Features / Bullet Points */}
-              <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-white/5">
-                <div className="flex justify-between items-center">
-                  <label
-                    className={clsx(
-                      "text-xs",
-                      "font-semibold",
-                      "text-slate-500 dark:text-slate-400",
-                    )}
-                  >
-                    Integrated Features ({activeSlot?.features?.length || 0})
-                  </label>
-                  <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                    Shown in public modal
-                  </span>
-                </div>
-
-                {/* Input with Add button */}
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="e.g. Dynamic high-visibility frontage"
-                    value={newFeatureInput}
-                    onChange={(e) => setNewFeatureInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        handleAddFeature();
-                      }
-                    }}
-                    className={clsx(
-                      "flex-1",
-                      "p-3.5",
-                      "bg-slate-50",
-                      "dark:bg-zinc-900",
-                      "border",
-                      "border-slate-200",
-                      "dark:border-white/10",
-                      "rounded-xl",
-                      "text-xs",
-                      "text-charcoal",
-                      "dark:text-white",
-                      "placeholder:text-slate-400",
-                      "focus:outline-hidden",
-                      "focus:border-primary",
-                      "transition-all",
-                    )}
-                  />
-                  <button
-                    type="button"
-                    onClick={handleAddFeature}
-                    disabled={!newFeatureInput.trim()}
-                    className={clsx(
-                      "px-4",
-                      "py-3.5",
-                      "bg-primary",
-                      "hover:bg-primary-hover",
-                      "disabled:opacity-50",
-                      "disabled:cursor-not-allowed",
-                      "text-white",
-                      "text-xs",
-                      "font-semibold",
-                      "rounded-xl",
-                      "transition-all",
-                      "flex",
-                      "items-center",
-                      "gap-1.5",
-                      "shadow-md",
-                      "shadow-primary/20",
-                      "active:scale-95",
-                    )}
-                  >
-                    <Plus size={16} strokeWidth={2.5} />
-                    Add
-                  </button>
-                </div>
-
-                {/* Bullets List */}
-                <div className="space-y-2">
-                  {activeSlot?.features && activeSlot.features.length > 0 ? (
-                    activeSlot.features.map((feat: string, idx: number) => (
-                      <div
-                        key={idx}
-                        className={clsx(
-                          "flex",
-                          "items-center",
-                          "justify-between",
-                          "p-3",
-                          "rounded-xl",
-                          "bg-slate-50",
-                          "dark:bg-white/5",
-                          "border",
-                          "border-slate-200",
-                          "dark:border-white/10",
-                          "group",
-                          "transition-all",
-                        )}
-                      >
-                        <div className="flex items-center gap-3 flex-1 min-w-0 pr-2">
-                          <div className="w-2 h-2 rounded-full bg-primary shrink-0 shadow-[0_0_8px_rgba(190,30,45,0.4)]" />
-                          <span className="text-xs font-semibold text-charcoal dark:text-white truncate">
-                            {feat}
-                          </span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveFeature(idx)}
-                          className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
-                          title="Remove feature"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="p-4 rounded-xl border border-dashed border-slate-200 dark:border-white/10 text-center">
-                      <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                        No custom features added yet.
-                      </p>
-                      <p className="text-xs text-slate-400/70 mt-0.5">
-                        Standard mall default features will be displayed in the public modal until you add custom bullets.
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Actions */}
-              <div className={clsx("flex", "gap-4", "pt-4")}>
-                <button
-                  type="button"
-                  onClick={() => setIsEditing(false)}
-                  className={clsx(
-                    "flex-1",
-                    "py-3",
-                    "bg-slate-100",
-                    "dark:bg-white/5",
-                    "hover:bg-slate-200",
-                    "dark:hover:bg-white/10",
-                    "text-slate-500",
-                    "dark:text-slate-400",
-                    "font-bold",
-                    "text-xs",
-                    "rounded-xl",
-                    "transition-all",
-                  )}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSaving}
-                  className={clsx(
-                    "flex-1",
-                    "py-3",
-                    "disabled:opacity-60",
-                    "bg-primary",
-                    "hover:bg-primary-hover",
-                    "text-white",
-                    "font-semibold",
-                    "text-xs",
-                    "rounded-xl",
-                    "transition-all",
-                    "shadow-lg",
-                    "shadow-primary/30",
-                  )}
-                >
-                  {isSaving ? "Saving…" : "Save Changes"}
-                </button>
-              </div>
-            </form>
+          <div className="flex flex-col-reverse gap-2 border-t border-kumo-line pt-4 sm:flex-row sm:justify-end">
+            <Button type="button" variant="secondary" onClick={() => setIsEditing(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" variant="primary" loading={isSaving}>
+              Save changes
+            </Button>
           </div>
-        </div>
-      )}
+        </form>
+      </AdminDialog>
 
       {decision && (
         <ReservationDecisionModal
@@ -2151,13 +801,12 @@ void openDecision(slot, "approve");
         />
       )}
 
-      {/* Space Previews Modal via Eye Click */}
       {previewSlot && (
         <SpaceDetailModal
           slot={previewSlot as any}
           onClose={() => setPreviewSlot(null)}
         />
       )}
-    </div>
+    </>
   );
 }

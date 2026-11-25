@@ -414,7 +414,7 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
                 {user && dashboardHref(user.role) === "/account" && (
                   <Link
                     href="/become-a-tenant"
-                    className="hidden xl:inline-flex items-center px-5 py-2.5 rounded-full border border-primary/40 text-primary font-bold text-sm hover:bg-primary/10 transition-colors"
+                    className="hidden xl:inline-flex items-center px-5 py-2.5 rounded-xl border border-primary/40 text-primary font-bold text-sm hover:bg-primary/10 transition-colors"
                   >
                     Become a Tenant
                   </Link>
@@ -643,7 +643,7 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
                 </div>
                 <Link
                   href="/become-a-tenant"
-                  className="hidden xl:inline-flex items-center px-5 py-2.5 rounded-full border border-primary/40 text-primary font-bold text-sm hover:bg-primary/10 transition-colors"
+                  className="hidden xl:inline-flex items-center px-5 py-2.5 rounded-xl border border-primary/40 text-primary font-bold text-sm hover:bg-primary/10 transition-colors"
                 >
                   Become a Tenant
                 </Link>
@@ -651,7 +651,7 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
                   suppressHydrationWarning
                   onClick={() => setIsLoginOpen(true)}
                   aria-label="Sign in"
-                  className="flex items-center justify-center w-10 h-10 sm:w-auto sm:px-8 sm:py-2.5 rounded-full bg-primary text-white font-bold text-sm hover:bg-primary-hover transition-all duration-300 shadow-xl shadow-primary/20 active:scale-95"
+                  className="flex items-center justify-center w-10 h-10 sm:w-auto sm:px-8 sm:py-2.5 rounded-xl bg-primary text-white font-bold text-sm hover:bg-primary-hover transition-all duration-300 shadow-xl shadow-primary/20 active:scale-95"
                 >
                   <User size={18} className="sm:hidden" />
                   <span className="hidden sm:inline">Sign In</span>

@@ -1,30 +1,9 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import {
-  Presentation,
-  CheckCircle,
-  ShieldAlert,
-  ShieldCheck,
-  Clock,
-  Filter,
-  Calendar,
-  Plus,
-  Tag,
-  ExternalLink,
-  Trash2,
-  Upload,
-  Cloud,
-  X,
-  AlertTriangle,
-  RefreshCw,
-  Megaphone,
-  Eye,
-  BarChart3,
-  Edit2,
-  History,
-  ChevronDown,
-} from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
+import { Button, Input, InputArea, Loader, Select, cn } from "@cloudflare/kumo";
+import { ArrowClockwise, CaretDown, CaretUp, PencilSimple, Plus, Trash, UploadSimple } from "@phosphor-icons/react";
+import { AdminDialog, AdminPage, EmptyNote, Panel, Stat, StatRow, PageTabs } from "@/components/admin/page-kit";
 import {
   createMallAd,
   getPendingPromos,
@@ -38,28 +17,8 @@ import {
 import { formatPHDate, phDayEnd, phDayStart, toPHDateInput } from "@/lib/ph-date";
 import { ChatConfirmModal } from "@/components/chat/chat-ui";
 import { useAuth } from "@/app/providers";
-import clsx from "clsx";
 
-const PRIORITY_CONFIG = {
-  HIGH: {
-    bg: "bg-red-500/10",
-    text: "text-red-600",
-    border: "border-red-500/20",
-    dot: "bg-red-500",
-  },
-  MEDIUM: {
-    bg: "bg-amber-500/10",
-    text: "text-amber-600",
-    border: "border-amber-500/20",
-    dot: "bg-amber-500",
-  },
-  LOW: {
-    bg: "bg-slate-400/10",
-    text: "text-slate-500",
-    border: "border-slate-400/20",
-    dot: "bg-slate-400",
-  },
-};
+const PRIORITY_ITEMS: Record<string, string> = { HIGH: "High", MEDIUM: "Medium", LOW: "Low" };
 
 type AdStatus = "DEFAULT" | "LIVE" | "SCHEDULED" | "EXPIRED";
 
@@ -72,27 +31,11 @@ function adStatus(ad: any): AdStatus {
   return "LIVE";
 }
 
-const STATUS_UI: Record<AdStatus, { label: string; badge: string; pill: string }> = {
-  DEFAULT: {
-    label: "Default · always shown",
-    badge: "bg-emerald-600/90 text-white",
-    pill: "bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-800/30",
-  },
-  LIVE: {
-    label: "Live now",
-    badge: "bg-emerald-500/90 text-white",
-    pill: "bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-800/30",
-  },
-  SCHEDULED: {
-    label: "Scheduled",
-    badge: "bg-blue-500/90 text-white",
-    pill: "bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-950/30 dark:border-blue-800/30",
-  },
-  EXPIRED: {
-    label: "Expired",
-    badge: "bg-zinc-600/90 text-white",
-    pill: "bg-slate-100 text-slate-500 border-slate-200 dark:bg-white/5 dark:border-white/10",
-  },
+const STATUS_UI: Record<AdStatus, { label: string; className: string }> = {
+  DEFAULT: { label: "Default, always shown", className: "text-kumo-success" },
+  LIVE: { label: "Live now", className: "text-kumo-success" },
+  SCHEDULED: { label: "Scheduled", className: "text-kumo-default" },
+  EXPIRED: { label: "Expired", className: "text-kumo-subtle" },
 };
 
 const EMPTY_FORM = {
@@ -136,6 +79,7 @@ export default function AdScheduler() {
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [uploading, setUploading] = useState(false);
   const [publishing, setPublishing] = useState(false);
+  const fileInput = useRef<HTMLInputElement>(null);
 
   const showToast = (msg: string, type: "success" | "error") => {
     setToast({ msg, type });
@@ -358,851 +302,389 @@ export default function AdScheduler() {
     }
   };
 
+  const closeForm = () => {
+    setIsModalOpen(false);
+    setIsEditModalOpen(false);
+    setFormData(EMPTY_FORM);
+  };
+  const openCreate = () => {
+    setFormData(EMPTY_FORM);
+    setIsModalOpen(true);
+  };
+
   // ─── Shared Form Fields ───
   const renderFormFields = (
     onSubmit: (e: React.FormEvent) => void,
     isEdit = false,
   ) => (
-    <form onSubmit={onSubmit} className="space-y-5">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-slate-500 px-1">
-            Campaign Title *
-          </label>
-          <input
-            required
-            value={formData.title}
-            onChange={(e) =>
-              setFormData({ ...formData, title: e.target.value })
-            }
-            className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-800 text-charcoal dark:text-white rounded-xl border border-slate-200 dark:border-white/5 focus:border-primary focus:ring-4 focus:ring-primary/10 outline-hidden transition-all text-sm"
-            placeholder="e.g. Grand Holiday Sale..."
-          />
-        </div>
-        <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-slate-500 px-1">
-            Priority
-          </label>
-          <select
-            required
-            value={formData.priority}
-            onChange={(e) =>
-              setFormData({
-                ...formData,
-                priority: e.target.value as "HIGH" | "MEDIUM" | "LOW",
-              })
-            }
-            className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-800 text-charcoal dark:text-white rounded-xl border border-slate-200 dark:border-white/5 focus:border-primary outline-hidden transition-all text-sm"
-          >
-            <option value="HIGH">🔴 High — Showcase</option>
-            <option value="MEDIUM">🟡 Medium — Standard</option>
-            <option value="LOW">⚪ Low — Filler</option>
-          </select>
-        </div>
-      </div>
-
-      <div className="space-y-1.5">
-        <label className="text-xs font-semibold text-slate-500 px-1">
-          Description
-        </label>
-        <input
-          value={formData.description}
-          onChange={(e) =>
-            setFormData({ ...formData, description: e.target.value })
-          }
-          className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-800 text-charcoal dark:text-white rounded-xl border border-slate-200 dark:border-white/5 focus:border-primary outline-hidden transition-all text-sm"
-          placeholder="Short tagline for this campaign..."
+    <form onSubmit={onSubmit} className="space-y-4">
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Input
+          label="Campaign title"
+          required
+          value={formData.title}
+          onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+          placeholder="e.g. Grand Holiday Sale"
+          className="w-full"
         />
+        <Select
+          label="Priority"
+          value={formData.priority}
+          items={PRIORITY_ITEMS}
+          onValueChange={(v) => v && setFormData({ ...formData, priority: v as "HIGH" | "MEDIUM" | "LOW" })}
+          className="w-full"
+        >
+          {Object.entries(PRIORITY_ITEMS).map(([value, label]) => (
+            <Select.Option key={value} value={value}>
+              {label}
+            </Select.Option>
+          ))}
+        </Select>
       </div>
 
-      <div className="space-y-1.5">
-        <label className="text-xs font-semibold text-slate-500 px-1 flex items-center gap-2">
+      <Input
+        label="Description"
+        value={formData.description}
+        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+        placeholder="Short tagline for this campaign"
+        className="w-full"
+      />
+
+      <div className="space-y-2">
+        <div className="flex items-end gap-2">
+          <div className="min-w-0 flex-1">
+            <Input
+              label={formData.isCloudStored ? "Media (uploaded)" : "Media address"}
+              required={!formData.isCloudStored}
+              disabled={formData.isCloudStored}
+              value={formData.imageUrl}
+              onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+              placeholder="https://..."
+              className="w-full"
+            />
+          </div>
           {formData.isCloudStored ? (
-            <>
-              <Cloud className="text-emerald-500" size={13} /> Cloud Stored
-            </>
+            <Button
+              type="button"
+              variant="secondary-destructive"
+              onClick={() => setFormData((prev) => ({ ...prev, imageUrl: "", isCloudStored: false, storageKey: "" }))}
+            >
+              Remove
+            </Button>
           ) : (
-            "Media Asset URL *"
-          )}
-        </label>
-        <div className="flex gap-2">
-          <input
-            required={!formData.isCloudStored}
-            value={formData.imageUrl}
-            onChange={(e) =>
-              setFormData({ ...formData, imageUrl: e.target.value })
-            }
-            className="flex-1 px-4 py-3 bg-slate-50 dark:bg-zinc-800 text-charcoal dark:text-white rounded-xl border border-slate-200 dark:border-white/5 focus:border-primary outline-hidden transition-all text-sm disabled:opacity-60"
-            placeholder={
-              formData.isCloudStored
-                ? "Stored in cloud — upload to replace"
-                : "https://..."
-            }
-            disabled={formData.isCloudStored}
-          />
-          {!formData.isCloudStored && (
-            <label className="flex items-center gap-2 px-4 py-3 bg-primary/10 text-primary rounded-xl cursor-pointer hover:bg-primary/20 transition-all shrink-0">
-              {uploading ? (
-                <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <>
-                  <Upload size={15} />
-                  <span className="text-xs font-bold hidden sm:inline">
-                    Upload
-                  </span>
-                </>
-              )}
+            <>
+              <Button
+                type="button"
+                variant="secondary"
+                icon={<UploadSimple />}
+                loading={uploading}
+                onClick={() => fileInput.current?.click()}
+              >
+                Upload
+              </Button>
               <input
+                ref={fileInput}
                 type="file"
                 accept="image/*,video/*"
                 onChange={handleFileUpload}
-                className="hidden"
+                className="sr-only"
+                tabIndex={-1}
+                aria-label="Upload an image or video"
                 disabled={uploading}
               />
-            </label>
-          )}
-          {formData.isCloudStored && (
-            <button
-              type="button"
-              onClick={() =>
-                setFormData((prev) => ({
-                  ...prev,
-                  imageUrl: "",
-                  isCloudStored: false,
-                  storageKey: "",
-                }))
-              }
-              className="px-3 py-3 bg-red-50 dark:bg-red-900/10 text-red-500 rounded-xl hover:bg-red-100 transition-all border border-red-200 dark:border-red-900/30"
-            >
-              <X size={15} />
-            </button>
+            </>
           )}
         </div>
-        {formData.imageUrl && !formData.imageUrl.includes("http") === false && (
-          <div className="mt-2 rounded-xl overflow-hidden h-24 border border-slate-200 dark:border-white/5">
-            <img
-              src={formData.imageUrl}
-              alt="preview"
-              className="w-full h-full object-cover"
-              onError={(e) => (e.currentTarget.style.display = "none")}
-            />
+        {/^(https?:|\/)/.test(formData.imageUrl) && (
+          <div className="h-28 overflow-hidden rounded-lg border border-kumo-line bg-kumo-recessed">
+            <Media url={formData.imageUrl} alt="Preview" className="size-full object-cover" />
           </div>
         )}
       </div>
 
-      <div className="space-y-1.5">
-        <label className="text-xs font-semibold text-slate-500 px-1">
-          Click-Through URL
-        </label>
-        <input
-          value={formData.linkUrl}
-          onChange={(e) =>
-            setFormData({ ...formData, linkUrl: e.target.value })
-          }
-          className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-800 text-charcoal dark:text-white rounded-xl border border-slate-200 dark:border-white/5 focus:border-primary outline-hidden transition-all text-sm"
-          placeholder="/"
+      <Input
+        label="Opens this page when clicked"
+        value={formData.linkUrl}
+        onChange={(e) => setFormData({ ...formData, linkUrl: e.target.value })}
+        placeholder="/"
+        className="w-full"
+      />
+
+      <div className="grid grid-cols-2 gap-4">
+        <Input
+          label="Start date"
+          required
+          type="date"
+          value={formData.startDate}
+          onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+        />
+        <Input
+          label="End date"
+          required
+          type="date"
+          value={formData.endDate}
+          onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-slate-500 px-1">
-            Start Date *
-          </label>
-          <input
-            required
-            type="date"
-            value={formData.startDate}
-            onChange={(e) =>
-              setFormData({ ...formData, startDate: e.target.value })
-            }
-            className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-800 text-charcoal dark:text-white rounded-xl border border-slate-200 dark:border-white/5 focus:border-primary outline-hidden transition-all text-sm"
-          />
-        </div>
-        <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-slate-500 px-1">
-            End Date *
-          </label>
-          <input
-            required
-            type="date"
-            value={formData.endDate}
-            onChange={(e) =>
-              setFormData({ ...formData, endDate: e.target.value })
-            }
-            className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-800 text-charcoal dark:text-white rounded-xl border border-slate-200 dark:border-white/5 focus:border-primary outline-hidden transition-all text-sm"
-          />
-        </div>
-      </div>
-
-      <div className="flex items-center gap-3 pt-2">
-        <button
-          type="button"
-          onClick={() => {
-            setIsModalOpen(false);
-            setIsEditModalOpen(false);
-            setFormData(EMPTY_FORM);
-          }}
-          className="flex-1 py-3 text-xs font-bold text-slate-500 bg-slate-100 dark:bg-zinc-800 rounded-xl hover:bg-slate-200 dark:hover:bg-zinc-700 transition-all"
-        >
+      <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end">
+        <Button type="button" variant="secondary" onClick={closeForm}>
           Cancel
-        </button>
-        <button
-          type="submit"
-          disabled={publishing}
-          className="flex-2 py-3 bg-primary text-white font-bold rounded-xl text-xs shadow-lg shadow-primary/20 hover:bg-primary-hover active:scale-95 disabled:opacity-50 transition-all"
-        >
-          {publishing
-            ? isEdit
-              ? "Updating..."
-              : "Publishing..."
-            : isEdit
-              ? "Update Ad"
-              : "Publish ad"}
-        </button>
+        </Button>
+        <Button type="submit" variant="primary" loading={publishing}>
+          {isEdit ? "Update Ad" : "Publish ad"}
+        </Button>
       </div>
     </form>
   );
 
+  const liveBanners = mallAds.filter((a) => ["DEFAULT", "LIVE"].includes(adStatus(a))).length;
+  const scheduledBanners = mallAds.filter((a) => adStatus(a) === "SCHEDULED").length;
+  const liveTenantPromos = livePromos.filter((p) => new Date(p.startDate).getTime() <= Date.now()).length;
+  const promos = promoTab === "pending" ? pendingPromos : promoTab === "live" ? livePromos : promoHistory;
+  const whenText = (ad: any, status: AdStatus) =>
+    status === "DEFAULT"
+      ? "Always active"
+      : status === "SCHEDULED"
+        ? `Starts ${formatPHDate(ad.startDate)}`
+        : status === "EXPIRED"
+          ? `Ended ${formatPHDate(ad.endDate)}`
+          : `Until ${formatPHDate(ad.endDate)}`;
+
   return (
     <>
-      {/* Toast */}
       {toast && (
         <div
-          className={clsx(
-            "fixed top-24 right-8 z-300 flex items-center gap-3 px-5 py-4 font-bold text-sm rounded-2xl shadow-2xl animate-fade-in-up",
-            toast.type === "success"
-              ? "bg-emerald-500 text-white shadow-emerald-500/30"
-              : "bg-red-500 text-white shadow-red-500/30",
-          )}
+          role="status"
+          className="fixed right-4 top-24 z-300 flex max-w-sm items-start gap-3 rounded-lg border border-kumo-line bg-kumo-base p-4 shadow-lg"
         >
-          {toast.type === "success" ? (
-            <CheckCircle size={18} />
-          ) : (
-            <AlertTriangle size={18} />
-          )}
-          {toast.msg}
-          <button
-            onClick={() => setToast(null)}
-            className="ml-2 opacity-70 hover:opacity-100"
-          >
-            <X size={16} />
-          </button>
+          <p className={cn("text-sm font-medium", toast.type === "success" ? "text-kumo-success" : "text-kumo-danger")}>
+            {toast.msg}
+          </p>
+          <Button size="sm" variant="ghost" onClick={() => setToast(null)}>
+            Close
+          </Button>
         </div>
       )}
 
-      <div className="min-h-screen bg-transparent p-4 lg:p-8 animate-fade-in-up max-w-[1600px] mx-auto space-y-8">
-        {/* ─── HEADER ─── */}
-        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
-          <div className="space-y-2">
-            <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-charcoal dark:text-white">
-            Ad Scheduler
-          </h1>
-            <p className="text-slate-500 font-medium text-lg max-w-2xl leading-relaxed">
-              Publish mall-wide banners and approve tenant promotional
-              submissions.
-            </p>
+      <AdminPage
+        title="Ad Scheduler"
+        description="Publish mall-wide banners and approve tenant promotional submissions."
+        actions={
+          <>
+            <Button variant="secondary" icon={<ArrowClockwise />} loading={loading} onClick={fetchData}>
+              Refresh
+            </Button>
+            <Button variant="primary" icon={<Plus />} onClick={openCreate}>
+              Create Mall-Wide Ad
+            </Button>
+          </>
+        }
+      >
+        <StatRow>
+          <Stat label="Live banners" value={loading ? "-" : liveBanners} />
+          <Stat label="Scheduled banners" value={loading ? "-" : scheduledBanners} />
+          <Stat
+            label="Promos waiting for review"
+            value={loading ? "-" : pendingPromos.length}
+            tone={pendingPromos.length ? "warning" : "default"}
+            onClick={() => setPromoTab("pending")}
+          />
+          <Stat label="Live tenant promos" value={loading ? "-" : liveTenantPromos} onClick={() => setPromoTab("live")} />
+        </StatRow>
+
+        {/* Tenant promos come first: they are what needs a decision. */}
+        <Panel title="Tenant promos" description="Review and approve merchant promotion requests" flush>
+          <div className="border-b border-kumo-line p-4 sm:px-5">
+            <PageTabs
+              value={promoTab}
+              onValueChange={(v) => setPromoTab(v as "pending" | "live" | "history")}
+              tabs={[
+                { value: "pending", label: `Pending review (${pendingPromos.length})` },
+                { value: "live", label: `Live & scheduled (${livePromos.length})` },
+                { value: "history", label: `History (${promoHistory.length})` },
+              ]}
+            />
           </div>
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <button
-              onClick={fetchData}
-              className="flex items-center justify-center gap-2 px-5 py-3 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-slate-300 font-bold rounded-2xl transition-all"
+          {loading ? (
+            <div className="flex justify-center py-16">
+              <Loader />
+            </div>
+          ) : promos.length === 0 ? (
+            <EmptyNote
+              title={
+                promoTab === "pending" ? "All caught up" : promoTab === "live" ? "No live tenant promos" : "No promo history yet"
+              }
             >
-              <RefreshCw size={18} /> Refresh
-            </button>
-            <button
-              onClick={() => {
-                setFormData(EMPTY_FORM);
-                setIsModalOpen(true);
-              }}
-              className="flex items-center justify-center gap-3 px-6 py-3 bg-primary hover:bg-primary-hover text-white font-semibold rounded-2xl transition-all shadow-xl shadow-primary/30 active:scale-95 whitespace-nowrap text-xs"
-            >
-              <Plus size={18} /> Create Mall-Wide Ad
-            </button>
-          </div>
-        </div>
-
-        {/* ─── STATS BAR ─── */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {[
-            {
-              label: "Live Banners",
-              value: mallAds.filter((a) => ["DEFAULT", "LIVE"].includes(adStatus(a))).length,
-              icon: <Eye size={18} />,
-              color: "text-primary",
-              bg: "bg-primary/10",
-            },
-            {
-              label: "Scheduled",
-              value: mallAds.filter((a) => adStatus(a) === "SCHEDULED").length,
-              icon: <Calendar size={18} />,
-              color: "text-blue-600",
-              bg: "bg-blue-500/10",
-            },
-            {
-              label: "Awaiting Review",
-              value: pendingPromos.length,
-              icon: <Clock size={18} />,
-              color: "text-amber-600",
-              bg: "bg-amber-500/10",
-            },
-            {
-              label: "Live Tenant Promos",
-              value: livePromos.filter((p) => new Date(p.startDate).getTime() <= Date.now()).length,
-              icon: <BarChart3 size={18} />,
-              color: "text-emerald-600",
-              bg: "bg-emerald-500/10",
-            },
-          ].map((stat, i) => (
-            <div
-              key={i}
-              className="p-6 bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-white/5 shadow-xs"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                  {stat.label}
-                </span>
-                <div
-                  className={clsx(
-                    "w-10 h-10 rounded-xl flex items-center justify-center",
-                    stat.bg,
-                    stat.color,
-                  )}
-                >
-                  {stat.icon}
-                </div>
-              </div>
-              <p className="text-3xl font-semibold text-charcoal dark:text-white">
-                {loading ? (
-                  <span className="animate-pulse text-slate-200 dark:text-zinc-700">
-                    —
-                  </span>
-                ) : (
-                  stat.value
-                )}
-              </p>
-            </div>
-          ))}
-        </div>
-
-        {/* ─── GLOBAL HERO ADS ─── */}
-        <div className="bg-white dark:bg-zinc-900 rounded-3xl border border-slate-200 dark:border-white/5 shadow-xs overflow-hidden">
-          <div className="p-6 border-b border-slate-200 dark:border-white/5 flex items-center gap-3">
-            <Presentation size={18} className="text-primary" />
-            <div>
-              <h2 className="font-semibold text-charcoal dark:text-white text-lg">
-                Mall Banner Carousel
-              </h2>
-              <p className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-0.5">
-                Banners displayed on the homepage carousel
-              </p>
-            </div>
-          </div>
-
-          <div className="p-6">
-            {loading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {[1, 2, 3].map((i) => (
-                  <div
-                    key={i}
-                    className="rounded-3xl overflow-hidden border border-slate-100 dark:border-white/5 animate-pulse"
-                  >
-                    <div className="aspect-video bg-slate-100 dark:bg-zinc-800" />
-                    <div className="p-5 space-y-3">
-                      <div className="h-4 w-3/4 bg-slate-100 dark:bg-zinc-800 rounded-sm" />
-                      <div className="h-3 w-1/2 bg-slate-100 dark:bg-zinc-800 rounded-sm" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : activeMallAds.length === 0 ? (
-              <div className="py-20 border-2 border-dashed border-slate-200 dark:border-white/5 rounded-2xl text-center">
-                <Megaphone
-                  size={40}
-                  className="mx-auto text-slate-300 dark:text-zinc-700 mb-4"
-                />
-                <p className="text-slate-500 dark:text-slate-400 font-bold text-xs mb-4">
-                  No Active Mall-Wide Ads
-                </p>
-                <button
-                  onClick={() => {
-                    setFormData(EMPTY_FORM);
-                    setIsModalOpen(true);
-                  }}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white font-bold text-xs rounded-xl hover:bg-primary-hover transition-all"
-                >
-                  <Plus size={14} /> Create First Ad
-                </button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {activeMallAds.map((ad) => {
-                  const pc =
-                    PRIORITY_CONFIG[
-                      ad.priority as keyof typeof PRIORITY_CONFIG
-                    ] || PRIORITY_CONFIG.MEDIUM;
-                  const status = adStatus(ad);
-                  const ui = STATUS_UI[status];
-                  return (
-                    <div
-                      key={ad.id}
-                      className={clsx(
-                        "group bg-slate-50 dark:bg-zinc-950 border rounded-3xl overflow-hidden hover:-translate-y-1 transition-all duration-300 shadow-xs hover:shadow-xl",
-                        ad.isDefault
-                          ? "border-emerald-500/30 dark:border-emerald-500/20 hover:border-emerald-500/50 hover:shadow-emerald-500/10"
-                          : "border-slate-200 dark:border-white/5 hover:border-primary/40 hover:shadow-primary/10",
-                      )}
-                    >
-                      <div className="aspect-video w-full bg-slate-200 dark:bg-zinc-800 overflow-hidden relative">
-                        {ad.imageUrl?.match(/\.(mp4|webm|mov|ogg)$/i) ||
-                        ad.imageUrl?.includes("/video/upload/") ? (
-                          <video
-                            src={ad.imageUrl}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                            autoPlay
-                            muted
-                            loop
-                          />
-                        ) : (
-                          <img
-                            src={ad.imageUrl}
-                            alt={ad.title}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                          />
-                        )}
-                        {/* Overlay */}
-                        <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent" />
-                        {/* Priority Badge */}
-                        <div
-                          className={clsx(
-                            "absolute top-3 left-3 flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border backdrop-blur-md bg-black/40 text-white border-white/20",
-                          )}
-                        >
-                          <span
-                            className={clsx("w-1.5 h-1.5 rounded-full", pc.dot)}
-                          />
-                          {ad.priority}
-                        </div>
-                        {/* Status Badges */}
-                        <div className={clsx("absolute top-3 right-3 flex items-center gap-1.5 px-2.5 py-1 backdrop-blur-md rounded-full text-xs font-semibold shadow-md", ui.badge)}>
-                          {status === "DEFAULT" && <ShieldCheck size={11} />}
-                          {status === "DEFAULT" ? "Default" : ui.label}
-                        </div>
-                        {/* Action Buttons */}
-                        <div className="absolute bottom-3 right-3 flex gap-2 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
-                          <button
-                            onClick={() => handleEditAd(ad)}
-                            className="p-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors shadow-lg"
-                            title="Edit"
-                          >
-                            <Edit2 size={13} />
-                          </button>
-                          {!ad.isDefault && (
-                            <button
-                              onClick={() => setDeleteAdTarget(ad)}
-                              className="p-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors shadow-lg"
-                              title="Delete"
-                            >
-                              <Trash2 size={13} />
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                      <div className="p-5">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h4 className="font-bold text-charcoal dark:text-white text-base truncate">
-                            {ad.title}
-                          </h4>
-                          {ad.isDefault && (
-                            <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-semibold rounded-full border border-emerald-500/20 shrink-0">
-                              Default
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 mb-4 line-clamp-1">
-                          {ad.description ||
-                            "Global announcement for all mall visitors."}
-                        </p>
-                        <div className="flex items-center justify-between">
-                          <span
-                            className={clsx(
-                              "flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold border",
-                              ui.pill,
-                            )}
-                          >
-                            {ui.label}
-                          </span>
-                          <span className="text-xs font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                            <Clock size={10} />{" "}
-                            {status === "DEFAULT"
-                              ? "Always active"
-                              : status === "SCHEDULED"
-                                ? `Starts ${formatPHDate(ad.startDate)}`
-                                : status === "EXPIRED"
-                                  ? `Ended ${formatPHDate(ad.endDate)}`
-                                  : `Until ${formatPHDate(ad.endDate)}`}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {expiredMallAds.length > 0 && (
-              <div className="mt-6 border-t border-slate-100 dark:border-white/5 pt-5">
-                <button
-                  type="button"
-                  onClick={() => setShowAdHistory((value) => !value)}
-                  aria-expanded={showAdHistory}
-                  className="flex w-full items-center justify-between gap-3 rounded-xl px-1 py-1 text-left"
-                >
-                  <span className="flex items-center gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
-                    <History size={14} /> Banner history
-                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500 dark:bg-white/5 dark:text-slate-400">
-                      {expiredMallAds.length}
-                    </span>
-                  </span>
-                  <ChevronDown
-                    size={16}
-                    className={clsx(
-                      "text-slate-400 transition-transform",
-                      showAdHistory && "rotate-180",
-                    )}
-                  />
-                </button>
-
-                {showAdHistory && (
-                  <div className="mt-3 space-y-2">
-                    {expiredMallAds.map((ad) => (
-                      <div
-                        key={ad.id}
-                        className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 dark:border-white/5 dark:bg-zinc-950 sm:flex-row sm:items-center sm:justify-between"
-                      >
-                        <div className="flex min-w-0 items-center gap-3">
-                          <div className="h-12 w-20 shrink-0 overflow-hidden rounded-xl bg-slate-200 dark:bg-zinc-800">
-                            {ad.imageUrl?.match(/\.(mp4|webm|mov|ogg)$/i) ||
-                            ad.imageUrl?.includes("/video/upload/") ? (
-                              <video
-                                src={ad.imageUrl}
-                                className="h-full w-full object-cover"
-                                muted
-                              />
-                            ) : (
-                              <img
-                                src={ad.imageUrl}
-                                alt={ad.title}
-                                className="h-full w-full object-cover"
-                              />
-                            )}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="truncate text-xs font-bold text-charcoal dark:text-white">
-                              {ad.title}
-                            </p>
-                            <p className="text-xs font-bold text-slate-500 dark:text-slate-400">
-                              Ended {formatPHDate(ad.endDate)} · {ad.priority}
-                            </p>
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setDeleteAdTarget(ad)}
-                          aria-label={`Delete ${ad.title}`}
-                          title="Delete banner"
-                          className="flex h-8 w-8 shrink-0 items-center justify-center self-end rounded-lg border border-slate-200 text-slate-500 dark:text-slate-400 transition-colors hover:border-red-500/30 hover:bg-red-500 hover:text-white dark:border-white/10 sm:self-auto"
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* ─── PENDING TENANT PROMOS ─── */}
-        <div className="bg-white dark:bg-zinc-900 rounded-3xl border border-slate-200 dark:border-white/5 shadow-xs overflow-hidden">
-          <div className="p-6 border-b border-slate-200 dark:border-white/5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-3">
-              <Filter size={18} className="text-amber-500" />
-              <div>
-                <h2 className="font-semibold text-charcoal dark:text-white text-lg">
-                  Tenant Promos
-                </h2>
-                <p className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-0.5">
-                  Review & approve merchant promotion requests
-                </p>
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-1 p-1 bg-slate-100 dark:bg-zinc-800 rounded-xl self-start sm:self-auto">
-              {(
-                [
-                  { key: "pending", label: "Pending review", count: pendingPromos.length },
-                  { key: "live", label: "Live & scheduled", count: livePromos.length },
-                  { key: "history", label: "History", count: promoHistory.length },
-                ] as const
-              ).map((t) => (
-                <button
-                  key={t.key}
-                  type="button"
-                  onClick={() => setPromoTab(t.key)}
-                  className={clsx(
-                    "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5",
-                    promoTab === t.key ? "bg-white dark:bg-zinc-900 text-charcoal dark:text-white shadow-xs" : "text-slate-500 hover:text-charcoal dark:hover:text-white",
-                  )}
-                >
-                  {t.label}
-                  {t.count > 0 && (
-                    <span className={clsx("px-1.5 rounded-full", t.key === "pending" ? "bg-amber-500/15 text-amber-600" : t.key === "history" ? "bg-slate-500/15 text-slate-500" : "bg-emerald-500/15 text-emerald-600")}>
-                      {t.count}
-                    </span>
-                  )}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="p-6 space-y-4">
-            {loading ? (
-              <div className="space-y-4">
-                {[1, 2].map((i) => (
-                  <div
-                    key={i}
-                    className="p-6 rounded-2xl border border-slate-100 dark:border-white/5 animate-pulse flex gap-4"
-                  >
-                    <div className="w-40 h-24 bg-slate-100 dark:bg-zinc-800 rounded-2xl shrink-0" />
-                    <div className="flex-1 space-y-3">
-                      <div className="h-5 w-1/2 bg-slate-100 dark:bg-zinc-800 rounded-sm" />
-                      <div className="h-3 w-1/3 bg-slate-100 dark:bg-zinc-800 rounded-sm" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : promoTab === "history" ? (
-              promoHistory.length === 0 ? (
-                <div className="py-16 text-center">
-                  <History
-                    size={40}
-                    className="mx-auto text-slate-300 dark:text-zinc-700 mb-3"
-                  />
-                  <h4 className="font-bold text-charcoal dark:text-white mb-1">
-                    No promo history yet
-                  </h4>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                    Rejected, taken-down and ended promos are archived here.
-                  </p>
-                </div>
-              ) : (
-                promoHistory.map((promo) => {
-                  const rejected = promo.status === "REJECTED";
-                  return (
-                    <div
-                      key={promo.id}
-                      className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-white/5 dark:bg-zinc-950 sm:flex-row sm:items-center sm:justify-between"
-                    >
-                      <div className="flex min-w-0 items-center gap-4">
-                        <div className="h-16 w-24 shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-slate-200 dark:border-white/5 dark:bg-zinc-800">
-                          {promo.promoVideo ? (
-                            <video
-                              src={promo.promoVideo}
-                              className="h-full w-full object-cover"
-                              muted
-                            />
-                          ) : (
-                            <img
-                              src={promo.promoImage}
-                              alt={promo.title}
-                              className="h-full w-full object-cover opacity-80"
-                            />
-                          )}
-                        </div>
-                        <div className="min-w-0">
-                          <h4 className="truncate text-sm font-bold text-charcoal dark:text-white">
-                            {promo.title}
-                          </h4>
-                          <p className="mt-0.5 text-xs font-bold text-primary">
-                            <Tag size={10} className="mr-1 inline" />
-                            {promo.category} ·{" "}
-                            {promo.tenant?.shopName || "Tenant"}
-                          </p>
-                          <p className="mt-1 flex flex-wrap items-center gap-2 text-xs font-bold text-slate-500 dark:text-slate-400">
-                            <Calendar size={10} />
-                            {formatPHDate(promo.startDate)} —{" "}
-                            {formatPHDate(promo.endDate)}
-                            {promo.tenant?.unitId && (
-                              <span className="text-slate-500 dark:text-slate-600">
-                                · Unit {promo.tenant.unitId}
-                              </span>
-                            )}
-                          </p>
-                        </div>
-                      </div>
-                      <span
-                        className={clsx(
-                          "shrink-0 self-start rounded-lg border px-3 py-1.5 text-xs font-bold sm:self-auto",
-                          rejected
-                            ? "border-red-200 bg-red-50 text-red-600 dark:border-red-900/30 dark:bg-red-950/20 dark:text-red-400"
-                            : "border-slate-200 bg-slate-100 text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-400",
-                        )}
-                      >
-                        {rejected ? "Rejected / taken down" : "Ended"}
-                      </span>
-                    </div>
-                  );
-                })
-              )
-            ) : promoTab === "live" ? (
-              livePromos.length === 0 ? (
-                <div className="py-16 text-center">
-                  <Megaphone size={40} className="mx-auto text-slate-300 dark:text-zinc-700 mb-3" />
-                  <h4 className="font-bold text-charcoal dark:text-white mb-1">No live tenant promos</h4>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Approved promos show here until they end.</p>
-                </div>
-              ) : (
-                livePromos.map((promo) => {
-                  const scheduled = new Date(promo.startDate).getTime() > Date.now();
-                  return (
-                    <div
-                      key={promo.id}
-                      className="bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-white/5 rounded-2xl p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-5"
-                    >
-                      <div className="flex items-center gap-5 flex-1 min-w-0">
-                        <div className="w-40 h-24 rounded-2xl bg-slate-200 dark:bg-zinc-800 overflow-hidden shrink-0 border border-slate-200 dark:border-white/5">
-                          {promo.promoVideo ? (
-                            <video src={promo.promoVideo} className="w-full h-full object-cover" autoPlay muted loop />
-                          ) : (
-                            <img src={promo.promoImage} alt={promo.title} className="w-full h-full object-cover" />
-                          )}
-                        </div>
-                        <div className="space-y-2 min-w-0">
-                          <h4 className="font-bold text-charcoal dark:text-white text-base truncate">{promo.title}</h4>
-                          <p className="text-xs font-bold text-primary flex items-center gap-1.5">
-                            <Tag size={10} /> {promo.category} • {promo.tenant?.shopName || "Tenant"}
-                          </p>
-                          <div className="flex flex-wrap items-center gap-3">
-                            <div className="px-3 py-1.5 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-lg text-xs font-bold text-slate-500 flex items-center gap-1.5">
-                              <Calendar size={10} /> {formatPHDate(promo.startDate)} — {formatPHDate(promo.endDate)}
-                            </div>
-                            <span
-                              className={clsx(
-                                "px-3 py-1.5 rounded-lg border text-xs font-bold",
-                                scheduled
-                                  ? "bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-950/30 dark:border-blue-800/30"
-                                  : "bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-800/30",
-                              )}
-                            >
-                              {scheduled ? "Scheduled" : "Live now"}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => {
-                          setPromoReason("");
-                          setPromoAction({ promo, kind: "takedown" });
-                        }}
-                        className="px-5 py-2.5 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 rounded-xl font-bold text-xs hover:bg-red-500 hover:text-white hover:border-transparent transition-all shrink-0 self-end md:self-auto"
-                      >
-                        Take down
-                      </button>
-                    </div>
-                  );
-                })
-              )
-            ) : pendingPromos.length === 0 ? (
-              <div className="py-16 text-center">
-                <CheckCircle
-                  size={40}
-                  className="mx-auto text-emerald-400 mb-3"
-                />
-                <h4 className="font-bold text-charcoal dark:text-white mb-1">
-                  All Caught Up!
-                </h4>
-                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                  No pending promotion requests from tenants.
-                </p>
-              </div>
-            ) : (
-              pendingPromos.map((promo) => {
+              {promoTab === "pending"
+                ? "No promotion requests are waiting."
+                : promoTab === "live"
+                  ? "Approved promos show here until they end."
+                  : "Rejected, taken-down and ended promos are archived here."}
+            </EmptyNote>
+          ) : (
+            <ul className="divide-y divide-kumo-line">
+              {promos.map((promo) => {
                 const ended = new Date(promo.endDate).getTime() < Date.now();
+                const scheduled = new Date(promo.startDate).getTime() > Date.now();
+                const state =
+                  promoTab === "history"
+                    ? promo.status === "REJECTED"
+                      ? { label: "Rejected or taken down", className: "text-kumo-danger" }
+                      : { label: "Ended", className: "text-kumo-subtle" }
+                    : promoTab === "live"
+                      ? scheduled
+                        ? { label: "Scheduled", className: "text-kumo-default" }
+                        : { label: "Live now", className: "text-kumo-success" }
+                      : ended
+                        ? { label: "Dates passed, can't go live", className: "text-kumo-subtle" }
+                        : { label: "Waiting for review", className: "text-kumo-warning" };
                 return (
-                <div
-                  key={promo.id}
-                  className="group bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-white/5 rounded-2xl p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-5 hover:border-primary/30 transition-all"
-                >
-                  <div className="flex items-center gap-5 flex-1 min-w-0">
-                    <div className="w-40 h-24 rounded-2xl bg-slate-200 dark:bg-zinc-800 overflow-hidden shrink-0 border border-slate-200 dark:border-white/5">
-                      {promo.promoVideo ? (
-                        <video
-                          src={promo.promoVideo}
-                          className="w-full h-full object-cover"
-                          autoPlay
-                          muted
-                          loop
-                        />
-                      ) : (
-                        <img
-                          src={promo.promoImage}
-                          alt={promo.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        />
-                      )}
+                  <li key={promo.id} className="flex flex-col gap-4 p-4 sm:px-5 md:flex-row md:items-center">
+                    <div className="relative aspect-video w-full shrink-0 overflow-hidden rounded-lg border border-kumo-line bg-kumo-recessed md:w-44">
+                      <Media url={promo.promoVideo || promo.promoImage} video={!!promo.promoVideo} alt={promo.title} className="absolute inset-0 size-full object-cover" />
                     </div>
-                    <div className="space-y-2 min-w-0">
-                      <h4 className="font-bold text-charcoal dark:text-white text-base truncate">
-                        {promo.title}
-                      </h4>
-                      <p className="text-xs font-bold text-primary flex items-center gap-1.5">
-                        <Tag size={10} /> {promo.category} •{" "}
+                    <div className="min-w-0 flex-1">
+                      <h3 className="truncate text-base font-semibold text-kumo-default">{promo.title}</h3>
+                      <p className="text-sm text-kumo-subtle">
                         {promo.tenant?.shopName || "Tenant"}
+                        {promo.tenant?.unitId ? `, Unit ${promo.tenant.unitId}` : ""}, {promo.category}
                       </p>
-                      <div className="flex flex-wrap items-center gap-3">
-                        <div className="px-3 py-1.5 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-lg text-xs font-bold text-slate-500 flex items-center gap-1.5">
-                          <Calendar size={10} />{" "}
-                          {formatPHDate(promo.startDate)} — {formatPHDate(promo.endDate)}
-                        </div>
-                        {ended ? (
-                          <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-white/5 text-slate-500 border border-slate-200 dark:border-white/10 text-xs font-bold">
-                            Ended — can&apos;t go live
-                          </span>
-                        ) : (
-                          <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-600 border border-amber-200 dark:border-amber-900/30 text-xs font-bold animate-pulse">
-                            <Clock size={10} /> Awaiting Review
-                          </span>
+                      <p className="text-sm text-kumo-default">
+                        {formatPHDate(promo.startDate)} to {formatPHDate(promo.endDate)}
+                      </p>
+                      <p className={cn("mt-1 text-sm font-medium", state.className)}>{state.label}</p>
+                    </div>
+                    {promoTab === "pending" && (
+                      <div className="flex shrink-0 justify-end gap-2">
+                        <Button
+                          variant="secondary-destructive"
+                          onClick={() => {
+                            setPromoReason(ended ? "The campaign dates have already passed." : "");
+                            setPromoAction({ promo, kind: "reject" });
+                          }}
+                        >
+                          Reject
+                        </Button>
+                        {!ended && (
+                          <Button variant="primary" onClick={() => approvePromo(promo)}>
+                            Approve
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                    {promoTab === "live" && (
+                      <div className="flex shrink-0 justify-end">
+                        <Button
+                          variant="secondary-destructive"
+                          onClick={() => {
+                            setPromoReason("");
+                            setPromoAction({ promo, kind: "takedown" });
+                          }}
+                        >
+                          Take down
+                        </Button>
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </Panel>
+
+        <Panel title="Mall banner carousel" description="Banners displayed on the homepage carousel">
+          {loading ? (
+            <div className="flex justify-center py-16">
+              <Loader />
+            </div>
+          ) : activeMallAds.length === 0 ? (
+            <EmptyNote
+              title="No active mall-wide ads"
+              action={
+                <Button variant="primary" icon={<Plus />} onClick={openCreate}>
+                  Create the first ad
+                </Button>
+              }
+            />
+          ) : (
+            <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {activeMallAds.map((ad) => {
+                const status = adStatus(ad);
+                const ui = STATUS_UI[status];
+                return (
+                  <li key={ad.id} className="flex flex-col overflow-hidden rounded-lg border border-kumo-line">
+                    <div className="relative aspect-video w-full overflow-hidden bg-kumo-recessed">
+                      <Media url={ad.imageUrl} alt={ad.title} className="absolute inset-0 size-full object-cover" />
+                    </div>
+                    <div className="flex flex-1 flex-col gap-1 p-4">
+                      <h3 className="truncate text-base font-semibold text-kumo-default">{ad.title}</h3>
+                      <p className="line-clamp-1 text-sm text-kumo-subtle">
+                        {ad.description || "Announcement for all mall visitors."}
+                      </p>
+                      <p className="text-sm">
+                        <span className={cn("font-medium", ui.className)}>{ui.label}</span>
+                        <span className="text-kumo-subtle">
+                          {status === "DEFAULT" ? "" : `, ${whenText(ad, status)}`}
+                        </span>
+                      </p>
+                      <p className="text-sm text-kumo-subtle">{PRIORITY_ITEMS[ad.priority] ?? ad.priority} priority</p>
+                      <div className="mt-auto flex justify-end gap-2 pt-3">
+                        <Button size="sm" variant="secondary" icon={<PencilSimple />} onClick={() => handleEditAd(ad)}>
+                          Edit
+                        </Button>
+                        {!ad.isDefault && (
+                          <Button size="sm" variant="secondary-destructive" icon={<Trash />} onClick={() => setDeleteAdTarget(ad)}>
+                            Delete
+                          </Button>
                         )}
                       </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-3 shrink-0 self-end md:self-auto">
-                    <button
-                      onClick={() => {
-                        setPromoReason(ended ? "The campaign dates have already passed." : "");
-                        setPromoAction({ promo, kind: "reject" });
-                      }}
-                      className="px-5 py-2.5 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 rounded-xl font-bold text-xs hover:bg-red-500 hover:text-white hover:border-transparent transition-all"
-                    >
-                      Reject
-                    </button>
-                    {!ended && (
-                      <button
-                        onClick={() => approvePromo(promo)}
-                        className="px-5 py-2.5 bg-primary text-white rounded-xl font-bold text-xs hover:bg-primary-hover hover:scale-105 shadow-lg shadow-primary/20 transition-all"
-                      >
-                        Approve
-                      </button>
-                    )}
-                  </div>
-                </div>
+                  </li>
                 );
-              })
-            )}
-          </div>
-        </div>
-      </div>
+              })}
+            </ul>
+          )}
+
+          {expiredMallAds.length > 0 && (
+            <div className="mt-5 border-t border-kumo-line pt-4">
+              <Button
+                variant="ghost"
+                aria-expanded={showAdHistory}
+                icon={showAdHistory ? <CaretUp /> : <CaretDown />}
+                onClick={() => setShowAdHistory((value) => !value)}
+              >
+                Banner history ({expiredMallAds.length})
+              </Button>
+              {showAdHistory && (
+                <ul className="mt-3 divide-y divide-kumo-line rounded-lg border border-kumo-line">
+                  {expiredMallAds.map((ad) => (
+                    <li key={ad.id} className="flex items-center gap-3 p-3">
+                      <div className="h-12 w-20 shrink-0 overflow-hidden rounded-md bg-kumo-recessed">
+                        <Media url={ad.imageUrl} alt={ad.title} still className="size-full object-cover" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-kumo-default">{ad.title}</p>
+                        <p className="text-sm text-kumo-subtle">
+                          Ended {formatPHDate(ad.endDate)}, {PRIORITY_ITEMS[ad.priority] ?? ad.priority} priority
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="secondary-destructive"
+                        shape="square"
+                        icon={<Trash />}
+                        aria-label={`Delete ${ad.title}`}
+                        onClick={() => setDeleteAdTarget(ad)}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+        </Panel>
+      </AdminPage>
 
       {deleteAdTarget && (
         <ChatConfirmModal
@@ -1215,114 +697,75 @@ export default function AdScheduler() {
         />
       )}
 
-      {promoAction && (
-        <div className="fixed inset-0 z-300 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-xs" onClick={() => !promoBusy && setPromoAction(null)} />
-          <div className="relative w-full max-w-md bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-white/10 p-6 space-y-4 animate-fade-in-up">
-            <div>
-              <h3 className="text-lg font-semibold text-charcoal dark:text-white">
-                {promoAction.kind === "takedown" ? "Take down this promo?" : "Reject this promo?"}
-              </h3>
-              <p className="text-sm text-slate-500 mt-1">
-                &ldquo;{promoAction.promo.title}&rdquo; by {promoAction.promo.tenant?.shopName || "the tenant"}
-                {promoAction.kind === "takedown" ? " will be removed from the site right away." : " won't be published."} The tenant is notified.
-              </p>
-            </div>
-            <label className="block space-y-1.5">
-              <span className="text-xs font-semibold text-slate-500">Reason (optional, sent to the tenant)</span>
-              <textarea
-                value={promoReason}
-                onChange={(e) => setPromoReason(e.target.value)}
-                rows={3}
-                maxLength={300}
-                placeholder="e.g. The image is low quality — please upload a clearer version."
-                className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-800 text-charcoal dark:text-white rounded-xl border border-slate-200 dark:border-white/5 focus:border-primary outline-hidden text-sm resize-none"
-              />
-            </label>
-            <div className="flex gap-3">
-              <button
-                type="button"
-                disabled={promoBusy}
-                onClick={() => setPromoAction(null)}
-                className="flex-1 py-3 text-xs font-bold text-slate-500 bg-slate-100 dark:bg-zinc-800 rounded-xl hover:bg-slate-200 dark:hover:bg-zinc-700 transition-all disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                disabled={promoBusy}
-                onClick={confirmPromoAction}
-                className="flex-1 py-3 text-xs font-bold text-white bg-red-500 rounded-xl hover:bg-red-600 transition-all disabled:opacity-50"
-              >
-                {promoBusy ? "Saving…" : promoAction.kind === "takedown" ? "Take down" : "Reject"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <AdminDialog
+        open={!!promoAction}
+        onClose={() => !promoBusy && setPromoAction(null)}
+        size="sm"
+        title={promoAction?.kind === "takedown" ? "Take down this promo?" : "Reject this promo?"}
+        description={
+          promoAction
+            ? `"${promoAction.promo.title}" by ${promoAction.promo.tenant?.shopName || "the tenant"}${
+                promoAction.kind === "takedown" ? " will be removed from the site right away." : " won't be published."
+              } The tenant is notified.`
+            : undefined
+        }
+        footer={
+          <>
+            <Button variant="secondary" disabled={promoBusy} onClick={() => setPromoAction(null)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" loading={promoBusy} onClick={confirmPromoAction}>
+              {promoAction?.kind === "takedown" ? "Take down" : "Reject"}
+            </Button>
+          </>
+        }
+      >
+        <InputArea
+          label="Reason (optional, sent to the tenant)"
+          value={promoReason}
+          onValueChange={setPromoReason}
+          rows={3}
+          maxLength={300}
+          placeholder="e.g. The image is low quality. Please upload a clearer version."
+          className="w-full"
+        />
+      </AdminDialog>
 
-      {/* ─── CREATE MODAL ─── */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-100 flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-charcoal/40 dark:bg-black/80 backdrop-blur-md"
-            onClick={() => setIsModalOpen(false)}
-          />
-          <div className="relative w-full max-w-xl bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-white/10 p-5 sm:p-8 animate-fade-in-up max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold text-charcoal dark:text-white tracking-tight flex items-center gap-2">
-                <Plus size={18} className="text-primary" /> Create Global Mall
-                Ad
-              </h2>
-              <button
-                onClick={() => setIsModalOpen(false)}
-                className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-white/10 text-slate-500 transition-colors"
-              >
-                <X size={18} />
-              </button>
-            </div>
-            {renderFormFields(handleCreateMallAd, false)}
-          </div>
-        </div>
-      )}
+      <AdminDialog open={isModalOpen} onClose={closeForm} title="Create a mall-wide ad">
+        {renderFormFields(handleCreateMallAd, false)}
+      </AdminDialog>
 
-      {/* ─── EDIT MODAL ─── */}
-      {isEditModalOpen && (
-        <div className="fixed inset-0 z-100 flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-charcoal/40 dark:bg-black/80 backdrop-blur-md"
-            onClick={() => {
-              setIsEditModalOpen(false);
-              setFormData(EMPTY_FORM);
-            }}
-          />
-          <div className="relative w-full max-w-xl bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-white/10 p-5 sm:p-8 animate-fade-in-up max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold text-charcoal dark:text-white tracking-tight flex items-center gap-2">
-                <Edit2 size={18} className="text-primary" /> Edit Ad Campaign
-              </h2>
-              <button
-                onClick={() => {
-                  setIsEditModalOpen(false);
-                  setFormData(EMPTY_FORM);
-                }}
-                className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-white/10 text-slate-500 transition-colors"
-              >
-                <X size={18} />
-              </button>
-            </div>
-            {editingAd?.isDefault && (
-              <div className="mb-6 p-4 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/30 rounded-2xl flex items-center gap-3 text-xs text-emerald-800 dark:text-emerald-300 font-bold">
-                <ShieldCheck size={18} className="text-emerald-600 shrink-0" />
-                <span>
-                  <strong>Default Mall Banner:</strong> This banner is permanent and will always stay active in the Mall Banner Carousel. You can freely customize its title, text, priority, and media.
-                </span>
-              </div>
-            )}
-            {renderFormFields(handleUpdateAd, true)}
-          </div>
-        </div>
-      )}
+      <AdminDialog open={isEditModalOpen} onClose={closeForm} title="Edit ad campaign">
+        {editingAd?.isDefault && (
+          <p className="mb-4 rounded-lg bg-kumo-recessed p-3 text-sm text-kumo-default">
+            <strong>Default mall banner:</strong> it is permanent and always shown in the carousel. You can change its title,
+            text, priority and media.
+          </p>
+        )}
+        {renderFormFields(handleUpdateAd, true)}
+      </AdminDialog>
     </>
   );
+}
+
+/** An ad's picture, or its video (muted; `still` doesn't play it). */
+function Media({
+  url,
+  alt,
+  className,
+  video,
+  still,
+}: {
+  url?: string | null;
+  alt: string;
+  className: string;
+  video?: boolean;
+  still?: boolean;
+}) {
+  if (!url) return null;
+  if (video || /\.(mp4|webm|mov|ogg)$/i.test(url) || url.includes("/video/upload/")) {
+    return <video src={url} className={className} muted autoPlay={!still} loop={!still} playsInline aria-label={alt} />;
+  }
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src={url} alt={alt} className={className} />;
 }

@@ -2,32 +2,9 @@
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import clsx from "clsx";
-import {
-  Activity,
-  AlertTriangle,
-  ArrowDownRight,
-  ArrowRight,
-  ArrowUpRight,
-  Building2,
-  Calendar,
-  CalendarClock,
-  CheckCircle2,
-  ClipboardCheck,
-  FileCheck2,
-  Flag,
-  LayoutDashboard,
-  Loader2,
-  MapPin,
-  Megaphone,
-  MessageSquare,
-  PhilippinePeso,
-  RefreshCw,
-  Store,
-  Users,
-  Wallet,
-  X,
-} from "lucide-react";
+import { Button, Loader, cn } from "@cloudflare/kumo";
+import { ArrowClockwise, CaretRight } from "@phosphor-icons/react";
+import { AdminDialog, AdminPage, EmptyNote, Panel, Person, Stat } from "@/components/admin/page-kit";
 import {
   Area,
   AreaChart,
@@ -55,10 +32,6 @@ import { toast } from "sonner";
 // ─── Formatting ──────────────────────────────────────────────────────────────
 
 const BRAND = "#BE1E2D";
-
-// Same typography the other admin pages use.
-const LABEL = "text-xs font-semibold text-slate-400";
-const NAME = "font-semibold text-charcoal dark:text-white tracking-tight";
 
 const pesoCompact = new Intl.NumberFormat("en-PH", {
   style: "currency",
@@ -140,16 +113,19 @@ export default function AdminDashboard() {
   if (!data) {
     if (error) {
       return (
-        <div className="p-5 sm:p-10 max-w-xl mx-auto text-center space-y-4">
-          <AlertTriangle className="mx-auto text-primary" size={32} />
-          <p className={clsx(NAME, "text-lg")}>Couldn&apos;t load the dashboard</p>
-          <p className="text-sm text-slate-500">{error}</p>
-          <button
-            onClick={() => load(true)}
-            className="px-6 py-3 bg-primary text-white rounded-xl text-xs font-semibold shadow-lg shadow-primary/25 active:scale-95"
-          >
-            Try again
-          </button>
+        <div className="mx-auto max-w-xl p-4 sm:p-8">
+          <Panel flush>
+            <EmptyNote
+              title="Couldn't load the dashboard"
+              action={
+                <Button variant="primary" onClick={() => load(true)}>
+                  Try again
+                </Button>
+              }
+            >
+              {error}
+            </EmptyNote>
+          </Panel>
         </div>
       );
     }
@@ -161,290 +137,227 @@ export default function AdminDashboard() {
     occupancy.total > 0 ? Math.round((occupancy.occupied / occupancy.total) * 100) : 0;
   const updatedAt = new Date(data.generatedAt);
   const firstName = (user?.name || "Administrator").split(" ")[0];
+  const today = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+  const change = kpis.collectedLastMonthToDate > 0 || kpis.collectedThisMonth > 0 ? kpis.collectedChange : null;
 
   return (
-    <div className="p-4 md:p-8 lg:p-10 animate-fade-in-up space-y-10 min-h-screen max-w-[1800px] mx-auto">
-      {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 pb-8 border-b border-slate-200 dark:border-white/10">
-        <div className="space-y-4">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-semibold border border-primary/20">
-            <LayoutDashboard size={12} />
-            {new Date().toLocaleDateString("en-US", {
-              weekday: "long",
-              month: "long",
-              day: "numeric",
-              year: "numeric",
-            })}
-          </div>
-          <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-charcoal dark:text-white">
-            Admin Dashboard
-          </h1>
-          <p className="text-slate-500 font-medium max-w-2xl text-lg">
-            {greeting(new Date())}, {firstName}. Here&apos;s what&apos;s happening at SR Mall today.
+    <AdminPage
+      title="Admin Dashboard"
+      description={`${greeting(new Date())}, ${firstName}. ${today}.`}
+      actions={
+        <>
+          <p className="mr-1 text-sm text-kumo-subtle" aria-live="polite">
+            {refreshing
+              ? "Updating..."
+              : `Updated ${updatedAt.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`}
           </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-4">
           <RecordPaymentGuide />
-          {refreshing ? (
-            <div className="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-zinc-800 rounded-full animate-pulse">
-              <Loader2 size={12} className="animate-spin text-primary" />
-              <span className="text-xs font-semibold text-slate-500">Live Sync</span>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-zinc-800 rounded-full">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              <span className="text-xs font-semibold text-slate-500">
-                Updated {updatedAt.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
-              </span>
-            </div>
-          )}
-          <div className="h-10 w-px bg-slate-200 dark:bg-white/10 hidden md:block mx-2" />
-          <button
-            onClick={() => load(true)}
-            disabled={refreshing}
-            aria-label="Refresh dashboard"
-            className="p-4 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-2xl text-slate-500 dark:text-slate-400 hover:text-primary transition-all shadow-xs active:scale-95 disabled:opacity-50"
-          >
-            <RefreshCw size={20} className={refreshing ? "animate-spin" : ""} />
-          </button>
-        </div>
-      </div>
+          <Button variant="secondary" icon={<ArrowClockwise />} loading={refreshing} onClick={() => load(true)}>
+            Refresh
+          </Button>
+        </>
+      }
+    >
+      {/* Needs attention comes first: it is the work waiting for today. */}
+      <Panel title="Needs your attention" description="Queues waiting on an admin decision" flush>
+        <AttentionList attention={attention} />
+      </Panel>
 
-      {/* ── KPIs ───────────────────────────────────────────────────────────── */}
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-        <KpiCard
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
+        <Stat
           label="Collected this month"
           value={pesoCompact.format(kpis.collectedThisMonth)}
-          icon={<Wallet size={18} />}
-          tone="emerald"
-          trend={
-            kpis.collectedLastMonthToDate > 0 || kpis.collectedThisMonth > 0
-              ? { value: kpis.collectedChange, label: "vs same day last month" }
-              : undefined
+          hint={
+            <>
+              {change !== null && (
+                <span className={cn("block font-medium", change >= 0 ? "text-kumo-success" : "text-kumo-danger")}>
+                  {change >= 0 ? "Up" : "Down"} {Math.abs(change)}% vs same day last month
+                </span>
+              )}
+              Billed {pesoCompact.format(kpis.billedThisMonth)}
+            </>
           }
-          sub={`Billed ${pesoCompact.format(kpis.billedThisMonth)}`}
           href="/admindashboard/tenant-monitoring"
         />
-        <KpiCard
+        <Stat
           label="Outstanding"
           value={pesoCompact.format(kpis.outstanding)}
-          icon={<PhilippinePeso size={18} />}
-          tone="slate"
-          sub={
+          hint={
             kpis.unpaidInvoices > 0
               ? `${kpis.unpaidInvoices} unpaid invoice${kpis.unpaidInvoices === 1 ? "" : "s"}`
               : "All invoices paid"
           }
           href="/admindashboard/tenant-monitoring"
         />
-        <KpiCard
+        <Stat
           label="Occupancy"
           value={`${occupancyRate}%`}
-          icon={<Building2 size={18} />}
-          tone="blue"
-          sub={`${occupancy.occupied}/${occupancy.total} units · ${occupancy.available} free`}
+          hint={`${occupancy.occupied} of ${occupancy.total} units, ${occupancy.available} free`}
           href="/admindashboard/space-manager"
         />
-        <KpiCard
+        <Stat
           label="Active tenants"
-          value={kpis.activeTenants.toString()}
-          icon={<Store size={18} />}
-          tone="amber"
-          sub={
-            kpis.newTenantsThisMonth > 0
-              ? `+${kpis.newTenantsThisMonth} this month`
-              : "No new this month"
-          }
+          value={kpis.activeTenants}
+          hint={kpis.newTenantsThisMonth > 0 ? `${kpis.newTenantsThisMonth} new this month` : "No new this month"}
           href="/admindashboard/tenant-monitoring"
         />
-        <KpiCard
+        <Stat
           label="Registered users"
-          value={kpis.totalUsers.toString()}
-          icon={<Users size={18} />}
-          tone="purple"
-          sub={`${kpis.customerUsers} customers · +${kpis.newUsersThisMonth} new`}
+          value={kpis.totalUsers}
+          hint={`${kpis.customerUsers} customers, ${kpis.newUsersThisMonth} new`}
           href="/admindashboard/user-management"
         />
-      </section>
+      </div>
 
-      {/* ── Needs attention ────────────────────────────────────────────────── */}
-      <section>
-        <Card>
-          <CardHeader title="Needs your attention" subtitle="Queues waiting on an admin decision" />
-          <AttentionList attention={attention} />
-        </Card>
-      </section>
-
-      {/* ── Revenue + occupancy ────────────────────────────────────────────── */}
-      <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2">
-          <CardHeader
-            title="Revenue"
-            subtitle="Billed vs collected per month"
-            action={
-              <div className="bg-slate-50 dark:bg-white/5 p-1.5 rounded-2xl border border-slate-200 dark:border-white/5 flex gap-1">
-                {([6, 12] as const).map((range) => (
-                  <button
-                    key={range}
-                    onClick={() => setRevenueRange(range)}
-                    className={clsx(
-                      "px-4 py-2 rounded-xl text-xs font-semibold transition-all active:scale-95",
-                      revenueRange === range
-                        ? "bg-primary text-white shadow-lg shadow-primary/25"
-                        : "text-slate-400 hover:text-charcoal dark:hover:text-white",
-                    )}
-                  >
-                    {range === 6 ? "6 months" : "12 months"}
-                  </button>
-                ))}
-              </div>
-            }
-          />
+      <div className="grid items-start gap-6 lg:grid-cols-3">
+        <Panel
+          className="lg:col-span-2"
+          title="Revenue"
+          description="Billed vs collected per month"
+          actions={
+            <div role="group" aria-label="Months shown" className="flex gap-1">
+              {([6, 12] as const).map((range) => (
+                <Button
+                  key={range}
+                  size="sm"
+                  variant={revenueRange === range ? "primary" : "secondary"}
+                  aria-pressed={revenueRange === range}
+                  onClick={() => setRevenueRange(range)}
+                >
+                  {range} months
+                </Button>
+              ))}
+            </div>
+          }
+        >
           <RevenueChart data={data.revenue.slice(-revenueRange)} />
-        </Card>
+        </Panel>
 
-        <Card>
-          <CardHeader title="Space occupancy" subtitle={`${occupancy.total} units total`} />
+        <Panel title="Space occupancy" description={`${occupancy.total} units total`}>
           <OccupancyDonut occupancy={occupancy} rate={occupancyRate} />
-        </Card>
-      </section>
+        </Panel>
+      </div>
 
-      {/* ── Overdue + leases ───────────────────────────────────────────────── */}
-      <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2">
-          <CardHeader
-            title="Overdue payments"
-            subtitle={
-              data.overdueInvoiceCount > 0
-                ? `${data.overdueInvoiceCount} invoice${data.overdueInvoiceCount === 1 ? "" : "s"} past due`
-                : undefined
-            }
-            action={<CardLink href="/admindashboard/tenant-monitoring">Open ledger</CardLink>}
-          />
+      <div className="grid items-start gap-6 lg:grid-cols-3">
+        <Panel
+          className="lg:col-span-2"
+          flush
+          title="Overdue payments"
+          description={
+            data.overdueInvoiceCount > 0
+              ? `${data.overdueInvoiceCount} invoice${data.overdueInvoiceCount === 1 ? "" : "s"} past due`
+              : undefined
+          }
+          actions={<CardLink href="/admindashboard/tenant-monitoring">Open ledger</CardLink>}
+        >
           {data.overdueInvoices.length === 0 ? (
-            <EmptyState icon={<CheckCircle2 size={22} />} text="No overdue payments. Every tenant is up to date." />
+            <EmptyNote title="No overdue payments">Every tenant is up to date.</EmptyNote>
           ) : (
-            <ul className="divide-y divide-slate-100 dark:divide-white/5 -mx-2">
+            <ul className="divide-y divide-kumo-line">
               {data.overdueInvoices.map((inv) => (
-                <li key={inv.id} className="flex items-center gap-4 px-2 py-4">
-                  <Avatar name={inv.shopName} src={inv.logoUrl} />
+                <li key={inv.id} className="flex flex-wrap items-center gap-3 p-4 sm:px-5">
                   <div className="min-w-0 flex-1">
-                    <p className={clsx(NAME, "text-sm truncate")}>{inv.shopName}</p>
-                    <p className={clsx(LABEL, "mt-0.5 truncate")}>
-                      {inv.unitId && inv.unitId !== "PENDING_ASSIGNMENT" ? `${inv.unitId} · ` : ""}
-                      {inv.month} · #{inv.invoiceNumber}
-                    </p>
+                    <Person
+                      square
+                      name={inv.shopName}
+                      image={inv.logoUrl}
+                      detail={`${inv.unitId && inv.unitId !== "PENDING_ASSIGNMENT" ? `${inv.unitId}, ` : ""}${inv.month}, #${inv.invoiceNumber.replace(/^#/, "")}`}
+                    />
                   </div>
-                  <div className="text-right shrink-0">
-                    <p className="text-sm font-semibold text-charcoal dark:text-white">{pesoFull.format(inv.amount)}</p>
-                    <p className="text-xs font-semibold text-red-600">
+                  <div className="shrink-0 text-right">
+                    <p className="text-sm font-semibold tabular-nums text-kumo-default">{pesoFull.format(inv.amount)}</p>
+                    <p className="text-sm font-medium text-kumo-danger">
                       {inv.daysLate > 0 ? `${inv.daysLate} day${inv.daysLate === 1 ? "" : "s"} late` : "Due today"}
                     </p>
                   </div>
-                  <button
-                    onClick={() => setPayingInvoice(inv)}
-                    className="shrink-0 hidden sm:inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-white rounded-xl text-xs font-semibold shadow-md shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
-                  >
-                    <PhilippinePeso size={12} /> Record
-                  </button>
+                  <Button size="sm" variant="primary" onClick={() => setPayingInvoice(inv)}>
+                    Record
+                  </Button>
                 </li>
               ))}
             </ul>
           )}
-        </Card>
+        </Panel>
 
-        <Card>
-          <CardHeader
-            title="Leases ending soon"
-            subtitle="Next 60 days"
-            action={
-              data.leasesEndingCount > data.leasesEnding.length ? (
-                <span className={LABEL}>+{data.leasesEndingCount - data.leasesEnding.length} more</span>
-              ) : undefined
-            }
-          />
+        <Panel
+          flush
+          title="Leases ending soon"
+          description="Next 60 days"
+          actions={
+            data.leasesEndingCount > data.leasesEnding.length ? (
+              <span className="text-sm text-kumo-subtle">{data.leasesEndingCount - data.leasesEnding.length} more</span>
+            ) : undefined
+          }
+        >
           {data.leasesEnding.length === 0 ? (
-            <EmptyState icon={<CalendarClock size={22} />} text="No leases end in the next 60 days." />
+            <EmptyNote title="No leases end in the next 60 days" />
           ) : (
-            <ul className="space-y-3">
+            <ul className="divide-y divide-kumo-line">
               {data.leasesEnding.map((lease) => (
-                <li key={lease.id} className="flex items-center gap-3">
-                  <Avatar name={lease.shopName} src={lease.logoUrl} />
-                  <div className="min-w-0 flex-1">
-                    <p className={clsx(NAME, "text-sm truncate")}>{lease.shopName}</p>
-                    <p className={clsx(LABEL, "mt-0.5")}>Ends {formatShortDate(lease.endDate)}</p>
-                  </div>
+                <li key={lease.id} className="flex items-center justify-between gap-3 p-4">
+                  <Person square name={lease.shopName} image={lease.logoUrl} detail={`Ends ${formatShortDate(lease.endDate)}`} />
                   <span
-                    className={clsx(
-                      "shrink-0 px-2.5 py-1 rounded-full text-xs font-semibold border",
-                      lease.daysLeft <= 0
-                        ? "bg-red-500/10 text-red-600 border-red-500/20"
-                        : lease.daysLeft <= 30
-                          ? "bg-amber-500/10 text-amber-600 border-amber-500/20"
-                          : "bg-slate-100 dark:bg-white/5 text-slate-500 border-slate-200 dark:border-white/10",
+                    className={cn(
+                      "shrink-0 text-sm font-medium",
+                      lease.daysLeft <= 0 ? "text-kumo-danger" : lease.daysLeft <= 30 ? "text-kumo-warning" : "text-kumo-subtle",
                     )}
                   >
-                    {lease.daysLeft <= 0 ? "Expired" : `${lease.daysLeft}d left`}
+                    {lease.daysLeft <= 0 ? "Expired" : `${lease.daysLeft} days left`}
                   </span>
                 </li>
               ))}
             </ul>
           )}
-        </Card>
-      </section>
+        </Panel>
+      </div>
 
-      {/* ── Activity + floor ───────────────────────────────────────────────── */}
-      <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card>
-          <CardHeader
-            title="Recent activity"
-            action={
-              <button onClick={() => setShowHistory(true)} className="text-xs font-semibold text-primary hover:underline">
-                View all
-              </button>
-            }
-          />
+      <div className="grid items-start gap-6 lg:grid-cols-3">
+        <Panel
+          title="Recent activity"
+          flush
+          actions={
+            <Button size="sm" variant="ghost" onClick={() => setShowHistory(true)}>
+              View all
+            </Button>
+          }
+        >
           {data.activity.length === 0 ? (
-            <EmptyState icon={<Activity size={22} />} text="No recent activity yet." />
+            <EmptyNote title="No recent activity yet" />
           ) : (
-            <ul className="space-y-4">
+            <ul className="divide-y divide-kumo-line">
               {data.activity.map((item: ActivityItem) => (
                 <ActivityRow key={item.id} item={item} />
               ))}
             </ul>
           )}
-        </Card>
+        </Panel>
 
-        <Card className="lg:col-span-2">
-          <CardHeader
-            title="Floor snapshot"
-            subtitle={occupancy.total > data.floor.length ? `First ${data.floor.length} of ${occupancy.total} units` : undefined}
-            action={<CardLink href="/admindashboard/space-manager">Space manager</CardLink>}
-          />
+        <Panel
+          className="lg:col-span-2"
+          title="Floor snapshot"
+          description={occupancy.total > data.floor.length ? `First ${data.floor.length} of ${occupancy.total} units` : undefined}
+          actions={<CardLink href="/admindashboard/space-manager">Space manager</CardLink>}
+        >
           {data.floor.length === 0 ? (
-            <EmptyState
-              icon={<MapPin size={22} />}
-              text="No units yet. Add units in the Space Manager to see them here."
-            />
+            <EmptyNote title="No units yet">Add units in the Space Manager to see them here.</EmptyNote>
           ) : (
             <>
-              <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4">
                 {data.floor.map((slot) => (
                   <FloorTile key={slot.id} slot={slot} />
                 ))}
               </div>
-              <div className="mt-6 flex flex-wrap gap-6 text-xs font-semibold text-slate-500">
+              <div className="mt-4 flex flex-wrap gap-4 text-sm text-kumo-subtle">
                 {Object.entries(UNIT_STATUS).map(([key, s]) => (
                   <span key={key} className="flex items-center gap-1.5">
-                    <span className={clsx("w-2 h-2 rounded-full", s.dot)} /> {s.label}
+                    <span className="size-2.5 rounded-full" style={{ backgroundColor: s.color }} /> {s.label}
                   </span>
                 ))}
               </div>
             </>
           )}
-        </Card>
-      </section>
+        </Panel>
+      </div>
 
       {payingInvoice && (
         <RecordCashPaymentModal
@@ -459,130 +372,17 @@ export default function AdminDashboard() {
         />
       )}
 
-      {showHistory && <HistoryModal onClose={() => setShowHistory(false)} />}
-    </div>
+      <HistoryDialog open={showHistory} onClose={() => setShowHistory(false)} />
+    </AdminPage>
   );
 }
 
 // ─── Building blocks ─────────────────────────────────────────────────────────
 
-function Card({ className, children }: { className?: string; children: React.ReactNode }) {
-  return (
-    <div
-      className={clsx(
-        "bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl p-6 md:p-8 shadow-xs",
-        className,
-      )}
-    >
-      {children}
-    </div>
-  );
-}
-
-function CardHeader({
-  title,
-  subtitle,
-  action,
-}: {
-  title: string;
-  subtitle?: string;
-  action?: React.ReactNode;
-}) {
-  return (
-    <div className="flex items-start justify-between gap-3 mb-6">
-      <div className="space-y-1">
-        <h2 className="text-xl font-semibold text-charcoal dark:text-white tracking-tight leading-none">
-          {title}
-        </h2>
-        {subtitle && <p className={LABEL}>{subtitle}</p>}
-      </div>
-      {action}
-    </div>
-  );
-}
-
 function CardLink({ href, children }: { href: string; children: React.ReactNode }) {
   return (
-    <Link href={href} className="shrink-0 text-xs font-semibold text-primary hover:underline flex items-center gap-1">
-      {children} <ArrowRight size={12} />
-    </Link>
-  );
-}
-
-function EmptyState({ icon, text }: { icon: React.ReactNode; text: string }) {
-  return (
-    <div className="flex flex-col items-center justify-center text-center py-12 gap-3 text-slate-300 dark:text-slate-600">
-      {icon}
-      <p className="text-slate-500 dark:text-slate-400 font-bold text-xs max-w-xs leading-relaxed">{text}</p>
-    </div>
-  );
-}
-
-function Avatar({ name, src }: { name: string; src?: string | null }) {
-  return (
-    <div className="w-12 h-12 shrink-0 rounded-2xl bg-primary/10 overflow-hidden flex items-center justify-center text-base font-semibold text-primary">
-      {src ? <img src={src} alt="" className="w-full h-full object-cover" /> : name.charAt(0).toUpperCase()}
-    </div>
-  );
-}
-
-const TONES = {
-  emerald: "bg-emerald-500/10 text-emerald-600",
-  red: "bg-red-500/10 text-red-600",
-  blue: "bg-blue-500/10 text-blue-600",
-  amber: "bg-amber-500/10 text-amber-600",
-  slate: "bg-slate-500/10 text-slate-600 dark:text-slate-300",
-  purple: "bg-purple-500/10 text-purple-600",
-} as const;
-
-function KpiCard({
-  label,
-  value,
-  icon,
-  tone,
-  sub,
-  trend,
-  href,
-}: {
-  label: string;
-  value: string;
-  icon: React.ReactNode;
-  tone: keyof typeof TONES;
-  sub?: string;
-  trend?: { value: number; label: string };
-  href: string;
-}) {
-  const up = (trend?.value ?? 0) >= 0;
-  return (
-    <Link
-      href={href}
-      title={sub ? `${label}: ${value} · ${sub}` : `${label}: ${value}`}
-      className="group min-w-0 bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl p-5 shadow-xs hover:shadow-xl hover:-translate-y-0.5 transition-all"
-    >
-      <span
-        className={clsx(
-          "w-10 h-10 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform",
-          TONES[tone],
-        )}
-      >
-        {icon}
-      </span>
-      <p className={clsx(LABEL, "mt-4 truncate")}>{label}</p>
-      <p className="mt-1 text-3xl font-semibold tracking-tight text-charcoal dark:text-white truncate">{value}</p>
-      <div className="mt-2 flex items-center gap-2 text-xs font-bold min-w-0">
-        {trend && (
-          <span
-            className={clsx(
-              "inline-flex items-center gap-0.5 font-semibold shrink-0",
-              up ? "text-emerald-600" : "text-red-600",
-            )}
-          >
-            {up ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
-            {Math.abs(trend.value)}%
-          </span>
-        )}
-        {sub && <span className="text-slate-500 dark:text-slate-400 truncate">{sub}</span>}
-      </div>
+    <Link href={href} className="shrink-0 text-sm font-medium text-kumo-link hover:underline">
+      {children}
     </Link>
   );
 }
@@ -592,11 +392,10 @@ function AttentionList({ attention }: { attention: AdminDashboardData["attention
     {
       key: "reservations",
       count: attention.reservations,
-      icon: <MapPin size={16} />,
       label: "Space reservations",
       detail:
         attention.urgentReservations > 0
-          ? `${attention.urgentReservations} expire within 6 hours`
+          ? `${attention.urgentReservations} expire${attention.urgentReservations === 1 ? "s" : ""} within 6 hours`
           : "Released automatically after 2 days",
       urgent: attention.urgentReservations > 0,
       href: "/admindashboard/bookings?tab=reservation",
@@ -604,7 +403,6 @@ function AttentionList({ attention }: { attention: AdminDashboardData["attention
     {
       key: "slips",
       count: attention.depositSlips,
-      icon: <FileCheck2 size={16} />,
       label: "Deposit slips to verify",
       detail: "Tenants uploaded proof of payment",
       href: "/admindashboard/tenant-monitoring?payment=verifying",
@@ -612,7 +410,6 @@ function AttentionList({ attention }: { attention: AdminDashboardData["attention
     {
       key: "events",
       count: attention.eventInquiries,
-      icon: <Calendar size={16} />,
       label: "Event inquiries",
       detail: "Booking requests from customers",
       href: "/admindashboard/bookings?tab=event",
@@ -620,7 +417,6 @@ function AttentionList({ attention }: { attention: AdminDashboardData["attention
     {
       key: "promos",
       count: attention.promos,
-      icon: <Megaphone size={16} />,
       label: "Promos to review",
       detail: "Tenant promotions awaiting approval",
       href: "/admindashboard/ad-scheduler",
@@ -628,7 +424,6 @@ function AttentionList({ attention }: { attention: AdminDashboardData["attention
     {
       key: "reviews",
       count: attention.flaggedReviews,
-      icon: <Flag size={16} />,
       label: "Flagged reviews",
       detail: "Marked as possible spam",
       href: "/admindashboard/user-management?tab=feedback",
@@ -636,7 +431,6 @@ function AttentionList({ attention }: { attention: AdminDashboardData["attention
     {
       key: "messages",
       count: attention.unreadMessages,
-      icon: <MessageSquare size={16} />,
       label: "Unread messages",
       detail: "From tenants and customers",
       href: "/admindashboard/messenger-hub",
@@ -644,49 +438,31 @@ function AttentionList({ attention }: { attention: AdminDashboardData["attention
   ].filter((r) => r.count > 0);
 
   if (rows.length === 0) {
-    return <EmptyState icon={<ClipboardCheck size={22} />} text="All caught up. Nothing is waiting on you." />;
+    return <EmptyNote title="All caught up">Nothing is waiting on you.</EmptyNote>;
   }
 
   return (
-    <ul className="divide-y divide-slate-100 dark:divide-white/5 -mx-2">
+    <ul className="grid gap-px bg-kumo-line sm:grid-cols-2 xl:grid-cols-3">
       {rows.map((row) => (
-        <li key={row.key}>
-          <Link
-            href={row.href}
-            className="flex items-center gap-4 px-3 py-4 rounded-2xl hover:bg-slate-50/80 dark:hover:bg-white/2 transition-colors group"
-          >
+        <li key={row.key} className="bg-kumo-base">
+          <Link href={row.href} className="flex h-full items-center gap-4 p-4 hover:bg-kumo-tint sm:px-5">
             <span
-              className={clsx(
-                "w-12 h-12 shrink-0 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform",
-                row.urgent ? TONES.red : "bg-primary/10 text-primary",
-              )}
-            >
-              {row.icon}
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className={clsx(NAME, "text-sm")}>{row.label}</p>
-              <p
-                className={clsx(
-                  "mt-0.5 text-xs font-bold truncate",
-                  row.urgent ? "text-red-600" : "text-slate-500 dark:text-slate-400",
-                )}
-              >
-                {row.detail}
-              </p>
-            </div>
-            <span
-              className={clsx(
-                "min-w-9 px-2.5 py-1 rounded-full text-center text-xs font-semibold border",
-                row.urgent
-                  ? "bg-red-500 text-white border-red-500"
-                  : "bg-primary/10 text-primary border-primary/20",
-              )}
+              className={cn("w-10 shrink-0 text-2xl font-semibold tabular-nums", row.urgent ? "text-kumo-danger" : "text-kumo-brand")}
             >
               {row.count}
             </span>
-            <ArrowRight size={16} className="text-slate-300 group-hover:text-primary transition-colors" />
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-semibold text-kumo-default">{row.label}</span>
+              <span className={cn("block text-sm", row.urgent ? "text-kumo-danger" : "text-kumo-subtle")}>{row.detail}</span>
+            </span>
+            <CaretRight size={16} aria-hidden className="shrink-0 text-kumo-subtle" />
           </Link>
         </li>
+      ))}
+      {/* Fill the last row so no grey cells show through. */}
+      {rows.length % 2 === 1 && <li aria-hidden className="hidden bg-kumo-base sm:block xl:hidden" />}
+      {Array.from({ length: (3 - (rows.length % 3)) % 3 }, (_, i) => (
+        <li key={`gap-${i}`} aria-hidden className="hidden bg-kumo-base xl:block" />
       ))}
     </ul>
   );
@@ -695,7 +471,7 @@ function AttentionList({ attention }: { attention: AdminDashboardData["attention
 function RevenueChart({ data }: { data: AdminDashboardData["revenue"] }) {
   const hasData = data.some((d) => d.billed > 0 || d.collected > 0);
   if (!hasData) {
-    return <EmptyState icon={<Wallet size={22} />} text="No invoices in this period yet." />;
+    return <EmptyNote title="No invoices in this period yet" />;
   }
   return (
     <div className="h-[280px] w-full">
@@ -719,7 +495,7 @@ function RevenueChart({ data }: { data: AdminDashboardData["revenue"] }) {
           <Tooltip
             formatter={(value: any, name: any) => [pesoFull.format(Number(value || 0)), name]}
             contentStyle={{
-              borderRadius: 12,
+              borderRadius: 8,
               border: "1px solid #e2e8f0",
               boxShadow: "0 8px 20px -6px rgba(0,0,0,0.15)",
               fontSize: 12,
@@ -749,31 +525,11 @@ function RevenueChart({ data }: { data: AdminDashboardData["revenue"] }) {
   );
 }
 
-const UNIT_STATUS: Record<string, { label: string; color: string; dot: string; tile: string }> = {
-  OCCUPIED: {
-    label: "Occupied",
-    color: BRAND,
-    dot: "bg-[#BE1E2D]",
-    tile: "border-[#BE1E2D]/30 bg-[#BE1E2D]/5 text-[#BE1E2D]",
-  },
-  RESERVED: {
-    label: "Reserved",
-    color: "#f59e0b",
-    dot: "bg-amber-500",
-    tile: "border-amber-500/30 bg-amber-500/5 text-amber-600",
-  },
-  AVAILABLE: {
-    label: "Available",
-    color: "#10b981",
-    dot: "bg-emerald-500",
-    tile: "border-emerald-500/30 bg-emerald-500/5 text-emerald-600",
-  },
-  MAINTENANCE: {
-    label: "Maintenance",
-    color: "#94a3b8",
-    dot: "bg-slate-400",
-    tile: "border-slate-300 dark:border-white/10 bg-slate-50 dark:bg-white/5 text-slate-500",
-  },
+const UNIT_STATUS: Record<string, { label: string; color: string }> = {
+  OCCUPIED: { label: "Occupied", color: BRAND },
+  RESERVED: { label: "Reserved", color: "#f59e0b" },
+  AVAILABLE: { label: "Available", color: "#10b981" },
+  MAINTENANCE: { label: "Maintenance", color: "#94a3b8" },
 };
 
 function OccupancyDonut({
@@ -791,7 +547,7 @@ function OccupancyDonut({
   ].map((s) => ({ ...s, name: UNIT_STATUS[s.key].label, color: UNIT_STATUS[s.key].color }));
 
   if (occupancy.total === 0) {
-    return <EmptyState icon={<Building2 size={22} />} text="No units have been set up yet." />;
+    return <EmptyNote title="No units have been set up yet" />;
   }
 
   return (
@@ -815,23 +571,23 @@ function OccupancyDonut({
             </Pie>
             <Tooltip
               formatter={(value: any, name: any) => [`${value} unit${Number(value) === 1 ? "" : "s"}`, name]}
-              contentStyle={{ borderRadius: 12, border: "1px solid #e2e8f0", fontSize: 12 }}
+              contentStyle={{ borderRadius: 8, border: "1px solid #e2e8f0", fontSize: 12 }}
             />
           </PieChart>
         </ResponsiveContainer>
-        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-          <p className="text-4xl font-semibold text-charcoal dark:text-white leading-none">{rate}%</p>
-          <p className={clsx(LABEL, "mt-1")}>Occupied</p>
+        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+          <p className="text-3xl font-semibold leading-none tabular-nums text-kumo-default">{rate}%</p>
+          <p className="mt-1 text-sm text-kumo-subtle">Occupied</p>
         </div>
       </div>
-      <ul className="mt-4 grid grid-cols-2 gap-2">
+      <ul className="mt-4 grid grid-cols-2 gap-x-6 gap-y-2">
         {slices.map((s) => (
           <li key={s.key} className="flex items-center justify-between gap-2">
-            <span className="flex items-center gap-2 text-xs font-semibold text-slate-500">
-              <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: s.color }} />
+            <span className="flex items-center gap-2 text-sm text-kumo-subtle">
+              <span className="size-2.5 rounded-full" style={{ backgroundColor: s.color }} />
               {s.name}
             </span>
-            <span className="text-sm font-semibold text-charcoal dark:text-white tabular-nums">{s.value}</span>
+            <span className="text-sm font-semibold tabular-nums text-kumo-default">{s.value}</span>
           </li>
         ))}
       </ul>
@@ -844,48 +600,35 @@ function FloorTile({ slot }: { slot: AdminDashboardData["floor"][number] }) {
   return (
     <Link
       href="/admindashboard/space-manager"
-      className={clsx("rounded-2xl border-2 p-4 transition-all hover:shadow-md hover:-translate-y-0.5 min-w-0", s.tile)}
+      className="min-w-0 rounded-lg border border-kumo-line border-l-4 p-3 hover:bg-kumo-tint"
+      style={{ borderLeftColor: s.color }}
     >
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-sm font-semibold truncate">{slot.unitId}</span>
-        <span className={clsx("w-2 h-2 rounded-full shrink-0", s.dot)} />
-      </div>
-      <p
-        className="mt-1 text-xs font-bold text-slate-500 dark:text-slate-400 truncate"
-        title={slot.shopName || undefined}
-      >
+      <span className="block truncate text-sm font-semibold text-kumo-default">{slot.unitId}</span>
+      <span className="block truncate text-sm text-kumo-subtle" title={slot.shopName || undefined}>
         {slot.status === "OCCUPIED"
           ? slot.shopName || "Occupied"
           : slot.status === "AVAILABLE"
-            ? `${pesoCompact.format(slot.baseRent || 0)}/mo`
+            ? `${pesoCompact.format(slot.baseRent || 0)} a month`
             : s.label}
-      </p>
+      </span>
     </Link>
   );
 }
 
 function ActivityRow({ item }: { item: ActivityItem }) {
   const content = (
-    <div className="flex gap-3">
-      <span
-        className={clsx(
-          "mt-1.5 w-2 h-2 rounded-full shrink-0",
-          item.urgent ? "bg-primary" : "bg-slate-300 dark:bg-zinc-600",
-        )}
-      />
-      <div className="min-w-0 flex-1">
-        <div className="flex items-baseline justify-between gap-2">
-          <p className={clsx(NAME, "text-sm truncate")}>{item.title}</p>
-          <span className={clsx(LABEL, "shrink-0")}>{item.time}</span>
-        </div>
-        <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400 font-medium line-clamp-1">{item.description}</p>
+    <div className="px-4 py-3">
+      <div className="flex items-baseline justify-between gap-2">
+        <p className={cn("truncate text-sm font-medium", item.urgent ? "text-kumo-brand" : "text-kumo-default")}>{item.title}</p>
+        <span className="shrink-0 text-xs text-kumo-subtle">{item.time}</span>
       </div>
+      <p className="line-clamp-1 text-sm text-kumo-subtle">{item.description}</p>
     </div>
   );
   return (
     <li>
       {item.targetUrl ? (
-        <Link href={item.targetUrl} className="block rounded-lg hover:bg-slate-50 dark:hover:bg-white/5 -mx-2 px-2 py-1 transition-colors">
+        <Link href={item.targetUrl} className="block hover:bg-kumo-tint">
           {content}
         </Link>
       ) : (
@@ -895,60 +638,32 @@ function ActivityRow({ item }: { item: ActivityItem }) {
   );
 }
 
-function HistoryModal({ onClose }: { onClose: () => void }) {
+function HistoryDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [items, setItems] = useState<ActivityItem[] | null>(null);
 
   useEffect(() => {
+    if (!open) return;
+    setItems(null);
     getRecentActivity(50)
       .then((res) => setItems(res.success && res.data ? res.data : []))
       .catch(() => setItems([]));
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  }, [open]);
 
   return (
-    <div className="fixed inset-0 z-250 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-xs" onClick={onClose} />
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="history-title"
-        className="relative w-full max-w-2xl max-h-[85vh] bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl flex flex-col border border-slate-200 dark:border-white/10 overflow-hidden animate-fade-in-up"
-      >
-        <div className="flex items-center justify-between p-6 md:p-8 border-b border-slate-100 dark:border-white/5">
-          <div className="space-y-1">
-            <h2 id="history-title" className="font-display text-2xl font-semibold text-charcoal dark:text-white tracking-tight">
-              Activity history
-            </h2>
-            <p className={LABEL}>Last 50 events</p>
-          </div>
-          <button
-            onClick={onClose}
-            aria-label="Close"
-            className="p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:text-charcoal dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10"
-          >
-            <X size={18} />
-          </button>
+    <AdminDialog open={open} onClose={onClose} size="lg" title="Activity history" description="Last 50 events">
+      {items === null ? (
+        <div className="flex justify-center py-16">
+          <Loader />
         </div>
-        <div className="flex-1 overflow-y-auto p-6 md:p-8">
-          {items === null ? (
-            <div className="flex justify-center py-16">
-              <RefreshCw className="animate-spin text-primary" size={24} />
-            </div>
-          ) : items.length === 0 ? (
-            <EmptyState icon={<Activity size={22} />} text="No activity recorded yet." />
-          ) : (
-            <ul className="space-y-4">
-              {items.map((item) => (
-                <ActivityRow key={item.id} item={item} />
-              ))}
-            </ul>
-          )}
-        </div>
-      </div>
-    </div>
+      ) : items.length === 0 ? (
+        <EmptyNote title="No activity recorded yet" />
+      ) : (
+        <ul className="divide-y divide-kumo-line rounded-lg border border-kumo-line">
+          {items.map((item) => (
+            <ActivityRow key={item.id} item={item} />
+          ))}
+        </ul>
+      )}
+    </AdminDialog>
   );
 }

@@ -5,6 +5,8 @@ import React, { useState, useEffect, useRef } from "react";
 import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { ShopCard } from "@/components/shop-card";
+import { SeeAllCard, SpaceCard } from "@/components/space-card";
+import { floorLabel } from "@/lib/floors";
 import { AdBanner } from "@/components/ad-banner";
 import { UpcomingEventsSlider } from "@/components/upcoming-events-slider";
 import { ShopSalesSlider } from "@/components/shop-sales-slider";
@@ -592,7 +594,7 @@ export default function PublicDigitalConcierge() {
                 <Link
                   href="/products"
                   onClick={() => sessionStorage.setItem("scroll_to_featured", "true")}
-                  className="group inline-flex items-center gap-2 text-xs font-semibold text-primary hover:text-primary-hover transition-all"
+                  className="group inline-flex items-center gap-2 text-sm font-semibold text-primary hover:text-primary-hover"
                 >
                   View All Products
                   <ArrowRight
@@ -621,42 +623,13 @@ export default function PublicDigitalConcierge() {
                   />
                 ))}
 
-                {/* View All Products Card - Matched to ProductCard Design */}
-                <Link
+                <SeeAllCard
                   href="/products"
                   onClick={() => sessionStorage.setItem("scroll_to_featured", "true")}
-                  className={clsx(
-                    "w-[62%] sm:w-full shrink-0 snap-center",
-                    "group relative aspect-3/4 bg-white dark:bg-zinc-900 rounded-4xl overflow-hidden",
-                    "border-2 border-slate-100 dark:border-white/5 hover:border-primary/30",
-                    "shadow-lg hover:shadow-[0_30px_60px_-15px_rgba(190,30,45,0.25)]",
-                    "transition-all duration-700 cursor-pointer",
-                  )}
-                >
-                  {/* Background/Overlay */}
-                  <div className="absolute inset-0 bg-slate-50 dark:bg-zinc-950 flex items-center justify-center">
-                    <div className="absolute inset-0 bg-linear-to-t from-black via-black/20 to-transparent opacity-60 group-hover:opacity-80 transition-opacity duration-700 z-10" />
-                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-white dark:bg-zinc-800 text-primary flex items-center justify-center group-hover:scale-110 group-hover:bg-primary group-hover:text-white transition-all duration-500 shadow-xl z-20 border border-slate-100 dark:border-white/5">
-                      <ArrowRight size={32} />
-                    </div>
-                  </div>
-
-                  {/* Content Overlay */}
-                  <div className="absolute bottom-0 left-0 right-0 p-6 z-30 text-left">
-                    <div className="space-y-1">
-                      <p className="text-xs font-semibold text-primary">
-                        Collection
-                      </p>
-                      <p className="text-2xl font-semibold text-white tracking-tight">
-                        View All <br />
-                        Products
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Glass Border Effect on Hover */}
-                  <div className="absolute inset-4 border border-white/0 group-hover:border-white/20 rounded-[2.5rem] transition-all duration-700 z-40 pointer-events-none" />
-                </Link>
+                  title="View all products"
+                  detail="Browse everything the shops sell"
+                  className="w-[62%] shrink-0 snap-center sm:w-full"
+                />
               </div>
             </div>
           </div>
@@ -684,16 +657,16 @@ export default function PublicDigitalConcierge() {
               <button
                 suppressHydrationWarning
                 onClick={() => setIsVideoModalOpen(true)}
-                className="group inline-flex items-center justify-center gap-3 pl-2 pr-6 py-2 rounded-full bg-primary dark:bg-[#BE1E2D] text-white font-bold text-sm sm:text-base shadow-xl shadow-primary/25 dark:shadow-[#BE1E2D]/25 hover:bg-primary/90 dark:hover:bg-[#9E1B26] active:scale-95 transition-all"
+                className="group inline-flex items-center justify-center gap-3 pl-2 pr-6 py-2 rounded-xl bg-primary dark:bg-[#BE1E2D] text-white font-bold text-sm sm:text-base shadow-xl shadow-primary/25 dark:shadow-[#BE1E2D]/25 hover:bg-primary/90 dark:hover:bg-[#9E1B26] active:scale-95 transition-all"
               >
-                <span className="w-10 h-10 rounded-full bg-white/15 flex items-center justify-center group-hover:bg-white/25 transition-colors">
+                <span className="w-10 h-10 rounded-lg bg-white/15 flex items-center justify-center group-hover:bg-white/25 transition-colors">
                   <Play size={16} className="fill-current translate-x-px" />
                 </span>
                 Watch Full Campaign
               </button>
               <a
                 href="#directory"
-                className="group inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full border border-slate-300 dark:border-white/15 text-charcoal dark:text-white font-bold text-sm sm:text-base hover:border-primary hover:text-primary dark:hover:border-[#BE1E2D] dark:hover:text-[#E04B57] transition-colors"
+                className="group inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl border border-slate-300 dark:border-white/15 text-charcoal dark:text-white font-bold text-sm sm:text-base hover:border-primary hover:text-primary dark:hover:border-[#BE1E2D] dark:hover:text-[#E04B57] transition-colors"
               >
                 {config?.videoCtaLabel || "Explore the shops"}
                 <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
@@ -819,7 +792,7 @@ export default function PublicDigitalConcierge() {
               <div className="w-full lg:w-96 flex flex-col items-start lg:items-end gap-4">
                 <Link
                   href="/tenant-directory"
-                  className="group inline-flex items-center gap-2 text-xs font-semibold text-primary hover:text-primary-hover transition-all"
+                  className="group inline-flex items-center gap-2 text-sm font-semibold text-primary hover:text-primary-hover"
                 >
                   View All Tenant Directory
                   <ArrowRight
@@ -830,15 +803,15 @@ export default function PublicDigitalConcierge() {
                 <div className="relative group w-full">
                   <Search
                     size={20}
-                    className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors"
+                    className="absolute left-4 top-1/2 -translate-y-1/2 text-kumo-subtle group-focus-within:text-primary transition-colors"
                   />
                   <input suppressHydrationWarning
                     type="text"
                     aria-label="Search stores, brands, or unit IDs"
-                    placeholder="Search stores, brands, or unit IDs..."
+                    placeholder="Search shops or unit numbers"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full bg-white dark:bg-zinc-900 border-2 border-slate-100 dark:border-white/5 rounded-3xl py-5 pl-14 pr-6 text-sm font-bold text-charcoal dark:text-white placeholder:text-slate-400 focus:outline-hidden focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all shadow-xl shadow-slate-200/50 dark:shadow-none"
+                    className="h-12 w-full rounded-xl border border-kumo-line bg-kumo-base pl-12 pr-4 text-base text-kumo-default placeholder:text-kumo-subtle outline-none focus:border-primary focus:ring-2 focus:ring-primary/25"
                   />
 
                   {/* Predictive Search Panel */}
@@ -846,7 +819,7 @@ export default function PublicDigitalConcierge() {
                     <div className="absolute top-full left-0 w-full mt-2 sm:mt-3 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-2xl sm:rounded-3xl shadow-2xl z-100 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300">
                       <div className="p-3 sm:p-4 border-b border-slate-50 dark:border-white/5 flex justify-between items-center">
                         <span className="text-xs font-semibold text-slate-400">
-                          Recommended Matches
+                          Matching shops
                         </span>
                         <button suppressHydrationWarning onClick={() => setSearchQuery("")} className="text-slate-400 hover:text-charcoal transition-colors">
                           <X size={14} />
@@ -878,7 +851,9 @@ export default function PublicDigitalConcierge() {
                                   {s.shop_name}
                                 </p>
                                 <p className="text-xs font-bold text-slate-400">
-                                  {hasAssignedUnit(s.unit_id) ? `${s.unit_id} — Plaza Wing` : "Unit to be assigned"}
+                                  {hasAssignedUnit(s.unit_id)
+                                    ? [`Unit ${s.unit_id}`, floorLabel((s as any).floor)].filter(Boolean).join(", ")
+                                    : "Unit to be assigned"}
                                 </p>
                               </div>
                               <Navigation
@@ -907,24 +882,8 @@ export default function PublicDigitalConcierge() {
             </div>
           </div>
 
-          {/* Icon-based Category Switcher */}
-          <div
-            className={clsx(
-              "flex",
-              "items-center",
-              "gap-3",
-              "sm:gap-4",
-              "mb-10",
-              "sm:mb-16",
-              "pb-4",
-              "overflow-x-auto",
-              "no-scrollbar",
-              "touch-pan-x",
-              "relative",
-            )}
-          >
-            {/* Scroll Indication for Mobile */}
-            <div className="lg:hidden absolute right-0 top-0 bottom-4 w-8 bg-linear-to-l from-slate-100 dark:from-zinc-950 to-transparent pointer-events-none z-20"></div>
+          {/* Category filter */}
+          <div className="no-scrollbar relative mb-8 flex touch-pan-x items-center gap-2 overflow-x-auto pb-1 sm:mb-10 sm:flex-wrap">
             {[
               { id: "All Categories", label: "All", icon: <ShoppingBag size={16} /> },
               { id: "food", label: "Food & Drinks", icon: <Coffee size={16} /> },
@@ -935,24 +894,18 @@ export default function PublicDigitalConcierge() {
               { id: "other", label: "Other", icon: <ShoppingBag size={16} /> },
             ].map((cat) => (
               <button suppressHydrationWarning
+                type="button"
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat.id)}
+                aria-pressed={selectedCategory === cat.id}
                 className={clsx(
-                  "flex items-center gap-3 px-6 py-4 rounded-2xl text-xs font-semibold transition-all whitespace-nowrap border-2",
+                  "flex h-10 shrink-0 cursor-pointer items-center gap-2 whitespace-nowrap rounded-lg border px-4 text-sm font-medium transition-colors",
                   selectedCategory === cat.id
-                    ? "bg-primary text-white border-primary shadow-[0_10px_30px_-5px_rgba(190,30,45,0.4)] scale-105 z-10"
-                    : "bg-white dark:bg-zinc-900 text-slate-400 dark:text-zinc-500 border-slate-50 dark:border-white/5 hover:border-slate-200 dark:hover:border-white/10",
+                    ? "border-primary bg-primary text-white"
+                    : "border-kumo-line bg-kumo-base text-kumo-default hover:border-primary hover:text-primary",
                 )}
               >
-                <span
-                  className={
-                    selectedCategory === cat.id
-                      ? "text-white"
-                      : "text-slate-300"
-                  }
-                >
-                  {cat.icon}
-                </span>
+                {cat.icon}
                 {cat.label}
               </button>
             ))}
@@ -962,10 +915,7 @@ export default function PublicDigitalConcierge() {
             {/* Carousel Container */}
             <div
               id="directory-carousel"
-              className={clsx(
-                "flex sm:grid sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 overflow-x-auto sm:overflow-x-visible scroll-smooth no-scrollbar snap-x snap-mandatory gap-8 px-4 sm:px-0",
-                "cursor-grab active:cursor-grabbing pb-12",
-              )}
+              className="flex gap-4 overflow-x-auto px-1 pb-8 scroll-smooth no-scrollbar snap-x snap-mandatory sm:grid sm:grid-cols-2 sm:gap-6 sm:overflow-x-visible sm:px-0 xl:grid-cols-3"
             >
               {loadingShops ? (
                 <div
@@ -990,7 +940,7 @@ export default function PublicDigitalConcierge() {
 
                     )}
                   >
-                    Loading Premium Collection...
+                    Loading shops...
                   </p>
                 </div>
               ) : visibleShopsArray.length > 0 ? (
@@ -1012,32 +962,12 @@ export default function PublicDigitalConcierge() {
                     </div>
                   ))}
 
-                  {/* View All Shops — same shape as ShopCard / slot card */}
-                  <Link
+                  <SeeAllCard
                     href="/tenant-directory"
-                    className="w-[85%] sm:w-full shrink-0 snap-center group relative bg-white dark:bg-zinc-900 rounded-4xl border border-slate-100 dark:border-white/5 overflow-hidden transition-all duration-700 shadow-xs hover:shadow-2xl hover:-translate-y-2"
-                  >
-                    <div className="aspect-4/3 sm:aspect-16/10 relative overflow-hidden bg-linear-to-br from-slate-50 to-slate-100 dark:from-zinc-900 dark:to-zinc-950 flex items-center justify-center">
-                      <div className="w-14 h-14 sm:w-20 sm:h-20 rounded-full bg-white dark:bg-zinc-800 text-primary flex items-center justify-center shadow-xl group-hover:bg-primary group-hover:text-white group-hover:scale-110 transition-all duration-500">
-                        <ArrowRight size={28} />
-                      </div>
-                      <div className="absolute bottom-3 sm:bottom-6 left-3 sm:left-8 right-3 sm:right-8">
-                        <h4 className="text-base sm:text-3xl font-semibold text-charcoal dark:text-white tracking-tight leading-none">
-                          View All Shops
-                        </h4>
-                      </div>
-                    </div>
-                    <div className="p-3 sm:p-8 flex items-center justify-between bg-white dark:bg-zinc-900/50">
-                      <div className="space-y-0.5 sm:space-y-1.5">
-                        <p className="text-xs font-semibold text-slate-400">Stores</p>
-                        <p className="text-lg sm:text-3xl font-semibold text-charcoal dark:text-white tracking-tight">{shops.length}</p>
-                      </div>
-                      <div className="flex flex-col items-end gap-0.5 sm:gap-1 text-right">
-                        <span className="text-xs font-bold text-slate-400">Directory</span>
-                        <span className="text-xs font-semibold text-primary">Full Listing</span>
-                      </div>
-                    </div>
-                  </Link>
+                    title="View all shops"
+                    detail={`${shops.length} ${shops.length === 1 ? "shop" : "shops"} in the directory`}
+                    className="w-[85%] shrink-0 snap-center sm:w-full"
+                  />
                 </>
               ) : (
                 <div
@@ -1063,7 +993,7 @@ export default function PublicDigitalConcierge() {
                       "text-sm",
                     )}
                   >
-                    No storefronts matching your search found.
+                    No shops match your search.
                   </p>
                 </div>
               )}
@@ -1085,38 +1015,13 @@ export default function PublicDigitalConcierge() {
           {hasMore && (
             <div className={clsx("mt-12 sm:mt-16 text-center")}>
               <button suppressHydrationWarning
+                type="button"
                 onClick={handleLoadMore}
                 disabled={isLoadingMore}
-                className={clsx(
-                  "inline-flex items-center gap-2 sm:gap-3 px-6 sm:px-8 py-3 sm:py-4 bg-zinc-100 dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-xl sm:rounded-2xl text-primary font-bold text-xs hover:bg-slate-200 dark:hover:bg-zinc-800 hover:border-primary transition-all active:scale-95 disabled:opacity-70 shadow-xs",
-                )}
+                className="inline-flex h-11 cursor-pointer items-center gap-2 rounded-xl border border-kumo-line bg-kumo-base px-6 text-sm font-semibold text-kumo-default transition-colors hover:border-primary hover:text-primary disabled:opacity-70"
               >
-                {isLoadingMore ? (
-                  <>
-                    <Loader2
-                      size={16}
-                      className={clsx(
-                        "animate-spin",
-                        "sm:w-[18px]",
-                        "sm:h-[18px]",
-                      )}
-                    />
-                    Loading...
-                  </>
-                ) : (
-                  <>
-                    Load More{" "}
-                    <ArrowRight
-                      size={16}
-                      className={clsx(
-                        "group-hover:translate-x-1",
-                        "transition-transform",
-                        "sm:w-[18px]",
-                        "sm:h-[18px]",
-                      )}
-                    />
-                  </>
-                )}
+                {isLoadingMore && <Loader2 size={16} className="animate-spin" />}
+                {isLoadingMore ? "Loading..." : "Load More"}
               </button>
             </div>
           )}
@@ -1195,7 +1100,7 @@ export default function PublicDigitalConcierge() {
             <div className="flex flex-col items-start lg:items-end gap-4 w-full lg:w-auto">
               <Link
                 href="/available-spaces"
-                className="group inline-flex items-center gap-2 text-xs font-semibold text-primary hover:text-primary-hover transition-all"
+                className="group inline-flex items-center gap-2 text-sm font-semibold text-primary hover:text-primary-hover"
               >
                 View All Spaces
                 <ArrowRight
@@ -1204,27 +1109,8 @@ export default function PublicDigitalConcierge() {
                 />
               </Link>
               <button suppressHydrationWarning
-                className={clsx(
-                  "inline-flex",
-                  "items-center",
-                  "gap-3",
-                  "px-8",
-                  "py-5",
-                  "bg-primary",
-                  "text-white",
-                  "rounded-2xl",
-                  "text-xs",
-                  "font-semibold",
-
-
-                  "hover:bg-primary-hover",
-                  "hover:scale-105",
-                  "transition-all",
-                  "active:scale-95",
-                  "shadow-[0_20px_40px_-10px_rgba(190,30,45,0.4)]",
-                  "justify-center",
-                  "w-full sm:w-auto",
-                )}
+                type="button"
+                className="inline-flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-primary px-6 text-sm font-semibold text-white transition-colors hover:bg-primary-hover sm:w-auto"
                 onClick={() => {
                   setChatInitialShopName("Leasing Inquiry");
                   setChatRecipient("admin");
@@ -1242,10 +1128,7 @@ export default function PublicDigitalConcierge() {
             {/* Carousel Container */}
             <div
               id="spaces-carousel"
-              className={clsx(
-                "flex sm:grid sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 overflow-x-auto sm:overflow-x-visible scroll-smooth no-scrollbar snap-x snap-mandatory gap-8 px-4 sm:px-0",
-                "cursor-grab active:cursor-grabbing pb-12",
-              )}
+              className="flex gap-4 overflow-x-auto px-1 pb-8 scroll-smooth no-scrollbar snap-x snap-mandatory sm:grid sm:grid-cols-2 sm:gap-6 sm:overflow-x-visible sm:px-0 xl:grid-cols-3"
             >
               {loadingSlots ? (
                 <div
@@ -1269,152 +1152,31 @@ export default function PublicDigitalConcierge() {
                       "text-slate-400",
                     )}
                   >
-                    Synchronizing Inventory...
+                    Loading spaces...
                   </p>
                 </div>
               ) : visibleSlotsArray.length > 0 ? (
-                visibleSlotsArray.map((slot, idx) => {
-                  const access = slotAccess(slot as any, user?.id);
-                  return (
+                visibleSlotsArray.map((slot, idx) => (
                   <div
                     key={slot.id}
-                    onClick={() =>
-                      access.open
-                        ? setSelectedSlot(slot)
-                        : toast.info(
-                          slot.status === "RESERVED"
-                            ? `Unit ${slot.unit_id} is pending: another customer reserved it first. It's released automatically if it isn't confirmed within 2 days.`
-                            : `Unit ${slot.unit_id} is already occupied.`,
-                        )
-                    }
-                    aria-disabled={!access.open}
-                    className={clsx(
-                      "w-[85%] sm:w-full",
-                      "shrink-0 snap-center group relative bg-white dark:bg-zinc-900 rounded-4xl border border-slate-100 dark:border-white/5 overflow-hidden transition-all duration-700 shadow-xs animate-fade-in-up",
-                      access.open ? "cursor-pointer hover:shadow-2xl hover:-translate-y-2" : "cursor-not-allowed opacity-75 grayscale-35",
-                    )}
-                    style={{ animationDelay: `${idx * 100}ms` }}
+                    className="w-[85%] shrink-0 snap-center animate-fade-in-up sm:w-full"
+                    style={{ animationDelay: `${idx * 50}ms` }}
                   >
-                    <div
-                      className={clsx(
-                        "aspect-16/10",
-                        "relative",
-                        "overflow-hidden",
-                        "bg-slate-100",
-                        "dark:bg-black",
-                      )}
-                    >
-                      {slot.space_images && slot.space_images[0] ? (
-                        <img loading="lazy" decoding="async"
-                          src={optimizedImage(slot.space_images[0], 800)}
-                          alt={`Space ${slot.unit_id}`}
-                          className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
-                        />
-                      ) : (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center p-8 bg-linear-to-br from-slate-50 to-slate-100 dark:from-zinc-900 dark:to-zinc-950">
-                          <ShoppingBag className="w-12 h-12 text-slate-200 dark:text-zinc-800 mb-4" />
-                          <p className="text-xs font-semibold text-slate-300 text-center">
-                            Premium Unit <br />
-                            Preview Pending
-                          </p>
-                        </div>
-                      )}
-
-                      {/* Professional Glassmorphism Overlay */}
-                      <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity duration-500"></div>
-
-                      <div className={clsx("absolute", "top-6", "right-6")}>
-                        <div
-                          className={clsx(
-                            "backdrop-blur-xl px-4 py-2 rounded-full border text-xs font-semibold transition-all shadow-2xl",
-                            slot.status === "AVAILABLE"
-                              ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-400"
-                              : access.mine
-                                ? "bg-yellow-400/25 border-yellow-400/60 text-yellow-300"
-                                : "bg-amber-500/20 border-amber-500/40 text-amber-400",
-                          )}
-                        >
-                          {slot.status === "AVAILABLE" ? "Available Now" : access.label}
-                        </div>
-                      </div>
-
-                      <div
-                        className={clsx(
-                          "absolute",
-                          "bottom-6",
-                          "left-8",
-                          "right-8",
-                        )}
-                      >
-                        <h4
-                          className={clsx(
-                            "text-3xl font-semibold text-white tracking-tight leading-none",
-                          )}
-                        >
-                          Unit {slot.unit_id}
-                        </h4>
-                        <div className="flex items-center gap-2 mt-2">
-                          <div className={clsx("w-1.5 h-1.5 rounded-full", slot.status === "AVAILABLE" ? "bg-emerald-400 animate-pulse" : "bg-amber-400")}></div>
-                          <p className="text-xs font-bold text-white/70">
-                            Plaza Wing — Level 1
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Action Button on Hover */}
-                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-500 bg-black/20 backdrop-blur-[2px]">
-                        <div className="px-8 py-3 bg-white text-black text-xs font-semibold rounded-full shadow-3xl transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
-                          Inquire Details
-                        </div>
-                      </div>
-                    </div>
-
-                    <div
-                      className={clsx(
-                        "p-8",
-                        "flex",
-                        "items-center",
-                        "justify-between",
-                        "bg-white",
-                        "dark:bg-zinc-900/50",
-                      )}
-                    >
-                      <div className="space-y-1.5">
-                        <p
-                          className={clsx(
-                            "text-[10px]",
-                            "font-semibold",
-                            "text-slate-400",
-
-
-                          )}
-                        >
-                          Floor Area
-                        </p>
-                        <div className="flex items-baseline gap-1">
-                          <p
-                            className={clsx(
-                              "text-3xl",
-                              "font-semibold",
-                              "text-charcoal",
-                              "dark:text-white",
-                              "tracking-tight",
-                            )}
-                          >
-                            {slot.sqm_size}
-                          </p>
-                          <span className="text-xs font-semibold text-primary">SQM</span>
-                        </div>
-                      </div>
-
-                      <div className="flex flex-col items-end gap-1">
-                        <span className="text-xs font-bold text-slate-400">Lease Terms</span>
-                        <span className="text-xs font-semibold text-charcoal dark:text-white">Flexible</span>
-                      </div>
-                    </div>
+                    <SpaceCard
+                      slot={slot}
+                      viewerId={user?.id}
+                      onOpen={() =>
+                        slotAccess(slot as any, user?.id).open
+                          ? setSelectedSlot(slot)
+                          : toast.info(
+                            slot.status === "RESERVED"
+                              ? `Unit ${slot.unit_id} is pending: another customer reserved it first. It's released automatically if it isn't confirmed within 2 days.`
+                              : `Unit ${slot.unit_id} is already occupied.`,
+                          )
+                      }
+                    />
                   </div>
-                  );
-                })
+                ))
               ) : (
                 <div
                   className={clsx(
@@ -1444,47 +1206,13 @@ export default function PublicDigitalConcierge() {
                 </div>
               )}
 
-              {/* View All Spaces Card - Matched to Slot Card Design */}
               {!loadingSlots && (
-                <Link
+                <SeeAllCard
                   href="/available-spaces"
-                  className={clsx(
-                    "w-[85%] sm:w-full shrink-0 snap-center",
-                    "group relative bg-white dark:bg-zinc-900 rounded-4xl border border-slate-100 dark:border-white/5 overflow-hidden transition-all duration-700 cursor-pointer shadow-xs hover:shadow-2xl hover:-translate-y-2",
-                  )}
-                >
-                  <div className={clsx("aspect-16/10", "relative", "overflow-hidden", "bg-slate-50", "dark:bg-zinc-950", "flex items-center justify-center")}>
-                    <div className="absolute inset-0 bg-linear-to-br from-primary/5 to-transparent opacity-60 group-hover:opacity-100 transition-opacity" />
-                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-white dark:bg-zinc-800 text-primary flex items-center justify-center group-hover:scale-110 group-hover:bg-primary group-hover:text-white transition-all duration-500 shadow-xl z-10 border border-slate-100 dark:border-white/5">
-                      <ArrowRight size={32} />
-                    </div>
-                  </div>
-
-                  <div
-                    className={clsx(
-                      "p-8",
-                      "flex",
-                      "items-center",
-                      "justify-between",
-                      "bg-white",
-                      "dark:bg-zinc-900/50",
-                    )}
-                  >
-                    <div className="space-y-1.5">
-                      <p className="text-xs font-semibold text-slate-400">
-                        Inventory
-                      </p>
-                      <p className="text-2xl font-semibold text-charcoal dark:text-white tracking-tight">
-                        View All <br />
-                        Spaces
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-xs font-bold text-primary">Explore</p>
-                      <p className="text-xs font-bold text-slate-400">Full Map</p>
-                    </div>
-                  </div>
-                </Link>
+                  title="View all spaces"
+                  detail="See every unit you can rent"
+                  className="w-[85%] shrink-0 snap-center sm:w-full"
+                />
               )}
             </div>
 
@@ -1504,38 +1232,13 @@ export default function PublicDigitalConcierge() {
           {hasMoreSlots && (
             <div className={clsx("mt-10 sm:mt-12 text-center")}>
               <button suppressHydrationWarning
+                type="button"
                 onClick={handleLoadMoreSlots}
                 disabled={isLoadingMoreSlots}
-                className={clsx(
-                  "inline-flex items-center gap-2 sm:gap-3 px-6 sm:px-8 py-3 sm:py-4 bg-zinc-100 dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-xl sm:rounded-2xl text-primary font-bold text-xs hover:bg-slate-200 dark:hover:bg-zinc-800 hover:border-primary transition-all active:scale-95 disabled:opacity-70 shadow-xs",
-                )}
+                className="inline-flex h-11 cursor-pointer items-center gap-2 rounded-xl border border-kumo-line bg-kumo-base px-6 text-sm font-semibold text-kumo-default transition-colors hover:border-primary hover:text-primary disabled:opacity-70"
               >
-                {isLoadingMoreSlots ? (
-                  <>
-                    <Loader2
-                      size={16}
-                      className={clsx(
-                        "animate-spin",
-                        "sm:w-[18px]",
-                        "sm:h-[18px]",
-                      )}
-                    />
-                    Loading...
-                  </>
-                ) : (
-                  <>
-                    Load More Spaces{" "}
-                    <ArrowRight
-                      size={16}
-                      className={clsx(
-                        "group-hover:translate-x-1",
-                        "transition-transform",
-                        "sm:w-[18px]",
-                        "sm:h-[18px]",
-                      )}
-                    />
-                  </>
-                )}
+                {isLoadingMoreSlots && <Loader2 size={16} className="animate-spin" />}
+                {isLoadingMoreSlots ? "Loading..." : "Load More Spaces"}
               </button>
             </div>
           )}
@@ -1681,7 +1384,7 @@ export default function PublicDigitalConcierge() {
                 href={directionsHref}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#C51D30] px-6 text-[14px] font-semibold text-white shadow-[0_10px_24px_-12px_rgba(197,29,48,0.7)] transition-all hover:bg-[#A8172A] hover:shadow-[0_14px_30px_-12px_rgba(197,29,48,0.75)] active:scale-[0.99]"
+                className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#C51D30] px-6 text-[14px] font-semibold text-white shadow-[0_10px_24px_-12px_rgba(197,29,48,0.7)] transition-all hover:bg-[#A8172A] hover:shadow-[0_14px_30px_-12px_rgba(197,29,48,0.75)] active:scale-[0.99]"
               >
                 <Navigation size={16} aria-hidden />
                 Get directions

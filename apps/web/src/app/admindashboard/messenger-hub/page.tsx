@@ -4,21 +4,9 @@ import Link from "next/link";
 import { optimizedImage } from "@/lib/media";
 import React, { useState, useEffect, useRef, Suspense, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
-import {
-  Search,
-  MoreVertical,
-  Send,
-  ShieldAlert,
-  Ban,
-  MapPin,
-  CalendarPlus,
-  Loader2,
-  Paperclip,
-  X,
-  Maximize2,
-  ExternalLink,
-  AlertTriangle,
-} from "lucide-react";
+import { Button, Input, Loader, Select, cn } from "@cloudflare/kumo";
+import { PaperPlaneRight, Paperclip } from "@phosphor-icons/react";
+import { AdminDialog, EmptyNote, Person, SearchField } from "@/components/admin/page-kit";
 import {
   getAdminConversations,
   getMessagesByConversation,
@@ -58,6 +46,12 @@ import {
 import { toast } from "sonner";
 
 const FILTER_TABS = ["All", "Tenant Messages", "Customer Chat Messages", "Unread"] as const;
+const FILTER_ITEMS: Record<string, string> = {
+  All: "All conversations",
+  "Tenant Messages": "Tenant messages",
+  "Customer Chat Messages": "Customer messages",
+  Unread: "Unread",
+};
 
 function MessengerHubContent() {
   const { user } = useAuth();
@@ -597,193 +591,133 @@ function MessengerHubContent() {
         new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
     );
 
+  const unreadChats = conversations.filter((c) => (c.unreadCount || 0) > 0 && c.id !== activeChatId).length;
+  const isTenantChat = (chat: any) =>
+    !!(
+      chat.user?.tenant ||
+      chat.user?.role === "TENANT" ||
+      chat.target?.tenant ||
+      chat.target?.role === "TENANT" ||
+      chat.type === "TENANT"
+    );
+  const activeTenant = activeChat ? activeChat.user?.tenant || activeChat.target?.tenant : null;
+  const activeKind = activeChat && isTenantChat(activeChat) ? "Tenant" : "Customer";
+
   return (
-    <div className="h-screen flex flex-col pt-10 px-4 sm:px-8 pb-8 animate-fade-in-up">
-      <div className="mb-6 flex items-end justify-between shrink-0">
-        <div>
-          <div className="flex items-center gap-3 mb-1">
-            <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-charcoal dark:text-white">
-            Messages and Support
-          </h1>
-          </div>
-          <p className="text-sm text-slate-500 font-medium mt-1">
-            Manage customer inquiries, tenant communications, and operational support channels.
-          </p>
-        </div>
-      </div>
+    // Fills the space under the top bar, so only the message lists scroll.
+    <div className="flex h-[calc(100dvh-5rem)] flex-col gap-4 p-4 sm:p-6">
+      <header className="shrink-0">
+        <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-kumo-default">Messages and Support</h1>
+        <p className="mt-1 text-sm text-kumo-subtle">
+          Manage customer inquiries, tenant communications, and operational support channels.
+        </p>
+      </header>
 
-      <div className="flex-1 bg-white dark:bg-zinc-900 rounded-2xl shadow-xs border border-slate-100 dark:border-white/5 flex overflow-hidden">
-        {/* Left Column (Inbox) */}
-        <div className="w-80 border-r border-slate-100 dark:border-white/5 flex flex-col bg-slate-50/50 dark:bg-zinc-900">
-          <div className="p-5 border-b border-slate-100 dark:border-white/5 space-y-4">
-            <div className="relative">
-              <Search
-                size={16}
-                className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
-              />
-              <input
-                type="text"
-                placeholder="Search conversations..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-zinc-800 rounded-xl border border-slate-200 dark:border-white/10 text-sm font-medium focus:border-primary outline-hidden"
-              />
-            </div>
-            {/* Filter Tabs */}
-            <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+      <div className="flex min-h-0 flex-1 overflow-hidden rounded-xl border border-kumo-line bg-kumo-base">
+        {/* Left column: inbox */}
+        <div className="flex w-80 shrink-0 flex-col border-r border-kumo-line">
+          <div className="space-y-2 border-b border-kumo-line p-3">
+            <SearchField value={searchQuery} onChange={setSearchQuery} placeholder="Search conversations" className="sm:w-full" />
+            <Select
+              aria-label="Show"
+              value={filter}
+              items={FILTER_ITEMS}
+              onValueChange={(v) => v != null && setFilter(v as string)}
+              className="w-full"
+            >
               {FILTER_TABS.map((f) => (
-                <button
-                  key={f}
-                  onClick={() => setFilter(f)}
-                  className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-colors ${
-                    filter === f
-                      ? "bg-charcoal text-white dark:bg-white dark:text-black shadow-xs"
-                      : "bg-white dark:bg-zinc-800 text-slate-500 border border-slate-200 dark:border-white/10 hover:border-slate-300"
-                  }`}
-                >
-                  {f}
-                </button>
+                <Select.Option key={f} value={f}>
+                  {FILTER_ITEMS[f]}
+                </Select.Option>
               ))}
-            </div>
+            </Select>
+            <p className="px-1 text-xs text-kumo-subtle">
+              {filteredChats.length} conversation{filteredChats.length === 1 ? "" : "s"}
+              {unreadChats > 0 && `, ${unreadChats} unread`}
+            </p>
           </div>
 
-          <div className="flex-1 overflow-y-auto">
+          <div className="min-h-0 flex-1 overflow-y-auto">
             {loading ? (
-              <div className="flex flex-col items-center justify-center h-40 gap-3">
-                <Loader2 size={24} className="animate-spin text-primary" />
-                <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
-                  Loading Chats
-                </span>
+              <div className="flex justify-center py-12">
+                <Loader />
               </div>
             ) : filteredChats.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-40 p-6 text-center text-slate-400">
-                <p className="text-xs font-bold">No conversations found</p>
-              </div>
+              <EmptyNote title="No conversations found" />
             ) : (
-              filteredChats.map((chat) => {
-                const otherUser = getOtherParticipant(chat);
-                const isTenant = !!(
-                  chat.user?.tenant ||
-                  chat.user?.role === "TENANT" ||
-                  chat.target?.tenant ||
-                  chat.target?.role === "TENANT" ||
-                  chat.type === "TENANT"
-                );
-                const tenantData = chat.user?.tenant || chat.target?.tenant;
-                const isBlocked = !!otherUser?.isBlacklisted;
-                const displayName =
-                  isTenant && tenantData?.shopName
-                    ? tenantData.shopName
-                    : otherUser?.name || otherUser?.email || "SR Mall User";
-                const displayUnit = tenantData?.unitId;
-                const unread = activeChat?.id === chat.id ? 0 : chat.unreadCount || 0;
+              <ul className="divide-y divide-kumo-line">
+                {filteredChats.map((chat) => {
+                  const otherUser = getOtherParticipant(chat);
+                  const isTenant = isTenantChat(chat);
+                  const tenantData = chat.user?.tenant || chat.target?.tenant;
+                  const isBlocked = !!otherUser?.isBlacklisted;
+                  const displayName =
+                    isTenant && tenantData?.shopName
+                      ? tenantData.shopName
+                      : otherUser?.name || otherUser?.email || "SR Mall User";
+                  const displayUnit = tenantData?.unitId;
+                  const unread = activeChat?.id === chat.id ? 0 : chat.unreadCount || 0;
 
-                return (
-                  <div
-                    key={chat.id}
-                    onClick={() => handleSelectChat(chat)}
-                    className={`p-5 border-b border-slate-100 dark:border-white/5 cursor-pointer transition-colors flex items-center gap-3 ${
-                      activeChat?.id === chat.id
-                        ? "bg-primary/5 dark:bg-primary/10 border-l-4 border-l-primary"
-                        : "hover:bg-white dark:hover:bg-zinc-800/50 border-l-4 border-l-transparent"
-                    }`}
-                  >
-                    <div className="w-10 h-10 rounded-full bg-blue-500/10 text-blue-500 flex items-center justify-center font-bold overflow-hidden shrink-0 border border-slate-100 dark:border-white/5 relative">
-                      {otherUser?.avatarUrl ? (
-                        <img
-                          src={optimizedImage(otherUser.avatarUrl, 96)}
-                          alt="Avatar"
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        displayName.substring(0, 2).toUpperCase()
-                      )}
-                      {isBlocked && (
-                        <div className="absolute inset-0 bg-red-600/70 flex items-center justify-center text-white" title="Account suspended">
-                          <Ban size={12} />
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex justify-between items-start mb-1">
-                        <h4
-                          className={`text-sm text-charcoal dark:text-white truncate ${
-                            unread > 0 ? "font-semibold" : "font-bold"
-                          }`}
-                        >
-                          {displayName}
-                        </h4>
-                        <span
-                          className={`text-xs font-bold uppercase shrink-0 ml-1 ${
-                            unread > 0 ? "text-primary" : "text-slate-500 dark:text-slate-400"
-                          }`}
-                        >
-                          {formatConversationTime(chat.messages[0]?.createdAt || chat.updatedAt)}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1.5 mb-1.5">
-                        <span className="text-xs font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 dark:bg-zinc-800">
-                          {isTenant
-                            ? `TENANT • ${displayUnit || "UNIT"}`
-                            : "CUSTOMER"}
-                        </span>
-                        {isBlocked && (
-                          <span className="text-xs font-semibold px-1.5 py-0.5 rounded-sm bg-red-100 text-red-600 dark:bg-red-950/40 dark:text-red-400">
-                            SUSPENDED
-                          </span>
+                  return (
+                    <li key={chat.id}>
+                      <button
+                        type="button"
+                        onClick={() => handleSelectChat(chat)}
+                        aria-current={activeChat?.id === chat.id}
+                        className={cn(
+                          "flex w-full cursor-pointer items-center gap-3 border-l-4 p-3 text-left hover:bg-kumo-tint",
+                          activeChat?.id === chat.id ? "border-l-kumo-brand bg-kumo-tint" : "border-l-transparent",
                         )}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <p
-                          className={`flex-1 text-xs truncate ${
-                            unread > 0 ? "text-charcoal dark:text-white font-bold" : "text-slate-500 font-medium"
-                          }`}
-                        >
-                          {chat.messages[0]?.imageUrl && !chat.messages[0]?.content
-                            ? "📷 Image"
-                            : chat.messages[0]?.content || "No messages yet"}
-                        </p>
-                        {unread > 0 && (
-                          <span className="min-w-5 h-5 px-1.5 rounded-full bg-primary text-white text-xs font-semibold flex items-center justify-center shrink-0">
-                            {unread > 99 ? "99+" : unread}
+                      >
+                        <Avatar name={displayName} src={otherUser?.avatarUrl} />
+                        <span className="min-w-0 flex-1">
+                          <span className="flex items-baseline justify-between gap-2">
+                            <span className={cn("truncate text-sm text-kumo-default", unread > 0 ? "font-semibold" : "font-medium")}>
+                              {displayName}
+                            </span>
+                            <span className={cn("shrink-0 text-xs", unread > 0 ? "font-semibold text-kumo-brand" : "text-kumo-subtle")}>
+                              {formatConversationTime(chat.messages[0]?.createdAt || chat.updatedAt)}
+                            </span>
                           </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
+                          <span className="block truncate text-xs text-kumo-subtle">
+                            {isTenant ? `Tenant${displayUnit ? `, Unit ${displayUnit}` : ""}` : "Customer"}
+                            {isBlocked && <span className="font-semibold text-kumo-danger">, suspended</span>}
+                          </span>
+                          <span className="flex items-center gap-2">
+                            <span className={cn("flex-1 truncate text-sm", unread > 0 ? "font-medium text-kumo-default" : "text-kumo-subtle")}>
+                              {chat.messages[0]?.imageUrl && !chat.messages[0]?.content
+                                ? "Image"
+                                : chat.messages[0]?.content || "No messages yet"}
+                            </span>
+                            {unread > 0 && (
+                              <span
+                                aria-label={`${unread} unread`}
+                                className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-kumo-brand px-1.5 text-xs font-semibold text-white"
+                              >
+                                {unread > 99 ? "99+" : unread}
+                              </span>
+                            )}
+                          </span>
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
             )}
           </div>
         </div>
 
-        {/* Center Column (Chat Window) */}
-        <div className="flex-1 flex flex-col bg-white dark:bg-zinc-950">
+        {/* Center column: conversation */}
+        <div className="flex min-w-0 flex-1 flex-col">
           {activeChat ? (
             <>
-              {/* Chat Header */}
-              <div className="h-16 border-b border-slate-100 dark:border-white/5 flex items-center justify-between px-6 shadow-xs z-10 transition-all bg-white dark:bg-zinc-900/50 backdrop-blur-md">
-                <div className="flex items-center gap-3">
-                  <div className="relative">
-                    <div className="w-9 h-9 rounded-full bg-slate-100 dark:bg-zinc-800 flex items-center justify-center font-bold text-sm overflow-hidden border border-slate-200 dark:border-white/10">
-                      {activeOtherUser?.avatarUrl ? (
-                        <img
-                          src={optimizedImage(activeOtherUser.avatarUrl, 96)}
-                          alt="Avatar"
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        activeDisplayName.charAt(0).toUpperCase()
-                      )}
-                    </div>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-charcoal dark:text-white flex items-center gap-2 leading-tight">
-                      {activeDisplayName}
-                    </h3>
-                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400 truncate max-w-xs">
-                      {activeOtherUser?.email}
-                    </p>
+              <div className="flex h-16 shrink-0 items-center justify-between gap-3 border-b border-kumo-line px-4">
+                <div className="flex min-w-0 items-center gap-3">
+                  <Avatar name={activeDisplayName} src={activeOtherUser?.avatarUrl} />
+                  <div className="min-w-0">
+                    <h2 className="truncate text-sm font-semibold text-kumo-default">{activeDisplayName}</h2>
+                    <p className="truncate text-sm text-kumo-subtle">{activeOtherUser?.email}</p>
                   </div>
                 </div>
                 {canBlockActive && portalAdminId && (
@@ -791,26 +725,17 @@ function MessengerHubContent() {
                 )}
               </div>
 
-              {/* Messages Container */}
               <div
                 ref={messagesContainerRef}
                 onScroll={handleScroll}
-                className="flex-1 overflow-y-auto p-5 sm:p-8 space-y-6 bg-slate-50/30 dark:bg-black/20 custom-scrollbar"
+                className="min-h-0 flex-1 space-y-4 overflow-y-auto bg-kumo-recessed p-4 sm:p-6"
               >
                 {loadingMessages && messages.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-48 gap-3">
-                    <Loader2 size={24} className="animate-spin text-primary" />
-                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
-                      Loading conversation...
-                    </span>
+                  <div className="flex justify-center py-12">
+                    <Loader />
                   </div>
                 ) : messages.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-48 text-center text-slate-400 space-y-2">
-                    <p className="text-xs font-bold">No messages yet</p>
-                    <p className="text-xs text-slate-500 font-medium">
-                      Start the transmission by sending a response below.
-                    </p>
-                  </div>
+                  <EmptyNote title="No messages yet">Send a reply below to start the conversation.</EmptyNote>
                 ) : (
                   messages.map((msg, index) => {
                     const isFromAdmin =
@@ -829,78 +754,51 @@ function MessengerHubContent() {
 
                     return (
                       <React.Fragment key={msg.id}>
-                      {startsNewDay(messages[index - 1]?.createdAt, msg.createdAt) && (
-                        <ChatDaySeparator date={msg.createdAt} />
-                      )}
-                      <div
-                        className={`flex gap-3 ${
-                          isFromAdmin ? "justify-end" : "justify-start"
-                        } items-end animate-fade-in group group/msg relative`}
-                      >
-                        {msg.senderId === user?.id && !isTemporary && (
-                          <UnsendButton onClick={() => setUnsendTarget(msg)} />
+                        {startsNewDay(messages[index - 1]?.createdAt, msg.createdAt) && (
+                          <ChatDaySeparator date={msg.createdAt} />
                         )}
-                        {!isFromAdmin && <ChatAvatar src={optimizedImage(senderAvatar, 96)} name={senderName} />}
+                        <div
+                          className={cn("group group/msg relative flex items-end gap-2", isFromAdmin ? "justify-end" : "justify-start")}
+                        >
+                          {msg.senderId === user?.id && !isTemporary && <UnsendButton onClick={() => setUnsendTarget(msg)} />}
+                          {!isFromAdmin && <ChatAvatar src={optimizedImage(senderAvatar, 96)} name={senderName} />}
 
-                        <div className={`flex flex-col ${isFromAdmin ? "items-end" : "items-start"}`}>
-                          <div className="relative group/bubble">
+                          <div className={cn("flex min-w-0 flex-col", isFromAdmin ? "items-end" : "items-start")}>
                             <div
-                              className={`max-w-[280px] sm:max-w-[400px] lg:max-w-[500px] ${bubblePadding(msg)} shadow-xs rounded-2xl relative ${
-                                isFromAdmin
-                                  ? "bg-primary text-white rounded-tr-sm"
-                                  : "bg-white dark:bg-zinc-800 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 rounded-tl-sm"
-                              }`}
+                              className={cn(
+                                "max-w-[280px] rounded-lg sm:max-w-[400px] lg:max-w-[500px]",
+                                bubblePadding(msg),
+                                isFromAdmin ? "bg-kumo-brand text-white" : "border border-kumo-line bg-kumo-base text-kumo-default",
+                              )}
                             >
                               {msg.imageUrl && (
                                 <div className={msg.content ? "mb-2" : ""}>
                                   <ChatImage url={msg.imageUrl} onOpen={setLightboxImageUrl} />
                                 </div>
                               )}
-
                               {msg.content && (
-                                <p className="text-sm font-medium leading-relaxed wrap-break-word whitespace-pre-wrap">
-                                  {msg.content}
-                                </p>
+                                <p className="wrap-break-word whitespace-pre-wrap text-sm leading-relaxed">{msg.content}</p>
                               )}
+                            </div>
+
+                            <div className="mt-1 flex items-center gap-2 px-1">
+                              <span className="text-xs text-kumo-subtle">{formatMessageTime(msg.createdAt)}</span>
+                              {isTemporary && msg.failed ? (
+                                <button
+                                  type="button"
+                                  onClick={() => retryMessage(msg)}
+                                  className="cursor-pointer text-xs font-semibold text-kumo-danger hover:underline"
+                                >
+                                  Not sent. Retry
+                                </button>
+                              ) : isTemporary && msg.sending !== false ? (
+                                <span className="text-xs font-medium text-kumo-subtle">Sending...</span>
+                              ) : null}
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-1.5 mt-1 px-1">
-                            <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
-                              {formatMessageTime(msg.createdAt)}
-                            </span>
-                            {isTemporary && msg.failed ? (
-                              <button
-                                type="button"
-                                onClick={() => retryMessage(msg)}
-                                className="text-xs font-bold text-red-500 hover:text-red-600 hover:underline"
-                              >
-                                Not sent · Retry
-                              </button>
-                            ) : isTemporary && msg.sending !== false ? (
-                              <span className="text-xs font-bold text-primary animate-pulse">
-                                Sending...
-                              </span>
-                            ) : null}
-                          </div>
+                          {isFromAdmin && <ChatAvatar src={optimizedImage(senderAvatar, 96)} name={senderName} />}
                         </div>
-
-                        {isFromAdmin && (
-                          <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-zinc-800 flex items-center justify-center overflow-hidden shrink-0 border border-slate-100 dark:border-white/5">
-                            {senderAvatar ? (
-                              <img
-                                src={optimizedImage(senderAvatar, 96)}
-                                alt="Sender"
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <span className="text-xs font-bold text-slate-500">
-                                {(senderName || "?").substring(0, 2).toUpperCase()}
-                              </span>
-                            )}
-                          </div>
-                        )}
-                      </div>
                       </React.Fragment>
                     );
                   })
@@ -918,219 +816,116 @@ function MessengerHubContent() {
                 />
               )}
 
-              {/* Message Input Footer */}
-              <div className="p-5 border-t border-slate-100 dark:border-white/5 bg-white dark:bg-zinc-900">
+              <div className="shrink-0 border-t border-kumo-line p-3">
                 {imagePreview && (
-                  <div className="mb-3 relative inline-block animate-fade-in">
-                    <img
-                      src={imagePreview}
-                      alt="Preview"
-                      className="h-20 rounded-xl border border-slate-200 dark:border-white/10 object-cover shadow-xs"
-                    />
-                    <button
-                      type="button"
+                  <div className="mb-3 flex items-end gap-2">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={imagePreview} alt="Preview" className="h-20 rounded-lg border border-kumo-line object-cover" />
+                    <Button
+                      size="sm"
+                      variant="secondary-destructive"
                       onClick={() => {
                         setImagePreview(null);
                         setImageFile(null);
                         setFileInputKey((k) => k + 1);
                       }}
-                      className="absolute -top-2 -right-2 w-5 h-5 bg-primary text-white rounded-full flex items-center justify-center shadow-sm hover:scale-110 transition-transform"
                     >
-                      <X size={10} />
-                    </button>
+                      Remove image
+                    </Button>
                   </div>
                 )}
-                <form
-                  onSubmit={handleSendReply}
-                  className="relative flex items-center bg-slate-50 dark:bg-zinc-800 rounded-xl border border-slate-200 dark:border-white/10 p-1.5 pr-2 focus-within:ring-2 ring-primary/20 transition-all"
-                >
+                <form onSubmit={handleSendReply} className="flex items-center gap-2">
                   <input
                     key={fileInputKey}
                     ref={fileInputRef}
                     type="file"
                     accept="image/*"
-                    className="absolute w-0 h-0 opacity-0 pointer-events-none -z-10"
+                    className="sr-only"
+                    tabIndex={-1}
+                    aria-label="Attach an image"
                     onChange={handleImageSelect}
                   />
-                  <button
+                  <Button
                     type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      fileInputRef.current?.click();
-                    }}
-                    className="p-2 text-slate-500 dark:text-slate-400 hover:text-primary transition-colors shrink-0 relative z-10 cursor-pointer"
+                    variant="secondary"
+                    shape="square"
+                    icon={<Paperclip />}
+                    aria-label="Attach image"
                     title="Attach image"
-                  >
-                    <Paperclip size={16} />
-                  </button>
-                  <input
-                    type="text"
-                    value={replyText}
-                    onChange={(e) => setReplyText(e.target.value)}
-                    placeholder={
-                      block.blockedByMe
-                        ? "Messaging disabled"
-                        : imageFile
-                          ? "Add a caption... (optional)"
-                          : "Type a reply..."
-                    }
-                    disabled={block.blockedByMe}
-                    className="flex-1 px-3 py-2 bg-transparent outline-hidden text-sm font-medium disabled:opacity-40"
+                    onClick={() => fileInputRef.current?.click()}
                   />
-                  <button
+                  <div className="min-w-0 flex-1">
+                    <Input
+                      aria-label="Reply"
+                      value={replyText}
+                      onChange={(e) => setReplyText(e.target.value)}
+                      placeholder={
+                        block.blockedByMe ? "Messaging disabled" : imageFile ? "Add a caption (optional)" : "Type a reply"
+                      }
+                      disabled={block.blockedByMe}
+                      className="w-full"
+                    />
+                  </div>
+                  <Button
                     type="submit"
+                    variant="primary"
+                    icon={<PaperPlaneRight />}
+                    loading={isSending}
                     disabled={(!replyText.trim() && !imageFile) || isSending || block.blockedByMe}
-                    className="p-2.5 bg-primary text-white rounded-lg hover:bg-primary-hover transition-colors disabled:opacity-50 shadow-xs flex items-center justify-center"
                   >
-                    {isSending ? (
-                      <Loader2 size={16} className="animate-spin" />
-                    ) : (
-                      <Send size={16} />
-                    )}
-                  </button>
+                    Send
+                  </Button>
                 </form>
               </div>
             </>
           ) : (
-            <div className="flex-1 flex flex-col items-center justify-center p-20 text-center opacity-40">
-              <div className="w-20 h-20 bg-slate-100 dark:bg-zinc-800 rounded-3xl flex items-center justify-center mb-6">
-                <Send size={40} className="text-slate-400" />
-              </div>
-              <p className="text-sm font-semibold text-slate-500">
-                Pick a transmission to begin
-              </p>
+            <div className="flex flex-1 items-center justify-center">
+              <EmptyNote title="Select a conversation">Choose someone on the left to read and reply.</EmptyNote>
             </div>
           )}
         </div>
 
-        {/* Right Column (Context Panel) */}
+        {/* Right column: who you are talking to */}
         {activeChat && (
-          <div className="w-80 border-l border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-zinc-900 overflow-y-auto hidden xl:block">
-            <div className="p-6">
-              <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-6 flex items-center gap-2">
-                <MoreVertical size={14} /> Context Panel
-              </h3>
+          <aside className="hidden w-72 shrink-0 space-y-4 overflow-y-auto border-l border-kumo-line p-4 xl:block">
+            <h3 className="text-sm font-semibold text-kumo-default">Details</h3>
+            <Person name={activeDisplayName} detail={activeKind} image={activeOtherUser?.avatarUrl} />
+            <dl className="space-y-3">
+              {activeTenant?.unitId && <Fact label="Unit">{activeTenant.unitId}</Fact>}
+              <Fact label="Account">
+                {activeSuspended ? <span className="font-semibold text-kumo-danger">Suspended</span> : "Active"}
+              </Fact>
+              <Fact label="Messages loaded">{messages.length}</Fact>
+            </dl>
 
-              <div className="space-y-6">
-                {/* Profile Card */}
-                <div className="bg-white dark:bg-zinc-800 p-5 rounded-2xl border border-slate-200 dark:border-white/10 shadow-xs transition-all hover:shadow-md">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xl overflow-hidden border border-slate-100 dark:border-white/5 shrink-0">
-                      {activeOtherUser?.avatarUrl ? (
-                        <img
-                          src={optimizedImage(activeOtherUser.avatarUrl, 96)}
-                          alt="Avatar"
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        activeDisplayName.charAt(0)
-                      )}
-                    </div>
-                    <div className="min-w-0">
-                      <h4 className="font-bold text-charcoal dark:text-white truncate">
-                        {activeDisplayName}
-                      </h4>
-                      <p className="text-xs font-bold text-emerald-500">
-                        Verified Member
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 text-center pt-4 border-t border-slate-100 dark:border-white/5">
-                    <div>
-                      <p className="text-lg font-semibold text-charcoal dark:text-white">
-                        {messages.length}
-                      </p>
-                      <p className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-1">
-                        Messages
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-lg font-semibold text-charcoal dark:text-white">
-                        Active
-                      </p>
-                      <p className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-1">
-                        Status
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Space Interest Module */}
-                {activeChat.areaSlot && (
-                  <div className="bg-white dark:bg-zinc-800 p-5 rounded-2xl border border-slate-200 dark:border-white/10 shadow-xs">
-                    <h4 className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-4">
-                      Linked Inventory
-                    </h4>
-                    <div className="space-y-4">
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs font-bold text-slate-600 dark:text-slate-300">
-                          Unit ID
-                        </span>
-                        <span className="text-sm font-semibold text-charcoal dark:text-white">
-                          {activeChat.areaSlot.unit_id}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center bg-slate-50 dark:bg-zinc-900 p-3 rounded-lg border border-slate-100 dark:border-white/5">
-                        <span className="text-xs font-bold text-slate-600 dark:text-slate-300">
-                          Size
-                        </span>
-                        <span className="text-xs font-semibold text-primary">
-                          {activeChat.areaSlot.sqm_size} SQM
-                        </span>
-                      </div>
-
-                      <Link
-                        href="/admindashboard/rent-requests"
-                        className="w-full mt-2 flex items-center justify-center gap-2 py-3 bg-charcoal dark:bg-white text-white dark:text-black font-bold text-xs rounded-xl hover:scale-[1.02] transition-transform shadow-lg"
-                      >
-                        <CalendarPlus size={16} /> Go to Rent Requests
-                      </Link>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
+            {activeChat.areaSlot && (
+              <section className="space-y-3 rounded-lg border border-kumo-line p-3">
+                <h4 className="text-sm font-semibold text-kumo-default">Space asked about</h4>
+                <dl className="space-y-3">
+                  <Fact label="Unit">{activeChat.areaSlot.unit_id}</Fact>
+                  <Fact label="Size">{activeChat.areaSlot.sqm_size} sqm</Fact>
+                </dl>
+                <Link href="/admindashboard/rent-requests" className="block text-sm font-medium text-kumo-link hover:underline">
+                  Go to Rent Requests
+                </Link>
+              </section>
+            )}
+          </aside>
         )}
       </div>
 
-
-
-      {/* ── MODAL: IMAGE LIGHTBOX ── */}
-      {lightboxImageUrl && (
-        <div
-          onClick={() => setLightboxImageUrl(null)}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-fade-in"
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="relative max-w-4xl max-h-[90vh] flex flex-col items-center animate-scale-up"
-          >
-            <img
-              src={optimizedImage(lightboxImageUrl, 2000)}
-              alt="Full Preview"
-              className="max-w-full max-h-[80vh] rounded-2xl object-contain shadow-2xl border border-white/10"
-            />
-            <div className="flex items-center gap-3 mt-4">
-              <a
-                href={lightboxImageUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-xl text-xs font-bold flex items-center gap-2 transition-colors backdrop-blur-md"
-              >
-                <ExternalLink size={14} /> Open Original
-              </a>
-              <button
-                onClick={() => setLightboxImageUrl(null)}
-                className="px-4 py-2 bg-white text-charcoal rounded-xl text-xs font-semibold transition-transform active:scale-95 shadow-lg"
-              >
-                Close
-              </button>
-            </div>
+      <AdminDialog open={!!lightboxImageUrl} onClose={() => setLightboxImageUrl(null)} size="lg" title="Image">
+        {lightboxImageUrl && (
+          <div className="space-y-3">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={optimizedImage(lightboxImageUrl, 2000)} alt="Full preview" className="max-h-[65vh] w-full rounded-lg object-contain" />
+            <a href={lightboxImageUrl} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-kumo-link hover:underline">
+              Open original
+            </a>
           </div>
-        </div>
-      )}
+        )}
+      </AdminDialog>
+
       {unsendTarget && (
         <ChatConfirmModal
           title="Unsend message?"
@@ -1162,17 +957,33 @@ function MessengerHubContent() {
   );
 }
 
+function Avatar({ name, src }: { name: string; src?: string | null }) {
+  return (
+    <span
+      aria-hidden
+      className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-kumo-recessed text-sm font-semibold text-kumo-default"
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      {src ? <img src={optimizedImage(src, 96)} alt="" className="size-full object-cover" /> : (name.trim().charAt(0) || "?").toUpperCase()}
+    </span>
+  );
+}
+
+function Fact({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <dt className="text-xs text-kumo-subtle">{label}</dt>
+      <dd className="text-sm text-kumo-default">{children}</dd>
+    </div>
+  );
+}
+
 export default function MessengerHub() {
   return (
     <Suspense
       fallback={
-        <div className="h-screen flex items-center justify-center">
-          <div className="flex flex-col items-center gap-3">
-            <Loader2 size={32} className="animate-spin text-primary" />
-            <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
-              Loading Messenger...
-            </span>
-          </div>
+        <div className="flex justify-center py-24">
+          <Loader />
         </div>
       }
     >

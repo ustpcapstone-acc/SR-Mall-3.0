@@ -1,5 +1,7 @@
 "use client";
 
+import { formatPrice } from "@/lib/price";
+import { floorLabel } from "@/lib/floors";
 import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -16,8 +18,7 @@ import {
   ShoppingBag,
   Star,
   Store,
-  Tag,
-} from "lucide-react";
+  } from "lucide-react";
 import { toast } from "sonner";
 import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
@@ -31,8 +32,6 @@ import { sendProductInquiryAction } from "@/app/actions/product-inquiry";
 import { availabilityLabel, isOutOfStock, productHref } from "@/lib/products";
 
 type PageData = Extract<Awaited<ReturnType<typeof getProductPageAction>>, { success: true }>["data"];
-
-const FLOORS: Record<string, string> = { ground: "Ground Floor", first: "First Floor", second: "Second Floor" };
 
 export default function ProductPage() {
   const params = useParams();
@@ -109,7 +108,7 @@ export default function ProductPage() {
         </nav>
 
         {error ? (
-          <div className="py-24 text-center space-y-4 bg-white dark:bg-zinc-900 rounded-4xl border border-slate-100 dark:border-white/5">
+          <div className="py-24 text-center space-y-4 bg-white dark:bg-zinc-900 rounded-2xl border border-slate-100 dark:border-white/5">
             <ShoppingBag size={48} className="mx-auto text-slate-300" />
             <p className="text-lg font-semibold text-charcoal dark:text-white">{error}</p>
             <p className="text-sm text-slate-500">It may have been removed or hidden by the shop.</p>
@@ -124,7 +123,7 @@ export default function ProductPage() {
         ) : (
           <>
             {/* Product */}
-            <section className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-10 p-4 sm:p-6 bg-white dark:bg-zinc-900 rounded-4xl border border-slate-100 dark:border-white/5 shadow-xs">
+            <section className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-10 p-4 sm:p-6 bg-white dark:bg-zinc-900 rounded-2xl border border-slate-100 dark:border-white/5 shadow-xs">
               <div className="relative aspect-square rounded-3xl overflow-hidden bg-slate-100 dark:bg-zinc-800">
                 {p.image_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -143,36 +142,32 @@ export default function ProductPage() {
 
               <div className="flex flex-col gap-5 py-1">
                 <div className="space-y-2">
-                  {p.category && (
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold">
-                      <Tag size={10} /> {p.category}
-                    </span>
-                  )}
+                  {p.category && <p className="text-sm font-medium text-primary">{p.category}</p>}
                   <h1 className="font-display text-3xl sm:text-4xl lg:text-5xl font-semibold tracking-tight text-charcoal dark:text-white wrap-break-word">{p.name}</h1>
                   {shop.reviewCount > 0 && (
                     <p className="flex items-center gap-1.5 text-xs text-slate-500">
                       <Star size={13} className="fill-amber-400 text-amber-400" />
                       <span className="font-bold text-charcoal dark:text-white">{shop.avgRating.toFixed(1)}</span>
-                      shop rating · {shop.reviewCount} review{shop.reviewCount === 1 ? "" : "s"}
+                      shop rating, {shop.reviewCount} review{shop.reviewCount === 1 ? "" : "s"}
                     </p>
                   )}
                 </div>
 
                 <div className="px-5 py-4 rounded-2xl bg-slate-50 dark:bg-zinc-800/60">
-                  <p className="text-3xl sm:text-4xl font-semibold text-primary">{p.price || "Ask for price"}</p>
+                  <p className="text-3xl sm:text-4xl font-semibold text-primary">{formatPrice(p.price) || "Ask for price"}</p>
                 </div>
 
                 <dl className="grid grid-cols-[7rem_1fr] gap-y-3 text-sm">
-                  <dt className="text-slate-400 font-bold">Availability</dt>
+                  <dt className="text-kumo-subtle">Availability</dt>
                   <dd className={clsx("font-semibold flex items-center gap-1.5", out ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400")}>
                     <Package size={15} /> {availabilityLabel(p)}
                   </dd>
-                  <dt className="text-slate-400 font-bold">Sold by</dt>
+                  <dt className="text-kumo-subtle">Sold by</dt>
                   <dd className="font-bold text-charcoal dark:text-white truncate">{shop.name}</dd>
-                  <dt className="text-slate-400 font-bold">Location</dt>
+                  <dt className="text-kumo-subtle">Location</dt>
                   <dd className="font-bold text-charcoal dark:text-white">
                     Unit {shop.unitId}
-                    {shop.floor ? ` · ${FLOORS[shop.floor] || shop.floor}` : ""}
+                    {shop.floor ? `, ${floorLabel(shop.floor)}` : ""}
                   </dd>
                 </dl>
 
@@ -180,7 +175,7 @@ export default function ProductPage() {
                   <button
                     onClick={inquire}
                     disabled={inquiring}
-                    className="flex-1 inline-flex items-center justify-center gap-2 py-4 rounded-2xl bg-primary text-white text-xs font-semibold shadow-lg shadow-primary/20 hover:bg-primary/90 disabled:opacity-60"
+                    className="flex-1 inline-flex items-center justify-center gap-2 h-12 cursor-pointer rounded-xl bg-primary text-white text-sm font-semibold shadow-lg shadow-primary/20 hover:bg-primary/90 disabled:opacity-60"
                   >
                     {inquiring ? <Loader2 size={16} className="animate-spin" /> : <MessageCircle size={16} />}
                     {out ? "Ask about restock" : "Inquire availability"}
@@ -190,7 +185,7 @@ export default function ProductPage() {
             </section>
 
             {/* Shop profile */}
-            <section className="p-5 sm:p-6 bg-white dark:bg-zinc-900 rounded-4xl border border-slate-100 dark:border-white/5 shadow-xs">
+            <section className="p-5 sm:p-6 bg-white dark:bg-zinc-900 rounded-2xl border border-slate-100 dark:border-white/5 shadow-xs">
               <div className="flex flex-col md:flex-row md:items-center gap-5">
                 <div className="flex items-center gap-4 md:pr-6 md:border-r border-slate-100 dark:border-white/5 min-w-0">
                   <div className="w-16 h-16 rounded-full overflow-hidden bg-slate-100 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 shrink-0 flex items-center justify-center">
@@ -260,12 +255,12 @@ export default function ProductPage() {
             </section>
 
             {/* Details */}
-            <section className="p-5 sm:p-6 bg-white dark:bg-zinc-900 rounded-4xl border border-slate-100 dark:border-white/5 shadow-xs space-y-3">
-              <h2 className="text-xs font-semibold text-slate-400">Product details</h2>
+            <section className="p-5 sm:p-6 bg-white dark:bg-zinc-900 rounded-2xl border border-slate-100 dark:border-white/5 shadow-xs space-y-3">
+              <h2 className="font-display text-xl font-semibold text-charcoal dark:text-white">Product details</h2>
               <dl className="grid grid-cols-[7rem_1fr] gap-y-2 text-sm">
-                <dt className="text-slate-400 font-bold">Category</dt>
-                <dd className="font-bold text-charcoal dark:text-white">{p.category || "—"}</dd>
-                <dt className="text-slate-400 font-bold">Shop</dt>
+                <dt className="text-kumo-subtle">Category</dt>
+                <dd className="font-bold text-charcoal dark:text-white">{p.category || "Not set"}</dd>
+                <dt className="text-kumo-subtle">Shop</dt>
                 <dd className="font-bold text-charcoal dark:text-white">{shop.name}</dd>
               </dl>
               <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-line pt-2 border-t border-slate-100 dark:border-white/5">
@@ -277,7 +272,7 @@ export default function ProductPage() {
             {data.moreFromShop.length > 0 && (
               <section className="space-y-4">
                 <div className="flex items-end justify-between">
-                  <h2 className="text-lg font-semibold text-charcoal dark:text-white">More from {shop.name}</h2>
+                  <h2 className="font-display text-xl font-semibold text-charcoal dark:text-white">More from {shop.name}</h2>
                   <Link href={`/shop/${shop.id}`} className="text-xs font-semibold text-primary hover:underline">
                     See all
                   </Link>

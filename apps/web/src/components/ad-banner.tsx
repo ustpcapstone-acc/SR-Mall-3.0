@@ -8,9 +8,8 @@ import { optimizedImage } from "@/lib/media";
 // Default SR-MANAGE Ad when nothing is live
 const DEFAULT_AD = {
   id: "default",
-  title: "Luxe Summer Sale",
-  description:
-    "Experience up to 70% off on all premium luxury brands this weekend only. Join us for a unique shopping gala.",
+  title: "Welcome to SR Mall",
+  description: "Find shops, products and spaces for rent in Jasaan.",
   imageUrl:
     "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&q=80&w=2000",
   ctaText: "View Directory",
@@ -208,13 +207,13 @@ export const AdBanner = ({
                   <button
                     suppressHydrationWarning
                     onClick={() => handleAdClick(ad)}
-                    className="px-6 sm:px-8 py-3 sm:py-3.5 bg-primary text-white text-sm sm:text-base font-semibold rounded-full hover:bg-white hover:text-primary transition-colors active:scale-95"
+                    className="px-6 sm:px-8 py-3 sm:py-3.5 bg-primary text-white text-sm sm:text-base font-semibold rounded-xl hover:bg-white hover:text-primary transition-colors active:scale-95"
                   >
                     {ad.linkUrl ? "Explore Now" : "View Directory"}
                   </button>
                   <Link
                     href="/lost-and-found"
-                    className="px-6 sm:px-8 py-3 sm:py-3.5 border border-white/60 text-white text-sm sm:text-base font-semibold rounded-full hover:bg-white hover:text-charcoal transition-colors active:scale-95"
+                    className="px-6 sm:px-8 py-3 sm:py-3.5 border border-white/60 text-white text-sm sm:text-base font-semibold rounded-xl hover:bg-white hover:text-charcoal transition-colors active:scale-95"
                   >
                     Lost and Found
                   </Link>

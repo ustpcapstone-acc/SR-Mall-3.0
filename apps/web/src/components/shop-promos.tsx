@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Calendar, Flame } from "lucide-react";
+import { Calendar } from "lucide-react";
 import { getShopActivePromosAction } from "@/app/actions/ads";
 import { formatPHDate } from "@/lib/ph-date";
 
@@ -53,6 +53,11 @@ export function ShopPromos({
 
   if (embedded) {
     return (
+      <section>
+      <div className="mb-3">
+        <h2 className="font-display text-xl font-semibold text-[#21191B] dark:text-white">Promos</h2>
+        <p className="text-sm text-[#8B7F76]">{promos.length} running now</p>
+      </div>
       <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
         {promos.map((p) => {
           const isVideo = p.mediaType === "VIDEO" && p.promoVideo;
@@ -75,9 +80,6 @@ export function ShopPromos({
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={p.promoImage} alt={p.title} className="h-full w-full object-cover" />
                 ) : null}
-                <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-[#C51D30] px-3 py-1 text-xs font-bold text-white shadow-lg shadow-[#C51D30]/30">
-                  <Flame size={11} fill="currentColor" /> Promo
-                </span>
               </div>
               <div className="space-y-2 p-4 sm:p-5">
                 <h3 className="text-lg font-semibold leading-tight text-[#21191B] dark:text-white sm:text-xl">
@@ -96,18 +98,15 @@ export function ShopPromos({
           );
         })}
       </div>
+      </section>
     );
   }
 
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 pb-10 sm:pb-16">
-      <div className="flex items-center gap-2 mb-5 sm:mb-8">
-        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary text-white text-xs font-semibold shadow-lg shadow-primary/30">
-          <Flame size={12} fill="currentColor" /> Current promos
-        </span>
-        <span className="text-xs font-bold text-slate-400">
-          {promos.length} running now
-        </span>
+      <div className="mb-5">
+        <h2 className="font-display text-2xl font-semibold text-charcoal dark:text-white">Current promos</h2>
+        <p className="text-sm text-slate-500 dark:text-slate-400">{promos.length} running now</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-8">

@@ -1,5 +1,6 @@
 "use client";
 
+import { floorLabel } from "@/lib/floors";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AreaSlot } from "@srmall/database";
@@ -257,8 +258,8 @@ export default function SpaceDetailModal({
             </div>
           )}
 
-          {/* Premium Status Badge */}
-          <div className="absolute top-8 left-8 flex items-center gap-3 px-5 py-2.5 bg-black/60 backdrop-blur-xl rounded-full border border-white/10 shadow-2xl">
+          {/* Unit status */}
+          <div className="absolute top-8 left-8 flex items-center gap-3 px-4 py-2 bg-black/60 backdrop-blur-xl rounded-lg border border-white/10 shadow-2xl">
             <div
               className={`w-2.5 h-2.5 rounded-full ${
                 status === "AVAILABLE"
@@ -285,7 +286,7 @@ export default function SpaceDetailModal({
               <div className="flex items-center gap-3 text-primary mb-3">
                 <MapPin size={18} />
                 <span className="text-xs font-semibold mb-0.5">
-                  Premier Business Hub
+                  {floorLabel(slot.floor) || "SR Mall"}
                 </span>
               </div>
               <h2 className="font-display text-5xl sm:text-6xl font-semibold text-charcoal dark:text-white tracking-tight leading-[0.8] mb-10">
@@ -355,7 +356,7 @@ export default function SpaceDetailModal({
                     </span>
                     <div className="min-w-0">
                       <p className="text-xs font-semibold text-amber-600 dark:text-amber-400">
-                        Cannot reserve — already a tenant
+                        Cannot reserve: you are already a tenant
                       </p>
                       <p className="mt-1 text-xs font-medium leading-relaxed text-slate-600 dark:text-slate-300">
                         Your account already holds a tenant unit. A tenant can
@@ -475,7 +476,7 @@ export default function SpaceDetailModal({
               </div>
               <div>
                 <dt className="text-xs font-semibold text-slate-400">Floor</dt>
-                <dd className="font-bold text-charcoal dark:text-white capitalize">{slot.floor || "—"}</dd>
+                <dd className="font-bold text-charcoal dark:text-white capitalize">{slot.floor || "Not set"}</dd>
               </div>
               <div>
                 <dt className="text-xs font-semibold text-slate-400">Size</dt>

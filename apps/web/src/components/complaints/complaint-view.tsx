@@ -1,19 +1,8 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import clsx from "clsx";
-import {
-  ArrowLeft,
-  Camera,
-  CheckCircle2,
-  Loader2,
-  Lock,
-  RotateCcw,
-  Send,
-  ShieldCheck,
-  Store,
-  X,
-} from "lucide-react";
+import { Button, Checkbox, InputArea, Select, cn } from "@cloudflare/kumo";
+import { ArrowLeft, Camera } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import {
   addComplaintCommentAction,
@@ -32,8 +21,8 @@ import {
   type ComplaintStatus,
 } from "@/lib/complaints";
 
-export const LABEL = "text-xs font-semibold text-slate-400";
-export const CARD = "bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl sm:rounded-4xl shadow-xs";
+export const LABEL = "text-xs font-medium text-kumo-subtle";
+export const CARD = "rounded-xl border border-kumo-line bg-kumo-base";
 
 export function formatWhen(iso: string) {
   return new Date(iso).toLocaleString("en-PH", {
@@ -45,22 +34,27 @@ export function formatWhen(iso: string) {
   });
 }
 
+const STATUS_TONE: Record<ComplaintStatus, string> = {
+  NEW: "text-kumo-brand",
+  IN_PROGRESS: "text-kumo-warning",
+  RESOLVED: "text-kumo-success",
+  CLOSED: "text-kumo-subtle",
+};
+const PRIORITY_TONE: Record<ComplaintPriority, string> = {
+  LOW: "text-kumo-subtle",
+  NORMAL: "text-kumo-subtle",
+  URGENT: "text-kumo-danger",
+};
+
+/** Status and priority as plain coloured text. */
 export function StatusBadge({ status }: { status: ComplaintStatus }) {
   const m = STATUS_META[status] ?? STATUS_META.NEW;
-  return (
-    <span className={clsx("inline-flex items-center px-2 py-0.5 rounded-full border text-xs font-semibold", m.badge)}>
-      {m.label}
-    </span>
-  );
+  return <span className={cn("text-sm font-semibold", STATUS_TONE[status] ?? STATUS_TONE.NEW)}>{m.label}</span>;
 }
 
 export function PriorityBadge({ priority }: { priority: ComplaintPriority }) {
   const m = PRIORITY_META[priority] ?? PRIORITY_META.NORMAL;
-  return (
-    <span className={clsx("inline-flex items-center px-2 py-0.5 rounded-full border text-xs font-semibold", m.badge)}>
-      {m.label}
-    </span>
-  );
+  return <span className={cn("text-sm font-medium", PRIORITY_TONE[priority])}>{m.label} priority</span>;
 }
 
 /** Upload one image through the app's upload route. */
@@ -120,6 +114,7 @@ export function ComplaintView({
   const [sending, setSending] = useState(false);
   const [busyStatus, setBusyStatus] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const isAdmin = role === "ADMIN";
   const open = complaint.status === "NEW" || complaint.status === "IN_PROGRESS";
@@ -186,186 +181,176 @@ export function ComplaintView({
   };
 
   return (
-    <div className={clsx(CARD, "p-5 sm:p-6 lg:p-8 space-y-6")}>
+    <div className={cn(CARD, "space-y-5 p-4 sm:p-6")}>
       {/* Header */}
-      <div className="space-y-3">
+      <div className="space-y-2">
         {onBack && (
-          <button onClick={onBack} className="lg:hidden inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-primary">
-            <ArrowLeft size={14} /> All complaints
-          </button>
+          <div className="lg:hidden">
+            <Button size="sm" variant="ghost" icon={<ArrowLeft />} onClick={onBack}>
+              All complaints
+            </Button>
+          </div>
         )}
-        <div className="flex flex-wrap items-center gap-2">
+        <h2 className="wrap-break-word text-lg font-semibold leading-tight text-kumo-default">{complaint.subject}</h2>
+        <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
           <StatusBadge status={complaint.status} />
           <PriorityBadge priority={complaint.priority} />
-          <span className="text-xs font-bold text-slate-400">{complaint.category}</span>
-        </div>
-        <h2 className="text-lg sm:text-xl font-semibold text-charcoal dark:text-white leading-tight wrap-break-word">{complaint.subject}</h2>
-        <p className="text-[11px] text-slate-400 font-medium flex flex-wrap items-center gap-x-2 gap-y-1">
+          <span className="text-kumo-subtle">{complaint.category}</span>
+        </p>
+        <p className="text-sm text-kumo-subtle">
           {isAdmin && (
-            <span className="inline-flex items-center gap-1 font-bold text-slate-500 dark:text-slate-300">
-              <Store size={11} /> {complaint.shopName} · Unit {complaint.unitId}
-              {complaint.ownerName ? ` · ${complaint.ownerName}` : ""}
-            </span>
+            <>
+              <span className="font-medium text-kumo-default">
+                {complaint.shopName}, Unit {complaint.unitId}
+                {complaint.ownerName ? `, ${complaint.ownerName}` : ""}
+              </span>
+              <br />
+            </>
           )}
-          <span>Filed {formatWhen(complaint.createdAt)}</span>
-          {complaint.resolvedAt && complaint.status === "RESOLVED" && <span>· Resolved {formatWhen(complaint.resolvedAt)}</span>}
+          Filed {formatWhen(complaint.createdAt)}
+          {complaint.resolvedAt && complaint.status === "RESOLVED" && `. Resolved ${formatWhen(complaint.resolvedAt)}`}
         </p>
       </div>
 
       {/* Admin controls */}
       {isAdmin && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 rounded-2xl bg-slate-50 dark:bg-white/3 border border-slate-100 dark:border-white/5">
-          <div>
-            <p className={clsx(LABEL, "mb-1.5")}>Status</p>
-            <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap items-end gap-4 rounded-lg bg-kumo-recessed p-3">
+          <div className="min-w-0">
+            <p className="mb-1.5 text-sm font-medium text-kumo-default">Status</p>
+            <div role="group" aria-label="Status" className="flex flex-wrap gap-1.5">
               {COMPLAINT_STATUSES.map((s) => (
-                <button
+                <Button
                   key={s}
-                  disabled={busyStatus || complaint.status === s}
-                  onClick={() => setStatus(s)}
-                  className={clsx(
-                    "px-3 py-1.5 rounded-xl text-xs font-semibold border transition-colors",
-                    complaint.status === s
-                      ? "bg-primary text-white border-primary"
-                      : "bg-white dark:bg-zinc-900 text-slate-500 border-slate-200 dark:border-white/10 hover:border-primary hover:text-primary",
-                  )}
+                  size="sm"
+                  variant={complaint.status === s ? "primary" : "secondary"}
+                  aria-pressed={complaint.status === s}
+                  disabled={busyStatus}
+                  onClick={() => complaint.status !== s && setStatus(s)}
                 >
                   {STATUS_META[s].label}
-                </button>
+                </Button>
               ))}
             </div>
           </div>
-          <div>
-            <p className={clsx(LABEL, "mb-1.5")}>Priority</p>
-            <select
-              value={complaint.priority}
-              onChange={(e) => setPriority(e.target.value as ComplaintPriority)}
-              className="w-full px-3 py-2 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-bold text-charcoal dark:text-white focus:outline-hidden focus:border-primary cursor-pointer"
-            >
-              {COMPLAINT_PRIORITIES.map((p) => (
-                <option key={p} value={p}>{PRIORITY_META[p].label}</option>
-              ))}
-            </select>
-          </div>
+          <Select
+            label="Priority"
+            value={complaint.priority}
+            items={Object.fromEntries(COMPLAINT_PRIORITIES.map((p) => [p, PRIORITY_META[p].label]))}
+            onValueChange={(v) => v && v !== complaint.priority && setPriority(v as ComplaintPriority)}
+            className="w-40"
+          >
+            {COMPLAINT_PRIORITIES.map((p) => (
+              <Select.Option key={p} value={p}>
+                {PRIORITY_META[p].label}
+              </Select.Option>
+            ))}
+          </Select>
         </div>
       )}
 
       {/* Details */}
-      <div className="space-y-3">
-        <p className={LABEL}>Details</p>
-        <p className="text-sm text-slate-600 dark:text-slate-300 whitespace-pre-line wrap-break-word leading-relaxed">{complaint.details}</p>
+      <section className="space-y-2">
+        <h3 className="text-sm font-semibold text-kumo-default">Details</h3>
+        <p className="wrap-break-word whitespace-pre-line text-sm leading-relaxed text-kumo-default">{complaint.details}</p>
         {complaint.photos.length > 0 && (
           <div className="flex flex-wrap gap-2 pt-1">
             {complaint.photos.map((p) => <Photo key={p} url={p} />)}
           </div>
         )}
-      </div>
+      </section>
 
       {/* Thread */}
-      <div className="space-y-3 pt-5 border-t border-slate-100 dark:border-white/5">
-        <p className={LABEL}>Conversation</p>
+      <section className="space-y-3 border-t border-kumo-line pt-4">
+        <h3 className="text-sm font-semibold text-kumo-default">Conversation</h3>
         {complaint.comments.length === 0 && (
-          <p className="text-xs text-slate-400 py-4 text-center">
+          <p className="py-4 text-center text-sm text-kumo-subtle">
             {isAdmin ? "No replies yet. Reply below to let the tenant know it's being handled." : "No replies yet. The admin will reply here."}
           </p>
         )}
         <div className="space-y-3">
           {complaint.comments.map((c) =>
             c.authorRole === "SYSTEM" ? (
-              <div key={c.id} className="flex items-center gap-2 justify-center text-xs font-bold text-slate-400 py-1">
-                <span className="h-px flex-1 bg-slate-100 dark:bg-white/5" />
-                <span className="text-center">{c.message} · {formatWhen(c.createdAt)}</span>
-                <span className="h-px flex-1 bg-slate-100 dark:bg-white/5" />
-              </div>
+              <p key={c.id} className="py-1 text-center text-xs text-kumo-subtle">
+                {c.message}, {formatWhen(c.createdAt)}
+              </p>
             ) : (
-              <div key={c.id} className={clsx("flex", c.mine ? "justify-end" : "justify-start")}>
+              <div key={c.id} className={cn("flex", c.mine ? "justify-end" : "justify-start")}>
                 <div
-                  className={clsx(
-                    "max-w-[88%] sm:max-w-[75%] rounded-2xl px-4 py-3 space-y-2",
+                  className={cn(
+                    "max-w-[88%] space-y-1.5 rounded-lg px-3 py-2.5 sm:max-w-[75%]",
                     c.isInternal
-                      ? "bg-amber-50 dark:bg-amber-500/10 border border-dashed border-amber-300 dark:border-amber-500/30"
+                      ? "border border-dashed border-kumo-warning bg-kumo-base text-kumo-default"
                       : c.mine
-                        ? "bg-primary text-white"
-                        : "bg-slate-100 dark:bg-zinc-800 text-charcoal dark:text-white",
+                        ? "bg-kumo-brand text-white"
+                        : "bg-kumo-recessed text-kumo-default",
                   )}
                 >
-                  <p className={clsx("text-xs font-semibold flex items-center gap-1", c.isInternal ? "text-amber-600 dark:text-amber-400" : c.mine ? "text-white/70" : "text-slate-400")}>
-                    {c.isInternal ? <Lock size={10} /> : c.authorRole === "ADMIN" ? <ShieldCheck size={10} /> : <Store size={10} />}
-                    {c.isInternal ? "Internal note · admins only" : c.authorName}
+                  <p
+                    className={cn(
+                      "text-xs font-semibold",
+                      c.isInternal ? "text-kumo-warning" : c.mine ? "text-white/80" : "text-kumo-subtle",
+                    )}
+                  >
+                    {c.isInternal ? "Internal note, admins only" : c.authorName}
                   </p>
-                  {c.message && <p className={clsx("text-sm whitespace-pre-line wrap-break-word", c.isInternal && "text-charcoal dark:text-white")}>{c.message}</p>}
+                  {c.message && <p className="wrap-break-word whitespace-pre-line text-sm">{c.message}</p>}
                   {c.photoUrl && <Photo url={c.photoUrl} />}
-                  <p className={clsx("text-[10px]", c.isInternal ? "text-amber-600/70" : c.mine ? "text-white/60" : "text-slate-400")}>{formatWhen(c.createdAt)}</p>
+                  <p className={cn("text-xs", c.mine && !c.isInternal ? "text-white/70" : "text-kumo-subtle")}>
+                    {formatWhen(c.createdAt)}
+                  </p>
                 </div>
               </div>
             ),
           )}
         </div>
         <div ref={endRef} />
-      </div>
+      </section>
 
       {/* Composer */}
       {canComment ? (
-        <div className="space-y-3 pt-2">
+        <div className="space-y-3">
           {photoUrl && (
-            <div className="relative inline-block">
+            <div className="flex items-end gap-2">
               <Photo url={photoUrl} />
-              <button onClick={() => setPhotoUrl(null)} className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center shadow-sm" aria-label="Remove photo">
-                <X size={12} />
-              </button>
+              <Button size="sm" variant="secondary-destructive" onClick={() => setPhotoUrl(null)}>
+                Remove photo
+              </Button>
             </div>
           )}
-          <textarea
+          <InputArea
+            aria-label={internal ? "Internal note" : "Reply"}
             value={message}
             maxLength={COMMENT_MAX}
-            onChange={(e) => setMessage(e.target.value)}
+            onValueChange={setMessage}
             rows={3}
-            placeholder={internal ? "Internal note — only admins can see this…" : isAdmin ? "Reply to the tenant…" : "Add a comment for the admin…"}
-            className={clsx(
-              "w-full px-4 py-3 rounded-2xl text-sm border focus:outline-hidden transition-colors resize-none",
-              internal
-                ? "bg-amber-50 dark:bg-amber-500/10 border-amber-300 dark:border-amber-500/30 focus:border-amber-400 text-charcoal dark:text-white"
-                : "bg-slate-50 dark:bg-zinc-800 border-slate-200 dark:border-white/10 focus:border-primary text-charcoal dark:text-white",
-            )}
+            placeholder={internal ? "Internal note, only admins can see this" : isAdmin ? "Reply to the tenant" : "Add a comment for the admin"}
+            className={cn("w-full", internal && "ring-2 ring-kumo-warning")}
           />
-          <div className="flex flex-wrap items-center gap-2">
-            <label className={clsx("inline-flex items-center gap-1.5 h-10 px-3 rounded-xl border border-slate-200 dark:border-white/10 text-xs font-semibold text-slate-500 hover:text-primary hover:border-primary cursor-pointer", uploading && "opacity-60 pointer-events-none")}>
-              {uploading ? <Loader2 size={14} className="animate-spin" /> : <Camera size={14} />}
-              {uploading ? "Uploading…" : "Photo"}
-              <input type="file" accept="image/*" hidden onChange={onPickPhoto} />
-            </label>
-            {isAdmin && (
-              <label className="inline-flex items-center gap-2 h-10 px-3 rounded-xl border border-slate-200 dark:border-white/10 text-xs font-semibold text-slate-500 cursor-pointer select-none">
-                <input type="checkbox" checked={internal} onChange={(e) => setInternal(e.target.checked)} className="accent-amber-500" />
-                <Lock size={12} /> Internal note
-              </label>
-            )}
-            <span className="text-[10px] text-slate-400 ml-auto">{message.length}/{COMMENT_MAX}</span>
-            <button
-              onClick={send}
-              disabled={sending || uploading || (!message.trim() && !photoUrl)}
-              className="inline-flex items-center gap-1.5 h-10 px-5 rounded-xl bg-primary text-white text-xs font-semibold shadow-md shadow-primary/20 hover:bg-primary/90 disabled:opacity-50 transition-colors"
-            >
-              {sending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+          <div className="flex flex-wrap items-center gap-3">
+            <Button variant="secondary" icon={<Camera />} loading={uploading} onClick={() => fileRef.current?.click()}>
+              Photo
+            </Button>
+            <input ref={fileRef} type="file" accept="image/*" className="sr-only" tabIndex={-1} aria-label="Attach a photo" onChange={onPickPhoto} />
+            {isAdmin && <Checkbox label="Internal note" checked={internal} onCheckedChange={(v) => setInternal(Boolean(v))} />}
+            <span className="ml-auto text-xs text-kumo-subtle">
+              {message.length}/{COMMENT_MAX}
+            </span>
+            <Button variant="primary" loading={sending} disabled={uploading || (!message.trim() && !photoUrl)} onClick={send}>
               {internal ? "Save note" : "Send"}
-            </button>
+            </Button>
           </div>
         </div>
       ) : (
-        <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/3 border border-slate-100 dark:border-white/5 text-xs text-slate-500 dark:text-slate-400 flex flex-wrap items-center gap-3">
-          <span className="flex-1 min-w-48">
+        <div className="flex flex-wrap items-center gap-3 rounded-lg bg-kumo-recessed p-3 text-sm text-kumo-subtle">
+          <span className="min-w-48 flex-1">
             {complaint.status === "RESOLVED"
               ? "This complaint is resolved. If the problem came back, reopen it."
               : "The admin closed this complaint. File a new one if you still need help."}
           </span>
           {complaint.status === "RESOLVED" && (
-            <button
-              onClick={reopen}
-              disabled={busyStatus}
-              className="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl border border-slate-200 dark:border-white/10 text-xs font-semibold text-charcoal dark:text-white hover:border-primary hover:text-primary disabled:opacity-50"
-            >
-              <RotateCcw size={13} /> Reopen
-            </button>
+            <Button size="sm" variant="secondary" loading={busyStatus} onClick={reopen}>
+              Reopen
+            </Button>
           )}
         </div>
       )}
@@ -373,13 +358,9 @@ export function ComplaintView({
       {/* Tenant: mark resolved */}
       {!isAdmin && open && (
         <div className="flex justify-end">
-          <button
-            onClick={() => setStatus("RESOLVED")}
-            disabled={busyStatus}
-            className="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-semibold hover:bg-emerald-500/10 disabled:opacity-50"
-          >
-            <CheckCircle2 size={13} /> Mark as resolved
-          </button>
+          <Button variant="secondary" loading={busyStatus} onClick={() => setStatus("RESOLVED")}>
+            Mark as resolved
+          </Button>
         </div>
       )}
     </div>

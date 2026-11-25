@@ -1,23 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import clsx from "clsx";
-import {
-  AlertTriangle,
-  CheckCircle2,
-  Clock,
-  Download,
-  ExternalLink,
-  Eye,
-  FileText,
-  Loader2,
-  Mail,
-  MapPin,
-  Ruler,
-  Wallet,
-  X,
-  XCircle,
-} from "lucide-react";
+import { Banner, Button, InputArea, Loader, cn } from "@cloudflare/kumo";
+import { ArrowSquareOut, DownloadSimple } from "@phosphor-icons/react";
+import { AdminDialog, Person } from "@/components/admin/page-kit";
 import { approveReservationAction, getPermitLinkAction, rejectReservationAction } from "@/app/actions/space-slot";
 import { useAuth } from "@/app/providers";
 import { ReservationStepper } from "@/components/reservation-stepper";
@@ -39,6 +25,8 @@ export type ReservationModalMode = "details" | "approve" | "reject";
 
 const COMMENT_MAX = 1000;
 const fileSize = (n: number) => (n >= 1024 * 1024 ? `${(n / (1024 * 1024)).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`);
+const when = (value: string) =>
+  new Date(value).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 const isImage = (p: { type?: string; url: string }) => (p.type || "").startsWith("image/") || /\.(png|jpe?g)(\?|$)/i.test(p.url);
 
 /**
@@ -68,12 +56,6 @@ export function ReservationDecisionModal({
   const details = mode === "details";
 
   useEffect(() => setMode(action), [action]);
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && !busy && onClose();
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [busy, onClose]);
 
   const submit = async () => {
     if (mode === "reject" && !reason.trim()) {
@@ -146,236 +128,161 @@ export function ReservationDecisionModal({
   };
 
   return (
-    <div className="fixed inset-0 z-250 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-xs" onClick={() => !busy && onClose()} />
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="reservation-decision-title"
-        className="relative w-full max-w-xl max-h-[92vh] overflow-y-auto bg-white dark:bg-zinc-950 rounded-2xl shadow-2xl animate-fade-in-up"
-      >
-        <div
-          className={clsx(
-            "p-7 text-white relative",
-            details ? "bg-charcoal dark:bg-zinc-900" : approve ? "bg-emerald-600" : "bg-[#BE1E2D]",
-          )}
-        >
-          <div className="flex items-center gap-4">
-            <span className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center">
-              {details ? <Eye size={24} /> : approve ? <CheckCircle2 size={24} /> : <XCircle size={24} />}
-            </span>
-            <div>
-              <p className="text-xs font-semibold text-white/70">Space reservation</p>
-              <h2 id="reservation-decision-title" className="text-xl font-semibold tracking-tight">
-                {details ? `Unit ${r.unit_id} details` : `${approve ? "Approve" : "Reject"} Unit ${r.unit_id}?`}
-              </h2>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={busy}
-            aria-label="Close"
-            className="absolute top-6 right-6 text-white/60 hover:text-white disabled:opacity-40"
-          >
-            <X size={20} />
-          </button>
+    <AdminDialog
+      open
+      onClose={() => !busy && onClose()}
+      title={details ? `Unit ${r.unit_id} details` : `${approve ? "Approve" : "Reject"} Unit ${r.unit_id}?`}
+      description="Space reservation"
+      footer={
+        details ? (
+          <>
+            <Button variant="secondary" onClick={onClose}>
+              Close
+            </Button>
+            <Button variant="secondary-destructive" onClick={() => { setError(null); setMode("reject"); }}>
+              Reject
+            </Button>
+            <Button variant="primary" onClick={() => { setError(null); setMode("approve"); }}>
+              Approve
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button variant="secondary" onClick={onClose} disabled={busy}>
+              Cancel
+            </Button>
+            <Button
+              variant={approve ? "primary" : "destructive"}
+              loading={busy}
+              disabled={!approve && !reason.trim()}
+              onClick={submit}
+            >
+              {approve ? "Approve reservation" : "Reject & release unit"}
+            </Button>
+          </>
+        )
+      }
+    >
+      <div className="space-y-5">
+        <ReservationStepper current={approve ? 3 : 2} />
+
+        {/* Who */}
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-kumo-recessed p-3">
+          <Person name={name} detail={r.reservingUser?.email || "No email on file"} image={r.reservingUser?.avatarUrl} />
+          <p className={cn("shrink-0 text-sm font-semibold", r.isUrgent ? "text-kumo-danger" : "text-kumo-warning")}>
+            {r.remainingFormatted ? `${r.remainingFormatted.replace(/ left$/i, "")} left` : ""}
+          </p>
         </div>
 
-        <div className="p-7 space-y-5">
-          <ReservationStepper current={approve ? 3 : 2} />
+        {/* What */}
+        <dl className="grid grid-cols-3 gap-3">
+          <Fact label="Floor">
+            <span className="capitalize">{r.floor || "-"}</span>
+          </Fact>
+          <Fact label="Size">{r.sqm_size ?? "-"} sqm</Fact>
+          <Fact label="Rent">₱{Number(r.base_rent || 0).toLocaleString()}</Fact>
+        </dl>
+        {r.reservedAt && <p className="text-sm text-kumo-subtle">Reserved {when(r.reservedAt)}</p>}
 
-          {/* Who */}
-          <div className="flex items-center gap-3 p-4 rounded-2xl bg-slate-50 dark:bg-zinc-900 border border-slate-100 dark:border-white/5">
-            <span className="w-11 h-11 rounded-full bg-primary/10 text-primary overflow-hidden flex items-center justify-center font-semibold shrink-0">
-              {r.reservingUser?.avatarUrl ? <img src={r.reservingUser.avatarUrl} alt="" className="w-full h-full object-cover" /> : name.charAt(0).toUpperCase()}
-            </span>
-            <div className="min-w-0">
-              <p className="font-bold text-charcoal dark:text-white truncate">{name}</p>
-              <p className="flex items-center gap-1 text-xs text-slate-500 truncate">
-                <Mail size={12} /> {r.reservingUser?.email || "No email on file"}
-              </p>
-            </div>
-            <span
-              className={clsx(
-                "ml-auto shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold",
-                r.isUrgent ? "bg-red-500/10 text-red-600" : "bg-amber-500/10 text-amber-600",
-              )}
-            >
-              <Clock size={12} /> {r.remainingFormatted || "—"} left
-            </span>
-          </div>
-
-          {/* What */}
-          <dl className="grid grid-cols-3 gap-3 text-sm">
-            <div className="p-3 rounded-xl border border-slate-100 dark:border-white/5">
-              <dt className="flex items-center gap-1 text-xs font-semibold text-slate-500 dark:text-slate-400"><MapPin size={11} /> Floor</dt>
-              <dd className="mt-1 font-bold capitalize text-charcoal dark:text-white">{r.floor || "—"}</dd>
-            </div>
-            <div className="p-3 rounded-xl border border-slate-100 dark:border-white/5">
-              <dt className="flex items-center gap-1 text-xs font-semibold text-slate-500 dark:text-slate-400"><Ruler size={11} /> Size</dt>
-              <dd className="mt-1 font-bold text-charcoal dark:text-white">{r.sqm_size ?? "—"} sqm</dd>
-            </div>
-            <div className="p-3 rounded-xl border border-slate-100 dark:border-white/5">
-              <dt className="flex items-center gap-1 text-xs font-semibold text-slate-500 dark:text-slate-400"><Wallet size={11} /> Rent</dt>
-              <dd className="mt-1 font-bold text-charcoal dark:text-white">₱{Number(r.base_rent || 0).toLocaleString()}</dd>
-            </div>
-          </dl>
-          {r.reservedAt && (
-            <p className="text-xs text-slate-500">
-              Reserved {new Date(r.reservedAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
-            </p>
-          )}
-
-          {/* Business permit */}
-          <div className="space-y-2">
-            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Business permit</p>
-            {permit ? (
-              <div className="rounded-2xl border border-slate-100 dark:border-white/5 overflow-hidden">
-                {isImage(permit) ? (
-                  <button type="button" onClick={() => openPermit("view")} className="block w-full bg-slate-50 dark:bg-zinc-900">
-                    {preview ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={preview} alt="Business permit" className="w-full max-h-64 object-contain" />
-                    ) : (
-                      <span className="flex items-center justify-center py-10"><Loader2 size={20} className="animate-spin text-slate-300" /></span>
-                    )}
-                  </button>
-                ) : (
-                  <div className="flex items-center justify-center gap-2 py-6 bg-slate-50 dark:bg-zinc-900 text-slate-500">
-                    <FileText size={28} className="text-primary" />
-                    <span className="text-xs font-bold">PDF document</span>
-                  </div>
-                )}
-                <div className="flex items-center gap-3 p-3">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-bold text-charcoal dark:text-white truncate">{permit.name}</p>
-                    <p className="text-xs text-slate-500">
-                      {permit.size ? `${fileSize(permit.size)} · ` : ""}uploaded{" "}
-                      {new Date(permit.uploadedAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => openPermit("view")}
-                    disabled={!!opening}
-                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 dark:border-white/10 text-xs font-semibold text-charcoal dark:text-white hover:border-primary hover:text-primary disabled:opacity-50"
-                  >
-                    {opening === "view" ? <Loader2 size={12} className="animate-spin" /> : <ExternalLink size={12} />} View
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => openPermit("download")}
-                    disabled={!!opening}
-                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-primary text-white text-xs font-semibold hover:bg-primary/90 disabled:opacity-50"
-                  >
-                    {opening === "download" ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />} Download
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <p className="text-xs text-slate-500 p-3 rounded-xl border border-dashed border-slate-200 dark:border-white/10">
-                No permit uploaded (this reservation was made before permits were required).
-              </p>
-            )}
-          </div>
-
-          {/* What happens */}
-          {!details && (
-            <p className="text-sm text-slate-600 dark:text-slate-300">
-              {approve ? (
-                <>
-                  Unit {r.unit_id} becomes <strong>Occupied</strong> and {name} gets an approval email and notification. The leasing team should then
-                  schedule the site visit and contract.
-                </>
+        {/* Business permit */}
+        <section className="space-y-2">
+          <h3 className="text-sm font-semibold text-kumo-default">Business permit</h3>
+          {permit ? (
+            <div className="overflow-hidden rounded-lg border border-kumo-line">
+              {isImage(permit) ? (
+                <button type="button" onClick={() => openPermit("view")} className="block w-full cursor-pointer bg-kumo-recessed">
+                  {preview ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={preview} alt="Business permit" className="max-h-64 w-full object-contain" />
+                  ) : (
+                    <span className="flex items-center justify-center py-10">
+                      <Loader />
+                    </span>
+                  )}
+                </button>
               ) : (
-                <>
-                  Unit {r.unit_id} goes back to <strong>Available</strong> for other customers, and {name} is notified by email and in the app.
-                </>
+                <p className="bg-kumo-recessed py-6 text-center text-sm text-kumo-subtle">PDF document</p>
               )}
-            </p>
-          )}
-
-          {!details && (
-            <div className="space-y-1.5">
-              <label htmlFor="reservation-comment" className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                Comment to the applicant {approve ? "(optional)" : <span className="text-primary">(required)</span>}
-              </label>
-              <textarea
-                id="reservation-comment"
-                value={reason}
-                onChange={(e) => setReason(e.target.value.slice(0, COMMENT_MAX))}
-                rows={3}
-                placeholder={
-                  approve
-                    ? "e.g. Please visit the admin office on Monday at 9 AM to sign the contract."
-                    : "e.g. The business permit has expired. Please reserve again with a valid permit."
-                }
-                className="w-full p-3 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-zinc-900 text-sm text-charcoal dark:text-white focus:outline-hidden focus:border-primary resize-none"
-              />
-              <p className="flex justify-between text-xs text-slate-500 dark:text-slate-400">
-                <span>Sent to {name} by email and notification.</span>
-                <span>{reason.length}/{COMMENT_MAX}</span>
-              </p>
-            </div>
-          )}
-
-          {error && (
-            <div role="alert" className="flex items-start gap-2 p-3 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-100 dark:border-red-900/30 text-red-600 text-xs font-bold">
-              <AlertTriangle size={14} className="shrink-0 mt-0.5" /> {error}
-            </div>
-          )}
-
-          {details ? (
-            <div className="flex gap-3 pt-1">
-              <button
-                type="button"
-                onClick={onClose}
-                className="flex-1 py-3.5 rounded-xl bg-slate-100 dark:bg-zinc-900 text-slate-600 dark:text-slate-300 text-xs font-bold hover:bg-slate-200"
-              >
-                Close
-              </button>
-              <button
-                type="button"
-                onClick={() => { setError(null); setMode("reject"); }}
-                className="flex-1 py-3.5 rounded-xl border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:text-red-500 hover:border-red-500/30 text-xs font-semibold flex items-center justify-center gap-1.5"
-              >
-                <XCircle size={15} /> Reject
-              </button>
-              <button
-                type="button"
-                onClick={() => { setError(null); setMode("approve"); }}
-                className="flex-1 py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-500/20"
-              >
-                <CheckCircle2 size={15} /> Approve
-              </button>
+              <div className="flex flex-wrap items-center gap-3 p-3">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-kumo-default">{permit.name}</p>
+                  <p className="text-xs text-kumo-subtle">
+                    {permit.size ? `${fileSize(permit.size)}, ` : ""}uploaded {when(permit.uploadedAt)}
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  icon={<ArrowSquareOut />}
+                  loading={opening === "view"}
+                  disabled={!!opening}
+                  onClick={() => openPermit("view")}
+                >
+                  View
+                </Button>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  icon={<DownloadSimple />}
+                  loading={opening === "download"}
+                  disabled={!!opening}
+                  onClick={() => openPermit("download")}
+                >
+                  Download
+                </Button>
+              </div>
             </div>
           ) : (
-            <div className="flex gap-3 pt-1">
-              <button
-                type="button"
-                onClick={onClose}
-                disabled={busy}
-                className="flex-1 py-3.5 rounded-xl bg-slate-100 dark:bg-zinc-900 text-slate-600 dark:text-slate-300 text-xs font-bold hover:bg-slate-200 disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={submit}
-                disabled={busy || (!approve && !reason.trim())}
-                className={clsx(
-                  "flex-2 py-3.5 rounded-xl text-white text-xs font-semibold flex items-center justify-center gap-2 shadow-lg disabled:opacity-60",
-                  approve ? "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20" : "bg-[#BE1E2D] hover:bg-[#a01825] shadow-red-500/20",
-                )}
-              >
-                {busy ? <Loader2 size={16} className="animate-spin" /> : approve ? <CheckCircle2 size={16} /> : <XCircle size={16} />}
-                {approve ? "Approve reservation" : "Reject & release unit"}
-              </button>
-            </div>
+            <p className="rounded-lg border border-dashed border-kumo-line p-3 text-sm text-kumo-subtle">
+              No permit uploaded (this reservation was made before permits were required).
+            </p>
           )}
-        </div>
+        </section>
+
+        {/* What happens */}
+        {!details && (
+          <p className="text-sm text-kumo-default">
+            {approve ? (
+              <>
+                Unit {r.unit_id} becomes <strong>Occupied</strong> and {name} gets an approval email and notification. The
+                leasing team should then schedule the site visit and contract.
+              </>
+            ) : (
+              <>
+                Unit {r.unit_id} goes back to <strong>Available</strong> for other customers, and {name} is notified by
+                email and in the app.
+              </>
+            )}
+          </p>
+        )}
+
+        {!details && (
+          <InputArea
+            label={approve ? "Comment to the applicant (optional)" : "Comment to the applicant (required)"}
+            description={`Sent to ${name} by email and notification. ${reason.length}/${COMMENT_MAX}`}
+            value={reason}
+            onValueChange={(v) => setReason(v.slice(0, COMMENT_MAX))}
+            rows={3}
+            placeholder={
+              approve
+                ? "e.g. Please visit the admin office on Monday at 9 AM to sign the contract."
+                : "e.g. The business permit has expired. Please reserve again with a valid permit."
+            }
+            className="w-full"
+          />
+        )}
+
+        {error && <Banner variant="error" description={error} />}
       </div>
+    </AdminDialog>
+  );
+}
+
+function Fact({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="rounded-lg border border-kumo-line p-3">
+      <dt className="text-xs text-kumo-subtle">{label}</dt>
+      <dd className="mt-1 text-sm font-semibold text-kumo-default">{children}</dd>
     </div>
   );
 }

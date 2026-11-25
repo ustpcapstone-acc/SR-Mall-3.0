@@ -269,7 +269,7 @@ export const EventInquiryForm = ({
               <button
                 suppressHydrationWarning
                 onClick={() => setIsLoginModalOpen(true)}
-                className="mt-6 rounded-full bg-[#C51D30] px-8 py-3 text-sm font-semibold text-white shadow-lg shadow-[#C51D30]/25 transition-all hover:bg-[#A8172A] hover:shadow-xl active:scale-[0.99]"
+                className="mt-6 rounded-xl bg-[#C51D30] px-8 py-3 text-sm font-semibold text-white shadow-lg shadow-[#C51D30]/25 transition-all hover:bg-[#A8172A] hover:shadow-xl active:scale-[0.99]"
               >
                 Log in to continue
               </button>
@@ -288,7 +288,7 @@ export const EventInquiryForm = ({
                       onClick={() => setEventType(type)}
                       aria-pressed={eventType === type}
                       className={clsx(
-                        "rounded-full border px-3 py-2 text-[12px] font-semibold leading-none transition-all",
+                        "cursor-pointer rounded-lg border px-3 py-2 text-[13px] font-semibold leading-none transition-colors",
                         eventType === type
                           ? "border-[#C51D30] bg-[#C51D30] text-white shadow-xs shadow-[#C51D30]/25"
                           : "border-[#E6DED7] bg-white text-[#4A4144] hover:border-[#C51D30]/40 hover:text-[#C51D30] dark:border-white/10 dark:bg-zinc-950 dark:text-slate-300 dark:hover:border-[#C51D30]/40",
@@ -439,7 +439,7 @@ export const EventInquiryForm = ({
                   suppressHydrationWarning
                   type="submit"
                   disabled={isSubmitting}
-                  className="flex w-full items-center justify-center gap-2 rounded-full bg-[#C51D30] px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-[#C51D30]/25 transition-all hover:bg-[#A8172A] hover:shadow-xl active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 sm:py-4"
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#C51D30] px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-[#C51D30]/25 transition-all hover:bg-[#A8172A] hover:shadow-xl active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 sm:py-4"
                 >
                   {isSubmitting ? (
                     <>
