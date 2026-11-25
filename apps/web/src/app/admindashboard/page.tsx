@@ -16,17 +16,14 @@ import {
   ClipboardCheck,
   FileCheck2,
   Flag,
-  Handshake,
   LayoutDashboard,
   Loader2,
   MapPin,
   Megaphone,
   MessageSquare,
   PhilippinePeso,
-  Receipt,
   RefreshCw,
   Store,
-  UserPlus,
   Users,
   Wallet,
   X,
@@ -271,28 +268,11 @@ export default function AdminDashboard() {
         />
       </section>
 
-      {/* ── Needs attention + quick actions ────────────────────────────────── */}
-      <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2">
+      {/* ── Needs attention ────────────────────────────────────────────────── */}
+      <section>
+        <Card>
           <CardHeader title="Needs your attention" subtitle="Queues waiting on an admin decision" />
           <AttentionList attention={attention} />
-        </Card>
-
-        <Card>
-          <CardHeader title="Quick actions" />
-          <div className="grid grid-cols-2 gap-3">
-            <QuickAction href="/admindashboard/tenant-monitoring" icon={<Receipt size={18} />} label="Post a bill" />
-            <QuickAction href="/admindashboard/tenant-monitoring" icon={<UserPlus size={18} />} label="Register tenant" />
-            <QuickAction href="/admindashboard/ad-scheduler" icon={<Megaphone size={18} />} label="Schedule ad" />
-            <QuickAction
-              href="/admindashboard/messenger-hub"
-              icon={<MessageSquare size={18} />}
-              label="Messages"
-              badge={attention.unreadMessages}
-            />
-            <QuickAction href="/admindashboard/space-manager" icon={<MapPin size={18} />} label="Space manager" />
-            <QuickAction href="/admindashboard/bookings" icon={<Calendar size={18} />} label="Bookings" />
-          </div>
         </Card>
       </section>
 
@@ -610,14 +590,6 @@ function KpiCard({
 function AttentionList({ attention }: { attention: AdminDashboardData["attention"] }) {
   const rows = [
     {
-      key: "applications",
-      count: attention.merchantApplications,
-      icon: <Handshake size={16} />,
-      label: "Merchant applications",
-      detail: "Waiting for approval",
-      href: "/admindashboard/merchant-requests",
-    },
-    {
       key: "reservations",
       count: attention.reservations,
       icon: <MapPin size={16} />,
@@ -717,35 +689,6 @@ function AttentionList({ attention }: { attention: AdminDashboardData["attention
         </li>
       ))}
     </ul>
-  );
-}
-
-function QuickAction({
-  href,
-  icon,
-  label,
-  badge,
-}: {
-  href: string;
-  icon: React.ReactNode;
-  label: string;
-  badge?: number;
-}) {
-  return (
-    <Link
-      href={href}
-      className="group relative flex flex-col items-start gap-3 p-4 rounded-2xl bg-slate-50/50 dark:bg-white/5 border border-slate-100 dark:border-white/5 hover:border-primary/30 hover:bg-primary/5 transition-all active:scale-95"
-    >
-      <span className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center group-hover:scale-110 transition-transform">
-        {icon}
-      </span>
-      <span className="text-xs font-semibold text-charcoal dark:text-white">{label}</span>
-      {badge ? (
-        <span className="absolute top-2 right-2 min-w-5 h-5 px-1.5 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center">
-          {badge > 99 ? "99+" : badge}
-        </span>
-      ) : null}
-    </Link>
   );
 }
 

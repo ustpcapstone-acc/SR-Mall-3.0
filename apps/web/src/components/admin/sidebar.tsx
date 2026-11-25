@@ -38,7 +38,6 @@ const navGroups = [
     items: [
       { href: "/admindashboard/rent-requests", label: "Rent Requests", icon: FileText },
       { href: "/admindashboard/bookings", label: "Bookings", icon: Calendar },
-      { href: "/admindashboard/merchant-requests", label: "Merchant Requests", icon: Store },
       { href: "/admindashboard/renewals", label: "Renewals", icon: RefreshCw },
     ],
   },

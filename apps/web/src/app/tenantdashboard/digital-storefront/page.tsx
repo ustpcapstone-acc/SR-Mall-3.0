@@ -525,15 +525,13 @@ export default function DigitalStorefrontPage() {
                       <div className="relative">
                         <input
                           type="text"
-                          placeholder="e.g. L1-105"
                           value={profile.unit_id || ""}
-                          onChange={(e) => updateField("unit_id", e.target.value)}
+                          readOnly
+                          aria-label="Unit (assigned by the mall office)"
                           className="w-full px-4 py-3 pr-16 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-semibold text-charcoal dark:text-white placeholder:text-slate-400 focus:outline-hidden focus:border-primary transition-all"
                         />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded-md">
-                          SYNCED
-                        </span>
                       </div>
+                      <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Assigned by the mall office. Switch shops in the Workspace menu.</p>
                     </div>
                     <div>
                       <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1.5 mb-1.5">

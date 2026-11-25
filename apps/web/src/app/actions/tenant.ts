@@ -11,6 +11,37 @@ import { DigitalStorefront } from "@/types/storefront";
 import { revalidatePath } from "next/cache";
 import { occupySlot } from "./space-slot";
 import { recordTenantExit } from "@/lib/tenant-history";
+import { findShop, listPublicShops, ownShop, shopKey, shopOfLease, type Shop } from "@/lib/shops";
+import { resolveWorkspace } from "@/lib/workspace-server";
+import type { Account } from "@/lib/auth-server";
+
+/** A shop in the shape the pages use. */
+const toStorefront = (s: Shop) =>
+  ({
+    id: s.id,
+    tenant_id: s.tenantId,
+    shop_name: s.shopName,
+    unit_id: s.unitId,
+    is_open: s.isOpen,
+    description: s.description,
+    logo_url: s.logoUrl,
+    gallery_urls: s.galleryUrls,
+    products: s.products as any,
+    post_sales: s.postSales as any,
+    category: s.category,
+  }) as DigitalStorefront;
+
+/**
+ * The shop the signed-in tenant (or their staff) is working in: the one for the
+ * space chosen in the workspace menu. Mall staff get the tenant's main shop.
+ */
+async function workspaceShop(account: Account, tenant: { id: string }) {
+  if (account.type !== "TENANT") return shopOfLease(tenant.id, null);
+  const { lease } = await resolveWorkspace(tenant.id, account.tenantStaff?.leaseId);
+  // Staff only ever work in their own space.
+  if (account.tenantStaff && !lease) return null;
+  return shopOfLease(tenant.id, lease);
+}
 
 /**
  * Updates or creates a tenant's digital storefront profile.
@@ -21,7 +52,8 @@ export async function updateStorefrontAction(
   profile: Partial<DigitalStorefront>,
 ) {
   try {
-    await requireStore(userId, { sections: ["storefront"], staff: ["tenant_monitoring"] });
+    const account = await requireStore(userId, { sections: ["storefront"], staff: ["tenant_monitoring"] });
+    const mallStaff = account.type === "ADMIN";
     const user = await prisma.user.findUnique({
       where: { id: userId },
     });
@@ -48,11 +80,50 @@ export async function updateStorefrontAction(
       };
     }
 
+    // Save to the shop the page loaded (profile.id), not whatever the workspace
+    // menu says now: another tab may have switched spaces meanwhile.
+    const main = await prisma.tenant.findUnique({ where: { userId } });
+    if (main) {
+      const target = await ownShop(main.id, profile.id || main.id);
+      if (!target) return { success: false, error: "That shop isn't linked to this account. Reload the page." };
+      if (account.tenantStaff) {
+        const lease = await prisma.lease.findUnique({
+          where: { id: account.tenantStaff.leaseId },
+          select: { shopId: true, status: true },
+        });
+        if (lease?.status !== "ACTIVE" || lease.shopId !== shopKey(target)) {
+          return { success: false, error: "You can only edit the shop of your own space." };
+        }
+      }
+      if (!target.isMain) {
+        const name = profile.shop_name?.trim();
+        if (profile.shop_name !== undefined && !name) return { success: false, error: "Give this shop a name." };
+        await prisma.unitShop.update({
+          where: { id: target.id },
+          data: {
+            shopName: name,
+            isOpen: profile.is_open,
+            description: profile.description,
+            logoUrl: profile.logo_url,
+            galleryUrls: profile.gallery_urls,
+            products: profile.products as any,
+            postSales: profile.post_sales as any,
+            category: profile.category,
+          },
+        });
+        revalidatePath("/tenantdashboard/digital-storefront");
+        revalidatePath("/");
+        return { success: true, data: toStorefront((await ownShop(main.id, target.id))!) };
+      }
+    }
+
     const tenant = await prisma.tenant.upsert({
       where: { userId },
       update: {
         shopName: profile.shop_name,
-        unitId: profile.unit_id,
+        // Units are assigned by the mall office, never from the shop editor.
+        // (A shop with several units shows them as a list: never save that back.)
+        unitId: mallStaff && !profile.unit_id?.includes(",") ? profile.unit_id : undefined,
         isOpen: profile.is_open,
         description: profile.description,
         logoUrl: profile.logo_url,
@@ -64,7 +135,7 @@ export async function updateStorefrontAction(
       create: {
         userId,
         shopName: profile.shop_name || "Untitled Shop",
-        unitId: profile.unit_id || "PENDING",
+        unitId: (mallStaff && profile.unit_id) || "PENDING",
         isOpen: profile.is_open ?? true,
         description: profile.description || "",
         logoUrl: profile.logo_url,
@@ -81,18 +152,7 @@ export async function updateStorefrontAction(
 
     return {
       success: true,
-      data: {
-        id: tenant.id,
-        shop_name: tenant.shopName,
-        unit_id: tenant.unitId,
-        is_open: tenant.isOpen,
-        description: tenant.description,
-        logo_url: tenant.logoUrl,
-        gallery_urls: tenant.galleryUrls,
-        products: tenant.products as any,
-        post_sales: tenant.postSales as any,
-        category: (tenant as any).category,
-      } as DigitalStorefront,
+      data: toStorefront((await ownShop(tenant.id, tenant.id))!),
     };
   } catch (error: any) {
     console.error("[UPDATE_STOREFRONT_ERROR]:", error);
@@ -178,28 +238,16 @@ export async function updateTenantProfileAction(
 
 export async function getStorefrontAction(userId: string) {
   try {
-    await requireStore(userId, { sections: ["overview", "storefront", "payments"], staff: ["tenant_monitoring"] });
+    const account = await requireStore(userId, { sections: ["overview", "storefront", "payments"], staff: ["tenant_monitoring"] });
     const tenant = await prisma.tenant.findUnique({
       where: { userId },
     });
 
     if (!tenant) return { success: false, error: "No storefront found" };
+    const shop = await workspaceShop(account, tenant);
+    if (!shop) return { success: false, error: "No storefront found" };
 
-    return {
-      success: true,
-      data: {
-        id: tenant.id,
-        shop_name: tenant.shopName,
-        unit_id: tenant.unitId,
-        is_open: tenant.isOpen,
-        description: tenant.description,
-        logo_url: tenant.logoUrl,
-        gallery_urls: tenant.galleryUrls,
-        products: tenant.products as any,
-        post_sales: tenant.postSales as any,
-        category: (tenant as any).category,
-      } as DigitalStorefront,
-    };
+    return { success: true, data: toStorefront(shop) };
   } catch (error: any) {
     console.error("[GET_STOREFRONT_ERROR]:", error);
     return {
@@ -258,14 +306,15 @@ export async function deactivateTenantTerminalAction(userId: string) {
 }
 
 /** Rating (approved reviews) and floor (from the unit) for directory cards. */
-async function storefrontExtras(tenants: { id: string; unitId: string | null }[]) {
-  const ids = tenants.map((t) => t.id);
-  const units = tenants.map((t) => t.unitId).filter((u): u is string => !!u && u !== "PENDING_ASSIGNMENT");
+async function storefrontExtras(shops: Pick<Shop, "id" | "tenantId" | "unitId" | "unitIds">[]) {
+  const ids = [...new Set(shops.map((t) => t.tenantId))];
+  const firstUnit = (t: Pick<Shop, "unitId" | "unitIds">) => t.unitIds[0] ?? t.unitId;
+  const units = shops.map(firstUnit).filter((u): u is string => !!u && u !== "PENDING_ASSIGNMENT");
   const now = new Date();
   const [ratings, slots, promos] = await Promise.all([
     ids.length
       ? prisma.review.groupBy({
-          by: ["tenantId"],
+          by: ["tenantId", "shopId"],
           where: { tenantId: { in: ids }, isApproved: true },
           _avg: { rating: true },
           _count: { _all: true },
@@ -278,21 +327,26 @@ async function storefrontExtras(tenants: { id: string; unitId: string | null }[]
     ids.length
       ? prisma.tenantPromo.findMany({
           where: { tenantId: { in: ids }, status: "APPROVED", startDate: { lte: now }, endDate: { gte: now } },
-          select: { id: true, tenantId: true, title: true, mediaType: true, promoImage: true, promoVideo: true, endDate: true },
+          select: { id: true, tenantId: true, shopId: true, title: true, mediaType: true, promoImage: true, promoVideo: true, endDate: true },
           orderBy: { startDate: "desc" },
         })
       : Promise.resolve([] as any[]),
   ]);
-  const ratingBy = new Map(ratings.map((r: any) => [r.tenantId, { avg: r._avg.rating || 0, count: r._count._all }]));
+  // Keyed by public shop id (the tenant id for a main shop).
+  const ratingBy = new Map(ratings.map((r: any) => [r.shopId ?? r.tenantId, { avg: r._avg.rating || 0, count: r._count._all }]));
   const floorBy = new Map(slots.map((s) => [s.unit_id, s.floor]));
   const promoBy = new Map<string, any>();
-  for (const p of promos as any[]) if (!promoBy.has(p.tenantId)) promoBy.set(p.tenantId, p);
-  return (t: { id: string; unitId: string | null }) => {
+  // A promo belongs to one shop; a main shop's id is the tenant's id.
+  for (const p of promos as any[]) {
+    const key = p.shopId ?? p.tenantId;
+    if (!promoBy.has(key)) promoBy.set(key, p);
+  }
+  return (t: Pick<Shop, "id" | "unitId" | "unitIds">) => {
     const p = promoBy.get(t.id);
     return {
       avgRating: ratingBy.get(t.id)?.avg ?? 0,
       reviewCount: ratingBy.get(t.id)?.count ?? 0,
-      floor: (t.unitId && floorBy.get(t.unitId)) || null,
+      floor: floorBy.get(firstUnit(t)) || null,
       activePromo: p
         ? {
             id: p.id,
@@ -313,28 +367,14 @@ async function storefrontExtras(tenants: { id: string; unitId: string | null }[]
  */
 export async function getDirectoryShopsAction() {
   try {
-    const tenants = await prisma.tenant.findMany({
-      where: { status: "ACTIVE" },
-      orderBy: { shopName: "asc" },
-      select: { id: true, shopName: true, unitId: true, isOpen: true, description: true, logoUrl: true, galleryUrls: true, category: true },
-    });
-    const extras = await storefrontExtras(tenants);
+    const shops = await listPublicShops();
+    const extras = await storefrontExtras(shops);
     return {
       success: true,
-      data: tenants.map(
-        (t) =>
-          ({
-            id: t.id,
-            shop_name: t.shopName,
-            unit_id: t.unitId,
-            is_open: t.isOpen,
-            description: t.description,
-            logo_url: t.logoUrl,
-            gallery_urls: t.galleryUrls,
-            category: t.category ?? undefined,
-            ...extras(t),
-          }) as DigitalStorefront,
-      ),
+      data: shops.map((s) => {
+        const { products: _p, post_sales: _s, ...card } = toStorefront(s);
+        return { ...card, ...extras(s) } as DigitalStorefront;
+      }),
     };
   } catch (error: any) {
     console.error("[GET_DIRECTORY_SHOPS_ERROR]:", error);
@@ -349,29 +389,18 @@ function publicProducts(products: unknown): any {
 
 export async function getAllStorefrontsAction() {
   try {
-    const tenants = await prisma.tenant.findMany({
-      where: { status: "ACTIVE" },
-      orderBy: { shopName: "asc" },
-    });
-    const extras = await storefrontExtras(tenants);
+    const shops = await listPublicShops();
+    const extras = await storefrontExtras(shops);
 
     return {
       success: true,
-      data: tenants.map(
-        (t: any) =>
+      data: shops.map(
+        (s) =>
           ({
-            id: t.id,
-            shop_name: t.shopName,
-            unit_id: t.unitId,
-            is_open: t.isOpen,
-            description: t.description,
-            logo_url: t.logoUrl,
-            gallery_urls: t.galleryUrls,
+            ...toStorefront(s),
             // Products hidden by the shop never reach public pages.
-            products: publicProducts(t.products),
-            post_sales: t.postSales as any,
-            category: t.category,
-            ...extras(t),
+            products: publicProducts(s.products),
+            ...extras(s),
           }) as DigitalStorefront,
       ),
     };
@@ -383,8 +412,6 @@ export async function getAllStorefrontsAction() {
     };
   }
 }
-
-
 
 export async function getAllTenantsAction() {
   try {
@@ -446,29 +473,17 @@ export async function getAllTenantsAction() {
  */
 export async function getStorefrontByIdAction(id: string) {
   try {
-    const tenant = await prisma.tenant.findUnique({
-      where: { id },
-    });
+    const shop = await findShop(id);
 
-    if (!tenant) return { success: false, error: "Shop not found" };
+    if (!shop) return { success: false, error: "Shop not found" };
 
     return {
       success: true,
       data: {
-        id: tenant.id,
-        shop_name: tenant.shopName,
-        unit_id: tenant.unitId,
-        is_open: tenant.isOpen,
-        description: tenant.description,
-        logo_url: tenant.logoUrl,
-        gallery_urls: tenant.galleryUrls,
-        products: publicProducts(tenant.products),
-        post_sales: tenant.postSales as any,
-        category: (tenant as any).category,
-        ...(await prisma
-          .$queryRawUnsafe<any[]>(`SELECT "phone", "openingHours" FROM "Tenant" WHERE "id" = $1`, tenant.id)
-          .then((r) => ({ phone: r[0]?.phone ?? null, opening_hours: r[0]?.openingHours ?? null }))
-          .catch(() => ({}))),
+        ...toStorefront(shop),
+        products: publicProducts(shop.products),
+        phone: shop.phone,
+        opening_hours: shop.openingHours,
       } as DigitalStorefront,
     };
   } catch (error: any) {
@@ -578,111 +593,6 @@ export async function registerTenantAction(data: {
   }
 }
 
-export async function requestTenantAction(
-  userId: string,
-  data: { shopName: string; description: string },
-) {
-  try {
-    await requireSelf(userId);
-    // Verify the user exists in database first
-    const user = await prisma.user.findUnique({ where: { id: userId } });
-    if (!user)
-      return {
-        success: false,
-        error: "User account not found. Please sign in again.",
-      };
-
-    const existing = await prisma.tenant.findUnique({ where: { userId } });
-    if (existing) {
-      if (existing.status === "REJECTED") {
-        return {
-          success: false,
-          error:
-            "Your previous application was rejected. You cannot reapply at this time.",
-        };
-      }
-      if (existing.status !== "PAST") {
-        return {
-          success: false,
-          error: "You already have a pending or active storefront application.",
-        };
-      }
-    }
-
-    if (existing && existing.status === "PAST") {
-      await prisma.tenant.update({
-        where: { id: existing.id },
-        data: {
-          shopName: data.shopName,
-          unitId: "PENDING_ASSIGNMENT",
-          status: "PENDING",
-          description: data.description,
-          products: [],
-          galleryUrls: [],
-        },
-      });
-    } else {
-      await prisma.tenant.create({
-        data: {
-          userId,
-          shopName: data.shopName,
-          unitId: "PENDING_ASSIGNMENT",
-          status: "PENDING",
-          description: data.description,
-          products: [],
-          galleryUrls: [],
-        },
-      });
-    }
-
-    // ⚡ Internal alert to every admin (their own preferences decide in-app
-    // vs email), then the transactional confirmation to the applicant.
-    const { notify } = await import("@/lib/notify");
-    await notify("NEW_TENANT_APPLICATION", {
-      title: "New Merchant Application",
-      message: `Digital registration received for "${data.shopName}". Review the brand profile and space requirements.`,
-      link: "/admindashboard/merchant-requests",
-    });
-    await notify("MERCHANT_APPLICATION_UPDATE", {
-      recipients: [userId],
-      title: `Application received · ${data.shopName}`,
-      message: "Your merchant application is under review. We'll let you know here as soon as the mall office decides.",
-      link: "/",
-      email: false,
-    });
-
-    // 3. Applicant Confirmation Email (Reusing 'user' variable from earlier)
-    if (user && user.email) {
-      try {
-        const { sendGmail } = await import("@/lib/gmail");
-        await sendGmail({
-          to: user.email,
-          subject: "Confirmation: Your SR Mall Merchant Application",
-          html: `
-            <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-              <h2 style="color: #334155;">Application Received</h2>
-              <p>Hello ${user.name || "Entrepreneur"},</p>
-              <p>Thank you for your interest in partnering with SR Mall. We have successfully received your partnership request for <strong>${data.shopName}</strong>.</p>
-              <hr />
-              <p><strong>Processing Status:</strong> Under Review</p>
-              <hr />
-              <p>Our leasing department will evaluate your brand profile and space requirements. You will receive an automated email once a decision has been made.</p>
-              <p>You can monitor your application status anytime in your dashboard.</p>
-            </div>
-          `,
-        });
-      } catch (err) {
-        console.error("Failed to send Applicant confirmation email:", err);
-      }
-    }
-
-    return { success: true };
-  } catch (error: any) {
-    console.error("[REQUEST_TENANT_ERROR]:", error);
-    return { success: false, error: error.message };
-  }
-}
-
 export async function approveTenantAction(tenantId: string, unitId?: string) {
   try {
     await requireStaffAny("bookings", "tenant_monitoring");
@@ -758,24 +668,6 @@ export async function approveTenantAction(tenantId: string, unitId?: string) {
   }
 }
 
-export async function getPendingTenantsAction() {
-  try {
-    await requireStaffAny("bookings");
-    // Expiry sweeps run in the background after this response (throttled),
-    // so the admin never waits on auto-reject writes and emails.
-    const { scheduleSweeps } = await import("@/lib/sweeps");
-    scheduleSweeps();
-
-    const pending = await prisma.tenant.findMany({
-      where: { status: "PENDING" },
-      include: { user: { select: safeUserSelect } },
-    });
-    return { success: true, data: pending };
-  } catch (error: any) {
-    return { success: false, error: error.message };
-  }
-}
-
 export async function deleteTenantAction(tenantId: string, _adminUserId?: string) {
   try {
     const actorId = (await requireStaffAny("tenant_monitoring")).id;
@@ -837,120 +729,6 @@ export async function deleteTenantAction(tenantId: string, _adminUserId?: string
   }
 }
 
-export async function rejectTenantAction(tenantId: string) {
-  try {
-    await requireStaffAny("bookings", "tenant_monitoring");
-    const tenant = await prisma.tenant.update({
-      where: { id: tenantId },
-      data: { status: "REJECTED" },
-      include: { user: { select: safeUserSelect } },
-    });
-
-    const { notify } = await import("@/lib/notify");
-    await notify("MERCHANT_APPLICATION_UPDATE", {
-      recipients: [tenant.userId],
-      title: `Application declined · ${tenant.shopName}`,
-      message: "We're unable to approve your merchant application at this time. Message the mall office if you'd like to discuss it.",
-      link: "/?chat=open&recipient=admin",
-      email: false,
-    });
-
-    // Gmail Notification to User
-    if (tenant.user && tenant.user.email) {
-      try {
-        const { sendGmail } = await import("@/lib/gmail");
-        await sendGmail({
-          to: tenant.user.email,
-          subject: "SR Mall Merchant Partnership Update",
-          html: `
-            <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-              <h2 style="color: #be1e2d;">Application Update</h2>
-              <p>Hello ${tenant.user.name || "Merchant"},</p>
-              <p>Thank you for your interest in partnering with SR Mall. After careful review of your application for <strong>${tenant.shopName}</strong>, we regret to inform you that we are unable to approve your request at this time.</p>
-              <hr />
-              <p>Our team evaluates applications based on various criteria including brand alignment, category availability, and operational requirements.</p>
-              <p>If you have any questions or would like to discuss this further, please feel free to contact our administrative office.</p>
-              <p style="margin-top: 20px; font-size: 12px; color: #666;">We wish you the best in your business endeavors.</p>
-            </div>
-          `,
-        });
-      } catch (err) {
-        console.error("Failed to send merchant rejection email:", err);
-      }
-    }
-
-    revalidatePath("/admindashboard/merchant-requests");
-    return { success: true };
-  } catch (error: any) {
-    console.error("[REJECT_TENANT_ERROR]:", error);
-    return {
-      success: false,
-      error: error.message || "Failed to reject application",
-    };
-  }
-}
-
-/**
- * Auto-reject rule: a Merchant Application still PENDING 72 hours (3 days)
- * after submission is rejected automatically.
- *
- * - The countdown uses the submission timestamp (`createdAt`), so eligibility
- *   is `createdAt <= now - 72h` — a record is never rejected before 72h.
- * - Only `PENDING` rows are touched; Approved / Rejected / Cancelled /
- *   completed records are never affected.
- * - The flip is guarded with `updateMany({ status: "PENDING" })`, so a record
- *   an admin approved or rejected between the scan and the write is left alone.
- * - Rejection goes through the existing `rejectTenantAction`, the same path
- *   the admin button uses, so the applicant gets the identical rejection email.
- * - Once rejected the status stays REJECTED unless an admin changes it through
- *   the existing authorised action.
- */
-export async function processExpiredMerchantApplicationsAction() {
-  try {
-    const cutoff = new Date(Date.now() - 72 * 60 * 60 * 1000);
-
-    const expired = await prisma.tenant.findMany({
-      where: { status: "PENDING", createdAt: { lte: cutoff } },
-      select: { id: true },
-    });
-
-    let rejected = 0;
-    for (const { id } of expired) {
-      const flipped = await prisma.tenant.updateMany({
-        where: { id, status: "PENDING" },
-        data: { status: "REJECTED" },
-      });
-      if (flipped.count === 0) continue; // already decided by an admin
-
-      // Existing rejection flow: same email the admin button sends.
-      await rejectTenantAction(id);
-      rejected++;
-    }
-
-    if (rejected > 0) {
-      console.log(
-        `[AUTO-REJECT] ${rejected} merchant application(s) rejected after 72h.`,
-      );
-    }
-    return { success: true, rejected, scanned: expired.length };
-  } catch (error: any) {
-    console.error("[AUTO-REJECT_MERCHANT_ERROR]:", error);
-    return { success: false, rejected: 0, scanned: 0 };
-  }
-}
-
-export async function getTenantStatusAction(userId: string) {
-  try {
-    await requireSelf(userId);
-    const tenant = await prisma.tenant.findUnique({
-      where: { userId },
-      select: { status: true },
-    });
-    return { success: true, status: tenant?.status || null };
-  } catch (error: any) {
-    return { success: false, error: error.message };
-  }
-}
 export async function getTenantReportDataAction(filter?: {
   month?: number;
   year?: number;
@@ -1160,7 +938,10 @@ export async function getAllPostSalesAction() {
       },
     });
 
-    const allPostSales = tenants.flatMap((tenant) => {
+    const units = await prisma.unitShop.findMany({ select: { id: true, shopName: true, postSales: true } });
+
+    // `tenantId` here is the shop's id (a unit shop's own id for extra units).
+    const allPostSales = [...tenants, ...units].flatMap((tenant) => {
       const sales = Array.isArray(tenant.postSales) ? tenant.postSales : [];
       return sales.map((sale: any) => ({
         ...sale,
@@ -1176,22 +957,33 @@ export async function getAllPostSalesAction() {
   }
 }
 
+/** Whichever table holds this shop, for the staff sale tools. */
+async function findShopRow(shopId: string) {
+  const tenant = await prisma.tenant.findUnique({ where: { id: shopId }, select: { id: true, postSales: true } });
+  if (tenant) return { ...tenant, isMain: true };
+  const unit = await prisma.unitShop.findUnique({ where: { id: shopId }, select: { id: true, postSales: true } });
+  return unit ? { ...unit, isMain: false } : null;
+}
+
+async function saveShopSales(shop: { id: string; isMain: boolean }, sales: unknown[]) {
+  const data = { postSales: sales as any };
+  if (shop.isMain) await prisma.tenant.update({ where: { id: shop.id }, data });
+  else await prisma.unitShop.update({ where: { id: shop.id }, data });
+}
+
 /**
  * Delete a specific post sale by admin
  */
 export async function deleteAdminPostSaleAction(tenantId: string, saleId: string) {
   try {
     await requireStaffAny("cms");
-    const tenant = await prisma.tenant.findUnique({ where: { id: tenantId } });
-    if (!tenant) return { success: false, error: "Tenant not found" };
+    const shop = await findShopRow(tenantId);
+    if (!shop) return { success: false, error: "Shop not found" };
 
-    const sales = Array.isArray(tenant.postSales) ? tenant.postSales : [];
+    const sales = Array.isArray(shop.postSales) ? shop.postSales : [];
     const updatedSales = sales.filter((s: any) => s.id !== saleId);
 
-    await prisma.tenant.update({
-      where: { id: tenantId },
-      data: { postSales: updatedSales as any },
-    });
+    await saveShopSales(shop, updatedSales);
 
     revalidatePath("/admindashboard/public-view-cms");
     revalidatePath("/");
@@ -1209,18 +1001,15 @@ export async function deleteAdminPostSaleAction(tenantId: string, saleId: string
 export async function updateAdminPostSaleAction(tenantId: string, saleId: string, newImageUrl: string, newTitle: string) {
   try {
     await requireStaffAny("cms");
-    const tenant = await prisma.tenant.findUnique({ where: { id: tenantId } });
-    if (!tenant) return { success: false, error: "Tenant not found" };
+    const shop = await findShopRow(tenantId);
+    if (!shop) return { success: false, error: "Shop not found" };
 
-    const sales = Array.isArray(tenant.postSales) ? tenant.postSales : [];
+    const sales = Array.isArray(shop.postSales) ? shop.postSales : [];
     const updatedSales = sales.map((s: any) =>
       s.id === saleId ? { ...s, image_url: newImageUrl, title: newTitle } : s
     );
 
-    await prisma.tenant.update({
-      where: { id: tenantId },
-      data: { postSales: updatedSales as any },
-    });
+    await saveShopSales(shop, updatedSales);
 
     revalidatePath("/admindashboard/public-view-cms");
     revalidatePath("/");
@@ -1264,26 +1053,22 @@ export async function getPastTenantsAction() {
 
 export async function getMyShopSettingsAction(userId: string) {
   try {
-    await requireSelf(userId);
-    const rows = await prisma.$queryRawUnsafe<any[]>(
-      `SELECT "id", "shopName", "description", "logoUrl", "category", "phone", "openingHours", "unitId", "status"
-         FROM "Tenant" WHERE "userId" = $1`,
-      userId,
-    );
-    const t = rows[0];
-    if (!t) return { success: false as const, error: "No shop is linked to this account." };
+    const account = await requireSelf(userId);
+    const tenant = await prisma.tenant.findUnique({ where: { userId } });
+    const shop = tenant && (await workspaceShop(account, tenant));
+    if (!shop) return { success: false as const, error: "No shop is linked to this account." };
     return {
       success: true as const,
       data: {
-        id: t.id as string,
-        shopName: (t.shopName as string) || "",
-        description: (t.description as string | null) || "",
-        logoUrl: (t.logoUrl as string | null) || "",
-        category: (t.category as string | null) || "Other",
-        phone: (t.phone as string | null) || "",
-        openingHours: (t.openingHours as string | null) || "",
-        unitId: (t.unitId as string) || "",
-        status: (t.status as string) || "ACTIVE",
+        id: shop.id,
+        shopName: shop.shopName,
+        description: shop.description || "",
+        logoUrl: shop.logoUrl || "",
+        category: shop.category || "Other",
+        phone: shop.phone || "",
+        openingHours: shop.openingHours || "",
+        unitId: shop.unitId,
+        status: shop.status || "ACTIVE",
       },
     };
   } catch (error: any) {
@@ -1296,7 +1081,7 @@ export type MyShopSettings = Extract<Awaited<ReturnType<typeof getMyShopSettings
 
 export async function updateMyShopSettingsAction(
   userId: string,
-  data: { shopName: string; description?: string; category?: string; phone?: string; openingHours?: string },
+  data: { shopId?: string; shopName: string; description?: string; category?: string; phone?: string; openingHours?: string },
 ) {
   try {
     await requireSelf(userId);
@@ -1312,18 +1097,18 @@ export async function updateMyShopSettingsAction(
     const description = (data.description || "").trim().slice(0, 1000);
     const openingHours = (data.openingHours || "").trim().slice(0, 120);
 
-    const updated = await prisma.$executeRawUnsafe(
-      `UPDATE "Tenant" SET "shopName" = $2, "description" = $3, "category" = $4, "phone" = $5, "openingHours" = $6, "updatedAt" = $7
-        WHERE "userId" = $1`,
-      userId,
+    const tenant = await prisma.tenant.findUnique({ where: { userId }, select: { id: true } });
+    const shop = tenant && (await ownShop(tenant.id, data.shopId || tenant.id));
+    if (!shop) return { success: false, error: "No shop is linked to this account." };
+    const changes = {
       shopName,
-      description || null,
+      description: description || null,
       category,
-      phone || null,
-      openingHours || null,
-      new Date(),
-    );
-    if (!updated) return { success: false, error: "No shop is linked to this account." };
+      phone: phone || null,
+      openingHours: openingHours || null,
+    };
+    if (shop.isMain) await prisma.tenant.update({ where: { id: shop.id }, data: changes });
+    else await prisma.unitShop.update({ where: { id: shop.id }, data: changes });
 
     revalidatePath("/tenantdashboard");
     revalidatePath("/");
@@ -1348,7 +1133,11 @@ export async function uploadShopLogoAction(userId: string, formData: FormData) {
     if (!check.valid) return { success: false, error: check.error };
     const { storeFile } = await import("@/lib/upload-server");
     const { url } = await storeFile(file, "tenant-logos");
-    await prisma.tenant.update({ where: { userId }, data: { logoUrl: url } });
+    const tenant = await prisma.tenant.findUnique({ where: { userId }, select: { id: true } });
+    const shop = tenant && (await ownShop(tenant.id, String(formData.get("shopId") || tenant.id)));
+    if (!shop) return { success: false, error: "No shop is linked to this account." };
+    if (shop.isMain) await prisma.tenant.update({ where: { id: shop.id }, data: { logoUrl: url } });
+    else await prisma.unitShop.update({ where: { id: shop.id }, data: { logoUrl: url } });
 
     revalidatePath("/tenantdashboard");
     revalidatePath("/");
@@ -1366,18 +1155,13 @@ export async function uploadShopLogoAction(userId: string, formData: FormData) {
  */
 export async function getProductPageAction(shopId: string, productId: string) {
   try {
-    const t = await prisma.tenant.findUnique({ where: { id: shopId } });
+    const t = await findShop(shopId);
     if (!t || t.status !== "ACTIVE") return { success: false as const, error: "Shop not found" };
     const listed = publicProducts(t.products) as any[];
     const product = listed.find((p) => p.id === productId);
     if (!product) return { success: false as const, error: "Product not found" };
 
-    const [extras, more] = await Promise.all([
-      storefrontExtras([t]).then((fn) => fn(t)),
-      prisma
-        .$queryRawUnsafe<any[]>(`SELECT "phone", "openingHours" FROM "Tenant" WHERE "id" = $1`, t.id)
-        .catch(() => [] as any[]),
-    ]);
+    const extras = await storefrontExtras([t]).then((fn) => fn(t));
 
     return {
       success: true as const,
@@ -1392,8 +1176,8 @@ export async function getProductPageAction(shopId: string, productId: string) {
           category: t.category,
           isOpen: t.isOpen,
           description: t.description,
-          phone: more[0]?.phone ?? null,
-          openingHours: more[0]?.openingHours ?? null,
+          phone: t.phone,
+          openingHours: t.openingHours,
           avgRating: extras.avgRating,
           reviewCount: extras.reviewCount,
           productCount: listed.length,

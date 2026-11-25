@@ -44,8 +44,6 @@ import {
   Phone,
 } from "lucide-react";
 import {
-  DEFAULT_THEME_COLOR,
-  HEX_COLOR_RE,
   PUBLIC_CONFIG_CACHE_KEY,
   mapEmbedSrc,
 } from "@/lib/theme";
@@ -315,7 +313,6 @@ export default function PublicViewCMSPage() {
   const isDirty = savedConfig !== null && JSON.stringify(config) !== JSON.stringify(savedConfig);
   const configErrors = validateConfig(config);
   const hasConfigErrors = Object.keys(configErrors).length > 0;
-  const previewColor = HEX_COLOR_RE.test(config.themeColor || "") ? config.themeColor! : DEFAULT_THEME_COLOR;
 
   // Warn before leaving the page with unsaved edits.
   useEffect(() => {
@@ -864,78 +861,6 @@ export default function PublicViewCMSPage() {
                         placeholder="https://…"
                       />
                     </Field>
-                  </div>
-                </div>
-
-                {/* Theme colour */}
-                <div className="pt-6 border-t border-slate-100 dark:border-white/5 flex flex-col lg:flex-row lg:items-start gap-6">
-                  <div className="flex-1 space-y-3">
-                    <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Theme colour</p>
-                    <div className="flex flex-wrap items-center gap-2">
-                      {THEME_PRESETS.map((preset) => {
-                        const selected = (config.themeColor || DEFAULT_THEME_COLOR).toUpperCase() === preset.hex;
-                        return (
-                          <button
-                            key={preset.hex}
-                            type="button"
-                            title={preset.name}
-                            aria-label={preset.name}
-                            aria-pressed={selected}
-                            onClick={() => handleConfigChange("themeColor", preset.hex)}
-                            className={clsx(
-                              "w-9 h-9 rounded-xl border-2 transition-transform hover:scale-110",
-                              selected ? "border-charcoal dark:border-white scale-110" : "border-white dark:border-zinc-800 shadow-xs",
-                            )}
-                            style={{ backgroundColor: preset.hex }}
-                          />
-                        );
-                      })}
-                      <div className="flex items-center gap-2 ml-1">
-                        <label
-                          className="relative w-9 h-9 rounded-xl border-2 border-dashed border-slate-300 dark:border-white/20 overflow-hidden cursor-pointer"
-                          title="Custom colour"
-                          style={{ backgroundColor: HEX_COLOR_RE.test(config.themeColor || "") ? config.themeColor! : undefined }}
-                        >
-                          <input
-                            type="color"
-                            value={HEX_COLOR_RE.test(config.themeColor || "") ? config.themeColor! : DEFAULT_THEME_COLOR}
-                            onChange={(e) => handleConfigChange("themeColor", e.target.value.toUpperCase())}
-                            className="absolute inset-0 opacity-0 cursor-pointer"
-                          />
-                        </label>
-                        <input
-                          value={config.themeColor ?? ""}
-                          onChange={(e) => handleConfigChange("themeColor", e.target.value)}
-                          className={clsx("cms-input w-32! py-2! font-mono", configErrors.themeColor && "border-red-500!")}
-                          placeholder={DEFAULT_THEME_COLOR}
-                          aria-label="Theme colour hex code"
-                        />
-                      </div>
-                    </div>
-                    {configErrors.themeColor && <FieldError message={configErrors.themeColor} />}
-                  </div>
-
-                  <div className="lg:w-72 p-4 rounded-2xl bg-slate-50 dark:bg-zinc-800/60 border border-slate-100 dark:border-white/5 space-y-3">
-                    <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                      <Eye size={12} /> Preview
-                    </p>
-                    <div
-                      className="py-2.5 rounded-xl text-center text-xs font-semibold text-white"
-                      style={{ backgroundColor: previewColor }}
-                    >
-                      Button
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span
-                        className="px-2.5 py-1 rounded-full text-xs font-semibold border"
-                        style={{ backgroundColor: `${previewColor}15`, color: previewColor, borderColor: `${previewColor}30` }}
-                      >
-                        Badge
-                      </span>
-                      <span className="text-xs font-semibold" style={{ color: previewColor }}>
-                        Link
-                      </span>
-                    </div>
                   </div>
                 </div>
               </SettingsCard>
@@ -2660,18 +2585,6 @@ function InputGroup({
 
 // ─── General settings helpers ────────────────────────────────────────────────
 
-const THEME_PRESETS = [
-  { name: "Crimson Red", hex: "#BE1E2D" },
-  { name: "Deep Ruby", hex: "#8B0000" },
-  { name: "Burgundy", hex: "#6B1D2F" },
-  { name: "Imperial Blue", hex: "#1A237E" },
-  { name: "Ocean Teal", hex: "#006064" },
-  { name: "Emerald Green", hex: "#1B5E20" },
-  { name: "Onyx Charcoal", hex: "#212121" },
-  { name: "Royal Purple", hex: "#4A148C" },
-  { name: "Amber Ochre", hex: "#BF360C" },
-];
-
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const URL_RE = /^https?:\/\/\S+$/i;
 
@@ -2683,8 +2596,6 @@ function validateConfig(config: Record<string, any>) {
   const val = (k: string) => String(config[k] ?? "").trim();
   if (!val("companyName")) errors.companyName = "Enter the mall name.";
   if (val("logoUrl") && !URL_RE.test(val("logoUrl"))) errors.logoUrl = "Must start with http:// or https://";
-  if (val("themeColor") && !HEX_COLOR_RE.test(val("themeColor")))
-    errors.themeColor = "Use a 6-digit hex code, e.g. #BE1E2D";
   for (const k of ["contactEmail", "footerEmail"])
     if (val(k) && !EMAIL_RE.test(val(k))) errors[k] = "Enter a valid email address.";
   for (const k of ["venueImageUrl", "googleMapsEmbedUrl", "footerInstagram", "footerFacebook", "footerWebsite"])

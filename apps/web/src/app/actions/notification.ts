@@ -1,7 +1,9 @@
 "use server";
 
 import { requireActingAs } from "@/lib/action-guard";
-import { prisma } from "@srmall/database";
+import { currentAccount } from "@/lib/auth-server";
+import { workspaceScope } from "@/lib/workspace-server";
+import { Prisma, prisma } from "@srmall/database";
 import { typesInGroup, type NotificationTabGroup } from "@/lib/notification-types";
 
 export type NotificationTab = "ALL" | "UNREAD" | NotificationTabGroup;
@@ -23,6 +25,45 @@ const KNOWN_NON_INFO = [
   ...typesInGroup("MESSAGE"),
 ];
 
+/** Notices about one shop or unit. Older ones saved without either belong to the main shop. */
+const WORKSPACE_TYPES = [
+  ...typesInGroup("MONEY"),
+  ...typesInGroup("MESSAGE"),
+  "MERCHANT_APPLICATION_UPDATE",
+  "AD_DECISION",
+  "COMPLAINT_ACTIVITY",
+  "COMPLAINT_UPDATE",
+  "NEW_REVIEW",
+  "NEW_REVIEW_SUBMITTED",
+  "REVIEW_MODERATION",
+];
+
+/**
+ * In a tenant's unit workspace: notices about that unit, about its shop, and
+ * about the whole account. Home (and everyone else) sees everything.
+ */
+async function inWorkspace(userId: string): Promise<Prisma.NotificationWhereInput> {
+  const account = await currentAccount();
+  if (account?.type !== "TENANT") return {};
+  const staff = account.tenantStaff;
+  if (userId !== account.id && userId !== staff?.ownerUserId) return {};
+  const tenant = await prisma.tenant.findUnique({
+    where: staff ? { id: staff.tenantId } : { userId: account.id },
+    select: { id: true },
+  });
+  if (!tenant) return {};
+  const scope = await workspaceScope(tenant.id, staff?.leaseId);
+  if (!scope.unitId) return {};
+  return {
+    OR: [
+      { unitId: scope.unitId },
+      { shopId: scope.shopId },
+      // A separate shop starts clean: only account-wide notices carry over to it.
+      { shopId: null, unitId: null, ...(scope.shopKey && { type: { notIn: WORKSPACE_TYPES } }) },
+    ],
+  };
+}
+
 /**
  * A page of the user's notifications (newest first).
  *  - `tab`: ALL, UNREAD, or a group (MONEY / ACTION / SECURITY / INFO / MESSAGE)
@@ -40,32 +81,26 @@ export async function getNotificationsAction(
     const limit = Math.min(Math.max(options.limit ?? 30, 1), 100);
     const tab = options.tab ?? "ALL";
 
-    const where: string[] = [`"userId" = $1`];
-    const params: any[] = [userId];
-    const add = (sql: string, value: any) => {
-      params.push(value);
-      where.push(sql.replace("?", `$${params.length}`));
-    };
-
+    const scope = await inWorkspace(userId);
+    const where: Prisma.NotificationWhereInput[] = [{ userId }, scope];
     if (options.excludeMessages || (tab !== "ALL" && tab !== "UNREAD" && tab !== "MESSAGE")) {
-      if (tab !== "MESSAGE") where.push(`"type" <> 'MESSAGE'`);
+      if (tab !== "MESSAGE") where.push({ type: { not: "MESSAGE" } });
     }
-    if (tab === "UNREAD") where.push(`"isRead" = false`);
-    if (tab === "INFO") add(`NOT ("type" = ANY(?::text[]))`, KNOWN_NON_INFO);
+    if (tab === "UNREAD") where.push({ isRead: false });
+    if (tab === "INFO") where.push({ type: { notIn: KNOWN_NON_INFO } });
     else if (tab === "MONEY" || tab === "ACTION" || tab === "SECURITY" || tab === "MESSAGE") {
-      add(`"type" = ANY(?::text[])`, typesInGroup(tab));
+      where.push({ type: { in: typesInGroup(tab) } });
     }
-    if (options.before) add(`"createdAt" < ?::timestamp`, new Date(options.before));
+    if (options.before) where.push({ createdAt: { lt: new Date(options.before) } });
 
     const [rows, unread] = await Promise.all([
-      prisma.$queryRawUnsafe<any[]>(
-        `SELECT "id", "type", "title", "message", "isRead", "createdAt", "link"
-           FROM "Notification" WHERE ${where.join(" AND ")}
-          ORDER BY "createdAt" DESC, "id" DESC
-          LIMIT ${limit + 1}`,
-        ...params,
-      ),
-      prisma.notification.count({ where: { userId, isRead: false, type: { not: "MESSAGE" } } }),
+      prisma.notification.findMany({
+        where: { AND: where },
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        take: limit + 1,
+        select: { id: true, type: true, title: true, message: true, isRead: true, createdAt: true, link: true },
+      }),
+      prisma.notification.count({ where: { AND: [{ userId, isRead: false, type: { not: "MESSAGE" } }, scope] } }),
     ]);
 
     const items: NotificationItem[] = rows.slice(0, limit).map((r) => ({
@@ -103,7 +138,12 @@ export async function markAllNotificationsAsReadAction(userId: string, options: 
   try {
     await requireActingAs(userId);
     await prisma.notification.updateMany({
-      where: { userId, isRead: false, ...(options.excludeMessages ? { type: { not: "MESSAGE" } } : {}) },
+      where: {
+        AND: [
+          { userId, isRead: false, ...(options.excludeMessages ? { type: { not: "MESSAGE" } } : {}) },
+          await inWorkspace(userId),
+        ],
+      },
       data: { isRead: true },
     });
     return { success: true };
@@ -127,7 +167,9 @@ export async function deleteNotificationAction(userId: string, notificationId: s
 export async function clearReadNotificationsAction(userId: string) {
   try {
     await requireActingAs(userId);
-    const res = await prisma.notification.deleteMany({ where: { userId, isRead: true } });
+    const res = await prisma.notification.deleteMany({
+      where: { AND: [{ userId, isRead: true }, await inWorkspace(userId)] },
+    });
     return { success: true, deleted: res.count };
   } catch (error) {
     return { success: false, error: "Failed to clear notifications" };
@@ -159,7 +201,10 @@ export async function markMessageNotificationsAsReadAction(userId: string) {
       whereClause = { userId: { in: adminIds }, isRead: false, type: "MESSAGE" };
     }
     
-    await prisma.notification.updateMany({ where: whereClause, data: { isRead: true } });
+    await prisma.notification.updateMany({
+      where: { AND: [whereClause, await inWorkspace(userId)] },
+      data: { isRead: true },
+    });
     return { success: true };
   } catch (error) {
     return { success: false, error: "Failed to mark messages as read" };

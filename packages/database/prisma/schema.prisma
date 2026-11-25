@@ -47,6 +47,7 @@ model User {
   conversationReads      ConversationRead[]
   favorites              Favorite[]
   spaceStaff             SpaceStaff?
+  shopFavorites          ShopFavorite[]
 }
 
 /// A staff-portal role: the sections (permission keys) its staff can open.
@@ -90,6 +91,7 @@ model Tenant {
   leases          Lease[]
   rentRequests    RentRequest[]
   SpaceStaff      SpaceStaff[]
+  unitShops       UnitShop[]
 }
 
 /// A customer's favourite shop.
@@ -171,21 +173,26 @@ model MallAd {
 }
 
 model TenantPromo {
-  id          String   @id @default(uuid())
+  id          String    @id @default(uuid())
   title       String
   description String?
   promoImage  String?
   promoVideo  String?
   category    String
-  status      String   @default("PENDING")
-  mediaType   String   @default("IMAGE")
+  status      String    @default("PENDING")
+  mediaType   String    @default("IMAGE")
   startDate   DateTime
   endDate     DateTime
   tenantId    String
+  /// Which unit shop the promo is for (null: the tenant's main shop).
+  shopId      String?
+  shop        UnitShop? @relation(fields: [shopId], references: [id], onDelete: SetNull)
   storageKey  String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([shopId])
 }
 
 model Conversation {
@@ -201,6 +208,11 @@ model Conversation {
   target      User               @relation("TargetConversations", fields: [targetId], references: [id], onDelete: Cascade)
   user        User               @relation("UserConversations", fields: [userId], references: [id], onDelete: Cascade)
   messages    Message[]
+  /// Which shop a shopper chat is with (null: the main shop).
+  shopId      String?
+  shop        UnitShop?          @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@index([shopId])
 }
 
 model Message {
@@ -304,6 +316,11 @@ model Notification {
   link      String?
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Tenant workspace the notice belongs to; both null: the whole account.
+  shopId    String?
+  unitId    String?
+
+  @@index([userId, shopId])
 }
 
 model Review {
@@ -324,8 +341,12 @@ model Review {
   updatedAt    DateTime  @updatedAt
   user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   tenant       Tenant?   @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  /// null: the main shop (or a mall review when tenantId is null too).
+  shopId       String?
+  shop         UnitShop? @relation(fields: [shopId], references: [id], onDelete: Cascade)
 
   @@index([tenantId, createdAt])
+  @@index([shopId])
 }
 
 model PublicViewConfig {
@@ -493,9 +514,12 @@ model Complaint {
   lastAdminActivityAt  DateTime?
   tenantReadAt         DateTime  @default(now())
   adminReadAt          DateTime?
+  /// The unit the complaint is about.
+  unitId               String?
 
   @@index([tenantId])
   @@index([status])
+  @@index([unitId])
 }
 
 model ComplaintComment {
@@ -553,6 +577,9 @@ model Lease {
   invoices    Invoice[]
   SpaceRole   SpaceRole[]
   SpaceStaff  SpaceStaff[]
+  /// The shop this unit belongs to (null: the tenant's main shop).
+  shopId      String?
+  shop        UnitShop?    @relation(fields: [shopId], references: [id], onDelete: SetNull)
 
   @@index([tenantId])
   @@index([status, endDate])
@@ -620,4 +647,43 @@ model SpaceStaff {
 
   @@index([leaseId])
   @@index([tenantId])
+}
+
+/// A tenant's extra shop (the main shop is the Tenant row). Leases point to it.
+model UnitShop {
+  id            String         @id @default(uuid())
+  tenantId      String
+  /// The unit it was first created for.
+  unitId        String?
+  shopName      String         @default("")
+  description   String?
+  logoUrl       String?
+  galleryUrls   String[]       @default([])
+  category      String         @default("Other")
+  phone         String?
+  openingHours  String?
+  isOpen        Boolean        @default(true)
+  products      Json           @default("[]")
+  postSales     Json           @default("[]")
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @default(now()) @updatedAt
+  tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  promos        TenantPromo[]
+  leases        Lease[]
+  reviews       Review[]
+  conversations Conversation[]
+  favorites     ShopFavorite[]
+
+  @@index([tenantId])
+}
+
+/// Favourites of shops other than a tenant's main one.
+model ShopFavorite {
+  userId    String
+  shopId    String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shop      UnitShop @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@id([userId, shopId])
 }

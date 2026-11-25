@@ -220,10 +220,9 @@ export async function getAdminDashboardAction(adminUserId?: string) {
         where: { status: "RESERVED", updatedAt: { gt: reservationCutoff } },
         select: { updatedAt: true },
       }),
-      // Seven counts in one query (the connection pool is small on Vercel).
+      // Six counts in one query (the connection pool is small on Vercel).
       prisma.$queryRawUnsafe<
         {
-          pendingApplications: number;
           pendingInquiries: number;
           pendingPromos: number;
           flaggedReviews: number;
@@ -232,8 +231,7 @@ export async function getAdminDashboardAction(adminUserId?: string) {
           newUsersThisMonth: number;
         }[]
       >(
-        `SELECT (SELECT COUNT(*)::int FROM "Tenant" WHERE "status" = 'PENDING') AS "pendingApplications",
-                (SELECT COUNT(*)::int FROM "EventInquiry" WHERE "status" = 'PENDING') AS "pendingInquiries",
+        `SELECT (SELECT COUNT(*)::int FROM "EventInquiry" WHERE "status" = 'PENDING') AS "pendingInquiries",
                 (SELECT COUNT(*)::int FROM "TenantPromo" WHERE "status" = 'PENDING') AS "pendingPromos",
                 (SELECT COUNT(*)::int FROM "Review" WHERE "isSpam" = true) AS "flaggedReviews",
                 (SELECT COUNT(*)::int FROM "User") AS "totalUsers",
@@ -264,7 +262,6 @@ export async function getAdminDashboardAction(adminUserId?: string) {
     ]);
     const paidAtById = new Map(paidAtRows.map((r) => [r.id, new Date(r.paidAt)]));
     const {
-      pendingApplications,
       pendingInquiries,
       pendingPromos,
       flaggedReviews,
@@ -434,7 +431,6 @@ export async function getAdminDashboardAction(adminUserId?: string) {
         },
         occupancy,
         attention: {
-          merchantApplications: pendingApplications,
           reservations: reservations.length,
           urgentReservations,
           depositSlips: awaitingVerification,

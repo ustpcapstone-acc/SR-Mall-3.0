@@ -83,7 +83,21 @@ export async function notifyChatMessage(opts: {
     const message = `New message from ${opts.senderName}: "${opts.excerpt}"`;
     const withEmail = recipientIds.filter((id) => emailIds.has(id));
     const inAppOnly = recipientIds.filter((id) => !emailIds.has(id));
+    // A shopper's chat with a shop belongs to that shop's workspace; chats with
+    // the mall office belong to the account.
+    const chat =
+      role === "TENANT"
+        ? await prisma.conversation.findUnique({
+            where: { id: opts.conversationId },
+            select: { type: true, shopId: true },
+          })
+        : null;
+    const shopId =
+      chat && chat.type !== "ADMIN"
+        ? (chat.shopId ?? (await prisma.tenant.findUnique({ where: { userId: recipient.id }, select: { id: true } }))?.id)
+        : null;
     const base = {
+      shopId,
       title: `New message from ${opts.senderName}`,
       message,
       // Email: "💬 Demo Shop sent you a message" + the message quoted, "Reply to message" button.

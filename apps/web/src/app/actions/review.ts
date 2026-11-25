@@ -1,5 +1,7 @@
 "use server";
 
+import { ownShop, shopRef } from "@/lib/shops";
+import { workspaceScope } from "@/lib/workspace-server";
 import { currentAccount, requireStaff } from "@/lib/auth-server";
 import { holds, requireSelf, requireStore } from "@/lib/action-guard";
 import { prisma } from "@srmall/database";
@@ -178,6 +180,10 @@ export async function submitReviewAction(
   tenantId?: string,
 ) {
   try {
+    // Reviews belong to one shop: split the public id into account and shop.
+    const ref = tenantId ? await shopRef(tenantId) : null;
+    if (ref) tenantId = ref.tenantId;
+    const shopId = ref?.shopId ?? null;
     await requireSelf(userId);
     if (!userId) {
       return {
@@ -232,6 +238,7 @@ export async function submitReviewAction(
       data: {
         userId,
         tenantId: tenantId || null,
+        shopId,
         rating,
         comment: comment || null,
         isApproved: !isSpam, // Auto-approve legitimate reviews!
@@ -250,7 +257,7 @@ export async function submitReviewAction(
     revalidatePath("/tenantdashboard");
     revalidatePath("/tenantdashboard/feedback-reviews");
     if (tenantId) {
-      revalidatePath(`/shop/${tenantId}`);
+      revalidatePath(`/shop/${shopId ?? tenantId}`);
     }
 
     // ⭐ A published review on a shop → tell the shop owner.
@@ -263,6 +270,7 @@ export async function submitReviewAction(
         const { notify } = await import("@/lib/notify");
         await notify("NEW_REVIEW", {
           recipients: [shop.userId],
+          shopId: shopId ?? tenantId,
           title: `New ${rating}-star review`,
           message: `${review?.user?.name || "A customer"} rated your shop ${rating}/5${
             comment ? `: "${comment.length > 120 ? `${comment.slice(0, 120)}…` : comment}"` : "."
@@ -309,6 +317,10 @@ export async function editMyReviewAction(
   tenantId?: string,
 ) {
   try {
+    // Reviews belong to one shop: split the public id into account and shop.
+    const ref = tenantId ? await shopRef(tenantId) : null;
+    if (ref) tenantId = ref.tenantId;
+    const shopId = ref?.shopId ?? null;
     await requireSelf(userId);
     if (!userId) return { success: false, error: "Unauthorized" };
     if (rating < 1 || rating > 5)
@@ -318,6 +330,7 @@ export async function editMyReviewAction(
       where: {
         userId,
         tenantId: tenantId || null,
+        shopId,
       },
     });
     if (!existingReview) return { success: false, error: "Review not found." };
@@ -355,7 +368,7 @@ export async function editMyReviewAction(
     revalidatePath("/tenantdashboard");
     revalidatePath("/tenantdashboard/feedback-reviews");
     if (tenantId) {
-      revalidatePath(`/shop/${tenantId}`);
+      revalidatePath(`/shop/${shopId ?? tenantId}`);
     }
     return {
       success: true,
@@ -370,6 +383,10 @@ export async function editMyReviewAction(
 
 export async function deleteMyReviewAction(userId: string, tenantId?: string) {
   try {
+    // Reviews belong to one shop: split the public id into account and shop.
+    const ref = tenantId ? await shopRef(tenantId) : null;
+    if (ref) tenantId = ref.tenantId;
+    const shopId = ref?.shopId ?? null;
     await requireSelf(userId);
     if (!userId) return { success: false, error: "Unauthorized" };
 
@@ -377,6 +394,7 @@ export async function deleteMyReviewAction(userId: string, tenantId?: string) {
       where: {
         userId,
         tenantId: tenantId || null,
+        shopId,
       },
     });
     if (!existingReview) return { success: false, error: "Review not found." };
@@ -389,7 +407,7 @@ export async function deleteMyReviewAction(userId: string, tenantId?: string) {
     revalidatePath("/tenantdashboard");
     revalidatePath("/tenantdashboard/feedback-reviews");
     if (tenantId) {
-      revalidatePath(`/shop/${tenantId}`);
+      revalidatePath(`/shop/${shopId ?? tenantId}`);
     }
     return { success: true, message: "Review deleted successfully!" };
   } catch (error) {
@@ -400,10 +418,15 @@ export async function deleteMyReviewAction(userId: string, tenantId?: string) {
 
 export async function getTenantStoreRatingAction(tenantId: string) {
   try {
+    // Reviews belong to one shop: split the public id into account and shop.
+    const ref = tenantId ? await shopRef(tenantId) : null;
+    if (ref) tenantId = ref.tenantId;
+    const shopId = ref?.shopId ?? null;
     if (!tenantId) return { success: false, error: "Tenant ID required" };
     const reviews = await prisma.review.findMany({
       where: {
         tenantId,
+        shopId,
         isApproved: true,
         isSpam: false,
       },
@@ -435,7 +458,7 @@ export async function getAllTenantRatingsAction() {
         isApproved: true,
         isSpam: false,
       },
-      select: { tenantId: true, rating: true },
+      select: { tenantId: true, shopId: true, rating: true },
     });
 
     const ratingsMap: Record<
@@ -444,12 +467,13 @@ export async function getAllTenantRatingsAction() {
     > = {};
 
     for (const r of reviews) {
-      if (!r.tenantId) continue;
-      if (!ratingsMap[r.tenantId]) {
-        ratingsMap[r.tenantId] = { sum: 0, count: 0, avg: 0 };
+      const key = r.shopId ?? r.tenantId;
+      if (!key) continue;
+      if (!ratingsMap[key]) {
+        ratingsMap[key] = { sum: 0, count: 0, avg: 0 };
       }
-      ratingsMap[r.tenantId].sum += r.rating;
-      ratingsMap[r.tenantId].count += 1;
+      ratingsMap[key].sum += r.rating;
+      ratingsMap[key].count += 1;
     }
 
     for (const tid in ratingsMap) {
@@ -467,11 +491,16 @@ export async function getAllTenantRatingsAction() {
 
 export async function getMyReviewAction(userId: string, tenantId?: string) {
   try {
+    // Reviews belong to one shop: split the public id into account and shop.
+    const ref = tenantId ? await shopRef(tenantId) : null;
+    if (ref) tenantId = ref.tenantId;
+    const shopId = ref?.shopId ?? null;
     await requireSelf(userId);
     const review = await (prisma as any).review.findFirst({
       where: {
         userId,
         tenantId: tenantId || null,
+        shopId,
       },
       orderBy: { createdAt: "desc" },
     });
@@ -487,11 +516,16 @@ export async function getMyReviewAction(userId: string, tenantId?: string) {
  */
 export async function getApprovedReviewsAction(tenantId?: string) {
   try {
+    // Reviews belong to one shop: split the public id into account and shop.
+    const ref = tenantId ? await shopRef(tenantId) : null;
+    if (ref) tenantId = ref.tenantId;
+    const shopId = ref?.shopId ?? null;
     const reviews = await (prisma as any).review.findMany({
       where: {
         isApproved: true,
         isSpam: false,
         tenantId: tenantId || null,
+        shopId,
       },
       include: {
         user: {
@@ -583,10 +617,12 @@ export async function getAllReviewsAction(adminUserId?: string) {
 /** Who a moderation decision affects: the review's author and the shop. */
 async function reviewParties(reviewId: string) {
   const rows = await prisma.$queryRawUnsafe<
-    { userId: string; tenantUserId: string | null; shopName: string | null; reportedAt: Date | null }[]
+    { userId: string; tenantUserId: string | null; shopName: string | null; shopId: string | null; reportedAt: Date | null }[]
   >(
-    `SELECT r."userId", t."userId" AS "tenantUserId", t."shopName", r."reportedAt"
-       FROM "Review" r LEFT JOIN "Tenant" t ON t."id" = r."tenantId" WHERE r."id" = $1`,
+    `SELECT r."userId", t."userId" AS "tenantUserId", COALESCE(NULLIF(u."shopName", ''), t."shopName") AS "shopName",
+            COALESCE(r."shopId", r."tenantId") AS "shopId", r."reportedAt"
+       FROM "Review" r LEFT JOIN "Tenant" t ON t."id" = r."tenantId"
+       LEFT JOIN "UnitShop" u ON u."id" = r."shopId" WHERE r."id" = $1`,
     reviewId,
   );
   return rows[0] ?? null;
@@ -618,6 +654,7 @@ async function notifyReviewModeration(
   if (parties.tenantUserId && (wasReported || outcome === "report-dismissed")) {
     await notify("REVIEW_MODERATION", {
       recipients: [parties.tenantUserId],
+      shopId: parties.shopId,
       title: outcome === "report-dismissed" ? "Your report was reviewed" : "Your report was upheld",
       message:
         outcome === "report-dismissed"
@@ -773,20 +810,22 @@ export async function getTenantReviewsAction(
   } = {},
 ) {
   try {
-    await requireStore(userId, { sections: ["reviews"] });
+    const account = await requireStore(userId, { sections: ["reviews"] });
     const tenant = await tenantForUser(userId);
     if (!tenant) return { success: false as const, error: "No storefront is linked to this account." };
+    const scope = await workspaceScope(tenant.id, account.tenantStaff?.leaseId);
+    const shop = await ownShop(tenant.id, scope.shopId);
 
     const rating = options.rating && options.rating >= 1 && options.rating <= 5 ? options.rating : null;
     const limit = Math.min(Math.max(options.limit ?? 10, 1), 50);
     const offset = Math.max(options.offset ?? 0, 0);
     const order = TENANT_REVIEW_ORDER[options.sort ?? "newest"] ?? TENANT_REVIEW_ORDER.newest;
-    const base = `r."tenantId" = $1 AND r."isApproved" = true AND r."isSpam" = false`;
+    const base = `r."tenantId" = $1 AND r."shopId" IS NOT DISTINCT FROM $2::text AND r."isApproved" = true AND r."isSpam" = false`;
     const filters = `${base}
-      AND ($2::int IS NULL OR r."rating" = $2::int)
-      AND (NOT $3::boolean OR COALESCE(TRIM(r."comment"), '') <> '')
-      AND (NOT $4::boolean OR (COALESCE(TRIM(r."comment"), '') <> '' AND r."reply" IS NULL))`;
-    const params = [tenant.id, rating, Boolean(options.withComment), Boolean(options.needsReply)];
+      AND ($3::int IS NULL OR r."rating" = $3::int)
+      AND (NOT $4::boolean OR COALESCE(TRIM(r."comment"), '') <> '')
+      AND (NOT $5::boolean OR (COALESCE(TRIM(r."comment"), '') <> '' AND r."reply" IS NULL))`;
+    const params = [tenant.id, scope.shopKey, rating, Boolean(options.withComment), Boolean(options.needsReply)];
 
     const [statsRows, countRows, rows, pendingCount] = await Promise.all([
       prisma.$queryRawUnsafe<any[]>(
@@ -805,6 +844,7 @@ export async function getTenantReviewsAction(
                 COUNT(*) FILTER (WHERE COALESCE(TRIM(r."comment"), '') <> '' AND r."reply" IS NOT NULL)::int AS "replied"
            FROM "Review" r WHERE ${base}`,
         tenant.id,
+        scope.shopKey,
       ),
       prisma.$queryRawUnsafe<any[]>(`SELECT COUNT(*)::int AS n FROM "Review" r WHERE ${filters}`, ...params),
       prisma.$queryRawUnsafe<any[]>(
@@ -816,7 +856,7 @@ export async function getTenantReviewsAction(
           LIMIT ${limit} OFFSET ${offset}`,
         ...params,
       ),
-      prisma.review.count({ where: { tenantId: tenant.id, isApproved: false, isSpam: false } }),
+      prisma.review.count({ where: { tenantId: tenant.id, shopId: scope.shopKey, isApproved: false, isSpam: false } }),
     ]);
 
     const st = statsRows[0] || {};
@@ -829,7 +869,7 @@ export async function getTenantReviewsAction(
     return {
       success: true as const,
       data: {
-        shopName: tenant.shopName,
+        shopName: shop?.shopName ?? "",
         stats: {
           total,
           average: total ? Number(Number(st.avg).toFixed(2)) : 0,
@@ -867,22 +907,28 @@ export type TenantReviewsData = Extract<
 >["data"];
 
 /** Load a review and make sure it belongs to the signed-in tenant's shop. */
-async function ownedReview(userId: string, reviewId: string) {
+async function ownedReview(userId: string, reviewId: string, staffLeaseId?: string) {
   const tenant = await tenantForUser(userId);
   if (!tenant) return { error: "No storefront is linked to this account." } as const;
   const review = await prisma.review.findUnique({
     where: { id: reviewId },
-    select: { id: true, tenantId: true, userId: true },
+    select: { id: true, tenantId: true, shopId: true, userId: true },
   });
   if (!review || review.tenantId !== tenant.id) return { error: "Review not found." } as const;
-  return { tenant, review } as const;
+  // Store staff only handle the reviews of the shop they work in.
+  if (staffLeaseId && (await workspaceScope(tenant.id, staffLeaseId)).shopKey !== review.shopId) {
+    return { error: "Review not found." } as const;
+  }
+  const shop = await ownShop(tenant.id, review.shopId ?? tenant.id);
+  if (!shop) return { error: "Review not found." } as const;
+  return { tenant, review, shop } as const;
 }
 
 /** Tenant: add, edit or (with an empty text) remove the shop's public reply. */
 export async function replyToReviewAction(userId: string, reviewId: string, reply: string) {
   try {
-    await requireStore(userId, { sections: ["reviews"] });
-    const owned = await ownedReview(userId, reviewId);
+    const account = await requireStore(userId, { sections: ["reviews"] });
+    const owned = await ownedReview(userId, reviewId, account.tenantStaff?.leaseId);
     if ("error" in owned) return { success: false, error: owned.error };
 
     const text = (reply || "").trim();
@@ -903,13 +949,13 @@ export async function replyToReviewAction(userId: string, reviewId: string, repl
       const { notify } = await import("@/lib/notify");
       await notify("REVIEW_REPLY", {
         recipients: [owned.review.userId],
-        title: `${owned.tenant.shopName} replied to your review`,
+        title: `${owned.shop.shopName} replied to your review`,
         message: `"${text.length > 140 ? `${text.slice(0, 140)}…` : text}"`,
-        link: `/shop/${owned.tenant.id}`,
+        link: `/shop/${owned.shop.id}`,
       });
     }
 
-    revalidatePath(`/shop/${owned.tenant.id}`);
+    revalidatePath(`/shop/${owned.shop.id}`);
     return { success: true, reply: text || null };
   } catch (error: any) {
     console.error("Reply to review error:", error);
@@ -920,8 +966,8 @@ export async function replyToReviewAction(userId: string, reviewId: string, repl
 /** Tenant: ask the mall admin to review a fake or abusive review. */
 export async function reportReviewAction(userId: string, reviewId: string, reason: string) {
   try {
-    await requireStore(userId, { sections: ["reviews"] });
-    const owned = await ownedReview(userId, reviewId);
+    const account = await requireStore(userId, { sections: ["reviews"] });
+    const owned = await ownedReview(userId, reviewId, account.tenantStaff?.leaseId);
     if ("error" in owned) return { success: false, error: owned.error };
 
     const text = (reason || "").trim();
@@ -937,7 +983,7 @@ export async function reportReviewAction(userId: string, reviewId: string, reaso
 
     const { notify } = await import("@/lib/notify");
     await notify("REVIEW_REPORTED", {
-      title: `Review reported by ${owned.tenant.shopName}`,
+      title: `Review reported by ${owned.shop.shopName}`,
       message: `Reason: "${text.length > 160 ? `${text.slice(0, 160)}…` : text}"`,
       link: "/admindashboard/user-management",
     });

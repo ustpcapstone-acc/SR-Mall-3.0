@@ -32,13 +32,17 @@ export async function requireConversations(ids: string[]) {
   const account = await requireAccount();
   const conversations = await prisma.conversation.findMany({
     where: { id: { in: ids.filter((id) => typeof id === "string") } },
-    select: { userId: true, targetId: true, type: true, user: { select: { role: true } }, target: { select: { role: true } } },
+    select: { userId: true, targetId: true, type: true, shopId: true, user: { select: { role: true } }, target: { select: { role: true } } },
   });
+  // Store staff only open the chats of the shop their space belongs to.
+  const staffLease = account.tenantStaff
+    ? await prisma.lease.findUnique({ where: { id: account.tenantStaff.leaseId }, select: { shopId: true } })
+    : null;
   for (const c of conversations) {
     const parties = [c.userId, c.targetId];
     if (parties.includes(account.id)) continue;
     const mallOffice = c.user.role === "ADMIN" || c.target.role === "ADMIN";
-    if (!mallOffice && parties.some((id) => worksFor(account, id, "messages"))) continue;
+    if (!mallOffice && (!account.tenantStaff || c.shopId === staffLease?.shopId) && parties.some((id) => worksFor(account, id, "messages"))) continue;
     if (holds(account, "messages") && (mallOffice || c.type === "ADMIN")) continue;
     throw new AccessDenied();
   }

@@ -134,12 +134,12 @@ export const NOTIFICATION_CATALOG: NotificationTypeMeta[] = [
   {
     type: "NEW_TENANT_APPLICATION",
     label: "New Tenant Application",
-    description: "A merchant applied for a storefront or partnership slot.",
+    description: "A new tenant registered on the website.",
     group: "ACTION",
     audience: ["ADMIN"],
     defaultEnabled: true,
     defaultChannels: ["IN_APP", "EMAIL"],
-    link: { ADMIN: "/admindashboard/merchant-requests" },
+    link: { ADMIN: "/admindashboard/tenant-monitoring" },
   },
   {
     type: "AD_SUBMISSION_RECEIVED",

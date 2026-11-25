@@ -9,6 +9,7 @@ import {
   User,
   Menu,
   LogOut,
+  Store,
   ChevronDown,
   X,
   Heart,
@@ -410,6 +411,14 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
                 <div className="flex items-center gap-2">
                   <PublicThemeToggle />
                 </div>
+                {user && dashboardHref(user.role) === "/account" && (
+                  <Link
+                    href="/become-a-tenant"
+                    className="hidden xl:inline-flex items-center px-5 py-2.5 rounded-full border border-primary/40 text-primary font-bold text-sm hover:bg-primary/10 transition-colors"
+                  >
+                    Become a Tenant
+                  </Link>
+                )}
                 {isAuthenticated && user && dashboardHref(user.role) !== "/account" && (
                   <Link
                     href={dashboardHref(user.role)}
@@ -588,6 +597,15 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
                               <LayoutDashboard size={16} className="text-primary" /> My Account
                             </Link>
                           )}
+                          {dashboardHref(user?.role) === "/account" && (
+                            <Link
+                              href="/become-a-tenant"
+                              onClick={() => setIsProfileOpen(false)}
+                              className="w-full flex items-center gap-3 px-6 py-3 text-xs font-bold text-charcoal dark:text-white hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
+                            >
+                              <Store size={16} className="text-primary" /> Become a Tenant
+                            </Link>
+                          )}
 
                         </div>
 
@@ -754,7 +772,7 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
               </button>
             )}
 
-            {!isAuthenticated && (
+            {(!isAuthenticated || dashboardHref(user?.role) === "/account") && (
               <Link
                 href="/become-a-tenant"
                 onClick={() => setIsMobileMenuOpen(false)}

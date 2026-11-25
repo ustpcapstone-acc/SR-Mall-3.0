@@ -5,14 +5,12 @@ import { useTabParam } from "@/lib/use-tab-param";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { AlertTriangle, Bell, Handshake, Heart, Loader2, Lock, LogOut, Store, Trash2, User, X } from "lucide-react";
+import { AlertTriangle, Bell, Heart, Loader2, Lock, LogOut, Store, Trash2, User, X } from "lucide-react";
 import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { useAuth } from "@/app/providers";
 import { loadStorefronts } from "@/lib/shared-request";
-import { MerchantApplicationModal } from "@/components/merchant-application-modal";
 import {
-  PrimaryButton,
   SaveBar,
   SecondaryButton,
   SettingsCard,
@@ -110,7 +108,6 @@ export default function CustomerProfile() {
   const me = useMyAccount();
   const [tab, setTab] = useState<Tab>("profile");
   useTabParam(TABS, setTab);
-  const [merchantOpen, setMerchantOpen] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated) router.push("/");
@@ -141,16 +138,6 @@ export default function CustomerProfile() {
       {tab === "profile" && (
         <>
           <ProfileCard me={me} />
-          {me.account.role === "CUSTOMER" && (
-            <SettingsCard title="Sell at SR Mall" subtitle="Open your own shop in the mall." icon={Handshake}>
-              <p className="text-sm text-slate-600 dark:text-slate-300">
-                Apply for a storefront. The mall office reviews applications and assigns a unit.
-              </p>
-              <PrimaryButton type="button" onClick={() => setMerchantOpen(true)}>
-                <Handshake size={14} /> Apply for a shop
-              </PrimaryButton>
-            </SettingsCard>
-          )}
           <SaveBar dirty={me.dirty} saving={me.saving} blocked={me.problem} onSave={me.save} onDiscard={me.discard} />
         </>
       )}
@@ -194,7 +181,6 @@ export default function CustomerProfile() {
         <div className="max-w-6xl mx-auto">{body}</div>
       </main>
       <Footer />
-      <MerchantApplicationModal isOpen={merchantOpen} onClose={() => setMerchantOpen(false)} />
     </div>
   );
 }

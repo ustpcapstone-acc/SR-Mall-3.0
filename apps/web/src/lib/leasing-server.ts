@@ -89,7 +89,7 @@ export async function sendInvoiceNotice(userId: string, inv: { invoiceNumber: st
   const title = `E-invoice ${inv.invoiceNumber}`;
   const message = `Payment of ${peso(inv.amount)} for Unit ${unitId} was received. Your e-invoice is ready to download.`;
   const link = "/tenantdashboard/rent-a-space";
-  await notify("INVOICE_ISSUED", { recipients: [userId], title, message, link, email: false });
+  await notify("INVOICE_ISSUED", { recipients: [userId], unitId, title, message, link, email: false });
   try {
     const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
     if (!user?.email) return;
@@ -246,6 +246,7 @@ export async function runRenewalSweep(now: Date = new Date()) {
     await prisma.lease.update({ where: { id: lease.id }, data: { noticesSent: [...sent] } });
     await notify("EXPIRING_CONTRACTS", {
       recipients: [lease.tenant.userId],
+      unitId: lease.unitId,
       title: notice.tenant[0],
       message: notice.tenant[1],
       link: tenantLink,

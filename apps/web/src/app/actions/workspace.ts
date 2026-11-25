@@ -4,11 +4,21 @@
  * Tenant workspaces (Home, plus one per rented space) and the per-space
  * Payments page. Everything is read from the signed-in session.
  */
+import { revalidatePath } from "next/cache";
+import { assignUnitShop, shopNames } from "@/lib/shops";
 import { prisma } from "@srmall/database";
 import { AccessDenied } from "@/lib/auth-server";
 import { graceEndDate, invoiceStatus, renewalStage, type EInvoiceStatus, type RenewalStage } from "@/lib/leasing";
 import { getLeaseSettings } from "@/lib/leasing-server";
-import { rememberWorkspace, requireTenant, resolveWorkspace, tenantSpaces, workspaceHome } from "@/lib/workspace-server";
+import {
+  rememberWorkspace,
+  requireTenant,
+  requireTenantOwner,
+  resolveWorkspace,
+  spaceOfBill,
+  tenantSpaces,
+  workspaceHome,
+} from "@/lib/workspace-server";
 
 type Fail = { success: false; error: string };
 
@@ -18,7 +28,15 @@ function failure(e: unknown, fallback: string): Fail {
   return { success: false, error: fallback };
 }
 
-export type WorkspaceSpace = { id: string; unitId: string; floor: string | null; stage: RenewalStage };
+export type WorkspaceSpace = {
+  id: string;
+  unitId: string;
+  /** null: the main shop. Units with the same value share one shop. */
+  shopId: string | null;
+  shopName: string;
+  floor: string | null;
+  stage: RenewalStage;
+};
 
 export async function getWorkspacesAction(): Promise<
   | {
@@ -40,6 +58,7 @@ export async function getWorkspacesAction(): Promise<
       resolveWorkspace(tenant.id, tenant.staff?.leaseId),
       getLeaseSettings(),
     ]);
+    const nameOf = await shopNames(tenant.id);
     const floors = new Map(
       (
         await prisma.areaSlot.findMany({
@@ -58,6 +77,8 @@ export async function getWorkspacesAction(): Promise<
         spaces: spaces.map((s) => ({
           id: s.id,
           unitId: s.unitId,
+          shopId: s.shopId,
+          shopName: nameOf(s.shopId),
           floor: floors.get(s.unitId) ?? null,
           stage: renewalStage(s.endDate, settings),
         })),
@@ -84,6 +105,25 @@ export async function setWorkspaceAction(id: string): Promise<{ success: true; r
   }
 }
 
+/**
+ * Owner only: put a unit in the same shop as other units, or give it a separate
+ * shop of its own ("main", "new" or one of the tenant's shop ids).
+ */
+export async function setUnitShopAction(leaseId: string, choice: string): Promise<{ success: true } | Fail> {
+  try {
+    const tenant = await requireTenantOwner();
+    const res = await assignUnitShop(tenant.id, String(leaseId), String(choice));
+    if (!res.ok) return { success: false, error: res.error };
+    revalidatePath("/tenantdashboard", "layout");
+    revalidatePath("/tenant-directory");
+    revalidatePath(`/shop/${tenant.id}`);
+    if (res.shopId) revalidatePath(`/shop/${res.shopId}`);
+    return { success: true };
+  } catch (e) {
+    return failure(e, "Couldn't change the shop of that unit.");
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Payments (current space)
 // ---------------------------------------------------------------------------
@@ -102,7 +142,7 @@ export type PaymentRow = {
   checking: boolean;
 };
 
-/** An unpaid bill of this tenant, whichever space (or ended lease) it is from. */
+/** An unpaid bill of the unit being viewed (on Home: of any unit or ended lease). */
 export type BillToPay = {
   id: string;
   invoiceNumber: string;
@@ -147,17 +187,10 @@ export async function getSpacePaymentsAction(query: { page?: number; sort?: "new
     // Staff without a current space have nothing to see.
     const visible = tenant.staff && !lease ? [] : invoices;
 
-    // The history lists this space's invoices. Older monthly bills have no
-    // lease: they belong to the space with the same unit, or to the tenant's
-    // first space. With no current space, the history lists everything.
-    const isFirst = !!lease && spaces[0]?.id === lease.id;
-    const rows = lease
-      ? visible.filter(
-          (r) =>
-            r.leaseId === lease.id ||
-            (!r.leaseId && (r.unitId === lease.unitId || (isFirst && !r.unitId))),
-        )
-      : visible;
+    // Payments are kept per unit: only this space's bills. Bills of ended
+    // leases and older ones without a unit stay with the first space. With no
+    // current space, everything is listed.
+    const rows = lease ? visible.filter((r) => spaceOfBill(spaces, r)?.id === lease.id) : visible;
 
     const now = new Date();
     const describe = (r: (typeof invoices)[number]) => r.description || `Rent, ${r.month}`;
@@ -173,9 +206,7 @@ export async function getSpacePaymentsAction(query: { page?: number; sort?: "new
       checking: r.status === "REVIEWING",
     }));
 
-    // Bills to pay come from every space, so one from an ended lease or from
-    // another space is never hidden.
-    const bills: BillToPay[] = visible
+    const bills: BillToPay[] = rows
       .map((r) => ({ r, state: invoiceStatus(r.status, r.dueDate, now) }))
       .filter(({ state }) => state === "DUE" || state === "OVERDUE")
       .sort((a, b) => a.r.dueDate.getTime() - b.r.dueDate.getTime())

@@ -249,7 +249,7 @@ export default function MasterBookingsPage() {
             Bookings and Reservations
           </h1>
           <p className="text-slate-500 font-medium max-w-2xl text-lg">
-            Manage event inquiries, space reservations, and merchant applications in one place.
+            Manage event inquiries and space reservations in one place.
           </p>
         </div>
 

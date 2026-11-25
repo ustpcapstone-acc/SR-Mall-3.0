@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { Banner, Button, Loader } from "@cloudflare/kumo";
+import { Banner, Button, Loader, Select } from "@cloudflare/kumo";
 import { toast } from "sonner";
 import { getRentASpaceAction } from "@/app/actions/leasing";
-import { setWorkspaceAction } from "@/app/actions/workspace";
+import { setUnitShopAction, setWorkspaceAction } from "@/app/actions/workspace";
+import { confirmAction } from "@/components/confirm-dialog";
 import { STAGE_LABEL, peso } from "@/lib/leasing";
 import { formatPHDate } from "@/lib/ph-date";
 import { InvoiceButton, StatusText } from "@/components/leasing/shared";
@@ -18,10 +18,10 @@ const floorLabel = (f?: string | null) => (f ? `${f.charAt(0).toUpperCase()}${f.
 
 /** Home workspace: the tenant account, its spaces and requests. */
 export default function TenantHomePage() {
-  const router = useRouter();
   const [data, setData] = useState<Data | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [opening, setOpening] = useState<string | null>(null);
+  const [moving, setMoving] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -42,8 +42,7 @@ export default function TenantHomePage() {
       setOpening(null);
       return toast.error(res.error);
     }
-    router.push(page ?? res.redirectTo);
-    router.refresh();
+    window.location.assign(page ?? res.redirectTo);
   };
 
   if (error) {
@@ -64,6 +63,50 @@ export default function TenantHomePage() {
   const spaces = data.leases.filter((l) => l.status === "ACTIVE");
   const pending = data.requests.filter((r) => r.status === "PENDING");
   const recentInvoices = data.invoices.slice(0, 5);
+
+  // Which shop each unit belongs to ("main" or a separate shop's id).
+  const shopOf = (l: (typeof spaces)[number]) => l.shopId ?? "main";
+  const unitsOf = (shop: string, except?: string) =>
+    spaces.filter((l) => shopOf(l) === shop && l.id !== except).map((l) => l.unitId);
+  const shopChoices = [{ id: "main", shopName: data.shopName }, ...data.separateShops].filter(
+    // Empty shops nothing uses aren't offered; "new" brings a unit's own one back.
+    (s) => s.shopName || unitsOf(s.id).length,
+  );
+  const choicesFor = (l: (typeof spaces)[number]) => {
+    const items: Record<string, string> = Object.fromEntries(
+      shopChoices.map((s) => {
+        const others = unitsOf(s.id, l.id);
+        return [s.id, `${s.shopName || "New shop"}${others.length ? ` (with Unit ${others.join(", ")})` : ""}`];
+      }),
+    );
+    // A unit that already has a shop to itself is already separate.
+    if (unitsOf(shopOf(l), l.id).length) items.new = "A separate new shop";
+    return items;
+  };
+
+  const changeShop = async (l: (typeof spaces)[number], choice: string) => {
+    if (choice === shopOf(l)) return;
+    const name = choicesFor(l)[choice];
+    const ok = await confirmAction({
+      title: choice === "new" ? `Give Unit ${l.unitId} its own shop?` : `Move Unit ${l.unitId} to ${name}?`,
+      description:
+        choice === "new"
+          ? "Unit " +
+            l.unitId +
+            " gets a separate shop with its own storefront, products, promos, reviews and messages, starting empty. Payments, staff and complaints stay with the unit. Nothing is deleted."
+          : "The unit will show that shop's storefront, products, promos, reviews and messages. The shop it leaves keeps its records. Payments, staff and complaints stay with the unit.",
+      confirmLabel: choice === "new" ? "Create separate shop" : "Move unit",
+      destructive: false,
+    });
+    if (!ok) return;
+    setMoving(l.id);
+    const res = await setUnitShopAction(l.id, choice);
+    if (!res.success) {
+      setMoving(null);
+      return toast.error(res.error);
+    }
+    window.location.reload();
+  };
 
   return (
     <div className="mx-auto max-w-6xl space-y-8 p-6 sm:p-8">
@@ -100,6 +143,12 @@ export default function TenantHomePage() {
 
       <section className="space-y-3">
         <h2 className="text-lg font-semibold text-kumo-default">Your spaces</h2>
+        {spaces.length > 1 && (
+          <p className="text-sm text-kumo-subtle">
+            Units in the same shop share one storefront, promos, reviews and messages. Separate shops are managed on their
+            own. Payments and complaints are always kept per unit.
+          </p>
+        )}
         {spaces.length === 0 ? (
           <div className="rounded-xl border border-kumo-line bg-kumo-base p-6">
             <p className="text-sm text-kumo-subtle">
@@ -117,15 +166,33 @@ export default function TenantHomePage() {
               <li key={l.id} className="flex flex-col rounded-xl border border-kumo-line bg-kumo-base p-5">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="font-semibold text-kumo-default">Unit {l.unitId}</p>
+                    <p className="font-semibold text-kumo-default">{l.shopName || "New shop"}</p>
                     <p className="text-sm text-kumo-subtle">
-                      {floorLabel(l.floor)}
+                      Unit {l.unitId}, {floorLabel(l.floor)}
                       {l.floor ? ", " : ""}paid through {formatPHDate(l.endDate)}
                     </p>
                   </div>
                   {l.stage && <StatusText status={l.stage} label={STAGE_LABEL[l.stage]} />}
                 </div>
-                <div className="mt-4 flex justify-end">
+                <div className="mt-4 flex flex-wrap items-end justify-between gap-3">
+                  {spaces.length > 1 || l.shopId ? (
+                    <Select
+                      label="Shop for this unit"
+                      value={shopOf(l)}
+                      items={choicesFor(l)}
+                      disabled={moving !== null}
+                      onValueChange={(v) => changeShop(l, (v as string) || shopOf(l))}
+                      className="w-full sm:w-64"
+                    >
+                      {Object.entries(choicesFor(l)).map(([value, text]) => (
+                        <Select.Option key={value} value={value}>
+                          {text}
+                        </Select.Option>
+                      ))}
+                    </Select>
+                  ) : (
+                    <span />
+                  )}
                   <Button variant="primary" loading={opening === l.id} onClick={() => open(l.id)}>
                     Open workspace
                   </Button>

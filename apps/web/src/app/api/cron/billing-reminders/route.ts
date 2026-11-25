@@ -70,6 +70,7 @@ export async function GET(req: Request) {
       //    "Fiscal Delinquency Tracking" toggle actually applies to it.
       await notify(isOverdue ? "OVERDUE_RENT_PAYMENTS" : "BILLING_REMINDER", {
         recipients: [tenantId],
+        unitId: invoice.unitId ?? invoice.tenant.unitId,
         title: isOverdue ? "Overdue Warning" : "Billing Reminder",
         message: messageContent,
         link: "/tenantdashboard/payments",

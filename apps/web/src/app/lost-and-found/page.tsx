@@ -26,7 +26,6 @@ import {
 import Link from "next/link";
 import clsx from "clsx";
 import { toast } from "sonner";
-import { MerchantApplicationModal } from "@/components/merchant-application-modal";
 import { createLostAndFoundItem, getLostAndFoundItems } from "@/app/actions/lost-and-found";
 import { uploadImageServerAction } from "@/app/actions/upload";
 import { ChatBox } from "@/components/chat-box";
@@ -38,7 +37,6 @@ export default function LostAndFoundPage() {
   const [isLoginOpen, setIsLoginOpen] = useState(false);
 
   const [activeTab, setActiveTab] = useState<"found" | "lost" | "report" | "claimed">("found");
-  const [isMerchantModalOpen, setIsMerchantModalOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [chatMessage, setChatMessage] = useState("");
   
@@ -289,8 +287,8 @@ export default function LostAndFoundPage() {
               </button>
 
               {(user?.role === "CUSTOMER" || user?.role === "USER") && (
-                <button
-                  onClick={() => setIsMerchantModalOpen(true)}
+                <Link
+                  href="/become-a-tenant"
                   className="w-full flex items-center gap-4 px-8 py-6 rounded-[2.5rem] bg-primary text-white hover:bg-primary-hover transition-all group/partner shadow-xl shadow-primary/20 active:scale-95 mt-4"
                 >
                   <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center transition-all">
@@ -298,7 +296,7 @@ export default function LostAndFoundPage() {
                   </div>
                   <div className="text-left">
                     <p className="text-xs font-semibold leading-none mb-1">
-                      Become a Partner
+                      Become a Tenant
                     </p>
                     <p className="text-xs font-bold opacity-80 tracking-tight text-white/70">
                       Join the Ecosystem
@@ -308,7 +306,7 @@ export default function LostAndFoundPage() {
                     size={16}
                     className="ml-auto opacity-40 group-hover:translate-x-1 transition-transform"
                   />
-                </button>
+                </Link>
               )}
             </aside>
 
@@ -630,10 +628,6 @@ export default function LostAndFoundPage() {
       </main>
 
       <Footer />
-      <MerchantApplicationModal
-        isOpen={isMerchantModalOpen}
-        onClose={() => setIsMerchantModalOpen(false)}
-      />
       <ChatLauncher hidden={isChatOpen} />
 
       <ChatBox

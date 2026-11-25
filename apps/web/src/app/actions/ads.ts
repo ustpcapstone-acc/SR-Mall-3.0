@@ -1,5 +1,8 @@
 "use server";
 
+import { currentAccount } from "@/lib/auth-server";
+import { listPublicShops, ownShop, shopKey, shopOfLease, shopRef, type Shop } from "@/lib/shops";
+import { resolveWorkspace } from "@/lib/workspace-server";
 import { holds, requireAccount, requireStaffAny, requireStore, requireTenantRecord, worksFor } from "@/lib/action-guard";
 import { prisma } from "@srmall/database";
 import { emailBaseUrl } from "@/utils/get-base-url";
@@ -19,6 +22,47 @@ function sortAds<T extends { isDefault?: boolean; priority?: string; startDate: 
 }
 
 // ─── ADMIN: MALL-WIDE ADS (HERO CAROUSEL) ───────────────────────────────────
+
+const SHOP_ON_PROMO = {
+  id: true,
+  shopName: true,
+  logoUrl: true,
+  leases: { where: { status: "ACTIVE" }, orderBy: { startDate: "asc" }, select: { unitId: true } },
+} as const;
+
+/** A promo posted by a unit shop shows that shop's name, unit and logo. */
+function withShopDetails<T extends { tenant: any; shop?: { id: string; shopName: string; logoUrl: string | null; leases: { unitId: string }[] } | null }>(
+  promos: T[],
+) {
+  return promos.map(({ shop, ...p }) =>
+    shop
+      ? {
+          ...p,
+          tenant: {
+            ...p.tenant,
+            id: shop.id,
+            shopName: shop.shopName || p.tenant?.shopName,
+            unitId: shop.leases.map((l) => l.unitId).join(", ") || p.tenant?.unitId,
+            logoUrl: shop.logoUrl,
+          },
+        }
+      : p,
+  );
+}
+
+/** Hides promos of a unit shop that isn't listed (no name yet, or its lease ended). */
+async function onlyListedShops<T extends { shop?: { id: string } | null }>(promos: T[]) {
+  if (!promos.some((p) => p.shop)) return promos;
+  const listed = new Set((await listPublicShops()).map((s) => s.id));
+  return promos.filter((p) => !p.shop || listed.has(p.shop.id));
+}
+
+/** Store staff may only act for the shop of the space they work in. */
+async function staffMayUse(staffLeaseId: string | undefined, shop: Shop) {
+  if (!staffLeaseId) return true;
+  const lease = await prisma.lease.findUnique({ where: { id: staffLeaseId }, select: { shopId: true, status: true } });
+  return lease?.status === "ACTIVE" && lease.shopId === shopKey(shop);
+}
 
 export async function createMallAd(data: {
   title: string;
@@ -141,6 +185,8 @@ export async function getAllActiveMallAds() {
 
 export async function createTenantPromo(data: {
   tenantId: string;
+  /** The shop the promo is for; omit (or pass the tenant id) for the main shop. */
+  shopId?: string;
   title: string;
   description?: string;
   promoImage?: string;
@@ -152,7 +198,11 @@ export async function createTenantPromo(data: {
   storageKey?: string;
 }) {
   try {
-    await requireTenantRecord(data.tenantId, { sections: ["ads"] });
+    const account = await requireTenantRecord(data.tenantId, { sections: ["ads"] });
+    const shop = await ownShop(data.tenantId, data.shopId || data.tenantId);
+    if (!shop || !(await staffMayUse(account.tenantStaff?.leaseId, shop))) {
+      return { success: false, error: "You can only post promos for your own shop." };
+    }
     console.log(
       "[PROMO_ACTION]: Attempting to create Tenant Promo for tenant:",
       data.tenantId,
@@ -168,6 +218,7 @@ export async function createTenantPromo(data: {
         startDate: data.startDate,
         endDate: data.endDate,
         tenantId: data.tenantId,
+        shopId: shop.isMain ? null : shop.id,
         mediaType: data.mediaType,
         status: "PENDING",
         storageKey: data.storageKey,
@@ -181,7 +232,7 @@ export async function createTenantPromo(data: {
     const { notify } = await import("@/lib/notify");
     await notify("AD_SUBMISSION_RECEIVED", {
       title: "New Promo Submission",
-      message: `Merchant ${promo.tenant.shopName} submitted "${promo.title}" (${promo.category}) running ${new Date(
+      message: `Merchant ${shop.shopName || promo.tenant.shopName} submitted "${promo.title}" (${promo.category}) running ${new Date(
         promo.startDate,
       ).toLocaleDateString()} to ${new Date(promo.endDate).toLocaleDateString()}. It is queued for review.`,
       link: "/admindashboard/ad-scheduler",
@@ -234,6 +285,7 @@ export async function updatePromoStatus(
 
       await notify("AD_DECISION", {
         recipients: [tenantUserId],
+        shopId: promo.shopId ?? promo.tenantId,
         title: isApproved ? "Promo Approved" : takenDown ? "Promo Taken Down" : "Promo Rejected",
         message: isApproved
           ? `"${promo.title}" was approved and is live or scheduled for its start date.`
@@ -291,9 +343,9 @@ export async function getLivePromosAction() {
     await requireStaffAny("ads");
     return await (prisma as any).tenantPromo.findMany({
       where: { status: "APPROVED", endDate: { gte: new Date() } },
-      include: { tenant: { select: { shopName: true, unitId: true } } },
+      include: { tenant: { select: { shopName: true, unitId: true } }, shop: { select: SHOP_ON_PROMO } },
       orderBy: { startDate: "asc" },
-    });
+    }).then(withShopDetails);
   } catch (error) {
     console.error("[GET_LIVE_PROMOS_ERROR]:", error);
     return [];
@@ -312,10 +364,10 @@ export async function getPromoHistoryAction() {
           { status: "APPROVED", endDate: { lt: now } },
         ],
       },
-      include: { tenant: { select: { shopName: true, unitId: true } } },
+      include: { tenant: { select: { shopName: true, unitId: true } }, shop: { select: SHOP_ON_PROMO } },
       orderBy: { endDate: "desc" },
       take: 100,
-    });
+    }).then(withShopDetails);
   } catch (error) {
     console.error("[GET_PROMO_HISTORY_ERROR]:", error);
     return [];
@@ -327,9 +379,9 @@ export async function getPendingPromos() {
     await requireStaffAny("ads");
     return await (prisma as any).tenantPromo.findMany({
       where: { status: "PENDING" },
-      include: { tenant: true },
+      include: { tenant: true, shop: { select: SHOP_ON_PROMO } },
       orderBy: { createdAt: "desc" },
-    });
+    }).then(withShopDetails);
   } catch (error) {
     return [];
   }
@@ -455,21 +507,37 @@ export async function deleteMallAd(id: string) {
 export async function getTenantByUserId(userId: string) {
   try {
     await requireStore(userId, { sections: ["ads"], staff: ["ads"] });
-    const tenant = await (prisma as any).tenant.findUnique({
+    const tenant = await prisma.tenant.findUnique({
       where: { userId },
     });
-    return tenant;
+    if (!tenant) return null;
+    // The shop of the space chosen in the workspace menu.
+    let shopId = tenant.id;
+    const account = await currentAccount();
+    if (account?.type === "TENANT") {
+      const { lease } = await resolveWorkspace(tenant.id, account.tenantStaff?.leaseId);
+      if (account.tenantStaff && !lease) return null;
+      shopId = (await shopOfLease(tenant.id, lease))?.id ?? tenant.id;
+    }
+    return { ...tenant, shopId };
   } catch (error) {
     console.error("[GET_TENANT_BY_USER_ID_ERROR]:", error);
     return null;
   }
 }
 
-export async function getPromosByTenant(tenantId: string) {
+export async function getPromosByTenant(tenantId: string, shopId?: string) {
   try {
-    await requireTenantRecord(tenantId, { sections: ["ads"], staff: ["ads"] });
+    const account = await requireTenantRecord(tenantId, { sections: ["ads"], staff: ["ads"] });
+    // Tenants see one shop's promos at a time; mall staff may ask for them all.
+    let shopFilter: { shopId?: string | null } = {};
+    if (account.type === "TENANT") {
+      const shop = await ownShop(tenantId, shopId || tenantId);
+      if (!shop || !(await staffMayUse(account.tenantStaff?.leaseId, shop))) return [];
+      shopFilter = { shopId: shop.isMain ? null : shop.id };
+    }
     return await (prisma as any).tenantPromo.findMany({
-      where: { tenantId },
+      where: { tenantId, ...shopFilter },
       orderBy: { createdAt: "desc" },
     });
   } catch (error) {
@@ -542,9 +610,10 @@ export async function getApprovedTenantPromos() {
             user: { select: { name: true } },
           },
         },
+        shop: { select: SHOP_ON_PROMO },
       },
       orderBy: { createdAt: "desc" },
-    });
+    }).then(onlyListedShops).then(withShopDetails);
   } catch (error) {
     console.error("[GET_APPROVED_TENANT_PROMOS_ERROR]:", error);
     return [];
@@ -557,7 +626,12 @@ export async function getShopActivePromosAction(tenantId: string) {
     if (!tenantId) return [];
     const now = new Date();
     return await (prisma as any).tenantPromo.findMany({
-      where: { tenantId, status: "APPROVED", startDate: { lte: now }, endDate: { gte: now } },
+      where: {
+        ...(await shopRef(tenantId)),
+        status: "APPROVED",
+        startDate: { lte: now },
+        endDate: { gte: now },
+      },
       select: { id: true, title: true, description: true, category: true, mediaType: true, promoImage: true, promoVideo: true, startDate: true, endDate: true },
       orderBy: { startDate: "desc" },
     });

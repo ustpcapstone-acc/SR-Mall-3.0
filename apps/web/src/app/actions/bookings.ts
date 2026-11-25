@@ -1,6 +1,5 @@
 "use server";
 
-import { getPendingTenantsAction } from "@/app/actions/tenant";
 import { getAreaSlots, getReservedSlotsWithDetailsAction } from "@/app/actions/space-slot";
 import { getInquiriesAction } from "@/app/actions/inquiry";
 
@@ -12,11 +11,10 @@ import { getInquiriesAction } from "@/app/actions/inquiry";
  * function calls, so the queries genuinely run in parallel.
  */
 export async function getBookingsDataAction() {
-  const [tenants, slots, inquiries, reservedDetailed] = await Promise.all([
-    getPendingTenantsAction(),
+  const [slots, inquiries, reservedDetailed] = await Promise.all([
     getAreaSlots(),
     getInquiriesAction(),
     getReservedSlotsWithDetailsAction(),
   ]);
-  return { tenants, slots, inquiries, reservedDetailed };
+  return { slots, inquiries, reservedDetailed };
 }

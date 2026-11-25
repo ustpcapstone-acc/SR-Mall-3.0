@@ -1,5 +1,6 @@
 "use server";
 
+import { shopRef } from "@/lib/shops";
 import { prisma } from "@srmall/database";
 import { safeUserSelect } from "@/lib/user-select";
 import { after } from "next/server";
@@ -30,19 +31,22 @@ async function resolveTargetUser(
   tenantId?: string,
 ) {
   if (recipientType === "admin") {
-    return prisma.user.findFirst({ where: { role: "ADMIN" }, orderBy: { createdAt: "asc" } });
+    const user = await prisma.user.findFirst({ where: { role: "ADMIN" }, orderBy: { createdAt: "asc" } });
+    return user && { user, shopId: null as string | null };
   }
   if (recipientType !== "shop") return null;
 
-  const tenant = tenantId
-    ? await prisma.tenant.findUnique({ where: { id: tenantId }, include: { user: true } })
-    : shopName?.trim()
-      ? await prisma.tenant.findFirst({
-          where: { shopName: { equals: shopName.trim(), mode: "insensitive" } },
-          include: { user: true },
-        })
-      : null;
-  return tenant?.user ?? null;
+  // By id when the caller knows it, else an exact name: a main shop or a separate one.
+  const name = shopName?.trim();
+  const named = name && !tenantId ? { equals: name, mode: "insensitive" as const } : null;
+  let ref = tenantId ? await shopRef(tenantId) : null;
+  if (named) {
+    const main = await prisma.tenant.findFirst({ where: { shopName: named }, select: { id: true } });
+    const extra = main ? null : await prisma.unitShop.findFirst({ where: { shopName: named }, select: { id: true, tenantId: true } });
+    ref = main ? { tenantId: main.id, shopId: null } : extra ? { tenantId: extra.tenantId, shopId: extra.id } : null;
+  }
+  const tenant = ref ? await prisma.tenant.findUnique({ where: { id: ref.tenantId }, include: { user: true } }) : null;
+  return tenant?.user ? { user: tenant.user, shopId: ref!.shopId } : null;
 }
 
 export async function sendMessage(data: {
@@ -60,10 +64,12 @@ export async function sendMessage(data: {
   try {
     // The sender and the recipient are independent lookups — resolve them in
     // one round trip instead of two.
-    const [sender, targetUser] = await Promise.all([
+    const [sender, target] = await Promise.all([
       findSender(email),
       resolveTargetUser(recipientType, shopName, tenantId),
     ]);
+    const targetUser = target?.user ?? null;
+    const shopId = target?.shopId ?? null;
 
     // The email comes from the browser: it must be the signed-in person's.
     if (!sender || !(await canSpeakAs(sender.id)) || (recipientType === "admin" && (await isStandIn(sender.id)))) {
@@ -105,6 +111,8 @@ export async function sendMessage(data: {
                 ],
               }
             : {
+                // Each shop keeps its own chat with the same shopper.
+                shopId,
                 OR: [
                   { userId: sender.id, targetId: targetUser.id },
                   { userId: targetUser.id, targetId: sender.id },
@@ -130,6 +138,7 @@ export async function sendMessage(data: {
           userId: sender.id,
           targetId: targetUser.id,
           spaceSlotId: slotId,
+          shopId,
         },
       }));
 

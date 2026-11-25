@@ -1,10 +1,9 @@
 import { after } from "next/server";
 import { processExpiredReservationsAction } from "@/app/actions/space-slot";
-import { processExpiredMerchantApplicationsAction } from "@/app/actions/tenant";
 import { processExpiredEventBookingsAction } from "@/app/actions/inquiry";
 
 /**
- * Auto-rejection sweeps (expired reservations, merchant applications, event
+ * Auto-rejection sweeps (expired reservations and event
  * bookings) used to run *inside* the admin read actions, so every Bookings
  * load waited on writes, notifications and emails before showing anything.
  *
@@ -18,12 +17,11 @@ let lastSweepAt = 0;
 let sweeping = false;
 
 export async function runAllSweeps() {
-  const [reservations, merchantApplications, eventBookings] = await Promise.all([
+  const [reservations, eventBookings] = await Promise.all([
     processExpiredReservationsAction(),
-    processExpiredMerchantApplicationsAction(),
     processExpiredEventBookingsAction(),
   ]);
-  return { reservations, merchantApplications, eventBookings };
+  return { reservations, eventBookings };
 }
 
 export function scheduleSweeps() {

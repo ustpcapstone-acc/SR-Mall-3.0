@@ -27,12 +27,12 @@ type Section = {
 
 export const STAFF_SECTIONS: Section[] = [
   { key: "dashboard", label: "Dashboard", description: "Mall overview, sales and finance summary.", paths: ["/admindashboard"] },
-  { key: "bookings", label: "Bookings", description: "Space reservations and merchant requests.", paths: ["/admindashboard/bookings", "/admindashboard/merchant-requests"] },
+  { key: "bookings", label: "Bookings", description: "Space reservations and event bookings.", paths: ["/admindashboard/bookings"] },
   { key: "leasing", label: "Leasing", description: "Rent requests, renewals and e-invoices.", paths: ["/admindashboard/rent-requests", "/admindashboard/renewals"] },
   { key: "spaces", label: "Floor Spaces & Map", description: "Units, floor map and availability.", paths: ["/admindashboard/space-manager"] },
   { key: "messages", label: "Messages", description: "Chats with tenants and customers.", paths: ["/admindashboard/messenger-hub", "/admindashboard/messages"] },
   { key: "complaints", label: "Complaints", description: "Tenant complaints and their replies.", paths: ["/admindashboard/complaints"] },
-  { key: "tenant_monitoring", label: "Tenant Monitoring", description: "Tenants, leases and payments.", paths: ["/admindashboard/tenant-monitoring"] },
+  { key: "tenant_monitoring", label: "Tenant Monitoring", description: "Tenants, leases and payments.", paths: ["/admindashboard/tenant-monitoring", "/admindashboard/merchant-requests"] },
   { key: "ads", label: "Ad Scheduler", description: "Mall ads and tenant promos.", paths: ["/admindashboard/ad-scheduler"] },
   { key: "users", label: "User Management", description: "Customer and tenant accounts, reviews.", paths: ["/admindashboard/user-management"] },
   { key: "cms", label: "Website Content", description: "Home page content and site settings.", paths: ["/admindashboard/public-view-cms", "/admindashboard/site-config", "/admindashboard/site-editor", "/admin"] },

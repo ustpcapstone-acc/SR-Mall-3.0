@@ -119,7 +119,7 @@ export default function AdPromoManager() {
     try {
       const tenant = await getTenantByUserId(user.id);
       if (tenant) {
-        setPromos(await getPromosByTenant(tenant.id));
+        setPromos(await getPromosByTenant(tenant.id, tenant.shopId));
       }
     } catch (e) {
       console.error(e);
@@ -184,8 +184,9 @@ export default function AdPromoManager() {
         showToast("No tenant profile found. Contact admin.", "error");
         return;
       }
-      await createTenantPromo({
+      const created = await createTenantPromo({
         tenantId: tenant.id,
+        shopId: tenant.shopId,
         title,
         description,
         category,
@@ -196,6 +197,10 @@ export default function AdPromoManager() {
         mediaType,
         storageKey,
       });
+      if (!created.success) {
+        showToast(created.error || "Couldn't submit the promotion.", "error");
+        return;
+      }
       setTitle("");
       setDescription("");
       setCategory("Fashion");

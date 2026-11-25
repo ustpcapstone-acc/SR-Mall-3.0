@@ -174,7 +174,7 @@ function ReviewRow({ label, value }: { label: string; value: string }) {
 
 export default function BecomeATenantPage() {
   const router = useRouter();
-  const { login } = useAuth();
+  const { user, login } = useAuth();
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<TenantApplication>(EMPTY);
   const [errors, setErrors] = useState<StepErrors>({});
@@ -285,6 +285,12 @@ export default function BecomeATenantPage() {
               Register your business with SR Mall. Once your account is set up, you can choose a space to rent from your
               tenant dashboard.
             </p>
+            {user?.role === "CUSTOMER" && (
+              <Banner
+                className="mt-4"
+                description="You're signed in as a customer. A tenant account is separate, so use a different email. Finishing registration signs you in to the new tenant account."
+              />
+            )}
           </header>
 
           <Stepper step={step} />

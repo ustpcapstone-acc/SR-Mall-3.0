@@ -5,6 +5,8 @@
  * Admin ledger (all tenants) for Tenant Monitoring, and a tenant's own
  * schedule for their Payments page.
  */
+import { billsInWorkspace } from "@/lib/workspace-server";
+import { shopNames } from "@/lib/shops";
 import { prisma } from "@srmall/database";
 import { requireStaffAny, requireStore } from "@/lib/action-guard";
 
@@ -46,6 +48,8 @@ type Row = {
   updatedAt: Date;
   referenceNo: string | null;
   tenantId: string;
+  leaseId: string | null;
+  unitId: string | null;
 };
 
 function statusOf(r: Row, now: Date): ScheduleStatus {
@@ -77,7 +81,7 @@ function toEntries(rows: Row[], now: Date): ScheduleEntry[] {
   });
 }
 
-const ROW_SQL = `SELECT "id","invoiceNumber","month","amount","status","dueDate","paidAt","updatedAt","referenceNo","tenantId" FROM "Invoice"`;
+const ROW_SQL = `SELECT "id","invoiceNumber","month","amount","status","dueDate","paidAt","updatedAt","referenceNo","tenantId","leaseId","unitId" FROM "Invoice"`;
 
 /** Admin: every tenant with their payment schedule. */
 export async function getPaymentLedgerAction(_adminUserId?: string) {
@@ -115,7 +119,7 @@ export async function getPaymentLedgerAction(_adminUserId?: string) {
   }
 }
 
-/** Tenant: their own schedule. */
+/** Tenant: their own schedule, for the unit they are looking at. */
 export async function getMyPaymentScheduleAction(userId?: string) {
   try {
     if (!userId) return { success: false as const, error: "Please sign in again." };
@@ -123,7 +127,12 @@ export async function getMyPaymentScheduleAction(userId?: string) {
     const tenant = await prisma.tenant.findUnique({ where: { userId }, select: { id: true, shopName: true, unitId: true } });
     if (!tenant) return { success: false as const, error: "Tenant record not found." };
     const rows = await prisma.$queryRawUnsafe<Row[]>(`${ROW_SQL} WHERE "tenantId" = $1`, tenant.id);
-    return { success: true as const, data: { shopName: tenant.shopName, unitId: tenant.unitId, entries: toEntries(rows, new Date()) } };
+    const { bills, lease } = await billsInWorkspace(tenant.id, rows);
+    const shopName = lease ? (await shopNames(tenant.id))(lease.shopId) : tenant.shopName;
+    return {
+      success: true as const,
+      data: { shopName: shopName || "New shop", unitId: lease?.unitId ?? tenant.unitId, entries: toEntries(bills, new Date()) },
+    };
   } catch (error) {
     console.error("[MY_PAYMENT_SCHEDULE_ERROR]:", error);
     return { success: false as const, error: "Couldn't load your payment schedule." };

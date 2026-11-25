@@ -1,5 +1,6 @@
 "use server";
 
+import { billsInWorkspace } from "@/lib/workspace-server";
 import { requireStaffAny, requireStore, requireTenantRecord } from "@/lib/action-guard";
 import { prisma } from "@srmall/database";
 import { safeUserSelect } from "@/lib/user-select";
@@ -99,6 +100,7 @@ export async function updateInvoiceStatus(invoiceId: string, status: string) {
         invoiceNumber: true,
         amount: true,
         month: true,
+        unitId: true,
         tenant: {
           select: {
             shopName: true,
@@ -126,6 +128,8 @@ export async function updateInvoiceStatus(invoiceId: string, status: string) {
 
       await notify("INVOICE_STATUS_CHANGED", {
         recipients: [tenantUserId],
+        // Bills without a unit belong to the tenant's main unit.
+        unitId: before?.unitId ?? before?.tenant?.unitId,
         title:
           status === "PAID"
             ? "Invoice Approved"
@@ -175,6 +179,7 @@ export async function recordManualPaymentAction(
     if (tenantUserId) {
       await notify("PAYMENT_CONFIRMED", {
         recipients: [tenantUserId],
+        unitId: invoice.unitId ?? invoice.tenant?.unitId,
         title: "Payment Confirmed",
         message: `Reference ${referenceNo} for ${
           invoice.tenant?.shopName || "your store"
@@ -250,6 +255,7 @@ export async function generateInvoice(data: {
       const peso = `₱${Number(data.amount).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`;
       await notify("INVOICE_ISSUED", {
         recipients: [invoice.tenant.userId],
+        unitId: invoice.unitId ?? invoice.tenant.unitId,
         title: `New bill · ${data.month}`,
         message: `${invoiceNumber} for ${peso} is due ${new Date(data.dueDate).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" })}.`,
         link: "/tenantdashboard/payments",
@@ -300,14 +306,18 @@ export async function getTenantPaymentScheduleAction(userId: string) {
       return { success: false, error: "Tenant record not found" };
     }
 
-    const slot = tenant.unitId
+    // Rent and bills are those of the unit being viewed.
+    const { bills, lease } = await billsInWorkspace(tenant.id, tenant.invoices || []);
+    const invoices: any[] = bills;
+    const unit = lease?.unitId ?? tenant.unitId;
+
+    const slot = unit
       ? await (prisma as any).areaSlot.findFirst({
-          where: { unit_id: tenant.unitId },
+          where: { unit_id: unit },
         })
       : null;
 
-    const baseRent = slot?.base_rent || 0;
-    const invoices = tenant.invoices || [];
+    const baseRent = lease?.monthlyRent || slot?.base_rent || 0;
 
     // Real payment dates (newer column; raw SQL until the client is regenerated).
     const paidAtRows = await prisma

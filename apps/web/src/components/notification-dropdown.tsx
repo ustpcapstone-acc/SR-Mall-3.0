@@ -42,6 +42,7 @@ export default function NotificationDropdown({ className = "" }: { className?: s
     if (res.success) {
       setItems(res.data.items);
       setUnreadCount(res.data.unreadCount);
+      return res.data.items;
     }
   }, [user?.id]);
 
@@ -55,9 +56,15 @@ export default function NotificationDropdown({ className = "" }: { className?: s
     user?.id,
     (n) => {
       if (n.type === "MESSAGE") return;
+      const announce = () => toast.info(n.title, { description: n.message, duration: 5000 });
+      // A tenant's alert may belong to another shop or unit: ask the server first.
+      if (user?.role === "TENANT") {
+        void load().then((list) => list?.some((p) => p.id === n.id) && announce());
+        return;
+      }
       setItems((prev) => (prev.some((p) => p.id === n.id) ? prev : [n, ...prev].slice(0, BELL_LIMIT)));
       setUnreadCount((c) => c + 1);
-      toast.info(n.title, { description: n.message, duration: 5000 });
+      announce();
     },
     load,
   );

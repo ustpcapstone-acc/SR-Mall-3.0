@@ -75,7 +75,7 @@ function useMyShop(userId?: string) {
     if (!userId || !form || problem) return;
     setSaving(true);
     try {
-      const res = await updateMyShopSettingsAction(userId, form);
+      const res = await updateMyShopSettingsAction(userId, { ...form, shopId: shop?.id });
       if (res.success) {
         setSaved(form);
         setShop((s) => (s ? { ...s, ...form } : s));
@@ -90,6 +90,7 @@ function useMyShop(userId?: string) {
     if (!userId) return null;
     const data = new FormData();
     data.append("file", file);
+    if (shop?.id) data.append("shopId", shop.id);
     const res = await uploadShopLogoAction(userId, data);
     if (!res.success || !res.url) throw new Error(res.error || "Upload failed");
     setShop((s) => (s ? { ...s, logoUrl: res.url! } : s));

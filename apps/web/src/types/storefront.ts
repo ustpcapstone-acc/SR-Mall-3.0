@@ -15,6 +15,8 @@ export interface StoreProduct {
 
 export interface DigitalStorefront {
   id: string; // UUID
+  /** The account behind the shop (reviews, favourites and chat belong to it). */
+  tenant_id?: string;
   shop_name: string; // Official business name
   unit_id: string; // Physical slot (e.g., "L1-105")
   is_open: boolean; // Real-time toggle

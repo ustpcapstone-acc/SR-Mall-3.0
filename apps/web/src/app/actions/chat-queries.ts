@@ -1,7 +1,9 @@
 "use server";
 
+import { shopRef } from "@/lib/shops";
+import { workspaceScope } from "@/lib/workspace-server";
+import { actingUserId, currentAccount } from "@/lib/auth-server";
 import { holds, requireStaffAny } from "@/lib/action-guard";
-import { currentAccount } from "@/lib/auth-server";
 import { canSpeakAs, isStandIn, requireConversations, requireSpeaker } from "@/lib/chat-access";
 import { isChatBlocked } from "@/lib/chat-block";
 import { prisma } from "@srmall/database";
@@ -22,6 +24,44 @@ const CHAT_TENANT_SELECT = {
   logoUrl: true,
   status: true,
 } as const;
+
+/** The shop a chat is with, when it isn't the tenant's main shop. */
+const CHAT_SHOP_SELECT = {
+  id: true,
+  shopName: true,
+  logoUrl: true,
+  leases: { where: { status: "ACTIVE" }, orderBy: { startDate: "asc" }, select: { unitId: true } },
+} as const;
+
+/**
+ * For a tenant (or their staff), shopper chats are only those of the shop in the
+ * current workspace (none on Home). The mall-office chat belongs to the account,
+ * so every workspace has it. Returns null for everyone else (customers and mall
+ * staff see all their chats).
+ */
+async function tenantInbox(userId: string) {
+  const account = await currentAccount();
+  if (account?.type !== "TENANT" || actingUserId(account) !== userId) return null;
+  const tenant = await prisma.tenant.findUnique({ where: { userId }, select: { id: true } });
+  if (!tenant) return null;
+  const scope = await workspaceScope(tenant.id, account.tenantStaff?.leaseId);
+  return { home: !scope.lease, shopKey: scope.shopKey };
+}
+
+function inInbox(c: { type: string; shopId: string | null }, inbox: Awaited<ReturnType<typeof tenantInbox>>) {
+  if (!inbox) return true;
+  return c.type === "ADMIN" || (!inbox.home && c.shopId === inbox.shopKey);
+}
+
+/** A chat with a separate shop shows that shop's name and logo, not the main one's. */
+function asShop<T extends { id: string; tenant?: any }>(
+  person: T,
+  shop: { id: string; shopName: string; logoUrl: string | null; leases: { unitId: string }[] } | null | undefined,
+): T {
+  if (!shop || !person?.tenant) return person;
+  const unitId = shop.leases.map((l) => l.unitId).join(", ");
+  return { ...person, tenant: { ...person.tenant, id: shop.id, shopName: shop.shopName, unitId, logoUrl: shop.logoUrl } };
+}
 
 // ─── Unread tracking (ConversationRead) ──────────────────────────────────────
 // Raw SQL so it works before `prisma generate` picks up the new model.
@@ -98,12 +138,15 @@ export async function getChatUnreadTotal(userId: string): Promise<number> {
   const me = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
   const isAdmin = me?.role === "ADMIN";
   const admins = isAdmin ? await adminUserIds() : [];
-  const conversations = await prisma.conversation.findMany({
-    where: isAdmin
-      ? { OR: [{ type: "ADMIN" }, { userId: { in: admins } }, { targetId: { in: admins } }] }
-      : { OR: [{ userId }, { targetId: userId }] },
-    select: { id: true },
-  });
+  const inbox = await tenantInbox(userId);
+  const conversations = (
+    await prisma.conversation.findMany({
+      where: isAdmin
+        ? { OR: [{ type: "ADMIN" }, { userId: { in: admins } }, { targetId: { in: admins } }] }
+        : { OR: [{ userId }, { targetId: userId }] },
+      select: { id: true, type: true, shopId: true },
+    })
+  ).filter((c) => inInbox(c, inbox));
   const counts = await unreadByConversation(
     userId,
     conversations.map((c) => c.id),
@@ -150,12 +193,15 @@ export async function getUnreadChatsAction(
     const admins = isAdmin ? await adminUserIds() : [];
     const mine = isAdmin ? new Set(admins) : new Set([userId]);
 
-    const conversations = await prisma.conversation.findMany({
-      where: isAdmin
-        ? { OR: [{ type: "ADMIN" }, { userId: { in: admins } }, { targetId: { in: admins } }] }
-        : { OR: [{ userId }, { targetId: userId }] },
-      select: { id: true },
-    });
+    const inbox = await tenantInbox(userId);
+    const conversations = (
+      await prisma.conversation.findMany({
+        where: isAdmin
+          ? { OR: [{ type: "ADMIN" }, { userId: { in: admins } }, { targetId: { in: admins } }] }
+          : { OR: [{ userId }, { targetId: userId }] },
+        select: { id: true, type: true, shopId: true },
+      })
+    ).filter((c) => inInbox(c, inbox));
     const counts = await unreadByConversation(userId, conversations.map((c) => c.id), isAdmin ? admins : [userId]);
     const unreadIds = [...counts.entries()].filter(([, n]) => n > 0).map(([id]) => id);
     let total = 0;
@@ -166,7 +212,7 @@ export async function getUnreadChatsAction(
     const [details, latest] = await Promise.all([
       prisma.conversation.findMany({
         where: { id: { in: unreadIds } },
-        select: { id: true, userId: true, targetId: true, user: { select: partySelect }, target: { select: partySelect } },
+        select: { id: true, userId: true, targetId: true, shopId: true, shop: { select: CHAT_SHOP_SELECT }, user: { select: partySelect }, target: { select: partySelect } },
       }),
       prisma.$queryRawUnsafe<{ conversationId: string; id: string; content: string; imageUrl: string | null; createdAt: Date }[]>(
         `SELECT DISTINCT ON ("conversationId") "conversationId", "id", "content", "imageUrl", "createdAt"
@@ -179,7 +225,8 @@ export async function getUnreadChatsAction(
 
     const byContact = new Map<string, UnreadChat>();
     for (const c of details) {
-      const peer = mine.has(c.userId) && !mine.has(c.targetId) ? c.target : !mine.has(c.userId) ? c.user : c.target;
+      const other = mine.has(c.userId) && !mine.has(c.targetId) ? c.target : !mine.has(c.userId) ? c.user : c.target;
+      const peer = other && asShop(other, c.shop);
       const last = latestBy.get(c.id);
       if (!peer || !last) continue;
       const peerRole = String(peer.role || "").toUpperCase();
@@ -195,7 +242,8 @@ export async function getUnreadChatsAction(
               ? "/?chat=open&recipient=admin"
               : `/?chat=open&recipient=shop&shop=${encodeURIComponent(name)}`;
       const row: UnreadChat = {
-        key: peer.id,
+        // One row per person and shop: two shops of one owner stay apart.
+        key: `${peer.id}:${c.shopId ?? ""}`,
         conversationId: c.id,
         name,
         logo: peer.tenant?.logoUrl || null,
@@ -205,11 +253,11 @@ export async function getUnreadChatsAction(
         lastMessageId: last.id,
         href,
       };
-      const prev = byContact.get(peer.id);
-      if (!prev) byContact.set(peer.id, row);
+      const prev = byContact.get(row.key);
+      if (!prev) byContact.set(row.key, row);
       else {
         const newer = row.lastAt > prev.lastAt ? row : prev;
-        byContact.set(peer.id, { ...newer, unread: prev.unread + row.unread });
+        byContact.set(row.key, { ...newer, unread: prev.unread + row.unread });
       }
     }
 
@@ -267,14 +315,18 @@ export async function getConversationHistory(
     if (recipientType === "admin" && (await isStandIn(user.id))) return [];
 
     let targetUser = null;
+    // The shop being chatted with (null: a tenant's main shop).
+    let shopId: string | null = null;
     if (recipientType === "admin") {
       targetUser = await prisma.user.findFirst({ where: { role: "ADMIN" } });
     } else if (recipientType === "shop" && (tenantId || shopName)) {
       // By id when the caller knows it; otherwise an exact (case-insensitive)
       // name match — never a "contains" guess that could pick another shop.
-      const tenant = tenantId
+      const ref = tenantId ? await shopRef(tenantId) : null;
+      shopId = ref?.shopId ?? null;
+      const tenant = ref
         ? await prisma.tenant.findUnique({
-            where: { id: tenantId },
+            where: { id: ref.tenantId },
             include: { user: { select: safeUserSelect } },
           })
         : await prisma.tenant.findFirst({
@@ -294,6 +346,7 @@ export async function getConversationHistory(
               OR: [{ userId: user.id }, { targetId: user.id }],
             }
           : {
+              shopId,
               OR: [
                 { userId: user.id, targetId: targetUser!.id },
                 { userId: targetUser!.id, targetId: user.id },
@@ -341,16 +394,22 @@ export async function getTenantConversations(userId: string) {
           orderBy: { createdAt: "desc" },
           take: 1,
         },
+        shop: { select: CHAT_SHOP_SELECT },
       },
       orderBy: { updatedAt: "desc" },
     });
+    const inbox = await tenantInbox(userId);
 
-    // Deduplicate by partner user so each contact appears strictly once
+    // Deduplicate by partner (and shop) so each contact appears strictly once
     const partnerMap = new Map<string, any>();
-    for (const c of rawConversations) {
+    for (const row of rawConversations.filter((c) => inInbox(c, inbox))) {
+      const { shop, ...rest } = row;
+      // Show a separate shop under its own name on the other side of the chat.
+      const c =
+        rest.userId === userId ? { ...rest, target: asShop(rest.target, shop) } : { ...rest, user: asShop(rest.user, shop) };
       const partner = c.userId === userId ? c.target : c.user;
       if (!partner?.id || (standIn && partner.role === "ADMIN")) continue;
-      const partnerId = partner.id;
+      const partnerId = `${partner.id}:${partner.role === "ADMIN" ? "" : (c.shopId ?? "")}`;
 
       if (!partnerMap.has(partnerId)) {
         partnerMap.set(partnerId, {
@@ -580,6 +639,7 @@ export async function replyToConversation(
       include: {
         user: { select: { ...safeUserSelect, tenant: { select: CHAT_TENANT_SELECT } } },
         target: { select: { ...safeUserSelect, tenant: { select: CHAT_TENANT_SELECT } } },
+        shop: { select: CHAT_SHOP_SELECT },
       },
     });
 
@@ -688,6 +748,8 @@ export async function replyToConversation(
     // preferences (in-app / email) and runs after the response is sent.
     const excerpt = content.length > 150 ? `${content.slice(0, 150)}...` : content;
     after(async () => {
+      // A separate shop answers under its own name.
+      if (conversation.shop?.shopName && senderUser?.role === "TENANT") senderDisplayName = conversation.shop.shopName;
       const { notifyChatMessage } = await import("@/lib/notify-chat");
       await notifyChatMessage({
         conversationId: targetConversationId,
@@ -807,7 +869,7 @@ export async function checkBlockStatusAction(blockerId: string, blockedId: strin
 /** Has the shop (its tenant account) blocked `userId` from messaging it? */
 export async function isBlockedByShopAction(tenantId: string, userId: string): Promise<boolean> {
   if (!tenantId || !(await canSpeakAs(userId))) return false;
-  const tenant = await prisma.tenant.findUnique({ where: { id: tenantId }, select: { userId: true } });
+  const tenant = await prisma.tenant.findUnique({ where: { id: (await shopRef(tenantId)).tenantId }, select: { userId: true } });
   return tenant ? isChatBlocked(tenant.userId, userId) : false;
 }
 

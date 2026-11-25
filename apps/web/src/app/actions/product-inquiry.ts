@@ -6,6 +6,7 @@
  * automated reply from the shop with the product's current availability,
  * read from the database at that moment.
  */
+import { findShop } from "@/lib/shops";
 import { requireActingAs } from "@/lib/action-guard";
 import { prisma } from "@srmall/database";
 import { sendMessage } from "@/app/actions/chat";
@@ -18,11 +19,11 @@ export async function sendProductInquiryAction(userId: string, shopId: string, p
 
     const [user, shop] = await Promise.all([
       prisma.user.findUnique({ where: { id: userId }, select: { email: true } }),
-      prisma.tenant.findUnique({ where: { id: shopId }, select: { id: true, userId: true, shopName: true, products: true, status: true } }),
+      findShop(shopId),
     ]);
     if (!user?.email) return { success: false as const, error: "Please sign in again to send an inquiry." };
     if (!shop || shop.status !== "ACTIVE") return { success: false as const, error: "This shop isn't available right now." };
-    if (shop.userId === userId) return { success: false as const, error: "This is your own shop." };
+    if (shop.ownerUserId === userId) return { success: false as const, error: "This is your own shop." };
 
     const product = (Array.isArray(shop.products) ? (shop.products as any[]) : []).find((p) => p?.id === productId);
     if (!product || !isListed(product)) return { success: false as const, error: "This product is no longer available." };
@@ -49,7 +50,7 @@ export async function sendProductInquiryAction(userId: string, shopId: string, p
     await prisma.message.create({
       data: {
         conversationId: sent.conversationId,
-        senderId: shop.userId,
+        senderId: shop.ownerUserId,
         // Reads like a normal reply from the shop (no "automated" label).
         content: `${name.charAt(0).toUpperCase()}${name.slice(1)} ${availability}${
           isOutOfStock(product) ? ". You can ask the shop when it will be restocked." : "."

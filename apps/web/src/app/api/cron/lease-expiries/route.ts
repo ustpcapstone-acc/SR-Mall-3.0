@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { skipDuplicateCron } from "@/lib/cron-guard";
 import { runRenewalSweep } from "@/lib/leasing-server";
 import { runWeeklyDigest } from "@/lib/weekly-digest";
-import { processExpiredMerchantApplicationsAction } from "@/app/actions/tenant";
 import { processExpiredEventBookingsAction } from "@/app/actions/inquiry";
 
 /**
@@ -27,15 +26,12 @@ export async function GET(req: Request) {
     const today = new Date();
     const renewals = await runRenewalSweep(today);
 
-    // 72-hour auto-rejection sweep — merchant applications and event bookings
+    // 72-hour auto-rejection sweep — event bookings
     // that sat in PENDING for 3+ days flip to REJECTED through the same
     // actions the admin buttons use (identical notification behaviour).
     // Run daily here so the rule holds even if nobody opens a dashboard;
     // the admin list fetches and /api/cron/process-reservations run it too.
-    const [merchantApplications, eventBookings] = await Promise.all([
-      processExpiredMerchantApplicationsAction(),
-      processExpiredEventBookingsAction(),
-    ]);
+    const eventBookings = await processExpiredEventBookingsAction();
 
     // Monday → also publish the weekly operations digest (opt-in, default off).
     // Keeps the project on two cron entries, which fits Vercel's hobby tier.
@@ -48,7 +44,6 @@ export async function GET(req: Request) {
       success: true,
       renewals,
       autoRejected: {
-        merchantApplications: merchantApplications.rejected,
         eventBookings: eventBookings.rejected,
       },
       digest,

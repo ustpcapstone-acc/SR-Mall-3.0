@@ -890,26 +890,40 @@ export async function deleteMyAccountAction(
 
 // ─── Favourite shops ─────────────────────────────────────────────────────────
 
+/** Save favourites by public shop id; unknown ids are ignored. */
+async function addFavorites(userId: string, shopIds: string[]) {
+  await prisma.$executeRawUnsafe(
+    `INSERT INTO "Favorite" ("id", "userId", "tenantId")
+     SELECT gen_random_uuid()::text, $1, t."id" FROM "Tenant" t WHERE t."id" = ANY($2::text[])
+     ON CONFLICT ("userId", "tenantId") DO NOTHING`,
+    userId,
+    shopIds,
+  );
+  await prisma.$executeRawUnsafe(
+    `INSERT INTO "ShopFavorite" ("userId", "shopId")
+     SELECT $1, u."id" FROM "UnitShop" u WHERE u."id" = ANY($2::text[])
+     ON CONFLICT ("userId", "shopId") DO NOTHING`,
+    userId,
+    shopIds,
+  );
+}
+
 export async function getMyFavoritesAction(userId: string, mergeIds: string[] = []) {
   try {
     if (!userId) return { success: true as const, data: [] as string[] };
     await requireActingAs(userId);
     // Merge favourites saved in this browser before they were stored per account.
     const valid = mergeIds.filter((id) => typeof id === "string" && id.length > 0).slice(0, 200);
-    if (valid.length) {
-      await prisma.$executeRawUnsafe(
-        `INSERT INTO "Favorite" ("id", "userId", "tenantId")
-         SELECT gen_random_uuid()::text, $1, t."id" FROM "Tenant" t WHERE t."id" = ANY($2::text[])
-         ON CONFLICT ("userId", "tenantId") DO NOTHING`,
-        userId,
-        valid,
-      );
-    }
-    const rows = await prisma.$queryRawUnsafe<{ tenantId: string }[]>(
-      `SELECT "tenantId" FROM "Favorite" WHERE "userId" = $1 ORDER BY "createdAt" DESC`,
+    if (valid.length) await addFavorites(userId, valid);
+    // Each shop is its own favourite: main shops and separate shops together.
+    const rows = await prisma.$queryRawUnsafe<{ id: string }[]>(
+      `SELECT "tenantId" AS id, "createdAt" FROM "Favorite" WHERE "userId" = $1
+       UNION ALL
+       SELECT "shopId" AS id, "createdAt" FROM "ShopFavorite" WHERE "userId" = $1
+       ORDER BY "createdAt" DESC`,
       userId,
     );
-    return { success: true as const, data: rows.map((r) => r.tenantId) };
+    return { success: true as const, data: rows.map((r) => r.id) };
   } catch (error: any) {
     console.error("[GET_FAVORITES_ERROR]:", error);
     return { success: false as const, error: "Couldn't load favourites." };
@@ -921,15 +935,10 @@ export async function setFavoriteAction(userId: string, tenantId: string, favori
     if (!userId || !tenantId) return { success: false, error: "Missing account or shop." };
     await requireActingAs(userId);
     if (favorite) {
-      await prisma.$executeRawUnsafe(
-        `INSERT INTO "Favorite" ("id", "userId", "tenantId")
-         SELECT gen_random_uuid()::text, $1, t."id" FROM "Tenant" t WHERE t."id" = $2
-         ON CONFLICT ("userId", "tenantId") DO NOTHING`,
-        userId,
-        tenantId,
-      );
+      await addFavorites(userId, [tenantId]);
     } else {
       await prisma.$executeRawUnsafe(`DELETE FROM "Favorite" WHERE "userId" = $1 AND "tenantId" = $2`, userId, tenantId);
+      await prisma.$executeRawUnsafe(`DELETE FROM "ShopFavorite" WHERE "userId" = $1 AND "shopId" = $2`, userId, tenantId);
     }
     return { success: true };
   } catch (error: any) {

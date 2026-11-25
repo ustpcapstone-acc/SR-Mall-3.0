@@ -14,8 +14,7 @@ import {
   X,
   Plus,
 } from "lucide-react";
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useRef } from "react";
 import { Select } from "@cloudflare/kumo";
 import { toast } from "sonner";
 import { getWorkspacesAction, setWorkspaceAction, type WorkspaceSpace } from "@/app/actions/workspace";
@@ -24,6 +23,9 @@ import { useAuth } from "@/app/providers";
 import { useChatUnread } from "@/lib/chat-unread";
 import { useComplaintUnread } from "@/lib/complaint-unread";
 import clsx from "clsx";
+
+/** One workspace per shop: "FS8: Shop name", or what's missing. */
+const spaceLabel = (sp: { unitId: string; shopName: string }) => `${sp.unitId}: ${sp.shopName || "New shop"}`;
 
 type NavItem = { href: string; label: string; icon: typeof LayoutDashboard; mobileLabel: string };
 
@@ -57,7 +59,6 @@ export const TenantSidebar = ({
 }: TenantSidebarProps = {}) => {
   const { user } = useAuth();
   const pathname = usePathname();
-  const router = useRouter();
   const [isMobile, setIsMobile] = useState(false);
 
   // Workspaces: Home, plus one per rented space.
@@ -67,21 +68,34 @@ export const TenantSidebar = ({
     staffPermissions: string[] | null;
     staffRole: string | null;
   } | null>(null);
+  // The workspace this tab's screens were loaded for.
+  const loadedFor = useRef<string | null>(null);
   useEffect(() => {
     let alive = true;
-    getWorkspacesAction().then((res) => alive && res.success && setWs(res.data));
+    const load = () =>
+      getWorkspacesAction().then((res) => {
+        if (!alive || !res.success) return;
+        const key = `${user?.id}:${res.data.current}:${res.data.spaces.find((s) => s.id === res.data.current)?.shopId ?? ""}`;
+        // Changed in another tab: reload so nothing from the old shop stays on screen.
+        if (loadedFor.current?.startsWith(`${user?.id}:`) && loadedFor.current !== key) return window.location.reload();
+        loadedFor.current = key;
+        setWs(res.data);
+      });
+    load();
+    const onVisible = () => document.visibilityState === "visible" && load();
+    document.addEventListener("visibilitychange", onVisible);
     return () => {
       alive = false;
+      document.removeEventListener("visibilitychange", onVisible);
     };
   }, [user?.id, pathname]);
   const switchTo = async (id: string) => {
     if (!ws || id === ws.current) return;
     const res = await setWorkspaceAction(id);
     if (!res.success) return toast.error(res.error);
-    setWs({ ...ws, current: id });
     onMobileClose?.();
-    router.push(res.redirectTo);
-    router.refresh();
+    // A full page load drops everything held for the previous shop and unit.
+    window.location.assign(res.redirectTo);
   };
   const staffPerms = ws?.staffPermissions ?? null;
   const navItems = staffPerms
@@ -91,7 +105,7 @@ export const TenantSidebar = ({
       : spaceItems;
   const wsItems: Record<string, string> = {
     home: "Home",
-    ...Object.fromEntries((ws?.spaces ?? []).map((sp) => [sp.id, `Unit ${sp.unitId}`])),
+    ...Object.fromEntries((ws?.spaces ?? []).map((sp) => [sp.id, spaceLabel(sp)])),
   };
 
   // Live unread chat count (same source as the bell's Messages tab).
@@ -179,8 +193,7 @@ export const TenantSidebar = ({
                 <Select.Option value="home">Home</Select.Option>
                 {ws.spaces.map((sp) => (
                   <Select.Option key={sp.id} value={sp.id}>
-                    Unit {sp.unitId}
-                    {sp.floor ? `, ${sp.floor} floor` : ""}
+                    {spaceLabel(sp)}
                   </Select.Option>
                 ))}
               </Select>

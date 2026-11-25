@@ -5,6 +5,7 @@
  * site (which creates the lease and a paid e-invoice), staff record renewals,
  * and both sides read e-invoices. Every action checks the signed-in account.
  */
+import { previousShopOfUnit, shopNames } from "@/lib/shops";
 import { after } from "next/server";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@srmall/database";
@@ -92,6 +93,10 @@ export type InvoiceRow = {
 export type MyLease = {
   id: string;
   unitId: string;
+  /** Name of the shop in this unit ("" until the tenant names it). */
+  shopName: string;
+  /** The shop the unit belongs to; null: the main shop. */
+  shopId: string | null;
   floor: string | null;
   startDate: string;
   endDate: string;
@@ -158,6 +163,12 @@ export async function getRentASpaceAction() {
       }),
       prisma.tenant.findUnique({ where: { id: tenant.id }, select: { logoUrl: true, description: true, products: true } }),
     ]);
+    const separateShops = await prisma.unitShop.findMany({
+      where: { tenantId: tenant.id },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, shopName: true },
+    });
+    const shopName = await shopNames(tenant.id);
     const floors = new Map(
       (
         await prisma.areaSlot.findMany({
@@ -177,6 +188,8 @@ export async function getRentASpaceAction() {
           description: !!shop?.description?.trim(),
           product: Array.isArray(shop?.products) && shop.products.length > 0,
         },
+        /** The tenant's shops besides the main one (named after the account). */
+        separateShops,
         settings,
         spaces: slots.map<AvailableSpace>((s) => ({
           unitId: s.unit_id,
@@ -200,6 +213,8 @@ export async function getRentASpaceAction() {
         leases: leases.map<MyLease>((l) => ({
           id: l.id,
           unitId: l.unitId,
+          shopName: shopName(l.shopId),
+          shopId: l.shopId,
           floor: floors.get(l.unitId) ?? null,
           startDate: l.startDate.toISOString(),
           endDate: l.endDate.toISOString(),
@@ -545,6 +560,8 @@ export async function approveRentRequestAction(
         data: {
           tenantId: req.tenant.id,
           unitId: req.unitId,
+          // A unit rented again goes back to the shop it had before.
+          shopId: await previousShopOfUnit(tx, req.tenant.id, req.unitId),
           startDate: start,
           endDate: addMonths(start, pay.months),
           monthlyRent,
@@ -580,6 +597,7 @@ export async function approveRentRequestAction(
     after(async () => {
       await notify("MERCHANT_APPLICATION_UPDATE", {
         recipients: [req.tenant.userId],
+        unitId: req.unitId,
         title: `Rent request approved: Unit ${req.unitId}`,
         message: `Unit ${req.unitId} is yours from ${formatPHDate(lease.startDate)}, paid through ${formatPHDate(lease.endDate)}.${comment ? ` Note from the office: ${comment}` : ""}`,
         link: "/tenantdashboard/rent-a-space",
@@ -740,6 +758,7 @@ export async function recordRenewalAction(leaseId: string, form: PaymentForm) {
     after(async () => {
       await notify("PAYMENT_CONFIRMED", {
         recipients: [out.lease.tenant.userId],
+        unitId: out.lease.unitId,
         title: `Lease renewed: Unit ${out.lease.unitId}`,
         message: `Thank you. Unit ${out.lease.unitId} is now paid through ${formatPHDate(out.newEnd)} (${peso(out.invoice.amount)}).`,
         link: "/tenantdashboard/rent-a-space",

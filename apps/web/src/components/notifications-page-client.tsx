@@ -68,6 +68,8 @@ export default function NotificationsPageClient() {
   useLiveNotifications(
     user?.id,
     (n) => {
+      // A tenant's alert may belong to another shop or unit: reload the workspace's list.
+      if (user?.role === "TENANT") return void load(false);
       if (tab === "ALL" || tab === "UNREAD") setItems((prev) => (prev.some((p) => p.id === n.id) ? prev : [n, ...prev]));
       else void load(false);
       if (n.type !== "MESSAGE") setUnreadCount((c) => c + 1);

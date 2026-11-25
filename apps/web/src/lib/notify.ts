@@ -47,6 +47,13 @@ export interface NotifyInput {
    * that re-run daily (lease expiry, digests).
    */
   dedupeHours?: number;
+  /**
+   * Tenant workspace this notice is about: `shopId` (the tenant id for the main
+   * shop) for shop matters, `unitId` for unit matters like rent and complaints.
+   * Leave both out for notices about the whole account.
+   */
+  shopId?: string | null;
+  unitId?: string | null;
 }
 
 export interface NotifyResult {
@@ -174,6 +181,8 @@ export async function notify(
           userId: { in: userIds },
           type,
           title: input.title,
+          shopId: input.shopId ?? null,
+          unitId: input.unitId ?? null,
           createdAt: { gte: since },
         },
         select: { userId: true },
@@ -195,8 +204,8 @@ export async function notify(
       // bell never has to guess the destination from words in the title.
       const inAppLink = input.link && input.link.startsWith("/") ? input.link : null;
       created = await prisma.$executeRawUnsafe(
-        `INSERT INTO "Notification" ("id", "userId", "type", "title", "message", "isRead", "createdAt", "link")
-         SELECT gen_random_uuid()::text, u, $2, $3, $4, false, $5::timestamp, $6
+        `INSERT INTO "Notification" ("id", "userId", "type", "title", "message", "isRead", "createdAt", "link", "shopId", "unitId")
+         SELECT gen_random_uuid()::text, u, $2, $3, $4, false, $5::timestamp, $6, $7, $8
            FROM unnest($1::text[]) AS u`,
         inAppUsers,
         type,
@@ -204,6 +213,8 @@ export async function notify(
         input.message,
         new Date(),
         inAppLink,
+        input.shopId ?? null,
+        input.unitId ?? null,
       );
     }
 

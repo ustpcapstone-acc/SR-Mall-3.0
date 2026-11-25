@@ -1,5 +1,5 @@
 /**
- * Public-site theme colour (CMS → General Settings → Branding).
+ * Public-site theme colour (saved in the CMS settings; no longer editable on screen).
  *
  * The brand colour is the `--crimson-rgb` / `--crimson-hover-rgb` CSS
  * variables ("R G B"); globals.css builds `--color-primary` from them. Public pages call `applyThemeColor`

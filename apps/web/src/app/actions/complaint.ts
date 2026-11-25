@@ -11,6 +11,7 @@
  * complaint (adminReadAt / tenantReadAt). Admin internal notes never touch the
  * tenant's side.
  */
+import { workspaceScope } from "@/lib/workspace-server";
 import { currentAccount } from "@/lib/auth-server";
 import { holds, worksFor } from "@/lib/action-guard";
 import { prisma } from "@srmall/database";
@@ -39,6 +40,8 @@ interface Actor {
   name: string;
   role: "ADMIN" | "TENANT";
   tenant: { id: string; shopName: string; unitId: string } | null;
+  /** The unit of the tenant's current workspace; complaints are kept per unit. */
+  unitId: string | null;
 }
 
 async function getActor(userId: string | undefined | null): Promise<Actor | null> {
@@ -55,13 +58,19 @@ async function getActor(userId: string | undefined | null): Promise<Actor | null
   const role = (user.role || "").toUpperCase();
   if (role !== "ADMIN" && role !== "TENANT") return null;
   if (role === "TENANT" && !user.tenant) return null;
+  const scope =
+    role === "TENANT" ? await workspaceScope(user.tenant!.id, account.tenantStaff?.leaseId) : null;
   return {
     id: user.id,
     name: user.name || user.email,
     role,
     tenant: user.tenant,
+    unitId: scope?.unitId ?? null,
   };
 }
+
+/** Rows of one unit. Complaints filed before units were recorded belong to the main unit. */
+const OF_UNIT = (n: number) => `($${n}::text IS NULL OR COALESCE(c."unitId", t."unitId") = $${n}::text)`;
 
 const excerpt = (s: string, n = 140) => (s.length > n ? `${s.slice(0, n)}…` : s);
 
@@ -73,7 +82,10 @@ const cleanPhotos = (photos: unknown): string[] =>
 const cleanPhoto = (url: unknown) => cleanPhotos([url])[0] ?? null;
 
 const SUMMARY_SELECT = `
-  SELECT c."id", c."tenantId", t."shopName", t."unitId", u."name" AS "ownerName",
+  SELECT c."id", c."tenantId", COALESCE(c."unitId", t."unitId") AS "unitId", u."name" AS "ownerName",
+         COALESCE((SELECT NULLIF(s."shopName", '') FROM "Lease" l JOIN "UnitShop" s ON s."id" = l."shopId"
+                    WHERE l."tenantId" = c."tenantId" AND l."unitId" = c."unitId" AND l."status" = 'ACTIVE' LIMIT 1),
+                  t."shopName") AS "shopName",
          c."category", c."subject", c."details", c."photos", c."priority", c."status",
          c."createdAt", c."updatedAt", c."resolvedAt", c."userId",
          c."lastTenantActivityAt", c."lastAdminActivityAt", c."tenantReadAt", c."adminReadAt",
@@ -138,6 +150,8 @@ async function loadComplaint(actor: Actor, id: string): Promise<Row | null> {
   const row = rows[0];
   if (!row) return null;
   if (actor.role === "TENANT" && row.tenantId !== actor.tenant?.id) return null;
+  // A tenant opens a complaint from the workspace of its unit.
+  if (actor.role === "TENANT" && actor.unitId && row.unitId !== actor.unitId) return null;
   return row;
 }
 
@@ -202,8 +216,8 @@ export async function createComplaintAction(
     const now = new Date();
     await prisma.$executeRawUnsafe(
       `INSERT INTO "Complaint" ("id", "tenantId", "userId", "category", "subject", "details", "priority", "status", "photos",
-                                "createdAt", "updatedAt", "lastTenantActivityAt", "tenantReadAt")
-       VALUES ($1, $2, $3, $4, $5, $6, $7, 'NEW', $8::text[], $9, $9, $9, $9)`,
+                                "createdAt", "updatedAt", "lastTenantActivityAt", "tenantReadAt", "unitId")
+       VALUES ($1, $2, $3, $4, $5, $6, $7, 'NEW', $8::text[], $9, $9, $9, $9, $10)`,
       id,
       actor.tenant.id,
       actor.id,
@@ -213,11 +227,13 @@ export async function createComplaintAction(
       priority,
       cleanPhotos(input.photos),
       now,
+      actor.unitId ?? actor.tenant.unitId,
     );
+    const filed = (await loadComplaint(actor, id))!;
 
     await notify("COMPLAINT_ACTIVITY", {
-      title: `${priority === "URGENT" ? "URGENT: " : ""}New complaint from ${actor.tenant.shopName}`,
-      message: `${category} · ${excerpt(subject, 100)} (Unit ${actor.tenant.unitId})`,
+      title: `${priority === "URGENT" ? "URGENT: " : ""}New complaint from ${filed.shopName}`,
+      message: `${category} · ${excerpt(subject, 100)} (Unit ${filed.unitId})`,
       link: adminLink(id),
       ctaLabel: "Open complaint",
     });
@@ -234,10 +250,11 @@ export async function getMyComplaintsAction(userId: string): Promise<Result<{ co
     const actor = await getActor(userId);
     if (!actor || actor.role !== "TENANT" || !actor.tenant) return { success: false, error: "Not allowed." };
     const rows = await prisma.$queryRawUnsafe<Row[]>(
-      `${SUMMARY_SELECT} WHERE c."tenantId" = $2
+      `${SUMMARY_SELECT} WHERE c."tenantId" = $2 AND ${OF_UNIT(3)}
         ORDER BY GREATEST(c."lastTenantActivityAt", COALESCE(c."lastAdminActivityAt", c."lastTenantActivityAt")) DESC`,
       false,
       actor.tenant.id,
+      actor.unitId,
     );
     return { success: true, complaints: rows.map((r) => toSummary(r, "TENANT")) };
   } catch (error) {
@@ -374,7 +391,7 @@ export async function addComplaintCommentAction(
     }
 
     const now = new Date();
-    await insertComment(id, { authorId: actor.id, authorRole: actor.role, authorName: actor.role === "ADMIN" ? "SR Mall Admin" : actor.tenant!.shopName, message, photoUrl, isInternal }, now);
+    await insertComment(id, { authorId: actor.id, authorRole: actor.role, authorName: actor.role === "ADMIN" ? "SR Mall Admin" : row.shopName, message, photoUrl, isInternal }, now);
 
     if (isInternal) {
       await prisma.$executeRawUnsafe(`UPDATE "Complaint" SET "adminReadAt" = $2 WHERE "id" = $1`, id, now);
@@ -389,6 +406,7 @@ export async function addComplaintCommentAction(
     if (actor.role === "ADMIN") {
       await notify("COMPLAINT_UPDATE", {
         recipients: [row.userId],
+        unitId: row.unitId,
         title: "SR Mall Admin replied to your complaint",
         message: `${excerpt(row.subject, 80)}: "${excerpt(text)}"`,
         link: tenantLink(id),
@@ -446,6 +464,7 @@ export async function updateComplaintStatusAction(userId: string, id: string, st
     if (actor.role === "ADMIN") {
       await notify("COMPLAINT_UPDATE", {
         recipients: [row.userId],
+        unitId: row.unitId,
         title: `Your complaint is now ${label}`,
         message: excerpt(row.subject, 120),
         link: tenantLink(id),
@@ -479,9 +498,11 @@ export async function getComplaintUnreadCountAction(userId: string): Promise<num
                 AND ("adminReadAt" IS NULL OR "lastTenantActivityAt" > "adminReadAt")`,
           )
         : await prisma.$queryRawUnsafe<{ n: number }[]>(
-            `SELECT COUNT(*)::int AS n FROM "Complaint"
-              WHERE "tenantId" = $1 AND "lastAdminActivityAt" IS NOT NULL AND "lastAdminActivityAt" > "tenantReadAt"`,
+            `SELECT COUNT(*)::int AS n FROM "Complaint" c JOIN "Tenant" t ON t."id" = c."tenantId"
+              WHERE c."tenantId" = $1 AND ${OF_UNIT(2)}
+                AND c."lastAdminActivityAt" IS NOT NULL AND c."lastAdminActivityAt" > c."tenantReadAt"`,
             actor.tenant!.id,
+            actor.unitId,
           );
     return rows[0]?.n ?? 0;
   } catch {
