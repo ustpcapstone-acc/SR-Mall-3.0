@@ -52,6 +52,7 @@ import {
 } from "@/app/actions/dashboard";
 import { DashboardSkeleton } from "@/components/dashboard-skeleton";
 import { RecordCashPaymentModal } from "@/components/admin/record-cash-payment-modal";
+import { RecordPaymentGuide } from "@/components/admin/record-payment-guide";
 import { toast } from "sonner";
 
 // ─── Formatting ──────────────────────────────────────────────────────────────
@@ -186,7 +187,8 @@ export default function AdminDashboard() {
           </p>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-4">
+          <RecordPaymentGuide />
           {refreshing ? (
             <div className="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-zinc-800 rounded-full animate-pulse">
               <Loader2 size={12} className="animate-spin text-primary" />
@@ -633,7 +635,7 @@ function AttentionList({ attention }: { attention: AdminDashboardData["attention
       icon: <FileCheck2 size={16} />,
       label: "Deposit slips to verify",
       detail: "Tenants uploaded proof of payment",
-      href: "/admindashboard/tenant-monitoring",
+      href: "/admindashboard/tenant-monitoring?payment=verifying",
     },
     {
       key: "events",
@@ -657,7 +659,7 @@ function AttentionList({ attention }: { attention: AdminDashboardData["attention
       icon: <Flag size={16} />,
       label: "Flagged reviews",
       detail: "Marked as possible spam",
-      href: "/admindashboard/user-management",
+      href: "/admindashboard/user-management?tab=feedback",
     },
     {
       key: "messages",

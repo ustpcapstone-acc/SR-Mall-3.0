@@ -258,7 +258,7 @@ export default function SpaceManagerPage() {
         space_images: [...(activeSlot.space_images || []), result.url],
       });
       toast.success("Media Uploaded", {
-        description: "Asset has been successfully synchronized.",
+        description: "The photo was added. Save the space to keep it.",
       });
     } catch (error) {
       console.error("Upload error:", error);

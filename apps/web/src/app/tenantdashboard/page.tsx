@@ -153,13 +153,13 @@ export default function TenantDashboard() {
     },
     {
       href: "/tenantdashboard/customer-messenger",
-      label: "Messenger",
+      label: "Messages",
       icon: MessageSquare,
       color: "text-blue-500",
       bg: "bg-blue-500/10",
     },
     {
-      href: "/tenantdashboard/lease-payments",
+      href: "/tenantdashboard/payments",
       label: "Payments",
       icon: Receipt,
       color: "text-emerald-500",
@@ -286,10 +286,10 @@ export default function TenantDashboard() {
               </div>
               <div>
                 <p className="text-xs font-semibold text-charcoal dark:text-white leading-none">
-                  Manifest Presence
+                  Your storefront
                 </p>
                 <p className="text-xs text-slate-400 font-bold mt-0.5">
-                  Digital Identity Core
+                  How shoppers see your shop
                 </p>
               </div>
             </div>
@@ -387,7 +387,7 @@ export default function TenantDashboard() {
                         </div>
                       </div>
                       <p className="text-[10px] text-slate-500 italic line-clamp-1">
-                        "{r.comment || "Performance certified."}"
+                        "{r.comment || "No comment."}"
                       </p>
                     </div>
                   </div>
@@ -397,7 +397,7 @@ export default function TenantDashboard() {
               <div className="py-10 flex flex-col items-center gap-2 opacity-40">
                 <MessageSquare size={28} className="text-slate-300" />
                 <p className="text-xs font-semibold text-slate-400">
-                  No signals yet
+                  No reviews yet
                 </p>
               </div>
             )}
@@ -490,7 +490,7 @@ export default function TenantDashboard() {
             )}
 
             <Link
-              href="/tenantdashboard/lease-payments"
+              href="/tenantdashboard/payments"
               className="flex items-center gap-1 px-3 py-1.5 bg-slate-50 dark:bg-white/5 hover:bg-primary/10 text-slate-500 dark:text-slate-400 hover:text-primary rounded-xl text-xs font-semibold transition-all border border-slate-100 dark:border-white/5"
             >
               <span>Lease &amp; Billing</span>
@@ -675,7 +675,7 @@ export default function TenantDashboard() {
           </div>
 
           <Link
-            href="/tenantdashboard/lease-payments"
+            href="/tenantdashboard/payments"
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:text-primary-hover group/link shrink-0"
           >
             <span>Submit Proof of Payment</span>

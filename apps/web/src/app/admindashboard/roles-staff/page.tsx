@@ -1,5 +1,6 @@
 "use client";
 
+import { confirmAction } from "@/components/confirm-dialog";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Banner,
@@ -464,7 +465,7 @@ export default function RolesStaffPage() {
   };
 
   const removeRole = async (role: RoleRow) => {
-    if (!window.confirm(`Delete the ${role.name} role? This can't be undone.`))
+    if (!(await confirmAction({ title: `Delete the ${role.name} role?`, description: "This can't be undone.", confirmLabel: "Delete role" })))
       return;
     setBusyId(role.id);
     const res = await deleteRoleAction(role.id);

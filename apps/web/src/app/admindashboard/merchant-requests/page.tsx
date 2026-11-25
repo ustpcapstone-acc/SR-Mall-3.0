@@ -1,5 +1,6 @@
 "use client";
 
+import { confirmAction } from "@/components/confirm-dialog";
 import { useEffect, useState } from "react";
 import {
   ShieldCheck,
@@ -56,9 +57,12 @@ export default function MerchantRequestsPage() {
 
     if (
       !unitId &&
-      !confirm(
-        "No Unit Assigned: This merchant will be approved without a physical unit assigned. Proceed?",
-      )
+      !(await confirmAction({
+        title: "Approve without a unit?",
+        description: "This merchant will be approved but won't have a unit in the mall yet.",
+        confirmLabel: "Approve without unit",
+        destructive: false,
+      }))
     ) {
       return;
     }
@@ -84,9 +88,11 @@ export default function MerchantRequestsPage() {
 
   const handleReject = async (tenantId: string) => {
     if (
-      confirm(
-        "Are you sure you want to reject this merchant application? The user will be notified and won't be able to reapply.",
-      )
+      await confirmAction({
+        title: "Reject this application?",
+        description: "The person is told, and they can't apply again.",
+        confirmLabel: "Reject application",
+      })
     ) {
       const res = await rejectTenantAction(tenantId);
       if (res.success) {

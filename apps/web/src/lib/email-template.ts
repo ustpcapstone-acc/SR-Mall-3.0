@@ -24,7 +24,7 @@ export function defaultCtaLabel(link?: string) {
   if (/messenger|chat=open/.test(link)) return "Reply to message";
   if (/bookings\?tab=reservation|available-spaces/.test(link)) return "View reservation";
   if (/bookings/.test(link)) return "Review request";
-  if (/lease-payments|tenant-monitoring/.test(link)) return "View payments";
+  if (/tenantdashboard\/payments|tenant-monitoring/.test(link)) return "View payments";
   if (/ad-scheduler|ad-promo-manager/.test(link)) return "View campaign";
   if (/feedback-reviews|user-management/.test(link)) return "View reviews";
   if (/lost-and-found|public-view-cms/.test(link)) return "View item";

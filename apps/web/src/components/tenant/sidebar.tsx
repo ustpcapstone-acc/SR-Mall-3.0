@@ -29,19 +29,19 @@ type NavItem = { href: string; label: string; icon: typeof LayoutDashboard; mobi
 
 /** Home workspace: the tenant account. */
 const homeItems: NavItem[] = [
-  { href: "/tenantdashboard/home", label: "Dashboard", icon: LayoutDashboard, mobileLabel: "Home" },
-  { href: "/tenantdashboard/rent-a-space", label: "Rent a Space", icon: Building2, mobileLabel: "Rent" },
-  { href: "/tenantdashboard/customer-messenger?inbox=mall", label: "Messages", icon: MessageSquare, mobileLabel: "Chat" },
+  { href: "/tenantdashboard/home", label: "Home", icon: LayoutDashboard, mobileLabel: "Home" },
+  { href: "/tenantdashboard/rent-a-space", label: "Rent a Space", icon: Building2, mobileLabel: "Rent a Space" },
+  { href: "/tenantdashboard/customer-messenger?inbox=mall", label: "Messages", icon: MessageSquare, mobileLabel: "Messages" },
 ];
 
 /** A space workspace: one rented space. */
 const spaceItems: NavItem[] = [
-  { href: "/tenantdashboard", label: "Overview", icon: LayoutDashboard, mobileLabel: "Home" },
-  { href: "/tenantdashboard/digital-storefront", label: "Storefront", icon: Store, mobileLabel: "Store" },
-  { href: "/tenantdashboard/ad-promo-manager", label: "Ads & Promo", icon: Presentation, mobileLabel: "Ads" },
-  { href: "/tenantdashboard/customer-messenger?inbox=customers", label: "Messages", icon: MessageSquare, mobileLabel: "Chat" },
-  { href: "/tenantdashboard/payments", label: "Payments", icon: Receipt, mobileLabel: "Pay" },
-  { href: "/tenantdashboard/feedback-reviews", label: "Reviews", icon: Star, mobileLabel: "Stars" },
+  { href: "/tenantdashboard", label: "Overview", icon: LayoutDashboard, mobileLabel: "Overview" },
+  { href: "/tenantdashboard/digital-storefront", label: "Storefront", icon: Store, mobileLabel: "Storefront" },
+  { href: "/tenantdashboard/ad-promo-manager", label: "Ads & Promo", icon: Presentation, mobileLabel: "Ads & Promo" },
+  { href: "/tenantdashboard/customer-messenger?inbox=customers", label: "Messages", icon: MessageSquare, mobileLabel: "Messages" },
+  { href: "/tenantdashboard/payments", label: "Payments", icon: Receipt, mobileLabel: "Payments" },
+  { href: "/tenantdashboard/feedback-reviews", label: "Reviews", icon: Star, mobileLabel: "Reviews" },
   { href: "/tenantdashboard/complaints", label: "Complaints", icon: ClipboardList, mobileLabel: "Complaints" },
   { href: "/tenantdashboard/staff", label: "Staff", icon: Users, mobileLabel: "Staff" },
 ];

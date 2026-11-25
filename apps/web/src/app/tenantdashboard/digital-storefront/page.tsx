@@ -1,5 +1,6 @@
 "use client";
 
+import { confirmAction } from "@/components/confirm-dialog";
 import React, { useState, useEffect, useRef } from "react";
 import {
   Store,
@@ -672,7 +673,9 @@ export default function DigitalStorefrontPage() {
                       className="group relative p-4 sm:p-5 bg-slate-50 dark:bg-zinc-800/50 border border-slate-100 dark:border-white/5 rounded-2xl flex flex-col sm:flex-row gap-4"
                     >
                       <button
-                        onClick={() => removeProduct(index)}
+                        onClick={async () => {
+                          if (await confirmAction({ title: "Remove this product?", description: "It leaves your shop when you save your changes.", confirmLabel: "Remove product" })) removeProduct(index);
+                        }}
                         className="absolute top-3 right-3 w-6 h-6 bg-red-500 text-white rounded-lg flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all shadow-md z-10"
                       >
                         <X size={11} />
@@ -891,7 +894,9 @@ export default function DigitalStorefrontPage() {
                       className="group relative p-4 sm:p-5 bg-slate-50 dark:bg-zinc-800/50 border border-slate-100 dark:border-white/5 rounded-2xl flex flex-col sm:flex-row gap-4"
                     >
                       <button
-                        onClick={() => removePostSale(index)}
+                        onClick={async () => {
+                          if (await confirmAction({ title: "Remove this post?", description: "It leaves your shop when you save your changes.", confirmLabel: "Remove post" })) removePostSale(index);
+                        }}
                         className="absolute top-3 right-3 w-6 h-6 bg-red-500 text-white rounded-lg flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all shadow-md z-10"
                       >
                         <X size={11} />

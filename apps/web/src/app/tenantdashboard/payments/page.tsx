@@ -7,6 +7,9 @@ import { getSpacePaymentsAction, type PaymentStatusFilter } from "@/app/actions/
 import { STAGE_LABEL, peso } from "@/lib/leasing";
 import { formatPHDate } from "@/lib/ph-date";
 import { InvoiceButton, StatusText } from "@/components/leasing/shared";
+import { BillsToPay } from "@/components/payments/bills-to-pay";
+import { MyScheduleButton } from "@/components/payments/my-schedule-dialog";
+import { useAuth } from "@/app/providers";
 
 type Result = Awaited<ReturnType<typeof getSpacePaymentsAction>>;
 type Data = NonNullable<Extract<Result, { success: true }>["data"]>;
@@ -21,6 +24,9 @@ const STATUS_ITEMS: Record<PaymentStatusFilter, string> = {
 const SORT_ITEMS = { newest: "Newest first", oldest: "Oldest first" };
 
 export default function PaymentsPage() {
+  const { user } = useAuth();
+  // Bumped after a deposit slip is sent, to reload the page's data.
+  const [version, setVersion] = useState(0);
   const [result, setResult] = useState<{ data: Data | null; error: string | null } | null>(null);
   const [status, setStatus] = useState<PaymentStatusFilter>("ALL");
   const [sort, setSort] = useState<"newest" | "oldest">("newest");
@@ -37,7 +43,7 @@ export default function PaymentsPage() {
     return () => {
       alive = false;
     };
-  }, [page, sort, status]);
+  }, [page, sort, status, version]);
 
   const change = (fn: () => void) => {
     setLoading(true);
@@ -59,76 +65,66 @@ export default function PaymentsPage() {
     );
   }
   const d = result.data;
-  if (!d) {
-    return (
-      <div className="mx-auto max-w-6xl space-y-3 p-6 sm:p-8">
-        <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-kumo-default">Payments</h1>
-        <p className="text-sm text-kumo-subtle">
-          Payments belong to a space. Choose a space from the workspace menu, or{" "}
-          <Link href="/tenantdashboard/rent-a-space" className="text-kumo-link hover:underline">
-            rent a space
-          </Link>{" "}
-          first.
-        </p>
-      </div>
-    );
-  }
-
-  const late = d.stage === "DUE" || d.stage === "GRACE" || d.stage === "OVERDUE";
+  if (!d) return null;
+  const space = d.space;
+  const late = space && (space.stage === "DUE" || space.stage === "GRACE" || space.stage === "OVERDUE");
 
   return (
     <div className="mx-auto max-w-6xl space-y-6 p-6 sm:p-8">
-      <header>
-        <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-kumo-default">Payments</h1>
-        <p className="mt-1 text-sm text-kumo-subtle">Unit {d.unitId}. Rent is paid at the SR Mall management office.</p>
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-kumo-default">Payments</h1>
+          <p className="mt-1 text-sm text-kumo-subtle">
+            {space ? `Unit ${space.unitId}. ` : ""}See what you owe, how to pay it, and your receipts.
+          </p>
+        </div>
+        <MyScheduleButton userId={user?.id} />
       </header>
 
-      {late && (
+      {space && late && (
         <Banner
           variant="error"
-          description={`Rent was due ${formatPHDate(d.paidThrough)}. Pay by ${formatPHDate(d.graceEnds)} to keep this space.`}
-        />
-      )}
-      {d.outstandingCount > 0 && (
-        <Banner
-          variant="default"
-          description={
-            <span>
-              You have {d.outstandingCount} unpaid bill{d.outstandingCount === 1 ? "" : "s"} ({peso(d.outstanding)}).{" "}
-              <Link href="/tenantdashboard/lease-payments" className="text-kumo-link hover:underline">
-                Upload a deposit slip
-              </Link>{" "}
-              if you paid by bank deposit.
-            </span>
-          }
+          description={`Rent was due ${formatPHDate(space.paidThrough)}. Pay by ${formatPHDate(space.graceEnds)} to keep this space.`}
         />
       )}
 
-      <section className="grid gap-4 sm:grid-cols-3">
-        <div className="rounded-xl border border-kumo-line bg-kumo-base p-5">
-          <p className="text-sm text-kumo-subtle">Next payment due</p>
-          <p className="mt-1 text-xl font-semibold text-kumo-default">{formatPHDate(d.paidThrough)}</p>
-          <p className="mt-1">
-            <StatusText status={d.stage} label={STAGE_LABEL[d.stage]} />
-          </p>
-        </div>
-        <div className="rounded-xl border border-kumo-line bg-kumo-base p-5">
-          <p className="text-sm text-kumo-subtle">Next amount due</p>
-          <p className="mt-1 text-xl font-semibold text-kumo-default">{peso(d.monthlyRent)}</p>
-          <p className="mt-1 text-sm text-kumo-subtle">One month of rent</p>
-        </div>
-        <div className="rounded-xl border border-kumo-line bg-kumo-base p-5">
-          <p className="text-sm text-kumo-subtle">Lease</p>
-          <p className="mt-1 text-xl font-semibold text-kumo-default">Unit {d.unitId}</p>
-          <p className="mt-1 text-sm text-kumo-subtle">
-            Since {formatPHDate(d.startDate)}. {peso(d.totalPaid)} paid in total.
-          </p>
-        </div>
-      </section>
+      {d.bills.length > 0 && <BillsToPay bills={d.bills} onSubmitted={() => setVersion((v) => v + 1)} />}
+
+      {space ? (
+        <section className="grid gap-4 sm:grid-cols-3">
+          <div className="rounded-xl border border-kumo-line bg-kumo-base p-5">
+            <p className="text-sm text-kumo-subtle">Next payment due</p>
+            <p className="mt-1 text-xl font-semibold text-kumo-default">{formatPHDate(space.paidThrough)}</p>
+            <p className="mt-1">
+              <StatusText status={space.stage} label={STAGE_LABEL[space.stage]} />
+            </p>
+          </div>
+          <div className="rounded-xl border border-kumo-line bg-kumo-base p-5">
+            <p className="text-sm text-kumo-subtle">Next amount due</p>
+            <p className="mt-1 text-xl font-semibold text-kumo-default">{peso(space.monthlyRent)}</p>
+            <p className="mt-1 text-sm text-kumo-subtle">One month of rent, paid at the management office</p>
+          </div>
+          <div className="rounded-xl border border-kumo-line bg-kumo-base p-5">
+            <p className="text-sm text-kumo-subtle">Lease</p>
+            <p className="mt-1 text-xl font-semibold text-kumo-default">Unit {space.unitId}</p>
+            <p className="mt-1 text-sm text-kumo-subtle">
+              Since {formatPHDate(space.startDate)}. {peso(space.totalPaid)} paid in total.
+            </p>
+          </div>
+        </section>
+      ) : (
+        <p className="rounded-xl border border-kumo-line bg-kumo-base p-5 text-sm text-kumo-subtle">
+          Rent details show for one space at a time. Choose a space from the workspace menu, or{" "}
+          <Link href="/tenantdashboard/rent-a-space" className="text-kumo-link hover:underline">
+            rent a space
+          </Link>
+          .
+        </p>
+      )}
 
       <section className="space-y-3">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <h2 className="text-lg font-semibold text-kumo-default">Invoices and payments</h2>
+          <h2 className="text-lg font-semibold text-kumo-default">Payment history</h2>
           <div className="flex gap-2">
             <Select
               aria-label="Status"
@@ -194,7 +190,7 @@ export default function PaymentsPage() {
                     </Table.Cell>
                     <Table.Cell className="text-right text-sm text-kumo-default">{peso(r.amount)}</Table.Cell>
                     <Table.Cell>
-                      <StatusText status={r.status} />
+                      {r.checking ? <StatusText status="PENDING" label="Being checked" /> : <StatusText status={r.status} />}
                     </Table.Cell>
                     <Table.Cell className="text-right">
                       <InvoiceButton invoiceId={r.id} />

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { optimizedImage } from "@/lib/media";
 import React, { useState, useEffect, useRef, Suspense, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
@@ -1079,9 +1080,12 @@ function MessengerHubContent() {
                         </span>
                       </div>
 
-                      <button className="w-full mt-2 flex items-center justify-center gap-2 py-3 bg-charcoal dark:bg-white text-white dark:text-black font-bold text-xs rounded-xl hover:scale-[1.02] transition-transform shadow-lg">
-                        <CalendarPlus size={16} /> Fast-Track Lease
-                      </button>
+                      <Link
+                        href="/admindashboard/rent-requests"
+                        className="w-full mt-2 flex items-center justify-center gap-2 py-3 bg-charcoal dark:bg-white text-white dark:text-black font-bold text-xs rounded-xl hover:scale-[1.02] transition-transform shadow-lg"
+                      >
+                        <CalendarPlus size={16} /> Go to Rent Requests
+                      </Link>
                     </div>
                   </div>
                 )}

@@ -21,13 +21,13 @@ interface TypeInfo {
 
 const T: Record<string, TypeInfo> = {
   // Money & legal
-  DEPOSIT_SLIP_SUBMITTED: { label: "Deposit slip", group: "MONEY", icon: "money", tone: "text-amber-500", route: { ADMIN: "/admindashboard/tenant-monitoring", DEFAULT: "/tenantdashboard/lease-payments" } },
-  INVOICE_STATUS_CHANGED: { label: "Invoice", group: "MONEY", icon: "money", tone: "text-blue-500", route: { ADMIN: "/admindashboard/tenant-monitoring", DEFAULT: "/tenantdashboard/lease-payments" } },
-  PAYMENT_CONFIRMED: { label: "Payment", group: "MONEY", icon: "check", tone: "text-emerald-500", route: { ADMIN: "/admindashboard/tenant-monitoring", DEFAULT: "/tenantdashboard/lease-payments" } },
-  OVERDUE_RENT_PAYMENTS: { label: "Overdue rent", group: "MONEY", icon: "alert", tone: "text-red-500", route: { ADMIN: "/admindashboard/tenant-monitoring", DEFAULT: "/tenantdashboard/lease-payments" } },
-  BILLING_REMINDER: { label: "Bill reminder", group: "MONEY", icon: "money", tone: "text-amber-500", route: { ADMIN: "/admindashboard/tenant-monitoring", DEFAULT: "/tenantdashboard/lease-payments" } },
-  INVOICE_ISSUED: { label: "New invoice", group: "MONEY", icon: "money", tone: "text-blue-500", route: { ADMIN: "/admindashboard/tenant-monitoring", DEFAULT: "/tenantdashboard/lease-payments" } },
-  EXPIRING_CONTRACTS: { label: "Lease", group: "MONEY", icon: "calendar", tone: "text-orange-500", route: { ADMIN: "/admindashboard/tenant-monitoring", DEFAULT: "/tenantdashboard/lease-payments" } },
+  DEPOSIT_SLIP_SUBMITTED: { label: "Deposit slip", group: "MONEY", icon: "money", tone: "text-amber-500", route: { ADMIN: "/admindashboard/tenant-monitoring", DEFAULT: "/tenantdashboard/payments" } },
+  INVOICE_STATUS_CHANGED: { label: "Invoice", group: "MONEY", icon: "money", tone: "text-blue-500", route: { ADMIN: "/admindashboard/tenant-monitoring", DEFAULT: "/tenantdashboard/payments" } },
+  PAYMENT_CONFIRMED: { label: "Payment", group: "MONEY", icon: "check", tone: "text-emerald-500", route: { ADMIN: "/admindashboard/tenant-monitoring", DEFAULT: "/tenantdashboard/payments" } },
+  OVERDUE_RENT_PAYMENTS: { label: "Overdue rent", group: "MONEY", icon: "alert", tone: "text-red-500", route: { ADMIN: "/admindashboard/tenant-monitoring", DEFAULT: "/tenantdashboard/payments" } },
+  BILLING_REMINDER: { label: "Bill reminder", group: "MONEY", icon: "money", tone: "text-amber-500", route: { ADMIN: "/admindashboard/tenant-monitoring", DEFAULT: "/tenantdashboard/payments" } },
+  INVOICE_ISSUED: { label: "New invoice", group: "MONEY", icon: "money", tone: "text-blue-500", route: { ADMIN: "/admindashboard/tenant-monitoring", DEFAULT: "/tenantdashboard/payments" } },
+  EXPIRING_CONTRACTS: { label: "Lease", group: "MONEY", icon: "calendar", tone: "text-orange-500", route: { ADMIN: "/admindashboard/tenant-monitoring", DEFAULT: "/tenantdashboard/payments" } },
 
   // Action required
   NEW_TENANT_APPLICATION: { label: "Merchant application", group: "ACTION", icon: "store", tone: "text-blue-500", route: { ADMIN: "/admindashboard/merchant-requests", TENANT: "/tenantdashboard", DEFAULT: "/profile" } },

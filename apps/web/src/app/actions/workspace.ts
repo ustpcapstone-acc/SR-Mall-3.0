@@ -98,6 +98,20 @@ export type PaymentRow = {
   status: EInvoiceStatus;
   paidAt: string | null;
   method: string | null;
+  /** A deposit slip was uploaded and the mall office hasn't confirmed it yet. */
+  checking: boolean;
+};
+
+/** An unpaid bill of this tenant, whichever space (or ended lease) it is from. */
+export type BillToPay = {
+  id: string;
+  invoiceNumber: string;
+  description: string;
+  unitId: string | null;
+  dueDate: string;
+  amount: number;
+  overdue: boolean;
+  checking: boolean;
 };
 
 const PAGE_SIZE = 10;
@@ -108,20 +122,13 @@ export async function getSpacePaymentsAction(query: { page?: number; sort?: "new
     if (tenant.staff && !tenant.staff.permissions.includes("payments")) throw new AccessDenied();
     const { lease } = await resolveWorkspace(tenant.id, tenant.staff?.leaseId);
     const spaces = await tenantSpaces(tenant.id);
-    if (!lease) return { success: true as const, data: null };
-    const settings = await getLeaseSettings();
+    const settings = lease ? await getLeaseSettings() : null;
 
-    // Invoices for this space. Older monthly bills have no lease: they belong
-    // to the space with the same unit, or to the tenant's first space.
-    const isFirst = spaces[0]?.id === lease.id;
-    const rows = await prisma.invoice.findMany({
+    const invoices = await prisma.invoice.findMany({
       where: {
         tenantId: tenant.id,
-        OR: [
-          { leaseId: lease.id },
-          { leaseId: null, unitId: lease.unitId },
-          ...(isFirst ? [{ leaseId: null, unitId: null }] : []),
-        ],
+        // Store staff only see the bills of the space they work in.
+        ...(tenant.staff && { OR: [{ leaseId: null }, { leaseId: tenant.staff.leaseId }] }),
       },
       select: {
         id: true,
@@ -133,20 +140,55 @@ export async function getSpacePaymentsAction(query: { page?: number; sort?: "new
         dueDate: true,
         paidAt: true,
         paymentMethod: true,
+        leaseId: true,
+        unitId: true,
       },
     });
+    // Staff without a current space have nothing to see.
+    const visible = tenant.staff && !lease ? [] : invoices;
+
+    // The history lists this space's invoices. Older monthly bills have no
+    // lease: they belong to the space with the same unit, or to the tenant's
+    // first space. With no current space, the history lists everything.
+    const isFirst = !!lease && spaces[0]?.id === lease.id;
+    const rows = lease
+      ? visible.filter(
+          (r) =>
+            r.leaseId === lease.id ||
+            (!r.leaseId && (r.unitId === lease.unitId || (isFirst && !r.unitId))),
+        )
+      : visible;
 
     const now = new Date();
+    const describe = (r: (typeof invoices)[number]) => r.description || `Rent, ${r.month}`;
     const all: PaymentRow[] = rows.map((r) => ({
       id: r.id,
       invoiceNumber: r.invoiceNumber,
-      description: r.description || `Rent, ${r.month}`,
+      description: describe(r),
       date: r.dueDate.toISOString(),
       amount: Number(r.amount) || 0,
       status: invoiceStatus(r.status, r.dueDate, now),
       paidAt: r.paidAt?.toISOString() ?? null,
       method: r.paymentMethod,
+      checking: r.status === "REVIEWING",
     }));
+
+    // Bills to pay come from every space, so one from an ended lease or from
+    // another space is never hidden.
+    const bills: BillToPay[] = visible
+      .map((r) => ({ r, state: invoiceStatus(r.status, r.dueDate, now) }))
+      .filter(({ state }) => state === "DUE" || state === "OVERDUE")
+      .sort((a, b) => a.r.dueDate.getTime() - b.r.dueDate.getTime())
+      .map(({ r, state }) => ({
+        id: r.id,
+        invoiceNumber: r.invoiceNumber,
+        description: describe(r),
+        unitId: r.unitId,
+        dueDate: r.dueDate.toISOString(),
+        amount: Number(r.amount) || 0,
+        overdue: state === "OVERDUE",
+        checking: r.status === "REVIEWING",
+      }));
 
     const status = query?.status ?? "ALL";
     const sort = query?.sort === "oldest" ? "oldest" : "newest";
@@ -156,21 +198,25 @@ export async function getSpacePaymentsAction(query: { page?: number; sort?: "new
     const pages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
     const page = Math.min(Math.max(1, Math.floor(Number(query?.page) || 1)), pages);
 
-    const unpaid = all.filter((r) => r.status === "DUE" || r.status === "OVERDUE");
     const paid = all.filter((r) => r.status === "PAID");
 
     return {
       success: true as const,
       data: {
-        unitId: lease.unitId,
-        monthlyRent: lease.monthlyRent,
-        startDate: lease.startDate.toISOString(),
-        paidThrough: lease.endDate.toISOString(),
-        graceEnds: graceEndDate(lease.endDate, settings).toISOString(),
-        stage: renewalStage(lease.endDate, settings, now),
-        outstanding: unpaid.reduce((sum, r) => sum + r.amount, 0),
-        outstandingCount: unpaid.length,
-        totalPaid: paid.reduce((sum, r) => sum + r.amount, 0),
+        /** The space being viewed; null on Home or with no current lease. */
+        space:
+          lease && settings
+            ? {
+                unitId: lease.unitId,
+                monthlyRent: lease.monthlyRent,
+                startDate: lease.startDate.toISOString(),
+                paidThrough: lease.endDate.toISOString(),
+                graceEnds: graceEndDate(lease.endDate, settings).toISOString(),
+                stage: renewalStage(lease.endDate, settings, now),
+                totalPaid: paid.reduce((sum, r) => sum + r.amount, 0),
+              }
+            : null,
+        bills,
         rows: filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
         total: filtered.length,
         page,

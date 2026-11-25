@@ -1,5 +1,6 @@
 "use client";
 
+import { confirmAction } from "@/components/confirm-dialog";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Banner, Button, Dialog, InputArea, Loader, Select, Table } from "@cloudflare/kumo";
 import { toast } from "sonner";
@@ -69,7 +70,7 @@ export default function RentASpacePage() {
   const invoices = data.invoices.slice(page * INVOICES_PER_PAGE, (page + 1) * INVOICES_PER_PAGE);
 
   const cancel = async (id: string) => {
-    if (!window.confirm("Cancel this request?")) return;
+    if (!(await confirmAction({ title: "Cancel this request?", description: "The mall office will no longer review it. You can send a new one later.", confirmLabel: "Cancel request", cancelLabel: "Keep request" }))) return;
     setBusyId(id);
     const res = await cancelRentRequestAction(id);
     setBusyId(null);

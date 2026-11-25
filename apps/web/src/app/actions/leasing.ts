@@ -143,7 +143,7 @@ export async function getRentASpaceAction() {
   try {
     const tenant = await myTenant();
     const settings = await getLeaseSettings();
-    const [slots, requests, leases, invoices] = await Promise.all([
+    const [slots, requests, leases, invoices, shop] = await Promise.all([
       prisma.areaSlot.findMany({
         where: { status: "AVAILABLE" },
         orderBy: [{ floor: "asc" }, { unit_id: "asc" }],
@@ -156,6 +156,7 @@ export async function getRentASpaceAction() {
         orderBy: { createdAt: "desc" },
         select: INVOICE_SELECT,
       }),
+      prisma.tenant.findUnique({ where: { id: tenant.id }, select: { logoUrl: true, description: true, products: true } }),
     ]);
     const floors = new Map(
       (
@@ -170,6 +171,12 @@ export async function getRentASpaceAction() {
       success: true as const,
       data: {
         shopName: tenant.shopName,
+        /** What the storefront still lacks (for the Home checklist). */
+        storefront: {
+          logo: !!shop?.logoUrl,
+          description: !!shop?.description?.trim(),
+          product: Array.isArray(shop?.products) && shop.products.length > 0,
+        },
         settings,
         spaces: slots.map<AvailableSpace>((s) => ({
           unitId: s.unit_id,

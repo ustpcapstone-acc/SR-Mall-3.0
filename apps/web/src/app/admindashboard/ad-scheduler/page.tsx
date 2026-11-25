@@ -558,7 +558,7 @@ export default function AdScheduler() {
               : "Publishing..."
             : isEdit
               ? "Update Ad"
-              : "Deploy Global Ad"}
+              : "Publish ad"}
         </button>
       </div>
     </form>
@@ -599,7 +599,7 @@ export default function AdScheduler() {
             Ad Scheduler
           </h1>
             <p className="text-slate-500 font-medium text-lg max-w-2xl leading-relaxed">
-              Deploy mall-wide hero banners and approve tenant promotional
+              Publish mall-wide banners and approve tenant promotional
               submissions.
             </p>
           </div>
@@ -931,7 +931,7 @@ export default function AdScheduler() {
               <Filter size={18} className="text-amber-500" />
               <div>
                 <h2 className="font-semibold text-charcoal dark:text-white text-lg">
-                  Tenant Promo Pipeline
+                  Tenant Promos
                 </h2>
                 <p className="text-xs font-bold text-slate-400 mt-0.5">
                   Review & approve merchant promotion requests

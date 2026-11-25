@@ -121,7 +121,7 @@ export async function sendNotifyEmail(payload: NotifyPayload) {
 
   // Links in these emails open the live site (see EMAIL_BASE_URL).
   const appUrl = emailBaseUrl();
-  const tenantPortalUrl = `${appUrl}/tenantdashboard/lease-payments`;
+  const tenantPortalUrl = `${appUrl}/tenantdashboard/payments`;
 
   let options: any = { to: email };
 

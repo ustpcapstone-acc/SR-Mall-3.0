@@ -1,5 +1,6 @@
 "use client";
 
+import { confirmAction } from "@/components/confirm-dialog";
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -351,7 +352,7 @@ export default function PublicViewCMSPage() {
       showToast("Image uploaded. Save changes to publish it.", "success");
     } catch (error) {
       console.error("Upload error:", error);
-      showToast("Failed to upload media asset", "error");
+      showToast("Couldn't upload the file. Please try again.", "error");
     } finally {
       setIsSaving(false);
     }
@@ -374,7 +375,7 @@ export default function PublicViewCMSPage() {
         imageUrl: result.url,
         storageKey: result.key,
       }));
-      showToast("Carousel asset synchronized", "success");
+      showToast("Banner image uploaded", "success");
     } catch (error) {
       console.error("Upload error:", error);
       showToast("Failed to upload carousel media", "error");
@@ -438,7 +439,7 @@ export default function PublicViewCMSPage() {
   };
 
   const handleDeletePostSale = async (tenantId: string, saleId: string) => {
-    if (!confirm("Are you sure you want to delete this tenant's post sale?")) return;
+    if (!(await confirmAction({ title: "Delete this shop's sale post?", description: "It is removed from the public site and can't be restored.", confirmLabel: "Delete post" }))) return;
     setIsSaving(true);
     try {
       const result = await deleteAdminPostSaleAction(tenantId, saleId);
@@ -531,7 +532,7 @@ export default function PublicViewCMSPage() {
   };
 
   const handleDeleteLostFound = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this lost & found item?")) return;
+    if (!(await confirmAction({ title: "Delete this lost and found item?", description: "This can't be undone.", confirmLabel: "Delete item" }))) return;
     setIsSaving(true);
     try {
       const { deleteLostAndFoundItem } = await import("@/app/actions/lost-and-found");
@@ -646,7 +647,7 @@ export default function PublicViewCMSPage() {
   };
 
   const handleDeleteCarouselItem = async (id: string) => {
-    if (!confirm("Are you sure you want to purge this content?")) return;
+    if (!(await confirmAction({ title: "Delete this banner?", description: "It is removed from the homepage and can't be restored.", confirmLabel: "Delete banner" }))) return;
 
     setIsSaving(true);
     try {
@@ -721,7 +722,7 @@ export default function PublicViewCMSPage() {
       <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 pb-8 border-b border-slate-200 dark:border-white/10">
         <div className="space-y-4">
           <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-charcoal dark:text-white">
-            Public Site Content
+            Website Content
           </h1>
           <p className="text-slate-500 font-medium max-w-xl text-lg">
             Manage homepage banners, event photos, sales announcements, and mall information shown to visitors.
@@ -1255,7 +1256,7 @@ export default function PublicViewCMSPage() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                   <div className="md:col-span-1 space-y-4">
                     <p className="text-xs font-semibold text-slate-400">
-                      Visionary asset
+                      Section photo
                     </p>
                     <div className="aspect-4/5 bg-slate-100 dark:bg-zinc-800 rounded-3xl border-2 border-dashed border-slate-300 dark:border-white/10 flex items-center justify-center overflow-hidden relative group">
                       {config.aboutImageUrl ? (
@@ -2247,7 +2248,7 @@ export default function PublicViewCMSPage() {
                 ) : (
                   <Save size={16} />
                 )}
-                Deploy Billboard
+                Publish banner
               </button>
             </div>
           </div>

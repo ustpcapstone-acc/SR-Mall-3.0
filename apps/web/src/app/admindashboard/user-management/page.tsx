@@ -29,9 +29,13 @@ import { ReviewsModeration } from "@/components/admin/reviews-moderation";
 import { useAuth } from "@/app/providers";
 import clsx from "clsx";
 import { TenantHistory } from "@/components/admin/tenant-history";
+import { useTabParam } from "@/lib/use-tab-param";
+
+const TABS = [{ key: "users" }, { key: "feedback" }, { key: "history" }] as const;
 
 export default function UserManagement() {
   const [activeTab, setActiveTab] = useState<"users" | "feedback" | "history">("users");
+  useTabParam(TABS, setActiveTab);
   const [pastTenants, setPastTenants] = useState<any[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any | null>(null);
@@ -340,7 +344,7 @@ export default function UserManagement() {
                         Security Status
                       </th>
                       <th className="px-8 py-6 text-xs font-semibold text-slate-400 text-right">
-                        Administrative Protocol
+                        Actions
                       </th>
                     </tr>
                   </thead>
@@ -595,7 +599,7 @@ export default function UserManagement() {
           >
             <div className="p-8 border-b border-slate-100 dark:border-white/5 flex items-center justify-between">
               <h3 className="text-xl font-semibold text-charcoal dark:text-white tracking-tight">
-                Entity <span className="text-primary">Manifest.</span>
+                User <span className="text-primary">Details</span>
               </h3>
               <button
                 onClick={() => setSelectedUser(null)}

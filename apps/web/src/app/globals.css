@@ -288,6 +288,10 @@ html:not(.dark)
  * (z-30 / z-50) and the navbar painted over them: the Workspace dropdown
  * opened behind the tenant sidebar. Their positioner carries data-side.
  */
-[data-base-ui-portal] > [data-side] {
+[data-base-ui-portal] > [data-side],
+/* Dialogs and their backdrop have the same problem. */
+[data-base-ui-portal] > [role="presentation"],
+[data-base-ui-portal] > [role="dialog"],
+[data-base-ui-portal] > [role="alertdialog"] {
   z-index: 100;
 }

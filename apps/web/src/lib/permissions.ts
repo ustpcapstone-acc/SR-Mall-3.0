@@ -35,7 +35,7 @@ export const STAFF_SECTIONS: Section[] = [
   { key: "tenant_monitoring", label: "Tenant Monitoring", description: "Tenants, leases and payments.", paths: ["/admindashboard/tenant-monitoring"] },
   { key: "ads", label: "Ad Scheduler", description: "Mall ads and tenant promos.", paths: ["/admindashboard/ad-scheduler"] },
   { key: "users", label: "User Management", description: "Customer and tenant accounts, reviews.", paths: ["/admindashboard/user-management"] },
-  { key: "cms", label: "Public-View CMS", description: "Home page content and site settings.", paths: ["/admindashboard/public-view-cms", "/admindashboard/site-config", "/admindashboard/site-editor", "/admin"] },
+  { key: "cms", label: "Website Content", description: "Home page content and site settings.", paths: ["/admindashboard/public-view-cms", "/admindashboard/site-config", "/admindashboard/site-editor", "/admin"] },
   { key: "staff", label: "Roles & Staff", description: "Create roles and staff accounts.", paths: ["/admindashboard/roles-staff"] },
 ];
 

@@ -58,7 +58,7 @@ export async function submitDepositSlip(
       link: "/admindashboard/tenant-monitoring",
     });
 
-    revalidatePath("/tenantdashboard/lease-payments");
+    revalidatePath("/tenantdashboard/payments");
     revalidatePath("/admindashboard/tenant-monitoring");
     return { success: true, invoice };
   } catch (error: any) {
@@ -135,11 +135,11 @@ export async function updateInvoiceStatus(invoiceId: string, status: string) {
         message: `${before?.invoiceNumber} for ${before?.month} (₱${before?.amount}) is now: ${
           statusCopy[status] || status
         }`,
-        link: "/tenantdashboard/lease-payments",
+        link: "/tenantdashboard/payments",
       });
     }
 
-    revalidatePath("/tenantdashboard/lease-payments");
+    revalidatePath("/tenantdashboard/payments");
     revalidatePath("/admindashboard/tenant-monitoring");
     return { success: true, invoice };
   } catch (error: any) {
@@ -181,7 +181,7 @@ export async function recordManualPaymentAction(
         } (Unit ${invoice.tenant?.unitId || "n/a"}) was recorded against invoice ${
           invoice.invoiceNumber
         }. Your balance has been updated.`,
-        link: "/tenantdashboard/lease-payments",
+        link: "/tenantdashboard/payments",
         email: false,
       });
 
@@ -207,7 +207,7 @@ export async function recordManualPaymentAction(
       }
     }
 
-    revalidatePath("/tenantdashboard/lease-payments");
+    revalidatePath("/tenantdashboard/payments");
     revalidatePath("/admindashboard/tenant-monitoring");
     return { success: true, invoice };
   } catch (error: any) {
@@ -252,7 +252,7 @@ export async function generateInvoice(data: {
         recipients: [invoice.tenant.userId],
         title: `New bill · ${data.month}`,
         message: `${invoiceNumber} for ${peso} is due ${new Date(data.dueDate).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" })}.`,
-        link: "/tenantdashboard/lease-payments",
+        link: "/tenantdashboard/payments",
         email: false,
       });
     }
@@ -275,7 +275,7 @@ export async function generateInvoice(data: {
       );
     }
 
-    revalidatePath("/tenantdashboard/lease-payments");
+    revalidatePath("/tenantdashboard/payments");
     revalidatePath("/admindashboard/tenant-monitoring");
     return { success: true, invoice };
   } catch (error: any) {

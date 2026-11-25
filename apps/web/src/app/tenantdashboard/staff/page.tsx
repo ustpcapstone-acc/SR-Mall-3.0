@@ -1,5 +1,6 @@
 "use client";
 
+import { confirmAction } from "@/components/confirm-dialog";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Banner, Button, Checkbox, Dialog, Input, Loader, Select, Table, Tabs } from "@cloudflare/kumo";
 import { PencilSimple, Plus, Trash } from "@phosphor-icons/react";
@@ -162,10 +163,11 @@ export default function SpaceStaffPage() {
                           shape="square"
                           icon={<Trash />}
                           aria-label={`Remove ${m.name}`}
-                          onClick={() =>
-                            window.confirm(`Remove ${m.name}? Their staff account is deleted.`) &&
-                            run(m.id, () => removeSpaceStaffAction(m.id), `${m.name} was removed.`)
-                          }
+                          onClick={async () => {
+                            if (await confirmAction({ title: `Remove ${m.name}?`, description: "Their staff account is deleted.", confirmLabel: "Remove staff" })) {
+                              run(m.id, () => removeSpaceStaffAction(m.id), `${m.name} was removed.`);
+                            }
+                          }}
                         />
                       </div>
                     </Table.Cell>
@@ -203,9 +205,11 @@ export default function SpaceStaffPage() {
                       icon={<Trash />}
                       aria-label={`Delete ${r.name}`}
                       loading={busyId === r.id}
-                      onClick={() =>
-                        window.confirm(`Delete the ${r.name} role?`) && run(r.id, () => deleteSpaceRoleAction(r.id), "Role deleted.")
-                      }
+                      onClick={async () => {
+                        if (await confirmAction({ title: `Delete the ${r.name} role?`, description: "This can't be undone.", confirmLabel: "Delete role" })) {
+                          run(r.id, () => deleteSpaceRoleAction(r.id), "Role deleted.");
+                        }
+                      }}
                     />
                   )}
                 </div>

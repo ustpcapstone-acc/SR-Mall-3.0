@@ -1,5 +1,6 @@
 "use client";
 
+import { confirmAction } from "@/components/confirm-dialog";
 import React, { useState, useEffect, useRef } from "react";
 import {
   Star,
@@ -152,7 +153,7 @@ export const FeedbackSection = ({
 
   const handleDelete = async () => {
     if (!user || !user.id) return;
-    if (!confirm("Are you sure you want to delete your review?")) return;
+    if (!(await confirmAction({ title: "Delete your review?", description: "This can't be undone.", confirmLabel: "Delete review" }))) return;
     setIsSubmitting(true);
     try {
       const result = await deleteMyReviewAction(user.id, effectiveTenantId);

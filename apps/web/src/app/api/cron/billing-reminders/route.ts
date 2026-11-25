@@ -72,7 +72,7 @@ export async function GET(req: Request) {
         recipients: [tenantId],
         title: isOverdue ? "Overdue Warning" : "Billing Reminder",
         message: messageContent,
-        link: "/tenantdashboard/lease-payments",
+        link: "/tenantdashboard/payments",
         email: false, // the bespoke email below is still sent, but gated below
       });
       notificationsSent++;
@@ -139,7 +139,7 @@ export async function GET(req: Request) {
                 <p><strong>Amount Due:</strong> ₱${invoice.amount}</p>
                 <p><strong>Due Date:</strong> ${dueDate.toLocaleDateString()}</p>
                 <div style="text-align: center; margin-top: 25px;">
-                  <a href="${emailBaseUrl()}/tenantdashboard/lease-payments" style="display: inline-block; padding: 12px 25px; background-color: #be1e2d; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;">Pay Now</a>
+                  <a href="${emailBaseUrl()}/tenantdashboard/payments" style="display: inline-block; padding: 12px 25px; background-color: #be1e2d; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;">Pay Now</a>
                 </div>
               </div>
             `,

@@ -313,10 +313,10 @@ export default function MasterBookingsPage() {
             <div className="xl:col-span-3 space-y-8">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-semibold text-charcoal dark:text-white tracking-tight">
-                  Experience <span className="text-primary">Queue.</span>
+                  Event <span className="text-primary">Requests</span>
                 </h2>
                 <span className="text-xs font-semibold text-slate-400">
-                  {pendingEvents.length} Pending Actions
+                  {pendingEvents.length} waiting for a decision
                 </span>
               </div>
 
@@ -417,7 +417,7 @@ export default function MasterBookingsPage() {
             {/* Master Schedule Calendar */}
             <div className="xl:col-span-2 space-y-8">
               <h2 className="text-xl font-semibold text-charcoal dark:text-white tracking-tight">
-                Strategic <span className="text-primary">Schedule.</span>
+                Event <span className="text-primary">Calendar</span>
               </h2>
               <div className="bg-white dark:bg-zinc-900 rounded-[3rem] p-10 border border-slate-100 dark:border-white/5 shadow-xs">
                 <div className="flex items-center justify-between mb-10">
@@ -524,7 +524,7 @@ export default function MasterBookingsPage() {
                         2-Day Review Window
                       </th>
                       <th className="px-8 py-6 text-xs font-semibold text-slate-400 border-b border-slate-100 dark:border-white/5 text-right">
-                        Decision Protocol
+                        Actions
                       </th>
                     </tr>
                   </thead>
@@ -693,10 +693,10 @@ export default function MasterBookingsPage() {
               <div>
                 <h2 className="font-display text-2xl font-semibold text-charcoal dark:text-white tracking-tight leading-none">
                   {modalAction === "ACCEPTED" ? "Approve" : "Reject"}{" "}
-                  Engagement.
+                  this event?
                 </h2>
                 <p className="text-xs font-semibold text-slate-400 mt-1">
-                  Final Authorization Protocol
+                  The customer is told your decision.
                 </p>
               </div>
             </div>
@@ -704,15 +704,15 @@ export default function MasterBookingsPage() {
             <div className="space-y-6">
               <div className="space-y-2">
                 <label className="text-xs font-semibold text-slate-400 pl-2">
-                  Strategy Note
+                  Note to the customer
                 </label>
                 <textarea
                   value={feedback}
                   onChange={(e) => setFeedback(e.target.value)}
                   placeholder={
                     modalAction === "REJECTED"
-                      ? "Policy failure documentation required..."
-                      : "Optional internal guidance..."
+                      ? "Say why the event can't be approved (required)"
+                      : "Add a note (optional)"
                   }
                   className="w-full bg-slate-50 dark:bg-black border border-slate-200 dark:border-white/5 rounded-3xl p-6 text-sm font-bold text-charcoal dark:text-white focus:ring-2 focus:ring-primary/20 transition-all min-h-[160px] resize-none outline-hidden"
                 />
@@ -734,7 +734,7 @@ export default function MasterBookingsPage() {
                 {isProcessingEvent ? (
                   <Loader2 className="animate-spin mx-auto" />
                 ) : (
-                  "Execute Decision"
+                  modalAction === "ACCEPTED" ? "Approve event" : "Reject event"
                 )}
               </button>
             </div>
@@ -757,7 +757,7 @@ export default function MasterBookingsPage() {
               </div>
               <div>
                 <h3 className="text-2xl font-semibold text-charcoal dark:text-white tracking-tight leading-none">
-                  Day Manifest.
+                  Events on this day
                 </h3>
                 <p className="text-xs font-semibold text-slate-400 mt-1">
                   {selectedCalendarDate.toLocaleDateString("en-US", {
@@ -788,13 +788,13 @@ export default function MasterBookingsPage() {
                     {ev.eventType}
                   </h4>
                   <p className="text-xs text-slate-400 font-bold mt-0.5 mb-3">
-                    {ev.user?.name || "Authorized Client"}
+                    {ev.user?.name || "Customer"}
                   </p>
 
                   {ev.message && (
                     <div className="p-3 bg-white dark:bg-zinc-900 rounded-xl border border-slate-100 dark:border-white/5">
                       <p className="text-xs font-semibold text-slate-400 mb-1 flex items-center gap-1.5">
-                        <MessageSquare size={10} /> Context
+                        <MessageSquare size={10} /> Message
                       </p>
                       <p className="text-[11px] text-charcoal dark:text-white/80 leading-relaxed italic line-clamp-3">
                         "{ev.message}"
@@ -809,7 +809,7 @@ export default function MasterBookingsPage() {
               onClick={() => setSelectedCalendarDate(null)}
               className="w-full mt-8 py-4 bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-slate-400 font-semibold text-xs rounded-2xl hover:bg-slate-200 dark:hover:bg-zinc-700 transition-all"
             >
-              Close View
+              Close
             </button>
           </div>
         </div>

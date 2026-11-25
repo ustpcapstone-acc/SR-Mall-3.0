@@ -75,7 +75,7 @@ export const NOTIFICATION_CATALOG: NotificationTypeMeta[] = [
     audience: ["TENANT"],
     defaultEnabled: true,
     defaultChannels: ["IN_APP", "EMAIL"],
-    link: { TENANT: "/tenantdashboard/lease-payments" },
+    link: { TENANT: "/tenantdashboard/payments" },
   },
   {
     type: "PAYMENT_CONFIRMED",
@@ -85,7 +85,7 @@ export const NOTIFICATION_CATALOG: NotificationTypeMeta[] = [
     audience: ["TENANT"],
     defaultEnabled: true,
     defaultChannels: ["IN_APP", "EMAIL"],
-    link: { TENANT: "/tenantdashboard/lease-payments" },
+    link: { TENANT: "/tenantdashboard/payments" },
   },
   {
     type: "BILLING_REMINDER",
@@ -95,7 +95,7 @@ export const NOTIFICATION_CATALOG: NotificationTypeMeta[] = [
     audience: ["TENANT"],
     defaultEnabled: true,
     defaultChannels: ["IN_APP", "EMAIL"],
-    link: { TENANT: "/tenantdashboard/lease-payments" },
+    link: { TENANT: "/tenantdashboard/payments" },
   },
   {
     type: "INVOICE_ISSUED",
@@ -105,7 +105,7 @@ export const NOTIFICATION_CATALOG: NotificationTypeMeta[] = [
     audience: ["TENANT"],
     defaultEnabled: true,
     defaultChannels: ["IN_APP"],
-    link: { TENANT: "/tenantdashboard/lease-payments" },
+    link: { TENANT: "/tenantdashboard/payments" },
   },
   {
     type: "OVERDUE_RENT_PAYMENTS",
@@ -116,7 +116,7 @@ export const NOTIFICATION_CATALOG: NotificationTypeMeta[] = [
     defaultEnabled: true,
     defaultChannels: ["IN_APP", "EMAIL"],
     legacyKey: "overdueRentPayments",
-    link: { ADMIN: "/admindashboard/tenant-monitoring", TENANT: "/tenantdashboard/lease-payments" },
+    link: { ADMIN: "/admindashboard/tenant-monitoring", TENANT: "/tenantdashboard/payments" },
   },
   {
     type: "EXPIRING_CONTRACTS",
@@ -127,7 +127,7 @@ export const NOTIFICATION_CATALOG: NotificationTypeMeta[] = [
     defaultEnabled: true,
     defaultChannels: ["IN_APP", "EMAIL"],
     legacyKey: "expiringContracts",
-    link: { ADMIN: "/admindashboard/tenant-monitoring", TENANT: "/tenantdashboard/lease-payments" },
+    link: { ADMIN: "/admindashboard/tenant-monitoring", TENANT: "/tenantdashboard/payments" },
   },
 
   // ── ⚡ Action Required ─────────────────────────────────────────────────────

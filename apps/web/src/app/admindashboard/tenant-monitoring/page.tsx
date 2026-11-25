@@ -50,6 +50,7 @@ import {
 } from "lucide-react";
 import { RegisterTenantModal } from "@/components/admin/register-tenant-modal";
 import { RecordCashPaymentModal } from "@/components/admin/record-cash-payment-modal";
+import { RecordPaymentGuide } from "@/components/admin/record-payment-guide";
 import { CustomSelect } from "@/components/ui/custom-select";
 import clsx from "clsx";
 import {
@@ -97,6 +98,8 @@ interface Tenant {
   contractEnd?: string;
   rentCost?: number;
   paymentStatus?: string;
+  /** A deposit slip is waiting to be checked, even if another bill is overdue. */
+  hasSlipToVerify?: boolean;
   violations?: number;
   avgRating?: number;
   reviewCount?: number;
@@ -260,6 +263,12 @@ export default function TenantMonitoring() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [paymentFilter, setPaymentFilter] = useState<string>("all");
+  // The dashboard's "Deposit slips to verify" shortcut opens the filtered list.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("payment") === "verifying") {
+      setPaymentFilter("🟡 Pending Verification");
+    }
+  }, []);
   const [sortBy, setSortBy] = useState<"name" | "status" | "rent">("name");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [viewMode, setViewMode] = useState<"table" | "grid">("table");
@@ -362,6 +371,7 @@ export default function TenantMonitoring() {
               (inv: any) => inv.tenantId === item.id,
             );
 
+            const hasSlipToVerify = tenantInvoices.some((inv: any) => inv.status === "REVIEWING");
             let paymentStatus: any = "🟢 Cleared";
             if (tenantInvoices.length > 0) {
               const hasOverdue = tenantInvoices.some(
@@ -428,6 +438,7 @@ export default function TenantMonitoring() {
               description: item.description || "No store description provided.",
               rentCost: activeRentCost,
               paymentStatus,
+              hasSlipToVerify,
               nextDueDate,
               violations: 0,
               metrics: {
@@ -874,7 +885,9 @@ export default function TenantMonitoring() {
           ? t.status !== "PAST" && t.status !== "REJECTED"
           : t.status === statusFilter;
       const matchesPayment =
-        paymentFilter === "all" || t.paymentStatus === paymentFilter;
+        paymentFilter === "all" ||
+        t.paymentStatus === paymentFilter ||
+        (paymentFilter === "🟡 Pending Verification" && !!t.hasSlipToVerify);
       return matchesSearch && matchesStatus && matchesPayment;
     })
     .sort((a, b) => {
@@ -1726,7 +1739,14 @@ export default function TenantMonitoring() {
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <RecordPaymentGuide
+              onShowTenants={(onlyVerifying) => {
+                setSearchQuery("");
+                setStatusFilter("all");
+                setPaymentFilter(onlyVerifying ? "🟡 Pending Verification" : "all");
+              }}
+            />
             <button
               type="button"
               onClick={() => setLedgerOpen(true)}
@@ -1829,7 +1849,7 @@ export default function TenantMonitoring() {
                 </div>
                 <div className="flex flex-col items-center gap-1">
                   <span className="text-xs font-semibold text-slate-400">
-                    Pipeline
+                    Applications
                   </span>
                   <div className="flex items-center gap-1 text-amber-500">
                     <Activity size={10} />

@@ -10,6 +10,7 @@ import { setWorkspaceAction } from "@/app/actions/workspace";
 import { STAGE_LABEL, peso } from "@/lib/leasing";
 import { formatPHDate } from "@/lib/ph-date";
 import { InvoiceButton, StatusText } from "@/components/leasing/shared";
+import { GettingStarted } from "@/components/tenant/getting-started";
 
 type Data = Extract<Awaited<ReturnType<typeof getRentASpaceAction>>, { success: true }>["data"];
 
@@ -34,14 +35,14 @@ export default function TenantHomePage() {
     };
   }, []);
 
-  const open = async (leaseId: string) => {
-    setOpening(leaseId);
+  const open = async (leaseId: string, page?: string) => {
+    setOpening(page ?? leaseId);
     const res = await setWorkspaceAction(leaseId);
     if (!res.success) {
       setOpening(null);
       return toast.error(res.error);
     }
-    router.push(res.redirectTo);
+    router.push(page ?? res.redirectTo);
     router.refresh();
   };
 
@@ -73,16 +74,11 @@ export default function TenantHomePage() {
         </p>
       </header>
 
-      {spaces.length === 0 && (
-        <Banner
-          variant="default"
-          description={
-            pending.length
-              ? `Your request${pending.length === 1 ? " is" : "s are"} waiting for payment at the management office. The space is yours once the office approves it.`
-              : "You don't rent a space yet. Choose one on Rent a Space, send a request, then pay at the management office."
-          }
-        />
-      )}
+      <GettingStarted
+        progress={{ hasSpace: spaces.length > 0, hasPendingRequest: pending.length > 0, storefront: data.storefront }}
+        opening={opening === "/tenantdashboard/digital-storefront"}
+        onOpenStorefront={() => spaces[0] && open(spaces[0].id, "/tenantdashboard/digital-storefront")}
+      />
 
       <section className="grid gap-4 sm:grid-cols-3">
         <div className="rounded-xl border border-kumo-line bg-kumo-base p-5">
@@ -105,7 +101,16 @@ export default function TenantHomePage() {
       <section className="space-y-3">
         <h2 className="text-lg font-semibold text-kumo-default">Your spaces</h2>
         {spaces.length === 0 ? (
-          <p className="rounded-xl border border-kumo-line bg-kumo-base p-6 text-sm text-kumo-subtle">None yet.</p>
+          <div className="rounded-xl border border-kumo-line bg-kumo-base p-6">
+            <p className="text-sm text-kumo-subtle">
+              {pending.length
+                ? "No space yet. Your request is waiting for payment and approval at the management office."
+                : "You don't rent a space yet."}
+            </p>
+            <Link href="/tenantdashboard/rent-a-space" className="mt-2 inline-block text-sm font-medium text-kumo-link hover:underline">
+              {pending.length ? "View my request" : "See available spaces"}
+            </Link>
+          </div>
         ) : (
           <ul className="grid gap-4 md:grid-cols-2">
             {spaces.map((l) => (
