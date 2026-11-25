@@ -3,25 +3,12 @@
 import { optimizedImage } from "@/lib/media";
 import React, { Suspense, useState, useEffect, useRef, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
-import {
-  Search,
-  Filter,
-  MoreVertical,
-  Send,
-  ShieldAlert,
-  CheckCircle,
-  Ban,
-  MessageSquare,
-  Loader2,
-  Paperclip,
-  X,
-  ExternalLink,
-  Maximize2,
-} from "lucide-react";
+import { Button, Input, cn } from "@cloudflare/kumo";
+import { ArrowLeft, PaperPlaneRight, Paperclip } from "@phosphor-icons/react";
+import { AdminDialog, EmptyNote, SearchField } from "@/components/admin/page-kit";
 import { useAuth } from "@/app/providers";
 import { ChatAvatar, ChatImage, bubblePadding } from "@/components/chat/chat-media";
 import { refreshChatUnread, setViewingChats } from "@/lib/chat-unread";
-import clsx from "clsx";
 import {
   subscribeToConversation,
   subscribeToInbox,
@@ -84,7 +71,6 @@ function CustomerMessenger({ inbox }: { inbox: Inbox }) {
   const [isUploading, setIsUploading] = useState(false);
   const [fileInputKey, setFileInputKey] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [filter, setFilter] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
 
   const [lightboxImageUrl, setLightboxImageUrl] = useState<string | null>(null);
@@ -569,506 +555,271 @@ function CustomerMessenger({ inbox }: { inbox: Inbox }) {
     return name.includes(query) || email.includes(query) || lastMsg.includes(query);
   });
 
+  const openChat = (chat: any) => {
+    setActiveChat(chat);
+    setConversations((prev) => prev.map((c) => (c.id === chat.id ? { ...c, unreadCount: 0 } : c)));
+    isNearBottomRef.current = true;
+    if (messagesCacheRef.current[chat.id]) {
+      setMessages(normalizeMessages(messagesCacheRef.current[chat.id]));
+    } else {
+      setMessages([]);
+    }
+  };
+
+  const otherPerson = getOtherPerson(activeChat);
+  const toAdmin = otherPerson?.role === "ADMIN" || activeChat?.type === "ADMIN";
+  const activeName = otherPerson?.name || otherPerson?.email || "SR Mall member";
+  const activeKind = toAdmin ? "SR Mall office" : "Shopper";
+  const blocked = canBlockActive && block.blockedByMe;
+  const avatarOf = (url?: string | null) => (url ? optimizedImage(url, 96) : null);
+
   return (
-    <div className="h-screen flex flex-col pt-4 sm:pt-6 lg:pt-10 px-4 sm:px-6 lg:px-8 pb-4 sm:pb-6 lg:pb-8 animate-fade-in-up">
-      <div className="mb-4 sm:mb-6 flex items-end justify-between shrink-0">
-        <div>
-          <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-charcoal dark:text-white">
-            {inbox === "mall" ? "Mall Office Messages" : inbox === "customers" ? "Customer Messages" : "Messages"}
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
-            {inbox === "mall"
-              ? "Your conversation with the SR Mall management office."
-              : inbox === "customers"
-                ? "Chats with shoppers about your store."
-                : "Direct communication with customers and Mall Admin."}
-          </p>
-        </div>
-      </div>
+    // Fills the space under the top bar, so only the message lists scroll.
+    <div className="flex h-[calc(100dvh-4rem)] flex-col gap-3 p-3 sm:h-[calc(100dvh-5rem)] sm:gap-4 sm:p-6">
+      <header className={cn("shrink-0", activeChat && "hidden lg:block")}>
+        <h1 className="font-display text-2xl font-semibold tracking-tight text-kumo-default sm:text-3xl">
+          {inbox === "mall" ? "Mall Office Messages" : inbox === "customers" ? "Customer Messages" : "Messages"}
+        </h1>
+        <p className="mt-1 text-sm text-kumo-subtle">
+          {inbox === "mall"
+            ? "Your conversation with the SR Mall management office."
+            : inbox === "customers"
+              ? "Chats with shoppers about your store."
+              : "Chats with shoppers and the mall office."}
+        </p>
+      </header>
 
-      <div className="flex-1 bg-white dark:bg-zinc-900 rounded-2xl sm:rounded-2xl shadow-xs border border-slate-100 dark:border-white/5 flex overflow-hidden relative">
-        {/* Left Column (Inbox) */}
-        <div
-          className={`${
-            activeChat ? "hidden lg:flex" : "flex"
-          } w-full lg:w-80 border-r border-slate-100 dark:border-white/5 flex-col bg-slate-50/50 dark:bg-zinc-900`}
-        >
-          <div className="p-4 lg:p-5 border-b border-slate-100 dark:border-white/5 space-y-3 lg:space-y-4">
-            <div className="relative">
-              <Search
-                size={16}
-                className="absolute left-3 lg:left-4 top-1/2 -translate-y-1/2 text-slate-400"
-              />
-              <input
-                type="text"
-                placeholder="Search chats..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 lg:pl-10 pr-4 py-2 lg:py-2.5 bg-white dark:bg-zinc-800 rounded-xl border border-slate-200 dark:border-white/10 text-sm font-medium focus:border-primary outline-hidden"
-              />
-            </div>
+      <div className="flex min-h-0 flex-1 overflow-hidden rounded-xl border border-kumo-line bg-kumo-base">
+        {/* Left column: inbox */}
+        <div className={cn("w-full min-w-0 flex-col border-kumo-line lg:flex lg:w-80 lg:shrink-0 lg:border-r", activeChat ? "hidden" : "flex")}>
+          <div className="border-b border-kumo-line p-3">
+            <SearchField value={searchQuery} onChange={setSearchQuery} placeholder="Search conversations" className="sm:w-full" />
           </div>
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            {filteredConversations.length === 0 ? (
+              <EmptyNote title={searchQuery ? "No matching conversations" : "No conversations yet"}>
+                {!searchQuery && inbox === "customers" ? "Messages from shoppers appear here." : undefined}
+              </EmptyNote>
+            ) : (
+              <ul className="divide-y divide-kumo-line">
+                {filteredConversations.map((chat) => {
+                  const selected = activeChat?.id === chat.id;
+                  // The open chat is being read right now: never badge it.
+                  const unread = selected ? 0 : chat.unreadCount || 0;
+                  const person = getOtherPerson(chat);
+                  const isOffice = person?.role === "ADMIN" || chat.type === "ADMIN";
+                  const name = person?.name || person?.email || "SR Mall member";
+                  const lastMsg =
+                    chat.messages?.[0]?.imageUrl && !chat.messages?.[0]?.content
+                      ? "Image"
+                      : chat.messages?.[0]?.content || "No messages yet";
 
-          <div className="flex-1 overflow-y-auto">
-            {filteredConversations.length === 0 && (
-              <div className="p-6 lg:p-8 text-center text-slate-500 text-xs font-bold">
-                {searchQuery ? "No matching conversations" : "No active conversations"}
-              </div>
-            )}
-            {filteredConversations.map((chat) => {
-              const isSelected = activeChat?.id === chat.id;
-              // The open chat is being read right now: never badge it.
-              const unread = isSelected ? 0 : chat.unreadCount || 0;
-              const otherPerson = getOtherPerson(chat);
-              const isToAdmin = otherPerson?.role === "ADMIN" || chat.type === "ADMIN";
-              const lastMsg =
-                chat.messages?.[0]?.imageUrl && !chat.messages?.[0]?.content
-                  ? "📷 Image"
-                  : chat.messages?.[0]?.content || "Started a conversation";
-
-              return (
-                <div
-                  key={chat.id}
-                  onClick={() => {
-                    setActiveChat(chat);
-                    setConversations((prev) =>
-                      prev.map((c) => (c.id === chat.id ? { ...c, unreadCount: 0 } : c)),
-                    );
-                    isNearBottomRef.current = true;
-                    if (messagesCacheRef.current[chat.id]) {
-                      setMessages(normalizeMessages(messagesCacheRef.current[chat.id]));
-                    } else {
-                      setMessages([]);
-                    }
-                  }}
-                  className={clsx(
-                    "p-4 lg:p-5 border-b border-slate-100 dark:border-white/5 cursor-pointer transition-colors flex items-center gap-3 border-l-4",
-                    isSelected
-                      ? "bg-primary/5 dark:bg-primary/10 border-l-primary"
-                      : "hover:bg-white dark:hover:bg-zinc-800/50 border-l-transparent"
-                  )}
-                >
-                  <div
-                    className={clsx(
-                      "w-10 h-10 rounded-full flex items-center justify-center font-bold overflow-hidden shrink-0 border border-slate-100 dark:border-white/5",
-                      isToAdmin
-                        ? "bg-amber-500/10 text-amber-500"
-                        : "bg-blue-500/10 text-blue-500"
-                    )}
-                  >
-                    {otherPerson?.avatarUrl ? (
-                      <img
-                        src={optimizedImage(otherPerson.avatarUrl, 96)}
-                        alt="Avatar"
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      (otherPerson?.name || otherPerson?.email || "?")
-                        .substring(0, 2)
-                        .toUpperCase()
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-start mb-1">
-                      <h4
-                        className={clsx(
-                          "text-xs lg:text-sm text-charcoal dark:text-white truncate",
-                          unread > 0 ? "font-semibold" : "font-bold",
+                  return (
+                    <li key={chat.id}>
+                      <button
+                        type="button"
+                        onClick={() => openChat(chat)}
+                        aria-current={selected}
+                        className={cn(
+                          "flex w-full cursor-pointer items-center gap-3 border-l-4 p-3 text-left hover:bg-kumo-tint",
+                          selected ? "border-l-kumo-brand bg-kumo-tint" : "border-l-transparent",
                         )}
                       >
-                        {otherPerson?.name || otherPerson?.email}
-                      </h4>
-                      <span
-                        className={clsx(
-                          "text-xs font-bold shrink-0",
-                          unread > 0 ? "text-primary" : "text-slate-500 dark:text-slate-400",
-                        )}
-                      >
-                        {formatConversationTime(chat.messages?.[0]?.createdAt || chat.updatedAt)}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 mb-1 lg:mb-2">
-                      <span
-                        className={clsx(
-                          "text-xs font-bold px-2 py-0.5 rounded-md",
-                          isToAdmin
-                            ? "bg-amber-100 text-amber-600 dark:bg-amber-900/20"
-                            : "bg-slate-100 text-slate-500 dark:bg-zinc-800"
-                        )}
-                      >
-                        {isToAdmin ? "SR Mall Admin" : "Customer"}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <p
-                        className={clsx(
-                          "flex-1 text-xs truncate",
-                          unread > 0
-                            ? "text-charcoal dark:text-white font-bold"
-                            : "text-slate-500 font-medium",
-                        )}
-                      >
-                        {lastMsg}
-                      </p>
-                      {unread > 0 && (
-                        <span className="min-w-5 h-5 px-1.5 rounded-full bg-primary text-white text-xs font-semibold flex items-center justify-center shrink-0">
-                          {unread > 99 ? "99+" : unread}
+                        <Avatar name={name} src={avatarOf(person?.avatarUrl)} />
+                        <span className="min-w-0 flex-1">
+                          <span className="flex items-baseline justify-between gap-2">
+                            <span className={cn("truncate text-sm text-kumo-default", unread > 0 ? "font-semibold" : "font-medium")}>
+                              {name}
+                            </span>
+                            <span className={cn("shrink-0 text-xs", unread > 0 ? "font-semibold text-kumo-brand" : "text-kumo-subtle")}>
+                              {formatConversationTime(chat.messages?.[0]?.createdAt || chat.updatedAt)}
+                            </span>
+                          </span>
+                          <span className="block truncate text-xs text-kumo-subtle">{isOffice ? "SR Mall office" : "Shopper"}</span>
+                          <span className="flex items-center gap-2">
+                            <span className={cn("flex-1 truncate text-sm", unread > 0 ? "font-medium text-kumo-default" : "text-kumo-subtle")}>
+                              {lastMsg}
+                            </span>
+                            {unread > 0 && (
+                              <span
+                                aria-label={`${unread} unread`}
+                                className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-kumo-brand px-1.5 text-xs font-semibold text-white"
+                              >
+                                {unread > 99 ? "99+" : unread}
+                              </span>
+                            )}
+                          </span>
                         </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </div>
         </div>
 
-        {/* Chat Window/Active Chat */}
-        <div
-          className={clsx(
-            activeChat ? "flex" : "hidden lg:flex",
-            "flex-1 flex-col bg-white dark:bg-zinc-950"
-          )}
-        >
+        {/* Conversation */}
+        <div className={cn("min-w-0 flex-1 flex-col lg:flex", activeChat ? "flex" : "hidden")}>
           {!activeChat ? (
-            <div className="flex-1 flex flex-col items-center justify-center text-slate-400 space-y-4">
-              <MessageSquare size={48} className="opacity-20" />
-              <p className="font-bold text-sm">
-                Select a chat to begin
-              </p>
+            <div className="flex flex-1 items-center justify-center">
+              <EmptyNote title="Select a conversation">Choose someone on the left to read and reply.</EmptyNote>
             </div>
           ) : (
-            <div className="flex-1 flex flex-row overflow-hidden">
-              {(() => {
-                const otherPerson = getOtherPerson(activeChat);
-                const isToAdmin = otherPerson?.role === "ADMIN" || activeChat.type === "ADMIN";
-                const myId = user?.id;
+            <>
+              <div className="flex h-16 shrink-0 items-center justify-between gap-2 border-b border-kumo-line px-3 sm:px-4">
+                <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+                  <div className="lg:hidden">
+                    <Button variant="ghost" shape="square" icon={<ArrowLeft />} aria-label="All conversations" onClick={() => setActiveChat(null)} />
+                  </div>
+                  <Avatar name={activeName} src={avatarOf(otherPerson?.avatarUrl)} />
+                  <div className="min-w-0">
+                    <h2 className="truncate text-sm font-semibold text-kumo-default">{activeName}</h2>
+                    <p className="truncate text-sm text-kumo-subtle">{activeKind}</p>
+                  </div>
+                </div>
+                {canBlockActive && <BlockToggleButton blocked={block.blockedByMe} onClick={() => setConfirmBlock(true)} />}
+              </div>
 
-                return (
-                  <>
-                    <div className="flex-1 flex flex-col min-w-0">
-                      {/* Chat Header */}
-                      <div className="h-14 lg:h-16 border-b border-slate-100 dark:border-white/5 flex items-center justify-between px-4 lg:px-6 shadow-xs z-10 shrink-0 bg-white dark:bg-zinc-900/50 backdrop-blur-md">
-                        <div className="flex items-center gap-2 lg:gap-3">
-                          <button
-                            onClick={() => setActiveChat(null)}
-                            className="p-2 -ml-2 text-slate-500 dark:text-slate-400 hover:text-charcoal dark:hover:text-white transition-colors lg:hidden"
+              <div
+                ref={messagesContainerRef}
+                onScroll={handleScroll}
+                className="min-h-0 flex-1 space-y-4 overflow-y-auto bg-kumo-recessed p-3 sm:p-6"
+              >
+                {messages.length === 0 && <EmptyNote title="No messages yet">Send a message below to start the conversation.</EmptyNote>}
+                {messages.map((msg: any, index: number) => {
+                  const isMine =
+                    (user?.id && msg.senderId === user.id) ||
+                    (user?.email && msg.sender?.email?.toLowerCase() === user.email.toLowerCase());
+                  const senderAvatar = isMine ? user?.avatarUrl : otherPerson?.avatarUrl;
+                  const senderName = isMine ? user?.name : otherPerson?.name || otherPerson?.email;
+                  const isTemporary = String(msg.id).startsWith("temp-");
+
+                  return (
+                    <React.Fragment key={msg.id}>
+                      {startsNewDay(messages[index - 1]?.createdAt, msg.createdAt) && <ChatDaySeparator date={msg.createdAt} />}
+                      <div className={cn("group group/msg relative flex items-end gap-2", isMine ? "justify-end" : "justify-start")}>
+                        {isMine && !isTemporary && <UnsendButton onClick={() => setUnsendTarget(msg)} />}
+                        {!isMine && <ChatAvatar src={optimizedImage(senderAvatar ?? undefined, 96)} name={senderName} />}
+                        <div className={cn("flex min-w-0 flex-col", isMine ? "items-end" : "items-start")}>
+                          <div
+                            className={cn(
+                              "max-w-[240px] rounded-lg sm:max-w-[400px] lg:max-w-[500px]",
+                              bubblePadding(msg),
+                              isMine ? "bg-kumo-brand text-white" : "border border-kumo-line bg-kumo-base text-kumo-default",
+                            )}
                           >
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              width="20"
-                              height="20"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            >
-                              <path d="m15 18-6-6 6-6" />
-                            </svg>
-                          </button>
-
-                          <div className="w-8 h-8 lg:w-9 lg:h-9 rounded-full bg-slate-100 dark:bg-zinc-800 flex items-center justify-center overflow-hidden border border-slate-200 dark:border-white/10">
-                            {otherPerson?.avatarUrl ? (
-                              <img
-                                src={optimizedImage(otherPerson.avatarUrl, 96)}
-                                alt="Avatar"
-                                className="w-full h-full object-cover"
-                              />
+                            {msg.imageUrl && (
+                              <div className={msg.content ? "mb-2" : ""}>
+                                <ChatImage url={msg.imageUrl} onOpen={setLightboxImageUrl} />
+                              </div>
+                            )}
+                            {msg.content && <p className="wrap-break-word whitespace-pre-wrap text-sm leading-relaxed">{msg.content}</p>}
+                          </div>
+                          <div className="mt-1 px-1">
+                            {isTemporary && msg.failed ? (
+                              <button
+                                type="button"
+                                onClick={() => retryMessage(msg)}
+                                className="cursor-pointer text-xs font-semibold text-kumo-danger hover:underline"
+                              >
+                                Not sent. Tap to retry
+                              </button>
                             ) : (
-                              <span className="text-xs font-bold text-primary">
-                                {(otherPerson?.name || otherPerson?.email || "?")
-                                  .charAt(0)
-                                  .toUpperCase()}
+                              <span className="text-xs text-kumo-subtle">
+                                {isTemporary && msg.sending ? "Sending..." : formatMessageTime(msg.createdAt)}
                               </span>
                             )}
                           </div>
-
-                          <div className="flex flex-col leading-tight">
-                            <h3 className="font-semibold text-charcoal dark:text-white flex items-center gap-2 text-sm lg:text-base">
-                              {otherPerson?.name || otherPerson?.email || "SR Mall Member"}
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                            </h3>
-                            <span className="text-xs font-bold text-slate-500 dark:text-slate-400 hidden xs:block">
-                              {isToAdmin ? "Portal Administrator" : "Active Customer"}
-                            </span>
-                          </div>
                         </div>
-                        {canBlockActive && (
-                          <BlockToggleButton
-                            blocked={block.blockedByMe}
-                            onClick={() => setConfirmBlock(true)}
-                          />
-                        )}
+                        {isMine && <ChatAvatar src={optimizedImage(senderAvatar ?? undefined, 96)} name={senderName} />}
                       </div>
+                    </React.Fragment>
+                  );
+                })}
+                <div ref={messagesEndRef} />
+              </div>
 
-                      {/* Messages Area */}
-                      <div
-                        ref={messagesContainerRef}
-                        onScroll={handleScroll}
-                        className="flex-1 overflow-y-auto p-4 lg:p-8 space-y-4 lg:space-y-6 bg-slate-50/30 dark:bg-black/20 custom-scrollbar"
-                      >
-                        {messages.map((msg: any, index: number) => {
-                          const isMyMsg =
-                            (myId && msg.senderId === myId) ||
-                            (user?.email && msg.sender?.email?.toLowerCase() === user.email.toLowerCase());
-                          const senderAvatar = isMyMsg
-                            ? user?.avatarUrl
-                            : otherPerson?.avatarUrl;
-                          const senderName = isMyMsg
-                            ? user?.name
-                            : otherPerson?.name || otherPerson?.email;
-                          const isTemporary = String(msg.id).startsWith("temp-");
+              {blocked && <BlockedBanner text="You blocked this customer. Unblock them to continue the conversation." />}
 
-                          return (
-                            <React.Fragment key={msg.id}>
-                            {startsNewDay(messages[index - 1]?.createdAt, msg.createdAt) && (
-                              <ChatDaySeparator date={msg.createdAt} />
-                            )}
-                            <div
-                              className={clsx(
-                                "flex gap-3 items-end animate-fade-in group group/msg relative",
-                                isMyMsg ? "justify-end" : "justify-start"
-                              )}
-                            >
-                              {isMyMsg && !isTemporary && (
-                                <UnsendButton onClick={() => setUnsendTarget(msg)} />
-                              )}
-                              {!isMyMsg && <ChatAvatar src={optimizedImage(senderAvatar, 96)} name={senderName} />}
-                              <div
-                                className={clsx(
-                                  "flex flex-col",
-                                  isMyMsg ? "items-end" : "items-start"
-                                )}
-                              >
-                                <div className="relative group/bubble">
-                                  <div
-                                    className={clsx(
-                                      "max-w-[280px] sm:max-w-[400px] lg:max-w-[500px] border rounded-2xl shadow-xs",
-                                      bubblePadding(msg),
-                                      isMyMsg
-                                        ? "bg-primary text-white border-primary rounded-tr-sm"
-                                        : "bg-white dark:bg-zinc-800 border-slate-200 dark:border-white/10 rounded-tl-sm text-slate-600 dark:text-slate-300"
-                                    )}
-                                  >
-                                    {msg.imageUrl && (
-                                      <div className={msg.content ? "mb-2" : ""}>
-                                        <ChatImage url={msg.imageUrl} onOpen={setLightboxImageUrl} />
-                                      </div>
-                                    )}
-                                    {msg.content && (
-                                      <p className="text-sm font-medium leading-relaxed wrap-break-word whitespace-pre-wrap">
-                                        {msg.content}
-                                      </p>
-                                    )}
-                                    </div>
-                                </div>
-                                <span className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-1 lg:mt-2">
-                                  {isTemporary && msg.failed ? (
-                                    <button
-                                      type="button"
-                                      onClick={() => retryMessage(msg)}
-                                      className="text-red-500 hover:text-red-600 hover:underline"
-                                    >
-                                      Not sent · Tap to retry
-                                    </button>
-                                  ) : isTemporary && msg.sending ? (
-                                    "Sending…"
-                                  ) : (
-                                    formatMessageTime(msg.createdAt)
-                                  )}
-                                </span>
-                              </div>
-                              {isMyMsg && (
-                                <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-zinc-800 flex items-center justify-center overflow-hidden shrink-0 border border-slate-100 dark:border-white/5">
-                                  {senderAvatar ? (
-                                    <img
-                                      src={optimizedImage(senderAvatar, 96)}
-                                      alt="Sender"
-                                      className="w-full h-full object-cover"
-                                    />
-                                  ) : (
-                                    <span className="text-xs font-bold text-slate-500">
-                                      {(senderName || "?")
-                                        .substring(0, 2)
-                                        .toUpperCase()}
-                                    </span>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                            </React.Fragment>
-                          );
-                        })}
-                        <div ref={messagesEndRef} />
-                      </div>
-
-                      {canBlockActive && block.blockedByMe && (
-                        <BlockedBanner text="You blocked this customer. Unblock them to continue the conversation." />
-                      )}
-
-                      {/* Message Input */}
-                      <div className="p-3 lg:p-5 border-t border-slate-100 dark:border-white/5 bg-white dark:bg-zinc-900 shrink-0">
-                        {/* Image Preview */}
-                        {imagePreview && (
-                          <div className="mb-3 relative inline-block animate-fade-in">
-                            <img
-                              src={imagePreview}
-                              alt="Preview"
-                              className="h-20 rounded-xl border border-slate-200 dark:border-white/10 object-cover"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setImagePreview(null);
-                                setImageFile(null);
-                                setFileInputKey((k) => k + 1);
-                              }}
-                              className="absolute -top-2 -right-2 w-5 h-5 bg-primary text-white rounded-full flex items-center justify-center shadow-sm"
-                            >
-                              <X size={10} />
-                            </button>
-                          </div>
-                        )}
-                        <form
-                          onSubmit={handleSend}
-                          className="relative flex items-center bg-slate-50 dark:bg-zinc-800 rounded-xl border border-slate-200 dark:border-white/10 p-1.5 pr-2 focus-within:border-primary transition-colors hover:border-slate-300"
-                        >
-                          <input
-                            key={fileInputKey}
-                            ref={fileInputRef}
-                            type="file"
-                            accept="image/*"
-                            className="absolute w-0 h-0 opacity-0 pointer-events-none -z-10"
-                            onChange={handleImageSelect}
-                          />
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              fileInputRef.current?.click();
-                            }}
-                            className="p-2 text-slate-500 dark:text-slate-400 hover:text-primary transition-colors shrink-0 relative z-10 cursor-pointer"
-                            title="Attach image"
-                          >
-                            <Paperclip size={16} />
-                          </button>
-                          <input
-                            type="text"
-                            value={inputText}
-                            onChange={(e) => setInputText(e.target.value)}
-                            placeholder={
-                              canBlockActive && block.blockedByMe
-                                ? "Messaging disabled"
-                                : imageFile
-                                  ? "Add a caption... (optional)"
-                                  : "Reply..."
-                            }
-                            disabled={canBlockActive && block.blockedByMe}
-                            className="flex-1 px-2 lg:px-3 py-1.5 lg:py-2 bg-transparent outline-hidden text-sm font-medium dark:text-white disabled:opacity-40"
-                          />
-                          <button
-                            type="submit"
-                            disabled={(!inputText.trim() && !imageFile) || isUploading || (canBlockActive && block.blockedByMe)}
-                            className="p-2 lg:p-2.5 bg-primary text-white rounded-lg hover:bg-primary-hover transition-colors shadow-xs disabled:opacity-50 flex items-center gap-1"
-                          >
-                            {isUploading ? (
-                              <Loader2 size={14} className="animate-spin" />
-                            ) : (
-                              <Send size={14} className="lg:w-4 lg:h-4" />
-                            )}
-                          </button>
-                        </form>
-                      </div>
-                    </div>
-
-                    {/* Right Column (Context Panel) */}
-                    <div className="hidden xl:block w-72 border-l border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-zinc-900 overflow-y-auto">
-                      <div className="p-6">
-                        <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-6 flex items-center gap-2">
-                          <MoreVertical size={14} /> Interaction Context
-                        </h3>
-
-                        <div className="space-y-6">
-                          {/* Profile Card */}
-                          <div className="bg-white dark:bg-zinc-800 p-5 rounded-2xl border border-slate-200 dark:border-white/10 shadow-xs flex flex-col items-center text-center">
-                            <div className="w-16 h-16 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-500 font-bold text-2xl flex items-center justify-center mb-3 overflow-hidden border border-slate-100 dark:border-white/5">
-                              {otherPerson?.avatarUrl ? (
-                                <img
-                                  src={optimizedImage(otherPerson.avatarUrl, 96)}
-                                  alt="Avatar"
-                                  className="w-full h-full object-cover"
-                                />
-                              ) : (
-                                (otherPerson?.name || otherPerson?.email || "?")
-                                  .charAt(0)
-                                  .toUpperCase()
-                              )}
-                            </div>
-                            <h4 className="font-bold text-charcoal dark:text-white">
-                              {otherPerson?.name || otherPerson?.email || "SR Mall Member"}
-                            </h4>
-                            <p className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-1">
-                              {isToAdmin ? "Portal Administrator" : "Chat Participant"}
-                            </p>
-                          </div>
-
-                          <div className="bg-white dark:bg-zinc-800 p-5 rounded-2xl border border-slate-200 dark:border-white/10 shadow-xs">
-                            <h4 className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">
-                              Notice
-                            </h4>
-                            <p className="text-xs font-medium text-slate-500 mb-4">
-                              Please respond to inquiries promptly. Quick replies boost the shop reliability score on the public page.
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </>
-                );
-              })()}
-            </div>
+              <div className="shrink-0 border-t border-kumo-line p-3">
+                {imagePreview && (
+                  <div className="mb-3 flex items-end gap-2">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={imagePreview} alt="Preview" className="h-20 rounded-lg border border-kumo-line object-cover" />
+                    <Button
+                      size="sm"
+                      variant="secondary-destructive"
+                      onClick={() => {
+                        setImagePreview(null);
+                        setImageFile(null);
+                        setFileInputKey((k) => k + 1);
+                      }}
+                    >
+                      Remove image
+                    </Button>
+                  </div>
+                )}
+                <form onSubmit={handleSend} className="flex items-center gap-2">
+                  <input
+                    key={fileInputKey}
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="sr-only"
+                    tabIndex={-1}
+                    aria-label="Attach an image"
+                    onChange={handleImageSelect}
+                  />
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    shape="square"
+                    icon={<Paperclip />}
+                    aria-label="Attach image"
+                    title="Attach image"
+                    disabled={blocked}
+                    onClick={() => fileInputRef.current?.click()}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <Input
+                      aria-label="Message"
+                      value={inputText}
+                      onChange={(e) => setInputText(e.target.value)}
+                      placeholder={blocked ? "Messaging disabled" : imageFile ? "Add a caption (optional)" : "Type a reply"}
+                      disabled={blocked}
+                      className="w-full"
+                    />
+                  </div>
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    icon={<PaperPlaneRight />}
+                    loading={isUploading}
+                    aria-label="Send"
+                    disabled={(!inputText.trim() && !imageFile) || isUploading || blocked}
+                  >
+                    <span className="hidden sm:inline">Send</span>
+                  </Button>
+                </form>
+              </div>
+            </>
           )}
         </div>
       </div>
 
-
-
-      {/* ── MODAL: IMAGE LIGHTBOX ── */}
-      {lightboxImageUrl && (
-        <div
-          onClick={() => setLightboxImageUrl(null)}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-fade-in"
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="relative max-w-4xl max-h-[90vh] flex flex-col items-center animate-scale-up"
-          >
-            <img
-              src={optimizedImage(lightboxImageUrl, 2000)}
-              alt="Full Preview"
-              className="max-w-full max-h-[80vh] rounded-2xl object-contain shadow-2xl border border-white/10"
-            />
-            <div className="flex items-center gap-3 mt-4">
-              <a
-                href={lightboxImageUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-xl text-xs font-bold flex items-center gap-2 transition-colors backdrop-blur-md"
-              >
-                <ExternalLink size={14} /> Open Original
-              </a>
-              <button
-                onClick={() => setLightboxImageUrl(null)}
-                className="px-4 py-2 bg-white text-charcoal rounded-xl text-xs font-semibold transition-transform active:scale-95 shadow-lg"
-              >
-                Close
-              </button>
-            </div>
+      <AdminDialog open={!!lightboxImageUrl} onClose={() => setLightboxImageUrl(null)} size="lg" title="Image">
+        {lightboxImageUrl && (
+          <div className="space-y-3">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={optimizedImage(lightboxImageUrl, 2000)} alt="Full preview" className="max-h-[65vh] w-full rounded-lg object-contain" />
+            <a href={lightboxImageUrl} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-kumo-link hover:underline">
+              Open original
+            </a>
           </div>
-        </div>
-      )}
+        )}
+      </AdminDialog>
+
       {unsendTarget && (
         <ChatConfirmModal
           title="Unsend message?"
@@ -1097,5 +848,17 @@ function CustomerMessenger({ inbox }: { inbox: Inbox }) {
         />
       )}
     </div>
+  );
+}
+
+function Avatar({ name, src }: { name: string; src?: string | null }) {
+  return (
+    <span
+      aria-hidden
+      className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-kumo-recessed text-sm font-semibold text-kumo-default"
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      {src ? <img src={src} alt="" className="size-full object-cover" /> : name.trim().charAt(0).toUpperCase() || "?"}
+    </span>
   );
 }

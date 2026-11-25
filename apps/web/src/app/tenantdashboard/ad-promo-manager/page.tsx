@@ -1,25 +1,10 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import {
-  Presentation,
-  UploadCloud,
-  Calendar,
-  Clock,
-  CheckCircle,
-  ShieldAlert,
-  Loader2,
-  Tag,
-  Trash2,
-  Plus,
-  X,
-  Megaphone,
-  TrendingUp,
-  Eye,
-  BarChart3,
-  ImageIcon,
-  Video,
-} from "lucide-react";
+import { toast } from "sonner";
+import { Button, Input, InputArea, Loader, Select, cn } from "@cloudflare/kumo";
+import { Trash, UploadSimple } from "@phosphor-icons/react";
+import { AdminPage, EmptyNote, Panel, Stat, StatRow } from "@/components/admin/page-kit";
 import { useAuth } from "@/app/providers";
 import {
   createTenantPromo,
@@ -28,8 +13,8 @@ import {
   getTenantByUserId,
 } from "@/app/actions/ads";
 import { getCloudStorageProvider } from "@/lib/cloud-storage";
-import clsx from "clsx";
 import { phDayEnd, phDayStart } from "@/lib/ph-date";
+import { phToday } from "@/lib/post-sales";
 import { ChatConfirmModal } from "@/components/chat/chat-ui";
 
 const CATEGORIES = [
@@ -46,48 +31,17 @@ const CATEGORIES = [
   "Others",
 ];
 
-function Toast({
-  toast,
-  onClose,
-}: {
-  toast: { msg: string; type: "success" | "error" } | null;
-  onClose: () => void;
-}) {
-  if (!toast) return null;
-  return (
-    <div
-      className={`fixed top-6 right-4 sm:right-8 z-300 flex items-center gap-3 px-4 py-3 rounded-2xl shadow-2xl text-white text-xs font-bold animate-fade-in-up max-w-xs ${toast.type === "success" ? "bg-emerald-500 shadow-emerald-500/30" : "bg-red-500 shadow-red-500/30"}`}
-    >
-      {toast.type === "success" ? (
-        <CheckCircle size={14} />
-      ) : (
-        <ShieldAlert size={14} />
-      )}
-      <span className="flex-1">{toast.msg}</span>
-      <button onClick={onClose} className="opacity-70 hover:opacity-100 ml-1">
-        <X size={13} />
-      </button>
-    </div>
-  );
-}
-
 export default function AdPromoManager() {
   const { user } = useAuth();
   const [promos, setPromos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [toast, setToast] = useState<{
-    msg: string;
-    type: "success" | "error";
-  } | null>(null);
-
   // Form state
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("Fashion");
-  const today = new Date().toISOString().split("T")[0];
-  const futureDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-    .toISOString()
-    .split("T")[0];
+  // Philippine dates: the browser's UTC date is a day behind before 8 AM.
+  const today = phToday();
+  const futureDate = phToday(30);
   const [startDate, setStartDate] = useState(today);
   const [endDate, setEndDate] = useState(futureDate);
   const [promoImage, setPromoImage] = useState("");
@@ -99,8 +53,8 @@ export default function AdPromoManager() {
   const [isDeleting, setIsDeleting] = useState(false);
 
   const showToast = (msg: string, type: "success" | "error") => {
-    setToast({ msg, type });
-    setTimeout(() => setToast(null), 4500);
+    if (type === "success") toast.success(msg);
+    else toast.error(msg);
   };
 
   useEffect(() => {
@@ -232,400 +186,156 @@ export default function AdPromoManager() {
     }
   };
 
-  // Stats
-  const live = promos.filter((p) => p.status === "APPROVED").length;
+  // What each campaign is doing right now.
+  const now = new Date();
+  const stateOf = (p: any) => {
+    if (p.status === "PENDING") return { label: "Waiting for approval", tone: "text-kumo-warning" };
+    if (p.status === "REJECTED") return { label: "Rejected", tone: "text-kumo-danger" };
+    if (new Date(p.endDate) < now) return { label: "Ended", tone: "text-kumo-subtle" };
+    if (new Date(p.startDate) > now) return { label: "Approved, starts later", tone: "text-kumo-default" };
+    return { label: "Live now", tone: "text-kumo-success" };
+  };
+  const live = promos.filter((p) => stateOf(p).label === "Live now").length;
   const pending = promos.filter((p) => p.status === "PENDING").length;
   const rejected = promos.filter((p) => p.status === "REJECTED").length;
+  const day = (value: string | Date, year?: boolean) =>
+    new Date(value).toLocaleDateString("en-US", { month: "short", day: "numeric", ...(year ? { year: "numeric" } : {}) });
 
   const hasMedia = !!(promoImage || promoVideo);
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-black pb-24 lg:pb-0">
-      <Toast toast={toast} onClose={() => setToast(null)} />
+    <AdminPage title="Ad & Promo Manager" description="Send a promotion to the mall office. Approved ones show across the mall website.">
+      <StatRow>
+        <Stat label="All promotions" value={loading ? "..." : promos.length} />
+        <Stat label="Live now" value={loading ? "..." : live} tone="success" />
+        <Stat label="Waiting for approval" value={loading ? "..." : pending} tone={pending ? "warning" : "default"} />
+        <Stat label="Rejected" value={loading ? "..." : rejected} tone={rejected ? "danger" : "default"} />
+      </StatRow>
 
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10 py-6 sm:py-8 lg:py-10 space-y-6">
-        {/* ── Header ── */}
-        <div>
-          <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-charcoal dark:text-white">
-            Ad &amp; Promo Manager
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1.5">
-            Submit promotional banners for display across SR Mall.
-          </p>
-        </div>
-
-        {/* ── Stats Row ── */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-          {[
-            {
-              label: "Total Campaigns",
-              value: promos.length,
-              icon: BarChart3,
-              iconBg: "bg-slate-100 dark:bg-zinc-800 text-slate-500",
-            },
-            {
-              label: "Live Now",
-              value: live,
-              icon: Megaphone,
-              iconBg: "bg-emerald-500/10 text-emerald-500",
-            },
-            {
-              label: "Pending Review",
-              value: pending,
-              icon: Clock,
-              iconBg: "bg-amber-500/10 text-amber-500",
-            },
-            {
-              label: "Rejected",
-              value: rejected,
-              icon: ShieldAlert,
-              iconBg: "bg-red-500/10 text-primary",
-            },
-          ].map((s, i) => (
-            <div
-              key={i}
-              className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl p-4 shadow-xs flex items-center gap-3"
+      <div className="grid items-start gap-6 lg:grid-cols-12">
+        <Panel className="lg:col-span-5 xl:col-span-4" title="New promotion" description="Usually reviewed within 24 hours.">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <Input
+              label="Title"
+              required
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="e.g. 50% off this weekend"
+              className="w-full"
+            />
+            <InputArea
+              label="Description (optional)"
+              rows={3}
+              value={description}
+              onValueChange={setDescription}
+              placeholder="What's the offer?"
+              className="w-full"
+            />
+            <Select
+              label="Category"
+              value={category}
+              items={Object.fromEntries(CATEGORIES.map((c) => [c, c]))}
+              onValueChange={(v) => v != null && setCategory(v as string)}
+              className="w-full"
             >
-              <div
-                className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0 ${s.iconBg}`}
-              >
-                <s.icon size={16} />
-              </div>
-              <div>
-                <p className="text-xl sm:text-2xl font-semibold text-charcoal dark:text-white leading-none">
-                  {loading ? "—" : s.value}
-                </p>
-                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
-                  {s.label}
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* ── Main Grid: Form + History ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Submit Form */}
-          <form
-            onSubmit={handleSubmit}
-            className="lg:col-span-4 bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl sm:rounded-3xl shadow-xs overflow-hidden h-fit"
-          >
-            <div className="px-5 sm:px-6 py-4 border-b border-slate-100 dark:border-white/5 flex items-center gap-3">
-              <div className="w-8 h-8 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
-                <Plus size={16} />
-              </div>
-              <div>
-                <h2 className="font-semibold text-sm text-charcoal dark:text-white">
-                  New Promo Request
-                </h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                  Submit for admin approval
-                </p>
-              </div>
+              {CATEGORIES.map((c) => (
+                <Select.Option key={c} value={c}>
+                  {c}
+                </Select.Option>
+              ))}
+            </Select>
+            <div className="grid grid-cols-2 gap-3">
+              <Input label="Starts" type="date" required value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full" />
+              <Input label="Ends" type="date" required value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full" />
             </div>
 
-            <div className="p-5 sm:p-6 space-y-4">
-              {/* Title */}
-              <div>
-                <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mb-1.5">
-                  Promo Title *
-                </label>
-                <input
-                  required
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  type="text"
-                  placeholder="e.g. 50% Off Flash Sale"
-                  className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-medium text-charcoal dark:text-white focus:outline-hidden focus:border-primary transition-all"
-                />
-              </div>
-
-              {/* Description */}
-              <div>
-                <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mb-1.5">
-                  Description
-                </label>
-                <textarea
-                  rows={2}
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Brief description of your promotion..."
-                  className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-medium text-charcoal dark:text-white focus:outline-hidden focus:border-primary transition-all resize-none"
-                />
-              </div>
-
-              {/* Category */}
-              <div>
-                <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mb-1.5">
-                  Category
-                </label>
-                <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-medium text-charcoal dark:text-white focus:outline-hidden focus:border-primary transition-all appearance-none"
-                >
-                  {CATEGORIES.map((c) => (
-                    <option key={c}>{c}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Date Range */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1 mb-1.5">
-                    <Calendar size={10} /> Start
-                  </label>
-                  <input
-                    required
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-medium text-charcoal dark:text-white focus:outline-hidden focus:border-primary transition-all"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1 mb-1.5">
-                    <Calendar size={10} /> End
-                  </label>
-                  <input
-                    required
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-medium text-charcoal dark:text-white focus:outline-hidden focus:border-primary transition-all"
-                  />
-                </div>
-              </div>
-
-              {/* Media Upload */}
-              <div>
-                <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mb-1.5">
-                  Banner Media *
-                </label>
-                <div className="relative border-2 border-dashed border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden min-h-[140px] group hover:border-primary transition-all cursor-pointer">
-                  <input
-                    type="file"
-                    accept="image/*,video/*"
-                    onChange={handleMediaUpload}
-                    className="absolute inset-0 opacity-0 cursor-pointer z-10"
-                  />
-                  {hasMedia ? (
-                    <div className="relative w-full h-full min-h-[140px]">
-                      {mediaType === "VIDEO" ? (
-                        <video
-                          src={promoVideo}
-                          className="absolute inset-0 w-full h-full object-cover"
-                          autoPlay
-                          muted
-                          loop
-                        />
-                      ) : (
-                        <img
-                          src={promoImage}
-                          alt="Preview"
-                          className="absolute inset-0 w-full h-full object-cover"
-                        />
-                      )}
-                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <div className="text-center text-white">
-                          <UploadCloud size={22} className="mx-auto mb-1" />
-                          <p className="text-xs font-semibold">
-                            Change Media
-                          </p>
-                        </div>
-                      </div>
-                      <div className="absolute top-2 left-2 flex items-center gap-1.5 bg-black/60 text-white text-xs font-semibold px-2 py-1 rounded-md">
-                        {mediaType === "VIDEO" ? (
-                          <Video size={10} />
-                        ) : (
-                          <ImageIcon size={10} />
-                        )}{" "}
-                        {mediaType}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center py-8 text-center">
-                      <div className="w-10 h-10 bg-slate-100 dark:bg-zinc-800 rounded-xl flex items-center justify-center text-slate-400 group-hover:text-primary mb-2 transition-colors">
-                        <UploadCloud size={20} />
-                      </div>
-                      <p className="text-xs font-bold text-charcoal dark:text-white">
-                        Click to upload
-                      </p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
-                        Image or Video · Max 50MB
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Submit Button */}
-              <button
-                type="submit"
-                disabled={isSubmitting || !hasMedia || !title}
-                className="w-full py-3.5 bg-primary text-white rounded-xl font-semibold text-xs shadow-lg shadow-primary/20 hover:bg-primary/90 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {isSubmitting ? (
-                  <Loader2 size={15} className="animate-spin" />
+            <div className="space-y-1.5">
+              <p className="text-sm font-medium text-kumo-default">Picture or video</p>
+              <label className="relative flex min-h-40 cursor-pointer items-center justify-center overflow-hidden rounded-lg border border-dashed border-kumo-line bg-kumo-recessed text-center focus-within:ring-2 focus-within:ring-kumo-brand hover:border-kumo-brand">
+                <input type="file" accept="image/*,video/*" onChange={handleMediaUpload} aria-label="Upload a picture or video" className="sr-only" />
+                {hasMedia ? (
+                  <>
+                    {mediaType === "VIDEO" ? (
+                      <video src={promoVideo} className="absolute inset-0 size-full object-cover" autoPlay muted loop />
+                    ) : (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={promoImage} alt="Preview" className="absolute inset-0 size-full object-cover" />
+                    )}
+                    <span className="absolute inset-x-0 bottom-0 bg-black/60 py-1.5 text-sm font-medium text-white">
+                      Change {mediaType === "VIDEO" ? "video" : "picture"}
+                    </span>
+                  </>
                 ) : (
-                  <Megaphone size={15} />
+                  <span className="flex flex-col items-center gap-1 p-4 text-sm text-kumo-subtle">
+                    <UploadSimple size={24} aria-hidden />
+                    <span className="font-medium text-kumo-default">Click to upload</span>
+                    Picture or video, up to 50 MB
+                  </span>
                 )}
-                {isSubmitting ? "Submitting..." : "Submit Promotion"}
-              </button>
-
-              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium text-center leading-relaxed">
-                Your promotion will go live after admin approval. Usually
-                reviewed within 24 hours.
-              </p>
+              </label>
             </div>
+
+            <Button type="submit" variant="primary" loading={isSubmitting} disabled={isSubmitting || !hasMedia || !title} className="w-full justify-center">
+              Submit Promotion
+            </Button>
+            {(!hasMedia || !title) && <p className="text-sm text-kumo-subtle">Add a title and a picture or video to submit.</p>}
           </form>
+        </Panel>
 
-          {/* Campaign History */}
-          <div className="lg:col-span-8 space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="font-semibold text-sm text-charcoal dark:text-white">
-                Campaign History
-              </h2>
-              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                {promos.length} total
-              </span>
+        <Panel
+          className="lg:col-span-7 xl:col-span-8"
+          flush
+          title="Your promotions"
+          description={`${promos.length} sent`}
+        >
+          {loading ? (
+            <div className="flex justify-center py-12">
+              <Loader />
             </div>
-
-            {loading ? (
-              <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl p-6 sm:p-12 text-center">
-                <Loader2
-                  className="mx-auto text-primary animate-spin mb-3"
-                  size={28}
-                />
-                <p className="text-xs font-bold text-slate-500 dark:text-slate-400">
-                  Loading campaigns...
-                </p>
-              </div>
-            ) : promos.length === 0 ? (
-              <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl p-14 text-center">
-                <div className="w-14 h-14 bg-slate-100 dark:bg-zinc-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <Presentation className="text-slate-300" size={28} />
-                </div>
-                <p className="font-semibold text-charcoal dark:text-white text-sm">
-                  No promotions yet
-                </p>
-                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1 max-w-xs mx-auto">
-                  Submit your first promotional banner using the form. It will
-                  appear here after submission.
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {promos.map((promo) => {
-                  const isExpired = new Date(promo.endDate) < new Date();
-                  return (
-                    <div
-                      key={promo.id}
-                      className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl overflow-hidden shadow-xs hover:shadow-md transition-all group"
-                    >
-                      <div className="flex gap-4 p-4 sm:p-5">
-                        {/* Thumbnail */}
-                        <div className="w-20 h-16 sm:w-28 sm:h-20 rounded-xl bg-slate-100 dark:bg-zinc-800 overflow-hidden shrink-0 border border-slate-100 dark:border-white/5">
-                          {promo.mediaType === "VIDEO" ? (
-                            <video
-                              src={promo.promoVideo}
-                              className="w-full h-full object-cover"
-                              autoPlay
-                              muted
-                              loop
-                            />
-                          ) : (
-                            <img
-                              src={promo.promoImage}
-                              alt={promo.title}
-                              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                            />
-                          )}
-                        </div>
-
-                        {/* Info */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between gap-2 mb-1">
-                            <div className="min-w-0">
-                              <h4 className="font-semibold text-sm text-charcoal dark:text-white truncate">
-                                {promo.title}
-                              </h4>
-                              {promo.description && (
-                                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5 line-clamp-1">
-                                  {promo.description}
-                                </p>
-                              )}
-                            </div>
-                            <span className="shrink-0 text-xs font-semibold text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-zinc-800 px-2 py-1 rounded-lg">
-                              {promo.category}
-                            </span>
-                          </div>
-
-                          <p className="text-xs text-slate-500 dark:text-slate-400 font-medium flex items-center gap-1 mt-1">
-                            <Calendar size={9} />
-                            {new Date(promo.startDate).toLocaleDateString(
-                              "en-US",
-                              { month: "short", day: "numeric" },
-                            )}{" "}
-                            —{" "}
-                            {new Date(promo.endDate).toLocaleDateString(
-                              "en-US",
-                              {
-                                month: "short",
-                                day: "numeric",
-                                year: "numeric",
-                              },
-                            )}
-                            {isExpired && (
-                              <span className="ml-1 text-xs bg-slate-100 dark:bg-zinc-800 text-slate-500 px-1.5 py-0.5 rounded-md font-semibold">
-                                Expired
-                              </span>
-                            )}
-                          </p>
-
-                          {/* Status + Actions */}
-                          <div className="flex items-center gap-2 mt-3">
-                            {promo.status === "APPROVED" && (
-                              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 border border-emerald-100 dark:border-emerald-800/30 text-xs font-semibold">
-                                <CheckCircle size={10} /> Live
-                              </span>
-                            )}
-                            {promo.status === "PENDING" && (
-                              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-amber-50 dark:bg-amber-900/20 text-amber-600 border border-amber-100 dark:border-amber-900/30 text-xs font-semibold animate-pulse">
-                                <Clock size={10} /> Under Review
-                              </span>
-                            )}
-                            {promo.status === "REJECTED" && (
-                              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-red-50 dark:bg-red-900/20 text-primary border border-red-100 dark:border-red-800/30 text-xs font-semibold">
-                                <ShieldAlert size={10} /> Rejected
-                              </span>
-                            )}
-                            <div className="flex-1" />
-                            <button
-                              onClick={() => setDeleteTarget(promo)}
-                              className="p-2 text-slate-500 dark:text-slate-400 hover:text-primary hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all"
-                              title="Delete promotion"
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
+          ) : promos.length === 0 ? (
+            <EmptyNote title="No promotions yet">Send your first one with the form. It will show here with its status.</EmptyNote>
+          ) : (
+            <ul className="divide-y divide-kumo-line">
+              {promos.map((promo) => {
+                const state = stateOf(promo);
+                return (
+                  <li key={promo.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:gap-4 sm:px-5">
+                    <span className="relative block aspect-video w-full shrink-0 overflow-hidden rounded-lg bg-kumo-recessed sm:w-40">
+                      {promo.mediaType === "VIDEO" ? (
+                        <video src={promo.promoVideo} className="absolute inset-0 size-full object-cover" autoPlay muted loop />
+                      ) : (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={promo.promoImage} alt={promo.title} className="absolute inset-0 size-full object-cover" />
+                      )}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="text-base font-semibold text-kumo-default">{promo.title}</h3>
+                      {promo.description && <p className="line-clamp-2 text-sm text-kumo-subtle">{promo.description}</p>}
+                      <p className="mt-1 text-sm text-kumo-subtle">
+                        {day(promo.startDate)} to {day(promo.endDate, true)}
+                        {promo.category && `, ${promo.category}`}
+                      </p>
+                      <p className={cn("mt-1 text-sm font-semibold", state.tone)}>{state.label}</p>
                     </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </div>
+                    <div className="flex justify-end">
+                      <Button size="sm" variant="secondary-destructive" icon={<Trash />} onClick={() => setDeleteTarget(promo)}>
+                        Delete
+                      </Button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </Panel>
       </div>
+
       {deleteTarget && (
         <ChatConfirmModal
           title="Delete this promotion?"
           message={
             deleteTarget.status === "APPROVED" && new Date(deleteTarget.endDate) >= new Date()
-              ? `"${deleteTarget.title}" is live — deleting it removes it from the mall website right away, along with its uploaded media. This can't be undone.`
+              ? `"${deleteTarget.title}" is live. Deleting it removes it from the mall website right away, along with its uploaded media. This can't be undone.`
               : `"${deleteTarget.title}" and its uploaded media will be removed from your campaign history. This can't be undone.`
           }
           confirmLabel="Delete promotion"
@@ -634,6 +344,6 @@ export default function AdPromoManager() {
           onConfirm={confirmDelete}
         />
       )}
-    </div>
+    </AdminPage>
   );
 }

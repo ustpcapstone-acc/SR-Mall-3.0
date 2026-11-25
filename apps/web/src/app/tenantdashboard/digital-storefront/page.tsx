@@ -2,24 +2,11 @@
 
 import { confirmAction } from "@/components/confirm-dialog";
 import React, { useState, useEffect, useRef } from "react";
-import {
-  Store,
-  Camera,
-  Save,
-  Phone,
-  MapPin,
-  CheckCircle,
-  UploadCloud,
-  Trash2,
-  Loader2,
-  ShoppingBag,
-  Eye,
-  X,
-  Plus,
-  Tag,
-  ImageIcon,
-  Package,
-} from "lucide-react";
+import Link from "next/link";
+import { toast } from "sonner";
+import { Button, Input, InputArea, Loader, Select, Switch, cn } from "@cloudflare/kumo";
+import { Camera, Eye, FloppyDisk, Plus, Trash, UploadSimple } from "@phosphor-icons/react";
+import { AdminDialog, AdminPage, EmptyNote, PageTabs, Panel } from "@/components/admin/page-kit";
 import { DigitalStorefront, StoreProduct } from "@/types/storefront";
 import {
   updateStorefrontAction,
@@ -29,7 +16,6 @@ import { useAuth } from "@/app/providers";
 import { PRODUCT_STATUS_OPTIONS, availabilityLabel, isOutOfStock } from "@/lib/products";
 import { DEFAULT_SALE_DAYS, formatSaleDate, isSaleActive, phToday, saleEndDateInput, saleEndsAt } from "@/lib/post-sales";
 import { ShopCard } from "@/components/shop-card";
-import { CustomSelect } from "@/components/ui/custom-select";
 
 const PLACEHOLDERS = [
   "/images/logo/gudget.jpg",
@@ -95,17 +81,13 @@ export default function DigitalStorefrontPage() {
   const [activeTab, setActiveTab] = useState<
     "identity" | "gallery" | "catalog" | "postsales"
   >("identity");
-  const [toast, setToast] = useState<{
-    msg: string;
-    type: "success" | "error";
-  } | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
 
   const showToast = (msg: string, type: "success" | "error") => {
-    setToast({ msg, type });
-    setTimeout(() => setToast(null), 4000);
+    if (type === "success") toast.success(msg);
+    else toast.error(msg);
   };
 
   useEffect(() => {
@@ -140,7 +122,7 @@ export default function DigitalStorefrontPage() {
     if (res.success && res.data) {
       setProfile(res.data);
       showToast(
-        "Storefront synced! Changes are now live on the public directory.",
+        "Saved. Your changes are live on the mall website.",
         "success",
       );
     } else {
@@ -290,774 +272,413 @@ export default function DigitalStorefrontPage() {
   };
 
   const TABS = [
-    { id: "identity", label: "Brand Identity", icon: Store },
-    { id: "gallery", label: "Gallery", icon: ImageIcon },
-    { id: "catalog", label: "Products", icon: ShoppingBag },
-    { id: "postsales", label: "Post Sales", icon: Tag },
-  ] as const;
+    { value: "identity", label: "Brand Identity" },
+    { value: "gallery", label: "Gallery" },
+    { value: "catalog", label: "Products" },
+    { value: "postsales", label: "Post Sales" },
+  ];
 
   if (loading || !isAuthenticated) {
     return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center space-y-4">
-        <Loader2 className="w-8 h-8 text-primary animate-spin" />
-        <p className="text-xs font-bold text-slate-500 dark:text-slate-400">
-          Loading storefront...
-        </p>
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3">
+        <Loader size="lg" />
+        <p className="text-sm text-kumo-subtle">Loading storefront...</p>
       </div>
     );
   }
 
+  const products = profile.products ?? [];
+  const sales = profile.post_sales ?? [];
+
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-black pb-24 lg:pb-0">
+    <AdminPage
+      title="Digital Storefront"
+      description="What shoppers see about your shop. Changes go live when you save."
+      actions={
+        <>
+          <Switch
+            label={profile.is_open ? "Shop is open" : "Shop is closed"}
+            checked={!!profile.is_open}
+            onCheckedChange={(v) => updateField("is_open", Boolean(v))}
+          />
+          <div className="lg:hidden">
+            <Button variant="secondary" icon={<Eye />} onClick={() => setPreviewOpen(true)}>
+              Preview
+            </Button>
+          </div>
+          <Button variant="primary" icon={<FloppyDisk />} loading={saving} disabled={saving || uploading} onClick={handleSave}>
+            {uploading ? "Uploading..." : "Save & Sync"}
+          </Button>
+        </>
+      }
+    >
       {/* Hidden file inputs */}
-      <input
-        type="file"
-        hidden
-        ref={logoInputRef}
-        accept="image/*"
-        onChange={(e) => handleImageUpload(e, "logo_url")}
-      />
-      <input
-        type="file"
-        hidden
-        multiple
-        ref={galleryInputRef}
-        accept="image/*"
-        onChange={(e) => handleImageUpload(e, "gallery_urls")}
-      />
+      <input type="file" hidden ref={logoInputRef} accept="image/*" onChange={(e) => handleImageUpload(e, "logo_url")} />
+      <input type="file" hidden multiple ref={galleryInputRef} accept="image/*" onChange={(e) => handleImageUpload(e, "gallery_urls")} />
 
-      {/* Toast */}
-      {toast && (
-        <div
-          className={`fixed top-6 right-4 sm:right-8 z-300 flex items-center gap-3 px-4 py-3 rounded-2xl shadow-2xl text-white text-xs font-bold animate-fade-in-up ${toast.type === "success" ? "bg-emerald-500 shadow-emerald-500/30" : "bg-red-500 shadow-red-500/30"}`}
-        >
-          {toast.type === "success" ? (
-            <CheckCircle size={15} />
-          ) : (
-            <X size={15} />
-          )}
-          {toast.msg}
-          <button
-            onClick={() => setToast(null)}
-            className="ml-1 opacity-70 hover:opacity-100"
-          >
-            <X size={13} />
-          </button>
-        </div>
-      )}
+      <AdminDialog open={previewOpen} onClose={() => setPreviewOpen(false)} size="sm" title="Preview" description="Your shop card as shoppers see it.">
+        <ShopCard shop={previewShop} />
+      </AdminDialog>
 
-      {/* Mobile Preview Modal
-          On phones the preview fills the screen (same 16px gutters as the real
-          mobile page) so the card keeps its live sizing and every element stays
-          reachable; sm+ keeps the centred sheet. */}
-      {previewOpen && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-xs z-200 flex items-stretch sm:items-center justify-center p-0 sm:p-6 lg:hidden">
-          <div className="w-full sm:max-w-md h-full sm:h-auto sm:max-h-[85vh] flex flex-col bg-white dark:bg-zinc-900 rounded-none sm:rounded-3xl overflow-hidden">
-            <div className="shrink-0 flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-white/5">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-                <span className="text-xs font-semibold text-charcoal dark:text-white">
-                  Live Preview
-                </span>
-              </div>
-              <button
-                onClick={() => setPreviewOpen(false)}
-                className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-charcoal rounded-lg"
-              >
-                <X size={18} />
-              </button>
-            </div>
-            <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5">
-              <ShopCard shop={previewShop} />
-            </div>
-          </div>
-        </div>
-      )}
+      <div className="grid items-start gap-6 lg:grid-cols-12">
+        <div className="min-w-0 space-y-4 lg:col-span-8">
+          <PageTabs tabs={TABS} value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} />
 
-      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10 py-6 sm:py-8 lg:py-10 space-y-6">
-        {/* ── Page Header ──
-            On phones the title and the action buttons are stacked, because one
-            row cannot hold both without the buttons overflowing the container
-            (Save was being pushed past the edge). sm+ keeps the original row. */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
-          <div className="min-w-0">
-            <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-charcoal dark:text-white">
-              Digital Storefront
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1.5">
-              Manage your brand identity, gallery, and products.
-            </p>
-          </div>
-
-          {/* Header Actions */}
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3 shrink-0 sm:justify-end">
-            {/* Mobile: Preview button */}
-            <button
-              onClick={() => setPreviewOpen(true)}
-              className="lg:hidden flex items-center gap-2 px-3 py-2.5 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 shadow-xs"
-            >
-              <Eye size={14} /> Preview
-            </button>
-
-            {/* Status Toggle */}
-            <button
-              onClick={() => updateField("is_open", !profile.is_open)}
-              className={`flex items-center gap-2 px-3 sm:px-4 py-2.5 rounded-xl border font-black text-xs transition-all ${profile.is_open ? "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-900/40 text-emerald-600" : "bg-slate-100 dark:bg-zinc-800 border-slate-200 dark:border-white/10 text-slate-500"}`}
-            >
-              <span
-                className={`w-2 h-2 rounded-full ${profile.is_open ? "bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.6)]" : "bg-slate-400"}`}
-              />
-              <span className="hidden sm:inline">
-                {profile.is_open ? "Open" : "Closed"}
-              </span>
-            </button>
-
-            {/* Save */}
-            <button
-              onClick={handleSave}
-              disabled={saving || uploading}
-              className="flex items-center gap-2 px-4 sm:px-6 py-2.5 bg-primary text-white rounded-xl font-semibold text-xs shadow-lg shadow-primary/20 hover:bg-primary/90 active:scale-95 transition-all disabled:opacity-60"
-            >
-              {uploading ? (
-                <><Loader2 size={14} className="animate-spin" /><span className="hidden sm:inline">Uploading...</span><span className="sm:hidden">...</span></>
-              ) : saving ? (
-                <><Loader2 size={14} className="animate-spin" /><span className="hidden sm:inline">Saving...</span><span className="sm:hidden">Saving</span></>
-              ) : (
-                <><Save size={14} /><span className="hidden sm:inline">Save & Sync</span><span className="sm:hidden">Save</span></>
-              )}
-            </button>
-          </div>
-        </div>
-
-        {/* ── Editor + Preview Grid ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Left: Editor */}
-          <div className="lg:col-span-8 space-y-4">
-            {/* Tab Bar — icon-only on mobile, labeled on sm+ */}
-            <div className="flex items-center gap-1 p-1.5 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-2xl shadow-xs overflow-x-auto no-scrollbar">
-              {TABS.map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  title={tab.label}
-                  className={`flex-1 min-w-[44px] flex items-center justify-center gap-1.5 px-2 sm:px-4 py-2.5 rounded-xl text-xs sm:text-xs font-black uppercase tracking-widest transition-all ${
-                    activeTab === tab.id
-                      ? "bg-primary text-white shadow-md shadow-primary/20"
-                      : "text-slate-500 hover:text-charcoal dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5"
-                  }`}
-                >
-                  <tab.icon size={15} className="shrink-0" />
-                  <span className="hidden sm:inline whitespace-nowrap">{tab.label}</span>
-                </button>
-              ))}
-            </div>
-
-            {/* ── Tab: Brand Identity ── */}
-            {activeTab === "identity" && (
-              <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl sm:rounded-3xl shadow-xs overflow-visible animate-fade-in">
-                {/* Logo + Name section — stacks vertically on mobile */}
-                <div className="p-4 sm:p-6 lg:p-8 flex flex-col gap-5 border-b border-slate-100 dark:border-white/5">
-                  {/* Logo Upload — centered on mobile */}
-                  <div className="flex items-center gap-4">
-                    <div
-                      onClick={() => logoInputRef.current?.click()}
-                      className="relative group shrink-0 cursor-pointer"
-                    >
-                      <div
-                        className={`w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-slate-50 dark:bg-zinc-800 border-2 border-dashed border-slate-200 dark:border-zinc-700 flex flex-col items-center justify-center overflow-hidden transition-all group-hover:border-primary ${profile.logo_url ? "border-solid" : ""}`}
-                      >
-                        {profile.logo_url ? (
-                          <img
-                            src={getSafeUrl(profile.logo_url, 0)}
-                            className="w-full h-full object-cover group-hover:opacity-70 transition-opacity"
-                            alt="Logo"
-                          />
-                        ) : (
-                          <div className="text-center p-2">
-                            <Camera size={20} className="mx-auto mb-1 text-slate-400 group-hover:text-primary transition-colors" />
-                            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 leading-snug">Logo</p>
-                          </div>
-                        )}
-                      </div>
-                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-primary/20 rounded-2xl pointer-events-none">
-                        <UploadCloud size={18} className="text-primary" />
-                      </div>
-                      <span className="absolute -bottom-2 -right-2 bg-primary text-white text-xs font-semibold px-2 py-0.5 rounded-full shadow-sm">
-                        {profile.logo_url ? "Change" : "Upload"}
-                      </span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mb-1.5">
-                        Business Name
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="e.g. Rizal Fashion Hub"
-                        value={profile.shop_name || ""}
-                        onChange={(e) => updateField("shop_name", e.target.value)}
-                        className="w-full px-3 py-2.5 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-bold text-charcoal dark:text-white placeholder:text-slate-400 focus:outline-hidden focus:border-primary transition-all"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Description — full width below */}
-                  <div>
-                    <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mb-1.5">
-                      Brand Bio / Description
-                    </label>
-                    <textarea
-                      rows={3}
-                      placeholder="Describe your store to customers..."
-                      value={profile.description || ""}
-                      onChange={(e) => updateField("description", e.target.value)}
-                      className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-medium text-charcoal dark:text-white placeholder:text-slate-400 focus:outline-hidden focus:border-primary transition-all resize-none"
-                    />
-                  </div>
-                </div>
-
-                {/* Unit + Contact + Category */}
-                <div className="p-4 sm:p-6 lg:p-8 space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1.5 mb-1.5">
-                        <MapPin size={11} /> Unit / Location
-                      </label>
-                      <div className="relative">
-                        <input
-                          type="text"
-                          value={profile.unit_id || ""}
-                          readOnly
-                          aria-label="Unit (assigned by the mall office)"
-                          className="w-full px-4 py-3 pr-16 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-semibold text-charcoal dark:text-white placeholder:text-slate-400 focus:outline-hidden focus:border-primary transition-all"
-                        />
-                      </div>
-                      <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Assigned by the mall office. Switch shops in the Workspace menu.</p>
-                    </div>
-                    <div>
-                      <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1.5 mb-1.5">
-                        <Phone size={11} /> Contact Number
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="+63 9XX XXX XXXX"
-                        className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-bold text-charcoal dark:text-white placeholder:text-slate-400 focus:outline-hidden focus:border-primary transition-all"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Store Category */}
-                  <div>
-                    <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1.5 mb-1.5">
-                      <Tag size={11} /> Store Category
-                    </label>
-                    <CustomSelect
-                      value={profile.category || "Fashion"}
-                      onChange={(value) => updateField("category", value)}
-                      options={STORE_CATEGORIES.map((cat) => ({ value: cat, label: cat }))}
-                      ariaLabel="Store category"
-                      buttonClassName="px-4! py-3! text-sm! dark:bg-zinc-800!"
-                    />
-                    <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1.5">
-                      This helps customers find your store in the mall directory.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* ── Tab: Gallery ── */}
-            {activeTab === "gallery" && (
-              <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl sm:rounded-3xl shadow-xs p-5 sm:p-6 lg:p-8 animate-fade-in space-y-5">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-semibold text-charcoal dark:text-white text-sm">
-                      Store Gallery
-                    </h3>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
-                      Upload photos of your store space and products
-                    </p>
-                  </div>
-                  <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                    {profile.gallery_urls?.length || 0} / 10
-                  </span>
-                </div>
-
-                {/* Upload Zone */}
-                <div
-                  onClick={() => galleryInputRef.current?.click()}
-                  className="group relative border-2 border-dashed border-slate-200 dark:border-white/10 rounded-2xl flex flex-col items-center justify-center p-8 sm:p-10 text-center hover:border-primary hover:bg-primary/5 transition-all cursor-pointer"
-                >
-                  <div className="w-12 h-12 bg-white dark:bg-zinc-800 shadow-md rounded-2xl flex items-center justify-center text-primary mb-3 group-hover:scale-110 transition-transform">
-                    <UploadCloud size={22} />
-                  </div>
-                  <p className="text-sm font-semibold text-charcoal dark:text-white">
-                    Click to upload photos
-                  </p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1">
-                    Supports JPG, PNG, WEBP · Max 10 images
-                  </p>
-                </div>
-
-                {/* Gallery Grid */}
-                {(profile.gallery_urls || []).length > 0 && (
-                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-                    {(profile.gallery_urls || []).map(
-                      (url: string, i: number) => (
-                        <div
-                          key={i}
-                          className="group/img relative aspect-square bg-slate-100 dark:bg-zinc-800 rounded-xl overflow-hidden"
-                        >
-                          <img
-                            src={getSafeUrl(url, i + 1)}
-                            className="w-full h-full object-cover group-hover/img:scale-110 transition-transform duration-500"
-                            alt="Gallery"
-                          />
-                          <button
-                            onClick={() => {
-                              const newGallery = (
-                                profile.gallery_urls || []
-                              ).filter((_: string, idx: number) => idx !== i);
-                              updateField("gallery_urls", newGallery);
-                            }}
-                            className="absolute top-1.5 right-1.5 w-6 h-6 bg-red-500 text-white rounded-lg flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-all shadow-lg"
-                          >
-                            <Trash2 size={11} />
-                          </button>
-                          <div className="absolute inset-0 bg-linear-to-t from-black/30 to-transparent opacity-0 group-hover/img:opacity-100 transition-opacity pointer-events-none" />
-                        </div>
-                      ),
+          {activeTab === "identity" && (
+            <Panel title="Brand identity" description="Logo, name and details shoppers use to find you.">
+              <div className="space-y-5">
+                <div className="flex flex-wrap items-center gap-4">
+                  <span className="relative flex size-24 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-kumo-line bg-kumo-recessed text-kumo-subtle">
+                    {profile.logo_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={getSafeUrl(profile.logo_url, 0)} alt="Your logo" className="absolute inset-0 size-full object-cover" />
+                    ) : (
+                      <Camera size={24} aria-hidden />
                     )}
-                    {/* Empty slots */}
-                    {Array.from({
-                      length: Math.max(
-                        0,
-                        3 - (profile.gallery_urls?.length || 0),
-                      ),
-                    }).map((_, i) => (
-                      <div
-                        key={`empty-${i}`}
-                        className="aspect-square bg-slate-50 dark:bg-zinc-900 rounded-xl border border-dashed border-slate-200 dark:border-white/5"
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* ── Tab: Product Catalog ── */}
-            {activeTab === "catalog" && (
-              <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl sm:rounded-3xl shadow-xs p-5 sm:p-6 lg:p-8 animate-fade-in space-y-5">
-                <div className="flex items-center justify-between">
+                  </span>
                   <div>
-                    <h3 className="font-semibold text-charcoal dark:text-white text-sm">
-                      Product Catalog
-                    </h3>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
-                      Showcase your top items on the public directory
-                    </p>
+                    <Button variant="secondary" icon={<UploadSimple />} disabled={uploading} onClick={() => logoInputRef.current?.click()}>
+                      {profile.logo_url ? "Change logo" : "Upload logo"}
+                    </Button>
+                    <p className="mt-1.5 text-sm text-kumo-subtle">A square picture works best.</p>
                   </div>
-                  <button
-                    onClick={addProduct}
-                    className="flex items-center gap-1.5 px-3 py-2 bg-primary text-white rounded-xl text-xs font-semibold hover:bg-primary/90 transition-colors shadow-md shadow-primary/20"
-                  >
-                    <Plus size={13} /> Add Item
-                  </button>
                 </div>
 
-                <div className="space-y-4">
-                  {profile.products?.map((product, index) => (
-                    <div
-                      key={product.id}
-                      className="group relative p-4 sm:p-5 bg-slate-50 dark:bg-zinc-800/50 border border-slate-100 dark:border-white/5 rounded-2xl flex flex-col sm:flex-row gap-4"
-                    >
-                      <button
-                        onClick={async () => {
-                          if (await confirmAction({ title: "Remove this product?", description: "It leaves your shop when you save your changes.", confirmLabel: "Remove product" })) removeProduct(index);
-                        }}
-                        className="absolute top-3 right-3 w-6 h-6 bg-red-500 text-white rounded-lg flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all shadow-md z-10"
-                      >
-                        <X size={11} />
-                      </button>
+                <Input
+                  label="Business name"
+                  placeholder="e.g. Rizal Fashion Hub"
+                  value={profile.shop_name || ""}
+                  onChange={(e) => updateField("shop_name", e.target.value)}
+                  className="w-full"
+                />
+                <InputArea
+                  label="Description"
+                  placeholder="Describe your store to customers"
+                  value={profile.description || ""}
+                  onValueChange={(v) => updateField("description", v)}
+                  rows={4}
+                  className="w-full"
+                />
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Select
+                    label="Store category"
+                    description="Helps shoppers find you in the mall directory."
+                    value={profile.category || "Fashion"}
+                    items={Object.fromEntries(STORE_CATEGORIES.map((c) => [c, c]))}
+                    onValueChange={(v) => v != null && updateField("category", v as string)}
+                    className="w-full"
+                  >
+                    {STORE_CATEGORIES.map((c) => (
+                      <Select.Option key={c} value={c}>
+                        {c}
+                      </Select.Option>
+                    ))}
+                  </Select>
+                  <Input
+                    label="Unit"
+                    description="Assigned by the mall office. Switch shops in the Workspace menu."
+                    value={profile.unit_id || ""}
+                    readOnly
+                    className="w-full"
+                  />
+                </div>
+                <p className="text-sm text-kumo-subtle">
+                  Contact number and opening hours are in{" "}
+                  <Link href="/tenantdashboard/profile-settings" className="font-medium text-kumo-link hover:underline">
+                    Profile Settings
+                  </Link>
+                  .
+                </p>
+              </div>
+            </Panel>
+          )}
 
-                      {/* Product Image */}
-                      <label className="shrink-0 w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-white dark:bg-zinc-900 border-2 border-dashed border-slate-200 dark:border-zinc-700 flex items-center justify-center cursor-pointer overflow-hidden hover:border-primary transition-all group/img mx-auto sm:mx-0">
-                        <input
-                          type="file"
-                          hidden
+          {activeTab === "gallery" && (
+            <Panel
+              title="Store gallery"
+              description={`Photos of your store and products. ${galleryUrls.length} of 10 used.`}
+              actions={
+                <Button variant="primary" icon={<UploadSimple />} loading={uploading} onClick={() => galleryInputRef.current?.click()}>
+                  Upload photos
+                </Button>
+              }
+            >
+              {galleryUrls.length === 0 ? (
+                <EmptyNote title="No photos yet">JPG, PNG or WEBP. The first photo is your shop card picture.</EmptyNote>
+              ) : (
+                <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  {galleryUrls.map((url, i) => (
+                    <li key={`${url}-${i}`} className="overflow-hidden rounded-lg border border-kumo-line">
+                      <span className="relative block aspect-square bg-kumo-recessed">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={getSafeUrl(url, i + 1)} alt={`Gallery photo ${i + 1}`} className="absolute inset-0 size-full object-cover" />
+                      </span>
+                      <span className="flex justify-end p-2">
+                        <Button
+                          size="sm"
+                          variant="secondary-destructive"
+                          icon={<Trash />}
+                          onClick={() => updateField("gallery_urls", galleryUrls.filter((_, idx) => idx !== i))}
+                        >
+                          Remove
+                        </Button>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Panel>
+          )}
+
+          {activeTab === "catalog" && (
+            <Panel
+              title="Products"
+              description="Items shown on your shop page and the mall's Products page."
+              actions={
+                <Button variant="primary" icon={<Plus />} onClick={addProduct}>
+                  Add Item
+                </Button>
+              }
+            >
+              {products.length === 0 ? (
+                <EmptyNote title="No products listed">Add products to show them on your public storefront.</EmptyNote>
+              ) : (
+                <ul className="space-y-4">
+                  {products.map((product, index) => (
+                    <li key={product.id} className="rounded-lg border border-kumo-line p-4">
+                      <div className="flex flex-col gap-4 sm:flex-row">
+                        <UploadBox
+                          url={product.image_url ? getSafeUrl(product.image_url, index + 2) : ""}
                           accept="image/*"
+                          label="Add photo"
+                          alt={product.name || "Product photo"}
+                          className="size-28"
                           onChange={(e) => handleProductImageUpload(e, index)}
                         />
-                        {product.image_url ? (
-                          <img
-                            src={getSafeUrl(product.image_url, index + 2)}
-                            className="w-full h-full object-cover group-hover/img:opacity-70 transition-opacity"
-                            alt="Product"
+                        <div className="grid min-w-0 flex-1 gap-3 sm:grid-cols-2">
+                          <Input
+                            label="Product name"
+                            value={product.name}
+                            onChange={(e) => updateProduct(index, "name", e.target.value)}
+                            placeholder="e.g. Leather Jacket"
+                            className="w-full"
                           />
-                        ) : (
-                          <div className="text-center p-2">
-                            <Camera
-                              size={18}
-                              className="mx-auto text-slate-300 group-hover/img:text-primary transition-colors"
-                            />
-                            <p className="text-xs text-slate-500 dark:text-slate-400 font-bold mt-1">
-                              Photo
-                            </p>
-                          </div>
-                        )}
-                      </label>
-
-                      {/* Fields */}
-                      <div className="flex-1 space-y-3">
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                          <div>
-                            <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mb-1">
-                              Product Name
-                            </label>
-                            <input
-                              type="text"
-                              value={product.name}
-                              onChange={(e) =>
-                                updateProduct(index, "name", e.target.value)
-                              }
-                              placeholder="e.g. Leather Jacket"
-                              className="w-full px-3 py-2.5 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-bold text-charcoal dark:text-white focus:outline-hidden focus:border-primary transition-all"
-                            />
-                          </div>
-                          <div>
-                            <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1 mb-1">
-                              <Tag size={9} /> Price
-                            </label>
-                            <input
-                              type="text"
-                              value={product.price}
-                              onChange={(e) =>
-                                updateProduct(index, "price", e.target.value)
-                              }
-                              placeholder="₱ 0.00"
-                              className="w-full px-3 py-2.5 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-semibold text-primary focus:outline-hidden focus:border-primary transition-all"
-                            />
-                          </div>
-                          <div>
-                            <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1 mb-1">
-                              <Package size={9} /> Stock
-                            </label>
-                            <input
-                              type="number"
-                              min={0}
-                              step={1}
-                              inputMode="numeric"
-                              value={product.stock ?? ""}
-                              onChange={(e) =>
-                                updateProduct(
-                                  index,
-                                  "stock",
-                                  e.target.value === "" ? null : Math.max(0, Math.floor(Number(e.target.value) || 0)),
-                                )
-                              }
-                              placeholder="e.g. 25"
-                              className="w-full px-3 py-2.5 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-bold text-charcoal dark:text-white focus:outline-hidden focus:border-primary transition-all"
-                            />
-                          </div>
-                          <div>
-                            <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1 mb-1">
-                              <ShoppingBag size={9} /> Category
-                            </label>
-                            <CustomSelect
-                              value={product.category || ""}
-                              onChange={(value) =>
-                                updateProduct(index, "category", value)
-                              }
-                              options={[
-                                { value: "", label: "Select category" },
-                                ...PRODUCT_CATEGORIES.map((cat) => ({
-                                  value: cat,
-                                  label: cat,
-                                })),
-                              ]}
-                              ariaLabel="Product category"
-                              buttonClassName={
-                                product.category
-                                  ? ""
-                                  : "border-amber-300! text-slate-400! dark:border-amber-500/40!"
-                              }
-                            />
-                          </div>
-                          <div className="col-span-2 sm:col-span-2">
-                            <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1 mb-1">
-                              <Eye size={9} /> Status
-                            </label>
-                            <CustomSelect
-                              value={product.status || "AVAILABLE"}
-                              onChange={(value) =>
-                                updateProduct(index, "status", value as StoreProduct["status"])
-                              }
-                              options={PRODUCT_STATUS_OPTIONS.map((option) => ({
-                                value: option.value,
-                                label: option.label,
-                                tone:
-                                  option.value === "HIDDEN"
-                                    ? "slate"
-                                    : option.value === "OUT_OF_STOCK"
-                                      ? "amber"
-                                      : "emerald",
-                                description:
-                                  option.value === "HIDDEN"
-                                    ? "Removed from the Store Catalog and product pages"
-                                    : option.value === "OUT_OF_STOCK"
-                                      ? "Still visible, marked as out of stock"
-                                      : "Visible and orderable in the Store Catalog",
-                              }))}
-                              ariaLabel="Product availability"
-                              buttonClassName={
-                                product.status === "HIDDEN"
-                                  ? "border-slate-300! text-slate-500! dark:border-white/20!"
-                                  : isOutOfStock(product)
-                                    ? "border-amber-300! text-amber-600! dark:border-amber-500/40! dark:text-amber-400!"
-                                    : "border-emerald-300! text-emerald-600! dark:border-emerald-500/30! dark:text-emerald-400!"
-                              }
-                            />
-                            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1">
-                              {product.status === "HIDDEN"
-                                ? "Not shown in the Store Catalog or product pages."
-                                : isOutOfStock(product)
-                                  ? "Shown with an “Out of stock” label."
-                                  : `Shown in the Store Catalog · ${availabilityLabel(product)}`}
-                            </p>
-                          </div>
-                        </div>
-                        <div>
-                          <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mb-1">
-                            Description
-                          </label>
-                          <textarea
-                            value={product.description}
+                          <Input
+                            label="Price (₱)"
+                            inputMode="decimal"
+                            value={product.price}
+                            onChange={(e) => updateProduct(index, "price", e.target.value)}
+                            placeholder="e.g. 250"
+                            className="w-full"
+                          />
+                          <Input
+                            label="Stock"
+                            type="number"
+                            min={0}
+                            step={1}
+                            inputMode="numeric"
+                            value={product.stock ?? ""}
                             onChange={(e) =>
                               updateProduct(
                                 index,
-                                "description",
-                                e.target.value,
+                                "stock",
+                                e.target.value === "" ? null : Math.max(0, Math.floor(Number(e.target.value) || 0)),
                               )
                             }
-                            rows={2}
-                            placeholder="Brief product description..."
-                            className="w-full px-3 py-2.5 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-medium text-slate-600 dark:text-slate-300 focus:outline-hidden focus:border-primary transition-all resize-none"
+                            placeholder="e.g. 25"
+                            className="w-full"
                           />
+                          <Select
+                            label="Category"
+                            value={product.category || ""}
+                            items={{ "": "Select category", ...Object.fromEntries(PRODUCT_CATEGORIES.map((c) => [c, c])) }}
+                            onValueChange={(v) => updateProduct(index, "category", (v as string) ?? "")}
+                            className="w-full"
+                          >
+                            <Select.Option value="">Select category</Select.Option>
+                            {PRODUCT_CATEGORIES.map((c) => (
+                              <Select.Option key={c} value={c}>
+                                {c}
+                              </Select.Option>
+                            ))}
+                          </Select>
+                          <div className="sm:col-span-2">
+                            <Select
+                              label="Status"
+                              description={
+                                product.status === "HIDDEN"
+                                  ? "Not shown to shoppers."
+                                  : isOutOfStock(product)
+                                    ? "Shown with an Out of stock note."
+                                    : `Shown to shoppers. ${availabilityLabel(product)}.`
+                              }
+                              value={product.status || "AVAILABLE"}
+                              items={Object.fromEntries(PRODUCT_STATUS_OPTIONS.map((o) => [o.value, o.label]))}
+                              onValueChange={(v) => v != null && updateProduct(index, "status", v as StoreProduct["status"])}
+                              className="w-full"
+                            >
+                              {PRODUCT_STATUS_OPTIONS.map((o) => (
+                                <Select.Option key={o.value} value={o.value}>
+                                  {o.label}
+                                </Select.Option>
+                              ))}
+                            </Select>
+                          </div>
+                          <div className="sm:col-span-2">
+                            <InputArea
+                              label="Description"
+                              value={product.description}
+                              onValueChange={(v) => updateProduct(index, "description", v)}
+                              rows={2}
+                              placeholder="Short product description"
+                              className="w-full"
+                            />
+                          </div>
                         </div>
                       </div>
-                    </div>
+                      <div className="mt-3 flex justify-end border-t border-kumo-line pt-3">
+                        <Button
+                          size="sm"
+                          variant="secondary-destructive"
+                          icon={<Trash />}
+                          onClick={async () => {
+                            if (await confirmAction({ title: "Remove this product?", description: "It leaves your shop when you save your changes.", confirmLabel: "Remove product" })) removeProduct(index);
+                          }}
+                        >
+                          Remove product
+                        </Button>
+                      </div>
+                    </li>
                   ))}
+                </ul>
+              )}
+            </Panel>
+          )}
 
-                  {(!profile.products || profile.products.length === 0) && (
-                    <div className="py-14 border-2 border-dashed border-slate-100 dark:border-white/5 rounded-2xl text-center">
-                      <ShoppingBag
-                        size={36}
-                        className="mx-auto text-slate-200 dark:text-zinc-700 mb-3"
-                      />
-                      <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">
-                        No products listed
-                      </p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1">
-                        Add products to showcase them on your public storefront
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* ── Tab: Post Sales ── */}
-            {activeTab === "postsales" && (
-              <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl sm:rounded-3xl shadow-xs p-5 sm:p-6 lg:p-8 animate-fade-in space-y-5">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-semibold text-charcoal dark:text-white text-sm">
-                      Shop Sales & Promos
-                    </h3>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
-                      Post your latest sales, discounts, or announcements
-                    </p>
-                  </div>
-                  <button
-                    onClick={addPostSale}
-                    className="flex items-center gap-1.5 px-3 py-2 bg-primary text-white rounded-xl text-xs font-semibold hover:bg-primary/90 transition-colors shadow-md shadow-primary/20"
-                  >
-                    <Plus size={13} /> Add Post
-                  </button>
-                </div>
-
-                <div className="space-y-4">
-                  {profile.post_sales?.map((post, index) => (
-                    <div
-                      key={post.id}
-                      className="group relative p-4 sm:p-5 bg-slate-50 dark:bg-zinc-800/50 border border-slate-100 dark:border-white/5 rounded-2xl flex flex-col sm:flex-row gap-4"
-                    >
-                      <button
-                        onClick={async () => {
-                          if (await confirmAction({ title: "Remove this post?", description: "It leaves your shop when you save your changes.", confirmLabel: "Remove post" })) removePostSale(index);
-                        }}
-                        className="absolute top-3 right-3 w-6 h-6 bg-red-500 text-white rounded-lg flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all shadow-md z-10"
-                      >
-                        <X size={11} />
-                      </button>
-
-                      {/* Post Image */}
-                      <label className="shrink-0 w-full sm:w-40 h-32 sm:h-auto rounded-2xl bg-white dark:bg-zinc-900 border-2 border-dashed border-slate-200 dark:border-zinc-700 flex items-center justify-center cursor-pointer overflow-hidden hover:border-primary transition-all group/img mx-auto sm:mx-0">
-                        <input
-                          type="file"
-                          hidden
+          {activeTab === "postsales" && (
+            <Panel
+              title="Shop sales"
+              description="Sales, discounts and announcements shown on the public page."
+              actions={
+                <Button variant="primary" icon={<Plus />} onClick={addPostSale}>
+                  Add Post
+                </Button>
+              }
+            >
+              {sales.length === 0 ? (
+                <EmptyNote title="No posts yet">Add a post to show your shop sale on the mall website.</EmptyNote>
+              ) : (
+                <ul className="space-y-4">
+                  {sales.map((post, index) => (
+                    <li key={post.id} className="rounded-lg border border-kumo-line p-4">
+                      <div className="flex flex-col gap-4 sm:flex-row">
+                        <UploadBox
+                          url={post.image_url || ""}
                           accept="image/*,video/*"
+                          label="Add photo or video"
+                          alt={post.title || "Sale picture"}
+                          className="h-36 w-full sm:w-48"
                           onChange={(e) => handlePostSaleImageUpload(e, index)}
                         />
-                        {post.image_url ? (
-                          post.image_url.startsWith("data:video") || post.image_url.match(/\.(mp4|webm|ogg)$/i) ? (
-                            <video
-                              src={post.image_url}
-                              autoPlay
-                              muted
-                              loop
-                              playsInline
-                              className="w-full h-full object-cover group-hover/img:opacity-70 transition-opacity"
-                            />
-                          ) : (
-                            <img
-                              src={post.image_url}
-                              className="w-full h-full object-cover group-hover/img:opacity-70 transition-opacity"
-                              alt="Post Sale"
-                            />
-                          )
-                        ) : (
-                          <div className="text-center p-2">
-                            <Camera
-                              size={18}
-                              className="mx-auto text-slate-300 group-hover/img:text-primary transition-colors"
-                            />
-                            <p className="text-xs text-slate-500 dark:text-slate-400 font-bold mt-1">
-                              Media
-                            </p>
-                          </div>
-                        )}
-                      </label>
-
-                      {/* Fields */}
-                      <div className="flex-1 space-y-3">
-                        <div>
-                          <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mb-1">
-                            Sale Title / Announcement
-                          </label>
-                          <input
-                            type="text"
+                        <div className="min-w-0 flex-1 space-y-3">
+                          <Input
+                            label="Sale title or announcement"
                             value={post.title}
-                            onChange={(e) =>
-                              updatePostSale(index, "title", e.target.value)
-                            }
-                            placeholder="e.g. 50% OFF Summer Sale!"
-                            className="w-full px-3 py-2.5 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-bold text-charcoal dark:text-white focus:outline-hidden focus:border-primary transition-all"
+                            onChange={(e) => updatePostSale(index, "title", e.target.value)}
+                            placeholder="e.g. 50% off this weekend"
+                            className="w-full"
                           />
-                        </div>
-                        <div>
-                          <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mb-1">
-                            Ends on
-                          </label>
-                          <input
+                          <Input
+                            label="Ends on"
                             type="date"
                             value={saleEndDateInput(post)}
                             min={phToday()}
                             onChange={(e) => updatePostSale(index, "ends_at", e.target.value)}
-                            className="w-full px-3 py-2.5 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-bold text-charcoal dark:text-white focus:outline-hidden focus:border-primary transition-all"
+                            className="w-full"
                           />
-                          <p className={`text-xs font-medium mt-1 ${isSaleActive(post) ? "text-slate-500 dark:text-slate-400" : "text-amber-500"}`}>
+                          <p className={cn("text-sm", isSaleActive(post) ? "text-kumo-subtle" : "font-medium text-kumo-warning")}>
                             {isSaleActive(post)
                               ? `Shown on the public page until ${formatSaleDate(saleEndsAt(post))}`
-                              : "Ended · no longer shown on the public page. Pick a new date to show it again."}
+                              : "Ended. Pick a new date to show it again."}
                           </p>
                         </div>
                       </div>
-                    </div>
+                      <div className="mt-3 flex justify-end border-t border-kumo-line pt-3">
+                        <Button
+                          size="sm"
+                          variant="secondary-destructive"
+                          icon={<Trash />}
+                          onClick={async () => {
+                            if (await confirmAction({ title: "Remove this post?", description: "It leaves your shop when you save your changes.", confirmLabel: "Remove post" })) removePostSale(index);
+                          }}
+                        >
+                          Remove post
+                        </Button>
+                      </div>
+                    </li>
                   ))}
-
-                  {(!profile.post_sales || profile.post_sales.length === 0) && (
-                    <div className="py-14 border-2 border-dashed border-slate-100 dark:border-white/5 rounded-2xl text-center">
-                      <Tag
-                        size={36}
-                        className="mx-auto text-slate-200 dark:text-zinc-700 mb-3"
-                      />
-                      <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">
-                        No posts yet
-                      </p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1">
-                        Add a post to show your shop sales on the main directory
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* ── Right: Live Preview (Desktop Only) ── */}
-          <div className="hidden lg:block lg:col-span-4">
-            <div className="sticky top-8 space-y-4">
-              {/* Preview Label */}
-              <div className="flex items-center gap-2.5 px-5 py-3.5 bg-charcoal dark:bg-zinc-900 border border-white/5 rounded-2xl">
-                <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-                <span className="text-xs font-semibold text-white/70">
-                  Live Public Preview
-                </span>
-              </div>
-
-              {/* Preview Card */}
-              <div className="bg-slate-100 dark:bg-zinc-800/50 border border-slate-200 dark:border-white/10 rounded-2xl p-5 relative overflow-hidden">
-                <div className="absolute top-4 right-[-28px] rotate-45 bg-primary text-white text-xs font-semibold px-4 sm:px-8 py-1 shadow-sm">
-                  Draft
-                </div>
-                <div className="scale-95 hover:scale-100 transition-transform duration-500 origin-top">
-                  <ShopCard shop={previewShop} />
-                </div>
-              </div>
-
-              {/* Status Card */}
-              <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl p-4 flex items-center gap-4">
-                <div
-                  className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${profile.is_open ? "bg-emerald-500/10 text-emerald-500" : "bg-slate-100 dark:bg-zinc-800 text-slate-400"}`}
-                >
-                  <Store size={18} />
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-charcoal dark:text-white">
-                    {profile.is_open ? "Store is Open" : "Store is Closed"}
-                  </p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
-                    Public visibility:{" "}
-                    <span
-                      className={
-                        profile.is_open ? "text-emerald-500" : "text-slate-500 dark:text-slate-400"
-                      }
-                    >
-                      {profile.is_open ? "Active" : "Hidden"}
-                    </span>
-                  </p>
-                </div>
-              </div>
-
-              {/* DB Status */}
-              <div className="flex items-center gap-3 px-4 py-3 bg-emerald-500/5 border border-emerald-500/20 rounded-xl">
-                <Loader2
-                  size={16}
-                  className="text-emerald-500 animate-spin-slow"
-                />
-                <div>
-                  <p className="text-xs font-semibold text-emerald-600">
-                    PostgreSQL Active
-                  </p>
-                  <p className="text-xs text-emerald-600/60 font-medium">
-                    Real-time persistence enabled
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
+                </ul>
+              )}
+            </Panel>
+          )}
         </div>
+
+        {/* Live preview (wide screens) */}
+        <aside className="hidden lg:col-span-4 lg:block">
+          <div className="sticky top-24 space-y-3">
+            <div>
+              <h2 className="text-base font-semibold text-kumo-default">Preview</h2>
+              <p className="text-sm text-kumo-subtle">Updates as you type. Shoppers see it after you save.</p>
+            </div>
+            <ShopCard shop={previewShop} />
+          </div>
+        </aside>
       </div>
-    </div>
+    </AdminPage>
+  );
+}
+
+/** A picture box that opens the file picker. */
+function UploadBox({
+  url,
+  accept,
+  label,
+  alt,
+  className,
+  onChange,
+}: {
+  url: string;
+  accept: string;
+  label: string;
+  alt: string;
+  className: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+}) {
+  const isVideo = url.startsWith("data:video") || /\.(mp4|webm|ogg)$/i.test(url);
+  return (
+    <label
+      className={cn(
+        "relative flex shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-lg border border-dashed border-kumo-line bg-kumo-recessed text-center focus-within:ring-2 focus-within:ring-kumo-brand hover:border-kumo-brand",
+        className,
+      )}
+    >
+      <input type="file" className="sr-only" accept={accept} aria-label={url ? "Change file" : label} onChange={onChange} />
+      {!url ? (
+        <span className="flex flex-col items-center gap-1 p-2 text-sm text-kumo-subtle">
+          <Camera size={20} aria-hidden />
+          {label}
+        </span>
+      ) : (
+        <>
+          {isVideo ? (
+            <video src={url} autoPlay muted loop playsInline className="absolute inset-0 size-full object-cover" aria-label={alt} />
+          ) : (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={url} alt={alt} className="absolute inset-0 size-full object-cover" />
+          )}
+          <span className="absolute inset-x-0 bottom-0 bg-black/60 py-1 text-xs font-medium text-white">Change</span>
+        </>
+      )}
+    </label>
   );
 }

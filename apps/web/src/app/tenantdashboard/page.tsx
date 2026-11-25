@@ -1,51 +1,34 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import {
-  Users,
-  Star,
-  TrendingUp,
-  Store,
-  ArrowRight,
-  Receipt,
-  MessageSquare,
-  Activity,
-  Monitor,
-  Sparkles,
-  Calendar,
-  ShieldCheck,
-  MapPin,
-  CheckCircle,
-  ArrowUpRight,
-  Clock,
-  AlertCircle,
-  CheckCircle2,
-} from "lucide-react";
 import Link from "next/link";
+import { Loader, cn } from "@cloudflare/kumo";
+import { Megaphone, Receipt, ChatCircle, Storefront, Star } from "@phosphor-icons/react";
 import { useAuth } from "@/app/providers";
 import { getApprovedReviewsAction } from "@/app/actions/review";
 import { getStorefrontAction } from "@/app/actions/tenant";
 import { getTenantPaymentScheduleAction } from "@/app/actions/finance";
-import clsx from "clsx";
+import { AdminPage, EmptyNote, Panel, Stat, StatRow } from "@/components/admin/page-kit";
 
-function SpinnerIcon(props: any) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-    </svg>
-  );
-}
+const LINK = "inline-flex h-9 items-center gap-2 rounded-lg px-3 text-sm font-medium";
+const LINK_PRIMARY = cn(LINK, "bg-kumo-brand text-white hover:bg-kumo-brand-hover");
+const LINK_QUIET = cn(LINK, "border border-kumo-line text-kumo-default hover:bg-kumo-tint");
+
+const SECTIONS = [
+  { href: "/tenantdashboard/digital-storefront", label: "Storefront", help: "Shop details and products", icon: Storefront },
+  { href: "/tenantdashboard/ad-promo-manager", label: "Ads & Promos", help: "Submit a promotion", icon: Megaphone },
+  { href: "/tenantdashboard/customer-messenger", label: "Messages", help: "Reply to shoppers", icon: ChatCircle },
+  { href: "/tenantdashboard/payments", label: "Payments", help: "Bills and proof of payment", icon: Receipt },
+];
+
+const PAYMENT_STATUS = {
+  Paid: { label: "Paid up to date", tone: "success", dateLabel: "Next billing date", amountLabel: "Last amount paid" },
+  Pending: { label: "Payment due", tone: "warning", dateLabel: "Due date", amountLabel: "Amount due" },
+  Overdue: { label: "Overdue", tone: "danger", dateLabel: "Was due", amountLabel: "Amount due" },
+  Reviewing: { label: "Proof being checked", tone: "default", dateLabel: "Due date", amountLabel: "Amount due" },
+} as const;
+
+const peso = (n: number) => `₱${n.toLocaleString("en-PH")}`;
 
 export default function TenantDashboard() {
   const { user } = useAuth();
@@ -136,556 +119,157 @@ export default function TenantDashboard() {
     loadData();
   }, [user?.id]);
 
-  const quickLinks = [
-    {
-      href: "/tenantdashboard/digital-storefront",
-      label: "Storefront",
-      icon: Store,
-      color: "text-primary",
-      bg: "bg-primary/10",
-    },
-    {
-      href: "/tenantdashboard/ad-promo-manager",
-      label: "Ads & Promos",
-      icon: TrendingUp,
-      color: "text-purple-500",
-      bg: "bg-purple-500/10",
-    },
-    {
-      href: "/tenantdashboard/customer-messenger",
-      label: "Messages",
-      icon: MessageSquare,
-      color: "text-blue-500",
-      bg: "bg-blue-500/10",
-    },
-    {
-      href: "/tenantdashboard/payments",
-      label: "Payments",
-      icon: Receipt,
-      color: "text-emerald-500",
-      bg: "bg-emerald-500/10",
-    },
-  ];
+  const loading = (value: React.ReactNode) => (isLoading ? "..." : value);
+  const scheduled = (value: React.ReactNode) => (isLoadingSchedule ? "..." : value);
+  const pay = paymentSchedule;
+  const status = pay ? PAYMENT_STATUS[pay.paymentStatus] ?? PAYMENT_STATUS.Pending : null;
+  const hasUnit = !!unitId && !/PENDING|UNASSIGNED/.test(unitId);
+  const unitText = hasUnit ? `Unit ${unitId}` : "No unit assigned yet";
+  const unpaid = pay?.totalUnpaidBalance ?? 0;
 
   return (
-    <div className="p-3 sm:p-5 lg:p-6 space-y-4 max-w-[1600px] mx-auto pb-20 lg:pb-6">
-      {/* ── HEADER CARD ── */}
-      <header className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl px-5 py-4 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-4 min-w-0">
-          <div className="relative shrink-0">
-            <div className="w-12 h-12 bg-primary/10 rounded-xl border border-primary/20 flex items-center justify-center">
-              <Store size={22} className="text-primary" />
-            </div>
-            <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-white dark:border-zinc-900">
-              <span className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-60" />
-            </span>
-          </div>
+    <AdminPage
+      title="Overview"
+      description={isLoading ? "Loading your shop..." : `${shopName || "Your shop"}, ${unitText}`}
+      actions={
+        <Link href="/tenantdashboard/digital-storefront" className={LINK_QUIET}>
+          <Storefront size={16} aria-hidden /> Edit storefront
+        </Link>
+      }
+    >
+      <StatRow>
+        <Stat
+          label={status?.amountLabel ?? "Amount due"}
+          value={scheduled(pay ? peso(pay.paymentAmount || 0) : "Not set")}
+          hint={status?.label}
+          tone={status?.tone}
+          href="/tenantdashboard/payments"
+        />
+        <Stat
+          label={status?.dateLabel ?? "Due date"}
+          value={scheduled(formatDate(pay?.nextPaymentDate))}
+          hint={pay?.paymentMonth}
+          href="/tenantdashboard/payments"
+        />
+        <Stat
+          label="Unpaid balance"
+          value={scheduled(pay ? peso(unpaid) : "Not set")}
+          hint={pay ? `${pay.paidInvoicesCount ?? 0} of ${pay.totalInvoices ?? 0} bills paid` : undefined}
+          tone={unpaid > 0 ? "danger" : "default"}
+          href="/tenantdashboard/payments"
+        />
+        <Stat
+          label="Shop rating"
+          value={loading(liveReviews.length ? avgRating.toFixed(1) : "No rating")}
+          hint={isLoading ? undefined : `${liveReviews.length} review${liveReviews.length === 1 ? "" : "s"}`}
+          href="/tenantdashboard/feedback-reviews"
+        />
+      </StatRow>
 
-          <div className="min-w-0">
-            <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-charcoal dark:text-white">
-              Overview
-            </h1>
-            <p className="text-xs text-slate-500 font-semibold mt-0.5 flex items-center gap-2 flex-wrap">
-              <span className="flex items-center gap-1">
-                <Store size={10} />{" "}
-                <span className="truncate max-w-[120px] sm:max-w-none">
-                  {shopName || "Your store"}
-                </span>
-              </span>
-              <span className="text-slate-500 dark:text-slate-700">·</span>
-              <span className="flex items-center gap-1">
-                <MapPin size={10} className="text-primary/50" /> Unit{" "}
-                {unitId || "L1-105"}
-              </span>
-              <span className="text-slate-500 dark:text-slate-700">·</span>
-              <span className="flex items-center gap-1">
-                <Star size={10} className="text-amber-400 fill-amber-400" />{" "}
-                {isLoading ? "—" : avgRating}
-              </span>
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3 shrink-0">
-          <div className="hidden sm:flex items-center gap-2 px-3 py-2 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-100 dark:border-white/5">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-            </span>
-            <span className="text-xs font-semibold text-emerald-500">
-              Synced
-            </span>
-          </div>
-          <button className="p-2.5 bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-xl text-slate-500 dark:text-slate-400 hover:text-primary transition-all">
-            <Activity size={18} />
-          </button>
-          <Link
-            href="/tenantdashboard/digital-storefront"
-            className="hidden sm:flex items-center gap-1.5 px-4 py-2.5 bg-charcoal dark:bg-white text-white dark:text-charcoal rounded-xl font-semibold text-xs hover:bg-primary dark:hover:bg-primary dark:hover:text-white transition-all shadow-lg group"
-          >
-            Storefront{" "}
-            <ArrowUpRight
-              size={14}
-              className="group-hover:-translate-y-0.5 group-hover:translate-x-0.5 transition-transform"
-            />
-          </Link>
-        </div>
-      </header>
-
-      {/* ── MAIN BENTO GRID ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
-        {/* ── KPI CARD 1: SENTIMENT ── */}
-        <div className="col-span-1 bg-white dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-2xl p-5 shadow-xs relative overflow-hidden group hover:scale-[1.02] transition-all flex flex-col justify-between">
-          <div className="absolute -top-6 -right-6 w-24 h-24 bg-amber-500/5 blur-2xl rounded-full pointer-events-none" />
-          <div className="w-9 h-9 bg-amber-500/10 text-amber-500 rounded-xl flex items-center justify-center group-hover:rotate-12 transition-transform">
-            <Star size={18} />
-          </div>
-          <div>
-            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
-              Sentiment Rating
-            </p>
-            <div className="flex items-end justify-between gap-1">
-              <span className="text-2xl font-semibold text-charcoal dark:text-white tracking-tight">
-                {isLoading ? "—" : avgRating.toFixed(1)}
-              </span>
-              <span className="text-xs font-semibold text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded-lg mb-0.5">
-                Stars
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* ── KPI CARD 2: REVIEWS ── */}
-        <div className="col-span-1 bg-white dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-2xl p-5 shadow-xs relative overflow-hidden group hover:scale-[1.02] transition-all flex flex-col justify-between">
-          <div className="absolute -top-6 -right-6 w-24 h-24 bg-primary/5 blur-2xl rounded-full pointer-events-none" />
-          <div className="w-9 h-9 bg-primary/10 text-primary rounded-xl flex items-center justify-center group-hover:-rotate-12 transition-transform">
-            <MessageSquare size={18} />
-          </div>
-          <div>
-            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
-              Total Feedback
-            </p>
-            <div className="flex items-end justify-between gap-1">
-              <span className="text-2xl font-semibold text-charcoal dark:text-white tracking-tight">
-                {isLoading ? "—" : liveReviews.length}
-              </span>
-              <span className="text-xs font-semibold text-primary bg-primary/10 px-1.5 py-0.5 rounded-lg mb-0.5">
-                Reviews
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* ── STOREFRONT MANIFEST (col-span 4, row-span 2 on lg) ── */}
-        <div className="col-span-2 lg:col-span-4 lg:row-span-2 bg-white dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-2xl shadow-xs overflow-hidden group flex flex-col relative">
-          <div className="absolute top-0 right-0 w-48 h-48 bg-primary/5 blur-[80px] rounded-full pointer-events-none" />
-          <div className="px-6 py-4 border-b border-slate-50 dark:border-white/5 flex items-center justify-between bg-white/40 dark:bg-black/10 relative z-10">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 bg-primary/10 text-primary rounded-xl flex items-center justify-center">
-                <Monitor size={17} />
-              </div>
-              <div>
-                <p className="text-xs font-semibold text-charcoal dark:text-white leading-none">
-                  Your storefront
-                </p>
-                <p className="text-xs text-slate-500 dark:text-slate-400 font-bold mt-0.5">
-                  How shoppers see your shop
-                </p>
-              </div>
-            </div>
-            <Link
-              href="/tenantdashboard/digital-storefront"
-              className="p-2 bg-white dark:bg-zinc-800 rounded-lg text-primary hover:scale-110 transition-transform shadow-xs border border-slate-100 dark:border-white/5"
-            >
-              <ArrowRight size={16} />
-            </Link>
-          </div>
-          <div className="px-6 py-5 flex-1 flex items-center relative z-10">
-            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 w-full">
-              <div className="relative shrink-0">
-                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-slate-50 dark:bg-black/40 border-4 border-white dark:border-zinc-800 shadow-xl flex items-center justify-center group-hover:scale-105 transition-transform duration-500">
-                  <Store size={36} className="text-slate-300" />
-                </div>
-                <div className="absolute -bottom-1.5 -right-1.5 bg-emerald-500 p-1.5 rounded-xl text-white shadow-lg border-2 border-white dark:border-zinc-900">
-                  <ShieldCheck size={13} />
-                </div>
-              </div>
-              <div className="flex-1 text-center sm:text-left space-y-3 min-w-0">
-                <div>
-                  <h3 className="text-2xl sm:text-3xl lg:text-4xl font-semibold text-charcoal dark:text-white tracking-tight leading-none wrap-break-word">
-                    {shopName || "Your store"}
-                  </h3>
-                  <p className="text-sm text-slate-500 mt-1.5 flex items-center justify-center sm:justify-start gap-1.5">
-                    <MapPin size={13} className="text-primary" /> Unit{" "}
-                    {unitId && !/PENDING|UNASSIGNED/.test(unitId) ? unitId : "not assigned yet"}
-                  </p>
-                </div>
-                <p className="flex items-center justify-center sm:justify-start gap-1.5 text-sm text-slate-500">
-                  <Star size={13} className="fill-current text-amber-500" /> {avgRating} average rating
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* ── LIVE SIGNALS (col-span 2, row-span 2) ── */}
-        <div className="col-span-2 lg:row-span-2 bg-white dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-2xl shadow-xs overflow-hidden flex flex-col">
-          <div className="px-5 py-3.5 border-b border-slate-50 dark:border-white/5 flex items-center justify-between bg-white/40 dark:bg-black/10">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 bg-amber-500/10 text-amber-500 rounded-lg flex items-center justify-center">
-                <Star size={16} />
-              </div>
-              <span className="text-xs font-semibold text-charcoal dark:text-white">
-                Recent reviews
-              </span>
-            </div>
-            <Link
-              href="/tenantdashboard/feedback-reviews"
-              className="p-1.5 bg-slate-50 dark:bg-white/5 hover:bg-primary/10 text-slate-400 hover:text-primary rounded-lg transition-all border border-slate-100 dark:border-white/5"
-            >
-              <ArrowUpRight size={15} />
-            </Link>
-          </div>
-          <div
-            className="flex-1 overflow-y-auto divide-y divide-slate-50 dark:divide-white/5 max-h-[280px] lg:max-h-none"
-            style={{
-              scrollbarWidth: "thin",
-              scrollbarColor: "rgba(0,0,0,0.05) transparent",
-            }}
-          >
-            {isLoading ? (
-              <div className="py-10 flex justify-center">
-                <SpinnerIcon className="text-primary animate-spin" />
-              </div>
-            ) : liveReviews.length > 0 ? (
-              liveReviews.slice(0, 5).map((r, i) => (
-                <div
-                  key={i}
-                  className="px-5 py-3.5 hover:bg-slate-50 dark:hover:bg-white/2 transition-all border-l-2 border-transparent hover:border-primary cursor-default"
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-semibold text-xs shrink-0 capitalize border border-primary/10">
-                      {r.user?.name?.[0] || "S"}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2 mb-1">
-                        <p className="text-xs font-semibold text-charcoal dark:text-white truncate tracking-tight">
-                          {r.user?.name?.split(" ")[0] || "Shopper"}
-                        </p>
-                        <div className="flex gap-0.5 shrink-0">
-                          {[...Array(5)].map((_, s) => (
-                            <Sparkles
-                              key={s}
-                              size={8}
-                              className={
-                                s < r.rating
-                                  ? "text-amber-400 fill-amber-400"
-                                  : "text-slate-200 dark:text-zinc-800"
-                              }
-                            />
-                          ))}
-                        </div>
-                      </div>
-                      <p className="text-xs text-slate-500 italic line-clamp-1">
-                        "{r.comment || "No comment."}"
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="py-10 flex flex-col items-center gap-2 opacity-40">
-                <MessageSquare size={28} className="text-slate-300" />
-                <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                  No reviews yet
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* ── QUICK ACCESS LINKS ── */}
-        {quickLinks.map((item) => (
+      <nav aria-label="Shop sections" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {SECTIONS.map((item) => (
           <Link
             key={item.href}
             href={item.href}
-            className="col-span-1 bg-white dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-2xl p-4 shadow-xs hover:shadow-lg hover:-translate-y-1 transition-all group flex flex-col items-center text-center gap-3"
+            className="flex min-w-0 items-center gap-3 rounded-xl border border-kumo-line bg-kumo-base p-4 hover:border-kumo-brand hover:bg-kumo-tint"
           >
-            <div
-              className={clsx(
-                "w-10 h-10 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-xs",
-                item.bg,
-                item.color,
-              )}
-            >
-              <item.icon size={20} />
-            </div>
-            <p className="text-xs font-semibold text-charcoal dark:text-white leading-tight group-hover:text-primary transition-colors">
-              {item.label}
-            </p>
+            <item.icon size={24} aria-hidden className="shrink-0 text-kumo-brand" />
+            <span className="min-w-0">
+              <span className="block text-sm font-semibold text-kumo-default">{item.label}</span>
+              <span className="hidden text-sm text-kumo-subtle sm:block">{item.help}</span>
+            </span>
           </Link>
         ))}
-      </div>
+      </nav>
 
-      {/* ── PAYMENT SCHEDULE SECTION ── */}
-      <section className="bg-white dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-2xl shadow-xs p-5 sm:p-6 relative overflow-hidden group">
-        {/* Ambient background glow */}
-        <div className="absolute top-0 right-0 w-72 h-72 bg-emerald-500/5 blur-[90px] rounded-full pointer-events-none" />
-
-        {/* Section Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-50 dark:border-white/5 relative z-10">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-xl flex items-center justify-center shrink-0 border border-emerald-500/15">
-              <Calendar size={20} />
+      <div className="grid items-start gap-6 lg:grid-cols-5">
+        <Panel
+          className="lg:col-span-3"
+          title="Payments"
+          description="Your rent bill and payment record"
+          actions={
+            <>
+              <Link href="/tenantdashboard/payments" className={LINK_QUIET}>
+                Lease and billing
+              </Link>
+              <Link href="/tenantdashboard/payments" className={LINK_PRIMARY}>
+                Submit proof of payment
+              </Link>
+            </>
+          }
+        >
+          {isLoadingSchedule ? (
+            <div className="flex justify-center py-8">
+              <Loader />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-sm sm:text-base font-semibold text-charcoal dark:text-white leading-none">
-                  Payment Schedule
-                </h2>
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 rounded-full text-xs font-semibold">
-                  Remittance Cycle
-                </span>
-              </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400 font-bold mt-1">
-                Dues timeline, next scheduled billing &amp; payment records
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 shrink-0">
-            {paymentSchedule && (
-              <span
-                className={clsx(
-                  "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border",
-                  paymentSchedule.paymentStatus === "Paid"
-                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
-                    : paymentSchedule.paymentStatus === "Overdue"
-                      ? "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20"
-                      : paymentSchedule.paymentStatus === "Reviewing"
-                        ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20"
-                        : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
-                )}
-              >
+          ) : !pay ? (
+            <EmptyNote title="No payment details yet">Your bills appear here once the mall office sets up your lease.</EmptyNote>
+          ) : (
+            <dl className="divide-y divide-kumo-line">
+              <Row label="Status">
                 <span
-                  className={clsx(
-                    "w-1.5 h-1.5 rounded-full",
-                    paymentSchedule.paymentStatus === "Paid"
-                      ? "bg-emerald-500 animate-pulse"
-                      : paymentSchedule.paymentStatus === "Overdue"
-                        ? "bg-red-500 animate-ping"
-                        : paymentSchedule.paymentStatus === "Reviewing"
-                          ? "bg-blue-500 animate-pulse"
-                          : "bg-amber-500 animate-pulse",
+                  className={cn(
+                    "font-semibold",
+                    status?.tone === "success" && "text-kumo-success",
+                    status?.tone === "warning" && "text-kumo-warning",
+                    status?.tone === "danger" && "text-kumo-danger",
                   )}
-                />
-                {paymentSchedule.paymentStatus === "Paid"
-                  ? "Settled / Up to Date"
-                  : paymentSchedule.paymentStatus === "Overdue"
-                    ? "Overdue Account"
-                    : paymentSchedule.paymentStatus === "Reviewing"
-                      ? "Proof Under Review"
-                      : "Payment Due"}
-              </span>
-            )}
+                >
+                  {status?.label}
+                </span>
+              </Row>
+              <Row label="Billing month">{pay.paymentMonth || "Current month"}</Row>
+              <Row label="Bill">{pay.invoiceNumber ? `Invoice ${pay.invoiceNumber}` : "Monthly rent"}</Row>
+              <Row label={status?.amountLabel ?? "Amount"}>{peso(pay.paymentAmount || 0)}</Row>
+              <Row label={status?.dateLabel ?? "Due date"}>{formatDate(pay.nextPaymentDate)}</Row>
+              <Row label="Last payment">{formatDate(pay.lastPaymentDate)}</Row>
+            </dl>
+          )}
+        </Panel>
 
-            <Link
-              href="/tenantdashboard/payments"
-              className="flex items-center gap-1 px-3 py-1.5 bg-slate-50 dark:bg-white/5 hover:bg-primary/10 text-slate-500 dark:text-slate-400 hover:text-primary rounded-xl text-xs font-semibold transition-all border border-slate-100 dark:border-white/5"
-            >
-              <span>Lease &amp; Billing</span>
-              <ArrowUpRight size={13} />
+        <Panel
+          className="lg:col-span-2"
+          flush
+          title="Recent reviews"
+          actions={
+            <Link href="/tenantdashboard/feedback-reviews" className={LINK_QUIET}>
+              All reviews
             </Link>
-          </div>
-        </div>
+          }
+        >
+          {isLoading ? (
+            <div className="flex justify-center py-8">
+              <Loader />
+            </div>
+          ) : liveReviews.length === 0 ? (
+            <EmptyNote title="No reviews yet">Reviews appear here when shoppers rate your shop.</EmptyNote>
+          ) : (
+            <ul className="divide-y divide-kumo-line">
+              {liveReviews.slice(0, 5).map((r, i) => (
+                <li key={r.id ?? i} className="px-4 py-3 sm:px-5">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="truncate text-sm font-medium text-kumo-default">{r.user?.name?.split(" ")[0] || "Shopper"}</p>
+                    <span className="flex shrink-0 items-center gap-1 text-sm text-kumo-default" aria-label={`${r.rating} out of 5 stars`}>
+                      <Star size={14} weight="fill" className="text-amber-500" aria-hidden />
+                      {r.rating}
+                    </span>
+                  </div>
+                  <p className="line-clamp-2 text-sm text-kumo-subtle">{r.comment || "No comment."}</p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Panel>
+      </div>
+    </AdminPage>
+  );
+}
 
-        {/* 5 Core Schedule Metrics */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 pt-5 relative z-10">
-          {/* 1. Next Payment Date */}
-          <div className="bg-slate-50/60 dark:bg-black/20 border border-slate-100 dark:border-white/5 rounded-xl p-4 flex flex-col justify-between hover:border-emerald-500/30 transition-all group/box">
-            <div className="flex items-center justify-between gap-2 mb-2">
-              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                Next Payment Date
-              </span>
-              <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-                <Calendar size={14} />
-              </div>
-            </div>
-            <div>
-              <p className="text-lg sm:text-xl font-semibold text-charcoal dark:text-white tracking-tight leading-snug">
-                {isLoadingSchedule
-                  ? "—"
-                  : formatDate(paymentSchedule?.nextPaymentDate)}
-              </p>
-              <p className="text-xs font-bold text-slate-500 dark:text-slate-500 mt-0.5">
-                {paymentSchedule?.paymentStatus === "Overdue"
-                  ? "Immediate Settlement Required"
-                  : paymentSchedule?.paymentStatus === "Paid"
-                    ? "Next Billing Cycle"
-                    : "Due Date"}
-              </p>
-            </div>
-          </div>
-
-          {/* 2. Payment Month */}
-          <div className="bg-slate-50/60 dark:bg-black/20 border border-slate-100 dark:border-white/5 rounded-xl p-4 flex flex-col justify-between hover:border-blue-500/30 transition-all group/box">
-            <div className="flex items-center justify-between gap-2 mb-2">
-              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                Payment Month
-              </span>
-              <div className="w-7 h-7 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-                <Clock size={14} />
-              </div>
-            </div>
-            <div>
-              <p className="text-lg sm:text-xl font-semibold text-charcoal dark:text-white tracking-tight leading-snug truncate">
-                {isLoadingSchedule
-                  ? "—"
-                  : paymentSchedule?.paymentMonth || "Current Cycle"}
-              </p>
-              <p className="text-xs font-bold text-slate-500 dark:text-slate-500 mt-0.5">
-                Billing Period
-              </p>
-            </div>
-          </div>
-
-          {/* 3. Payment Amount */}
-          <div className="bg-slate-50/60 dark:bg-black/20 border border-slate-100 dark:border-white/5 rounded-xl p-4 flex flex-col justify-between hover:border-primary/30 transition-all group/box">
-            <div className="flex items-center justify-between gap-2 mb-2">
-              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                Payment Amount
-              </span>
-              <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
-                <Receipt size={14} />
-              </div>
-            </div>
-            <div>
-              <p className="text-lg sm:text-xl font-semibold text-primary tracking-tight leading-snug">
-                {isLoadingSchedule
-                  ? "—"
-                  : `₱${(paymentSchedule?.paymentAmount || 0).toLocaleString()}`}
-              </p>
-              <p className="text-xs font-bold text-slate-500 dark:text-slate-500 mt-0.5 truncate">
-                {paymentSchedule?.invoiceNumber
-                  ? `Invoice ${paymentSchedule.invoiceNumber}`
-                  : "Monthly Rental Fee"}
-              </p>
-            </div>
-          </div>
-
-          {/* 4. Payment Status */}
-          <div className="bg-slate-50/60 dark:bg-black/20 border border-slate-100 dark:border-white/5 rounded-xl p-4 flex flex-col justify-between hover:border-amber-500/30 transition-all group/box">
-            <div className="flex items-center justify-between gap-2 mb-2">
-              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                Payment Status
-              </span>
-              <div
-                className={clsx(
-                  "w-7 h-7 rounded-lg flex items-center justify-center",
-                  paymentSchedule?.paymentStatus === "Paid"
-                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                    : paymentSchedule?.paymentStatus === "Overdue"
-                      ? "bg-red-500/10 text-red-600 dark:text-red-400"
-                      : paymentSchedule?.paymentStatus === "Reviewing"
-                        ? "bg-blue-500/10 text-blue-600 dark:text-blue-400"
-                        : "bg-amber-500/10 text-amber-600 dark:text-amber-400",
-                )}
-              >
-                {paymentSchedule?.paymentStatus === "Paid" ? (
-                  <CheckCircle size={14} />
-                ) : paymentSchedule?.paymentStatus === "Overdue" ? (
-                  <AlertCircle size={14} />
-                ) : (
-                  <Clock size={14} />
-                )}
-              </div>
-            </div>
-            <div>
-              <span
-                className={clsx(
-                  "text-lg sm:text-xl font-semibold tracking-tight leading-snug",
-                  paymentSchedule?.paymentStatus === "Paid"
-                    ? "text-emerald-600 dark:text-emerald-400"
-                    : paymentSchedule?.paymentStatus === "Overdue"
-                      ? "text-red-600 dark:text-red-400"
-                      : paymentSchedule?.paymentStatus === "Reviewing"
-                        ? "text-blue-600 dark:text-blue-400"
-                        : "text-amber-600 dark:text-amber-400",
-                )}
-              >
-                {isLoadingSchedule
-                  ? "—"
-                  : paymentSchedule?.paymentStatus || "Pending"}
-              </span>
-              <p className="text-xs font-bold text-slate-500 dark:text-slate-500 mt-0.5">
-                {paymentSchedule?.paymentStatus === "Paid"
-                  ? "Cleared Standing"
-                  : paymentSchedule?.paymentStatus === "Overdue"
-                    ? "Past Due Date"
-                    : paymentSchedule?.paymentStatus === "Reviewing"
-                      ? "Awaiting Admin Verification"
-                      : "Awaiting Remittance"}
-              </p>
-            </div>
-          </div>
-
-          {/* 5. Last Payment Date */}
-          <div className="bg-slate-50/60 dark:bg-black/20 border border-slate-100 dark:border-white/5 rounded-xl p-4 flex flex-col justify-between hover:border-purple-500/30 transition-all group/box sm:col-span-2 lg:col-span-1">
-            <div className="flex items-center justify-between gap-2 mb-2">
-              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                Last Payment Date
-              </span>
-              <div className="w-7 h-7 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center">
-                <ShieldCheck size={14} />
-              </div>
-            </div>
-            <div>
-              <p className="text-lg sm:text-xl font-semibold text-charcoal dark:text-white tracking-tight leading-snug">
-                {isLoadingSchedule
-                  ? "—"
-                  : paymentSchedule?.lastPaymentDate
-                    ? formatDate(paymentSchedule.lastPaymentDate)
-                    : "None recorded"}
-              </p>
-              <p className="text-xs font-bold text-slate-500 dark:text-slate-500 mt-0.5">
-                {paymentSchedule?.lastPaymentDate
-                  ? "Last Settled Transaction"
-                  : "No Prior Remittance"}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Ledger Summary & Action Link */}
-        <div className="mt-4 pt-4 border-t border-slate-50 dark:border-white/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-slate-500">
-          <div className="flex items-center gap-2 flex-wrap font-medium">
-            <span className="font-bold text-charcoal dark:text-white">
-              Payment Record:
-            </span>
-            <span>
-              {paymentSchedule
-                ? `${paymentSchedule.paidInvoicesCount ?? 0} of ${paymentSchedule.totalInvoices ?? 0} Invoices Cleared`
-                : "Checking ledger..."}
-            </span>
-            {(paymentSchedule?.totalUnpaidBalance ?? 0) > 0 && (
-              <span className="text-red-500 font-bold">
-                • Total Outstanding: ₱{(paymentSchedule?.totalUnpaidBalance ?? 0).toLocaleString()}
-              </span>
-            )}
-          </div>
-
-          <Link
-            href="/tenantdashboard/payments"
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:text-primary-hover group/link shrink-0"
-          >
-            <span>Submit Proof of Payment</span>
-            <ArrowRight
-              size={12}
-              className="group-hover/link:translate-x-1 transition-transform"
-            />
-          </Link>
-        </div>
-      </section>
+function Row({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-baseline justify-between gap-4 py-2.5 first:pt-0 last:pb-0">
+      <dt className="text-sm text-kumo-subtle">{label}</dt>
+      <dd className="text-right text-sm font-medium text-kumo-default">{children}</dd>
     </div>
   );
 }

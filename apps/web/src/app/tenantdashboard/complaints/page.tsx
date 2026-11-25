@@ -2,8 +2,8 @@
 
 import React, { Suspense, useCallback, useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import clsx from "clsx";
-import { Camera, ClipboardList, Loader2, MessageSquare, Plus, RefreshCw, X } from "lucide-react";
+import { Button, Input, InputArea, Loader, Select, cn } from "@cloudflare/kumo";
+import { ArrowClockwise, Camera, Plus } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { useAuth } from "@/app/providers";
 import { createComplaintAction, getComplaintAction, getMyComplaintsAction } from "@/app/actions/complaint";
@@ -20,17 +20,13 @@ import {
   type ComplaintSummary,
 } from "@/lib/complaints";
 import {
-  CARD,
   ComplaintView,
-  LABEL,
   PriorityBadge,
   StatusBadge,
   formatWhen,
   uploadComplaintPhoto,
 } from "@/components/complaints/complaint-view";
-
-const INPUT =
-  "w-full px-4 py-3 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-medium text-charcoal dark:text-white focus:outline-hidden focus:border-primary transition-all";
+import { AdminDialog, AdminPage, EmptyNote, PageTabs, Panel } from "@/components/admin/page-kit";
 
 function NewComplaintModal({ userId, onClose, onCreated }: { userId: string; onClose: () => void; onCreated: (id: string) => void }) {
   const [category, setCategory] = useState("");
@@ -66,144 +62,137 @@ function NewComplaintModal({ userId, onClose, onCreated }: { userId: string; onC
   };
 
   return (
-    <div className="fixed inset-0 z-100 bg-black/50 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
-      <div
-        className="w-full sm:max-w-xl max-h-[92vh] overflow-y-auto bg-white dark:bg-zinc-900 rounded-t-3xl sm:rounded-3xl border border-slate-100 dark:border-white/10 shadow-2xl p-5 sm:p-7 space-y-5"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h2 className="text-lg font-semibold text-charcoal dark:text-white">New complaint</h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Sent straight to the mall admin. You'll be notified when they reply.</p>
-          </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-zinc-800 flex items-center justify-center text-slate-500" aria-label="Close">
-            <X size={16} />
-          </button>
+    <AdminDialog
+      open
+      onClose={onClose}
+      title="New complaint"
+      description="Sent straight to the mall admin. You'll be notified when they reply."
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button variant="primary" loading={saving} disabled={saving || uploading} onClick={submit}>
+            Send complaint
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        <Select
+          label="Category"
+          value={category}
+          items={{ "": "Select a category", ...Object.fromEntries(COMPLAINT_CATEGORIES.map((c) => [c, c])) }}
+          onValueChange={(v) => setCategory((v as string) ?? "")}
+          className="w-full"
+        >
+          <Select.Option value="">Select a category</Select.Option>
+          {COMPLAINT_CATEGORIES.map((c) => (
+            <Select.Option key={c} value={c}>
+              {c}
+            </Select.Option>
+          ))}
+        </Select>
+
+        <div className="space-y-1">
+          <Input
+            label="Subject"
+            value={subject}
+            maxLength={SUBJECT_MAX}
+            onChange={(e) => setSubject(e.target.value)}
+            placeholder="e.g. Ceiling leak near the counter"
+            className="w-full"
+          />
+          <p className="text-right text-xs text-kumo-subtle">
+            {subject.length}/{SUBJECT_MAX}
+          </p>
         </div>
 
-        <div>
-          <label className={clsx(LABEL, "block mb-1.5")}>Category</label>
-          <select value={category} onChange={(e) => setCategory(e.target.value)} className={clsx(INPUT, "font-bold cursor-pointer")}>
-            <option value="">Select a category</option>
-            {COMPLAINT_CATEGORIES.map((c) => (
-              <option key={c} value={c}>{c}</option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className={clsx(LABEL, "block mb-1.5")}>Subject</label>
-          <input value={subject} maxLength={SUBJECT_MAX} onChange={(e) => setSubject(e.target.value)} placeholder="e.g. Ceiling leak near the counter" className={INPUT} />
-          <p className="text-right text-xs text-slate-500 dark:text-slate-400 mt-1">{subject.length}/{SUBJECT_MAX}</p>
-        </div>
-
-        <div>
-          <label className={clsx(LABEL, "block mb-1.5")}>Details</label>
-          <textarea
+        <div className="space-y-1">
+          <InputArea
+            label="Details"
             value={details}
             maxLength={DETAILS_MAX}
-            onChange={(e) => setDetails(e.target.value)}
+            onValueChange={setDetails}
             rows={5}
             placeholder="What happened, where exactly, and since when?"
-            className={clsx(INPUT, "resize-none")}
+            className="w-full"
           />
-          <p className="text-right text-xs text-slate-500 dark:text-slate-400 mt-1">{details.length}/{DETAILS_MAX}</p>
+          <p className="text-right text-xs text-kumo-subtle">
+            {details.length}/{DETAILS_MAX}
+          </p>
         </div>
 
-        <div>
-          <label className={clsx(LABEL, "block mb-1.5")}>Priority</label>
-          <div className="grid grid-cols-3 gap-2">
+        <div className="space-y-1.5">
+          <p className="text-sm font-medium text-kumo-default">Priority</p>
+          <div role="group" aria-label="Priority" className="flex flex-wrap gap-2">
             {COMPLAINT_PRIORITIES.map((p) => (
-              <button
-                key={p}
-                type="button"
-                onClick={() => setPriority(p)}
-                className={clsx(
-                  "h-11 rounded-xl border text-xs font-semibold transition-colors",
-                  priority === p
-                    ? p === "URGENT"
-                      ? "bg-red-500 text-white border-red-500"
-                      : "bg-primary text-white border-primary"
-                    : "bg-white dark:bg-zinc-900 border-slate-200 dark:border-white/10 text-slate-500",
-                )}
-              >
+              <Button key={p} type="button" variant={priority === p ? "primary" : "secondary"} aria-pressed={priority === p} onClick={() => setPriority(p)}>
                 {PRIORITY_META[p].label}
-              </button>
+              </Button>
             ))}
           </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5">Use Urgent for safety issues or problems stopping you from operating.</p>
+          <p className="text-sm text-kumo-subtle">Use Urgent for safety issues or problems stopping you from operating.</p>
         </div>
 
-        <div>
-          <label className={clsx(LABEL, "block mb-1.5")}>Photos (optional, up to {MAX_PHOTOS})</label>
-          <div className="flex flex-wrap gap-2">
+        <div className="space-y-1.5">
+          <p className="text-sm font-medium text-kumo-default">Photos (optional, up to {MAX_PHOTOS})</p>
+          <div className="flex flex-wrap gap-3">
             {photos.map((p) => (
-              <div key={p} className="relative w-20 h-20 rounded-xl overflow-hidden border border-slate-200 dark:border-white/10">
+              <div key={p} className="space-y-1">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={p} alt="" className="w-full h-full object-cover" />
-                <button onClick={() => setPhotos((all) => all.filter((x) => x !== p))} className="absolute top-1 right-1 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center" aria-label="Remove photo">
-                  <X size={10} />
+                <img src={p} alt="Attached photo" className="size-20 rounded-lg border border-kumo-line object-cover" />
+                <button
+                  type="button"
+                  onClick={() => setPhotos((all) => all.filter((x) => x !== p))}
+                  className="w-20 cursor-pointer text-center text-sm font-medium text-kumo-danger hover:underline"
+                >
+                  Remove
                 </button>
               </div>
             ))}
             {photos.length < MAX_PHOTOS && (
-              <label className={clsx("w-20 h-20 rounded-xl border-2 border-dashed border-slate-200 dark:border-zinc-700 flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 hover:border-primary hover:text-primary cursor-pointer", uploading && "opacity-60 pointer-events-none")}>
-                {uploading ? <Loader2 size={18} className="animate-spin" /> : <Camera size={18} />}
-                <span className="text-xs font-bold mt-1">{uploading ? "Uploading" : "Add"}</span>
-                <input type="file" accept="image/*" multiple hidden onChange={addPhotos} />
+              <label
+                className={cn(
+                  "flex size-20 cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-kumo-line text-sm text-kumo-subtle focus-within:ring-2 focus-within:ring-kumo-brand hover:border-kumo-brand",
+                  uploading && "pointer-events-none opacity-60",
+                )}
+              >
+                {uploading ? <Loader size="sm" /> : <Camera size={20} aria-hidden />}
+                {uploading ? "Adding" : "Add"}
+                <input type="file" accept="image/*" multiple className="sr-only" onChange={addPhotos} />
               </label>
             )}
           </div>
         </div>
-
-        <div className="flex gap-2 pt-2">
-          <button onClick={onClose} className="flex-1 h-12 rounded-2xl border border-slate-200 dark:border-white/10 text-xs font-semibold text-slate-500">
-            Cancel
-          </button>
-          <button
-            onClick={submit}
-            disabled={saving || uploading}
-            className="flex-2 h-12 rounded-2xl bg-primary text-white text-xs font-semibold shadow-lg shadow-primary/25 hover:bg-primary/90 disabled:opacity-50 inline-flex items-center justify-center gap-2"
-          >
-            {saving && <Loader2 size={14} className="animate-spin" />} Send complaint
-          </button>
-        </div>
       </div>
-    </div>
+    </AdminDialog>
   );
 }
 
 function ComplaintRow({ c, active, onClick }: { c: ComplaintSummary; active: boolean; onClick: () => void }) {
   return (
     <button
+      type="button"
       onClick={onClick}
-      className={clsx(
-        "w-full text-left p-4 rounded-2xl border transition-all",
-        active
-          ? "border-primary/40 bg-primary/5"
-          : "border-slate-100 dark:border-white/5 bg-white dark:bg-zinc-900 hover:border-slate-200 dark:hover:border-white/10",
+      aria-current={active}
+      className={cn(
+        "block w-full cursor-pointer border-l-4 px-4 py-3 text-left hover:bg-kumo-tint",
+        active ? "border-l-kumo-brand bg-kumo-tint" : "border-l-transparent",
       )}
     >
-      <div className="flex items-start gap-3">
-        <div className="flex-1 min-w-0 space-y-1.5">
-          <div className="flex flex-wrap items-center gap-1.5">
-            <StatusBadge status={c.status} />
-            {c.priority === "URGENT" && <PriorityBadge priority={c.priority} />}
-          </div>
-          <p className={clsx("text-sm text-charcoal dark:text-white truncate", c.unread ? "font-semibold" : "font-bold")}>{c.subject}</p>
-          <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
-            {c.category} · {formatWhen(c.lastActivityAt)}
-          </p>
-        </div>
-        <div className="flex flex-col items-end gap-2 shrink-0">
-          {c.unread && <span className="w-2.5 h-2.5 rounded-full bg-red-500" aria-label="New reply" />}
-          {c.commentCount > 0 && (
-            <span className="inline-flex items-center gap-1 text-xs font-bold text-slate-500 dark:text-slate-400">
-              <MessageSquare size={11} /> {c.commentCount}
-            </span>
-          )}
-        </div>
-      </div>
+      <span className="flex items-start justify-between gap-3">
+        <span className={cn("min-w-0 truncate text-sm text-kumo-default", c.unread ? "font-semibold" : "font-medium")}>{c.subject}</span>
+        {c.unread && <span className="shrink-0 text-sm font-semibold text-kumo-brand">New reply</span>}
+      </span>
+      <span className="mt-0.5 flex flex-wrap items-center gap-x-3">
+        <StatusBadge status={c.status} />
+        {c.priority === "URGENT" && <PriorityBadge priority={c.priority} />}
+      </span>
+      <span className="block truncate text-sm text-kumo-subtle">
+        {c.category}, {formatWhen(c.lastActivityAt)}
+        {c.commentCount > 0 && `, ${c.commentCount} comment${c.commentCount === 1 ? "" : "s"}`}
+      </span>
     </button>
   );
 }
@@ -273,75 +262,64 @@ function TenantComplaints() {
   if (!user?.id) return null;
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-black pb-20 lg:pb-0">
-    <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10 py-4 sm:py-6 lg:py-10 space-y-4 sm:space-y-6 lg:space-y-8">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-charcoal dark:text-white">Complaints</h1>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium mt-1">Report a problem to the mall admin and follow it here — no need to go to the office.</p>
-        </div>
-        <div className="flex gap-2">
-          <button onClick={refreshAll} className="h-11 w-11 rounded-2xl border border-slate-200 dark:border-white/10 flex items-center justify-center text-slate-500 hover:text-primary" aria-label="Refresh">
-            <RefreshCw size={16} />
-          </button>
-          <button
-            onClick={() => setShowNew(true)}
-            className="inline-flex items-center gap-2 h-11 px-5 rounded-2xl bg-primary text-white text-xs font-semibold shadow-lg shadow-primary/25 hover:bg-primary/90"
-          >
-            <Plus size={15} /> New complaint
-          </button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+    <AdminPage
+      title="Complaints"
+      description="Report a problem to the mall admin and follow it here, without going to the office."
+      actions={
+        <>
+          <Button variant="secondary" shape="square" icon={<ArrowClockwise />} aria-label="Refresh" onClick={refreshAll} />
+          <Button variant="primary" icon={<Plus />} onClick={() => setShowNew(true)}>
+            New complaint
+          </Button>
+        </>
+      }
+    >
+      <div className="grid items-start gap-6 lg:grid-cols-12">
         {/* List */}
-        <div className={clsx("lg:col-span-5 space-y-4", selectedId && "hidden lg:block")}>
-          <div className="flex p-1 rounded-2xl bg-slate-100 dark:bg-zinc-800/60">
-            {[
-              { key: "open" as const, label: "Open", n: openList.length },
-              { key: "done" as const, label: "Resolved", n: doneList.length },
-            ].map((t) => (
-              <button
-                key={t.key}
-                onClick={() => setTab(t.key)}
-                className={clsx(
-                  "flex-1 h-10 rounded-xl text-xs font-semibold transition-all",
-                  tab === t.key ? "bg-white dark:bg-zinc-900 text-charcoal dark:text-white shadow-xs" : "text-slate-500",
-                )}
-              >
-                {t.label} <span className="opacity-60">({t.n})</span>
-              </button>
-            ))}
-          </div>
-
-          {loading ? (
-            <div className="py-16 flex justify-center"><Loader2 className="animate-spin text-slate-300" /></div>
-          ) : shown.length === 0 ? (
-            <div className={clsx(CARD, "py-14 px-6 text-center")}>
-              <ClipboardList size={36} className="mx-auto text-slate-200 dark:text-zinc-700 mb-3" />
-              <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">{tab === "open" ? "No open complaints" : "No resolved complaints yet"}</p>
-              {tab === "open" && <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Something wrong with your unit? Tap “New complaint”.</p>}
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {shown.map((c) => (
-                <ComplaintRow key={c.id} c={c} active={c.id === selectedId} onClick={() => select(c.id)} />
-              ))}
-            </div>
-          )}
+        <div className={cn("min-w-0 space-y-3 lg:col-span-5", selectedId && "hidden lg:block")}>
+          <PageTabs
+            tabs={[
+              { value: "open", label: `Open (${openList.length})` },
+              { value: "done", label: `Resolved (${doneList.length})` },
+            ]}
+            value={tab}
+            onValueChange={(v) => setTab(v as "open" | "done")}
+          />
+          <Panel flush>
+            {loading ? (
+              <div className="flex justify-center py-12">
+                <Loader />
+              </div>
+            ) : shown.length === 0 ? (
+              <EmptyNote title={tab === "open" ? "No open complaints" : "No resolved complaints yet"}>
+                {tab === "open" ? "Something wrong with your unit? Choose New complaint." : undefined}
+              </EmptyNote>
+            ) : (
+              <ul className="divide-y divide-kumo-line">
+                {shown.map((c) => (
+                  <li key={c.id}>
+                    <ComplaintRow c={c} active={c.id === selectedId} onClick={() => select(c.id)} />
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Panel>
         </div>
 
         {/* Detail */}
-        <div className={clsx("lg:col-span-7", !selectedId && "hidden lg:block")}>
+        <div className={cn("min-w-0 lg:col-span-7", !selectedId && "hidden lg:block")}>
           {detailLoading && !detail ? (
-            <div className={clsx(CARD, "py-24 flex justify-center")}><Loader2 className="animate-spin text-slate-300" /></div>
+            <Panel>
+              <div className="flex justify-center py-20">
+                <Loader />
+              </div>
+            </Panel>
           ) : detail ? (
             <ComplaintView complaint={detail} role="TENANT" userId={user.id} onBack={() => select(null)} onChanged={refreshAll} />
           ) : (
-            <div className={clsx(CARD, "py-24 px-6 text-center")}>
-              <MessageSquare size={36} className="mx-auto text-slate-200 dark:text-zinc-700 mb-3" />
-              <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">Select a complaint to see the conversation</p>
-            </div>
+            <Panel>
+              <EmptyNote title="Select a complaint">Its details and the conversation show here.</EmptyNote>
+            </Panel>
           )}
         </div>
       </div>
@@ -358,8 +336,7 @@ function TenantComplaints() {
           }}
         />
       )}
-    </div>
-    </div>
+    </AdminPage>
   );
 }
 

@@ -65,10 +65,8 @@ export function BlockToggleButton({
       type="button"
       onClick={onClick}
       className={clsx(
-        "inline-flex items-center gap-1.5 h-9 px-3 rounded-xl text-xs font-semibold transition-colors",
-        blocked
-          ? "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500 hover:text-white"
-          : "text-slate-400 hover:text-red-600 hover:bg-red-500/10",
+        "inline-flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-lg border border-kumo-line px-3 text-sm font-medium hover:bg-kumo-tint",
+        blocked ? "text-kumo-default" : "text-kumo-danger",
       )}
     >
       {blocked ? <ShieldCheck size={14} /> : <Ban size={14} />}
@@ -80,7 +78,7 @@ export function BlockToggleButton({
 /** Banner above the composer while a conversation is blocked. */
 export function BlockedBanner({ text }: { text: string }) {
   return (
-    <div className="flex items-center gap-2 px-4 py-2.5 bg-red-50 dark:bg-red-950/40 border-t border-red-200 dark:border-red-900/30 text-red-600 dark:text-red-400 text-xs font-bold">
+    <div className="flex items-center gap-2 border-t border-kumo-line bg-kumo-danger-tint px-4 py-2.5 text-sm font-medium text-kumo-danger">
       <Ban size={14} className="shrink-0" /> {text}
     </div>
   );
@@ -90,11 +88,11 @@ export function BlockedBanner({ text }: { text: string }) {
 export function ChatDaySeparator({ date }: { date: string | Date }) {
   return (
     <div className="flex items-center gap-3 py-2" role="separator">
-      <span className="flex-1 h-px bg-slate-200 dark:bg-white/10" />
-      <span className="text-xs font-semibold text-slate-400">
+      <span className="h-px flex-1 bg-kumo-line" />
+      <span className="text-xs font-medium text-kumo-subtle">
         {formatDayLabel(date)}
       </span>
-      <span className="flex-1 h-px bg-slate-200 dark:bg-white/10" />
+      <span className="h-px flex-1 bg-kumo-line" />
     </div>
   );
 }
@@ -147,18 +145,18 @@ export function ChatConfirmModal({
       <div
         role="dialog"
         aria-modal="true"
-        className="relative w-full max-w-sm bg-white dark:bg-zinc-950 rounded-4xl shadow-2xl p-7 space-y-5 animate-fade-in-up"
+        className="animate-fade-in-up relative w-full max-w-sm space-y-5 rounded-xl border border-kumo-line bg-kumo-base p-6 shadow-2xl"
       >
         <div className="space-y-1.5">
-          <h2 className="text-lg font-semibold tracking-tight text-charcoal dark:text-white">{title}</h2>
-          <p className="text-sm text-slate-500">{message}</p>
+          <h2 className="text-lg font-semibold text-kumo-default">{title}</h2>
+          <p className="text-sm text-kumo-subtle">{message}</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex justify-end gap-2">
           <button
             type="button"
             onClick={onCancel}
             disabled={busy}
-            className="flex-1 py-3 bg-slate-100 dark:bg-zinc-900 text-slate-600 dark:text-slate-400 font-bold text-xs rounded-xl hover:bg-slate-200 disabled:opacity-50"
+            className="h-9 cursor-pointer rounded-lg border border-kumo-line px-4 text-sm font-medium text-kumo-default hover:bg-kumo-tint disabled:opacity-50"
           >
             Cancel
           </button>
@@ -167,8 +165,8 @@ export function ChatConfirmModal({
             onClick={onConfirm}
             disabled={busy}
             className={clsx(
-              "flex-1 py-3 text-white font-semibold text-xs rounded-xl flex items-center justify-center gap-2 disabled:opacity-70",
-              tone === "danger" ? "bg-red-600 hover:bg-red-700" : "bg-charcoal hover:bg-black",
+              "flex h-9 cursor-pointer items-center justify-center gap-2 rounded-lg px-4 text-sm font-semibold text-white disabled:opacity-70",
+              tone === "danger" ? "bg-red-600 hover:bg-red-700" : "bg-primary hover:bg-primary-hover",
             )}
           >
             {busy && <Loader2 size={14} className="animate-spin" />}
