@@ -1,5 +1,6 @@
 "use server";
 
+import { requireStaff } from "@/lib/auth-server";
 import { prisma } from "@srmall/database";
 
 /**
@@ -8,6 +9,7 @@ import { prisma } from "@srmall/database";
  */
 export async function fixUserRolesAction() {
   try {
+    await requireStaff("users");
     // Update all users with 'USER' role to 'CUSTOMER'
     const result = await prisma.user.updateMany({
       where: { role: "USER" },
@@ -33,6 +35,7 @@ export async function fixUserRolesAction() {
  */
 export async function checkUserRolesAction() {
   try {
+    await requireStaff("users");
     const userCount = await prisma.user.count({
       where: { role: "USER" },
     });

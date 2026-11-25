@@ -11,6 +11,8 @@
  * complaint (adminReadAt / tenantReadAt). Admin internal notes never touch the
  * tenant's side.
  */
+import { currentAccount } from "@/lib/auth-server";
+import { holds, worksFor } from "@/lib/action-guard";
 import { prisma } from "@srmall/database";
 import { randomUUID } from "crypto";
 import { notify } from "@/lib/notify";
@@ -40,7 +42,11 @@ interface Actor {
 }
 
 async function getActor(userId: string | undefined | null): Promise<Actor | null> {
-  if (!userId) return null;
+  const account = await currentAccount();
+  if (!userId || !account) return null;
+  // The id comes from the browser: it must match the signed session.
+  const allowed = (account.id === userId && holds(account, "complaints")) || worksFor(account, userId, "complaints");
+  if (!allowed) return null;
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { id: true, name: true, email: true, role: true, tenant: { select: { id: true, shopName: true, unitId: true } } },

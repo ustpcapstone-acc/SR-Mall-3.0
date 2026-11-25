@@ -1,7 +1,20 @@
 import { NextResponse } from 'next/server';
 import { sendGmail } from '@/lib/gmail';
 
+const escapeHtml = (value: string) =>
+  value.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+
+/**
+ * Target of a Supabase database webhook. The webhook must send the header
+ * "Authorization: Bearer <SUPABASE_WEBHOOK_SECRET>"; without that variable set
+ * every call is refused.
+ */
 export async function POST(req: Request) {
+  const secret = process.env.SUPABASE_WEBHOOK_SECRET;
+  if (!secret || req.headers.get('authorization') !== `Bearer ${secret}`) {
+    return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const payload = await req.json();
     
@@ -36,7 +49,7 @@ export async function POST(req: Request) {
       html: `
         <div style="font-family: sans-serif; padding: 20px; color: #333;">
           <h2 style="color: #BE1E2D;">Welcome to SR-MANAGE!</h2>
-          <p>Hello <strong>${name}</strong>,</p>
+          <p>Hello <strong>${escapeHtml(String(name))}</strong>,</p>
           <p>Thank you for logging in to SR-MANAGE. We're excited to have you on board!</p>
           <p>You can now access your dashboard and explore all the features we offer for property and mall management.</p>
           <div style="margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px; font-size: 12px; color: #777;">

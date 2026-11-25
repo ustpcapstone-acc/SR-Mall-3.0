@@ -5,7 +5,9 @@ import bcrypt from "bcryptjs";
 import { getBaseUrl } from "@/utils/get-base-url";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
-import { getCloudStorageProvider } from "@/lib/cloud-storage";
+import { validateImageFile } from "@/lib/cloud-storage";
+import { storeFile } from "@/lib/upload-server";
+import { requireActingAs, requireSelf } from "@/lib/action-guard";
 import { accountTypeOf, PORTAL_LOGIN, type AccountType } from "@/lib/session";
 import {
   AccessDenied,
@@ -327,6 +329,7 @@ export async function signUpAction(data: {
 
 export async function getUserCountAction() {
   try {
+    await requireStaff("users");
     const count = await prisma.user.count({
       where: {
         role: {
@@ -516,6 +519,7 @@ export async function updateProfileAction(
   data: { name: string; email: string },
 ) {
   try {
+    await requireSelf(userId);
     const email = (data.email || "").trim().toLowerCase();
     if (email && !isAllowedEmail(email)) {
       return { success: false, error: "Your email must be a Gmail address (@gmail.com)." };
@@ -549,11 +553,13 @@ export async function updateProfileAction(
 
 export async function uploadAvatarAction(userId: string, formData: FormData) {
   try {
+    await requireSelf(userId);
     const file = formData.get("file") as File;
     if (!file) return { success: false, error: "No file provided" };
 
-    const storage = getCloudStorageProvider();
-    const { url } = await storage.uploadFile(file, "avatars");
+    const check = validateImageFile(file);
+    if (!check.valid) return { success: false, error: check.error };
+    const { url } = await storeFile(file, "avatars");
 
     // We can't use type safety here temporarily because we just added avatarUrl to schema
     const updatedUser = await (prisma as any).user.update({
@@ -581,6 +587,7 @@ export async function updateSecurityAction(
   data: { currentPassword?: string; newPassword?: string },
 ) {
   try {
+    await requireSelf(userId);
     if (!data.currentPassword || !data.newPassword) {
       return {
         success: false,
@@ -754,6 +761,7 @@ const PHONE_RE = /^[+0-9()\-\s]{7,20}$/;
 /** Profile fields for the settings pages (raw SQL for the newer columns). */
 export async function getMyAccountAction(userId: string) {
   try {
+    await requireSelf(userId);
     const rows = await prisma.$queryRawUnsafe<any[]>(
       `SELECT "id", "name", "email", "avatarUrl", "role", "password", "phone", "bio", "department"
          FROM "User" WHERE "id" = $1`,
@@ -794,6 +802,7 @@ export async function updateMyAccountAction(
   data: { name: string; email?: string; phone?: string; bio?: string; department?: string },
 ) {
   try {
+    await requireSelf(userId);
     const current = await prisma.user.findUnique({ where: { id: userId }, select: { email: true, password: true, role: true } });
     if (!current) return { success: false, error: "Account not found." };
 
@@ -846,6 +855,7 @@ export async function deleteMyAccountAction(
   proof: { password?: string; googleAccessToken?: string },
 ) {
   try {
+    await requireSelf(userId);
     const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true, password: true, role: true } });
     if (!user) return { success: false, error: "Account not found." };
     if (user.role === "ADMIN") {
@@ -883,6 +893,7 @@ export async function deleteMyAccountAction(
 export async function getMyFavoritesAction(userId: string, mergeIds: string[] = []) {
   try {
     if (!userId) return { success: true as const, data: [] as string[] };
+    await requireActingAs(userId);
     // Merge favourites saved in this browser before they were stored per account.
     const valid = mergeIds.filter((id) => typeof id === "string" && id.length > 0).slice(0, 200);
     if (valid.length) {
@@ -908,6 +919,7 @@ export async function getMyFavoritesAction(userId: string, mergeIds: string[] = 
 export async function setFavoriteAction(userId: string, tenantId: string, favorite: boolean) {
   try {
     if (!userId || !tenantId) return { success: false, error: "Missing account or shop." };
+    await requireActingAs(userId);
     if (favorite) {
       await prisma.$executeRawUnsafe(
         `INSERT INTO "Favorite" ("id", "userId", "tenantId")

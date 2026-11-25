@@ -1,5 +1,7 @@
 // Cloud Storage Service for SR Mall Ads
 // Supports multiple providers: Local, AWS S3, Cloudinary, etc.
+// Browser uploads go through /api/upload, which needs the visitor's session
+// cookie. Server code uses lib/upload-server.ts instead.
 import { getBaseUrl } from "@/utils/get-base-url";
 
 export interface CloudStorageProvider {
@@ -8,7 +10,6 @@ export interface CloudStorageProvider {
     file: File,
     folder?: string,
   ) => Promise<{ url: string; key: string }>;
-  deleteFile: (key: string) => Promise<boolean>;
   getUrl: (key: string) => Promise<string>;
 }
 
@@ -44,23 +45,6 @@ class LocalStorageProvider implements CloudStorageProvider {
     } catch (error) {
       console.error("Upload error:", error);
       throw error;
-    }
-  }
-
-  async deleteFile(key: string): Promise<boolean> {
-    try {
-      const baseUrl = await getBaseUrl();
-      const response = await fetch(
-        `${baseUrl}/api/upload?key=${encodeURIComponent(key)}`,
-        {
-          method: "DELETE",
-        },
-      );
-
-      return response.ok;
-    } catch (error) {
-      console.error("Delete error:", error);
-      return false;
     }
   }
 
@@ -105,23 +89,6 @@ class CloudinaryProvider implements CloudStorageProvider {
     } catch (error) {
       console.error("Cloudinary gateway upload error:", error);
       throw error;
-    }
-  }
-
-  async deleteFile(key: string): Promise<boolean> {
-    try {
-      const baseUrl = await getBaseUrl();
-      const response = await fetch(
-        `${baseUrl}/api/upload?key=${encodeURIComponent(key)}`,
-        {
-          method: "DELETE",
-        },
-      );
-
-      return response.ok;
-    } catch (error) {
-      console.error("Delete error:", error);
-      return false;
     }
   }
 

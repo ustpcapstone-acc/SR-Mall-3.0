@@ -1,5 +1,6 @@
 "use server";
 
+import { requireSelf, requireStaffAny } from "@/lib/action-guard";
 import { prisma } from "@srmall/database";
 import { emailBaseUrl } from "@/utils/get-base-url";
 import { revalidatePath } from "next/cache";
@@ -49,11 +50,9 @@ const PERMIT_KEY_RE = /^cloudinary:(raw|image):business-permits\/[\w\-./]+$|^loc
  * Cloudinary blocks public PDF delivery, and permits are personal documents,
  * so the browser gets a signed download link that expires in 5 minutes.
  */
-export async function getPermitLinkAction(adminUserId: string | undefined, unitId: string) {
+export async function getPermitLinkAction(_adminUserId: string | undefined, unitId: string) {
   try {
-    if (!adminUserId) return { success: false as const, error: "Admin access required" };
-    const admin = await prisma.user.findUnique({ where: { id: adminUserId }, select: { role: true } });
-    if (admin?.role !== "ADMIN") return { success: false as const, error: "Admin access required" };
+    await requireStaffAny("bookings", "spaces");
 
     const rows = await prisma.$queryRawUnsafe<{ permitUrl: string | null; permitKey: string | null }[]>(
       `SELECT "permitUrl","permitKey" FROM "SpaceReservation" WHERE "unitId" = $1 AND "permitUrl" IS NOT NULL
@@ -94,18 +93,29 @@ export async function getPermitLinkAction(adminUserId: string | undefined, unitI
 
 export async function getAreaSlots() {
   try {
+    await requireStaffAny("bookings", "spaces", "tenant_monitoring");
+  } catch {
+    return { success: false, error: "Failed to fetch slots", data: undefined };
+  }
+  return readAreaSlots();
+}
+
+/** Every slot, rent and holder included: callers decide who may see it. */
+async function readAreaSlots() {
+  try {
     const slots = await prisma.areaSlot.findMany({
       orderBy: { unit_id: "asc" },
     });
     return { success: true, data: slots };
   } catch (error) {
     console.error("Error fetching area slots:", error);
-    return { success: false, error: "Failed to fetch slots" };
+    return { success: false, error: "Failed to fetch slots", data: undefined };
   }
 }
 
 export async function getAreaSlotByUnitId(unit_id: string) {
   try {
+    await requireStaffAny("bookings", "spaces", "tenant_monitoring");
     const slot = await prisma.areaSlot.findUnique({
       where: { unit_id },
     });
@@ -132,6 +142,7 @@ export async function upsertAreaSlot(data: {
   height?: number;
 }) {
   try {
+    await requireStaffAny("bookings", "spaces");
     if (data.id) {
       await (prisma.areaSlot.update as any)({
         where: { id: data.id },
@@ -183,13 +194,14 @@ export async function upsertAreaSlot(data: {
 
 /** Slots for public pages: same data, but rent stays private (quoted by the leasing team). */
 export async function getPublicAreaSlots() {
-  const res = await getAreaSlots();
+  const res = await readAreaSlots();
   if (!res.success || !res.data) return res;
   return { success: true, data: res.data.map((s) => ({ ...s, base_rent: 0 })) };
 }
 
 export async function getAvailableSlots() {
   try {
+    await requireStaffAny("tenant_monitoring");
     const slots = await prisma.areaSlot.findMany({
       where: { status: "AVAILABLE" },
       orderBy: { unit_id: "asc" },
@@ -203,6 +215,7 @@ export async function getAvailableSlots() {
 
 export async function occupySlot(unit_id: string) {
   try {
+    await requireStaffAny("bookings", "spaces", "tenant_monitoring");
     await prisma.areaSlot.update({
       where: { unit_id },
       data: { status: "OCCUPIED" },
@@ -223,6 +236,7 @@ export async function reserveSlotAction(
   permit?: PermitUpload,
 ) {
   try {
+    await requireSelf(userId);
     // The business permit is required (the admin checks it before approving).
     const permitOk =
       !!permit &&
@@ -388,8 +402,9 @@ export async function reserveSlotAction(
   }
 }
 
-export async function approveReservationAction(unit_id: string, comment?: string, adminUserId?: string) {
+export async function approveReservationAction(unit_id: string, comment?: string, _adminUserId?: string) {
   try {
+    const decidedBy = (await requireStaffAny("bookings", "spaces")).id;
     // 1. Fetch current slot to find the reserving user
     const slot = await prisma.areaSlot.findUnique({
       where: { unit_id },
@@ -405,7 +420,7 @@ export async function approveReservationAction(unit_id: string, comment?: string
       return { success: false, error: `Unit ${unit_id} is no longer reserved. It may have expired or been handled already.` };
     }
     const note = (comment || "").trim().slice(0, 1000);
-    await closeReservationRequest(unit_id, slot?.tenant_id, "APPROVED", note, adminUserId);
+    await closeReservationRequest(unit_id, slot?.tenant_id, "APPROVED", note, decidedBy);
 
     // 3. Notify User
     if (slot?.tenant_id) {
@@ -458,8 +473,9 @@ export async function approveReservationAction(unit_id: string, comment?: string
   }
 }
 
-export async function rejectReservationAction(unit_id: string, feedback?: string, adminUserId?: string) {
+export async function rejectReservationAction(unit_id: string, feedback?: string, _adminUserId?: string) {
   try {
+    const decidedBy = (await requireStaffAny("bookings", "spaces")).id;
     // The applicant always gets a reason.
     feedback = (feedback || "").trim().slice(0, 1000);
     if (!feedback) return { success: false, error: "Please write a comment so the applicant knows why." };
@@ -482,7 +498,7 @@ export async function rejectReservationAction(unit_id: string, feedback?: string
       return { success: false, error: `Unit ${unit_id} is no longer reserved. It may have expired or been handled already.` };
     }
 
-    await closeReservationRequest(unit_id, slot?.tenant_id, "REJECTED", feedback, adminUserId);
+    await closeReservationRequest(unit_id, slot?.tenant_id, "REJECTED", feedback, decidedBy);
 
     // Keep a record in User Manager → Tenant History.
     if (slot?.tenant_id) {
@@ -494,7 +510,7 @@ export async function rejectReservationAction(unit_id: string, feedback?: string
         category: slot.category,
         reservedAt: slot.updatedAt,
         feedback,
-        endedById: adminUserId,
+        endedById: decidedBy,
       });
     }
 
@@ -550,6 +566,7 @@ export async function rejectReservationAction(unit_id: string, feedback?: string
 
 export async function deleteAreaSlot(id: string) {
   try {
+    await requireStaffAny("spaces");
     // A space someone is in (or has on hold) can't be deleted out from under them.
     const slot = await prisma.areaSlot.findUnique({ where: { id }, select: { status: true, unit_id: true } });
     if (!slot) return { success: false, error: "This space no longer exists." };
@@ -671,6 +688,7 @@ export async function processExpiredReservationsAction() {
  */
 export async function getReservedSlotsWithDetailsAction() {
   try {
+    await requireStaffAny("bookings", "spaces");
     // 1. Expiry sweeps run in the background after this response (throttled),
     // so the admin never waits on auto-reject writes and emails.
     const { scheduleSweeps } = await import("@/lib/sweeps");

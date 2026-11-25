@@ -1,9 +1,10 @@
 "use server";
 
+import { holds, requireAccount, requireStaffAny, requireStore, requireTenantRecord, worksFor } from "@/lib/action-guard";
 import { prisma } from "@srmall/database";
 import { emailBaseUrl } from "@/utils/get-base-url";
 import { revalidatePath } from "next/cache";
-import { getCloudStorageProvider } from "@/lib/cloud-storage";
+import { destroyFile } from "@/lib/upload-server";
 
 const PRIORITY_RANK: Record<string, number> = { HIGH: 0, MEDIUM: 1, LOW: 2 };
 
@@ -15,20 +16,6 @@ function sortAds<T extends { isDefault?: boolean; priority?: string; startDate: 
       (PRIORITY_RANK[a.priority || "MEDIUM"] ?? 1) - (PRIORITY_RANK[b.priority || "MEDIUM"] ?? 1) ||
       new Date(b.startDate).getTime() - new Date(a.startDate).getTime(),
   );
-}
-
-// ─── CLOUD STORAGE UPLOAD ───────────────────────────────────────────────────────────────────────────────────────────────────
-
-export async function uploadAdImage(
-  file: File,
-): Promise<{ url: string; key: string }> {
-  const storage = getCloudStorageProvider();
-  return await storage.uploadFile(file, "ads");
-}
-
-export async function deleteAdImage(key: string): Promise<boolean> {
-  const storage = getCloudStorageProvider();
-  return await storage.deleteFile(key);
 }
 
 // ─── ADMIN: MALL-WIDE ADS (HERO CAROUSEL) ───────────────────────────────────
@@ -45,6 +32,7 @@ export async function createMallAd(data: {
   storageKey?: string | null;
 }) {
   try {
+    await requireStaffAny("ads");
     console.log("[ADS_ACTION]: Attempting to create Mall Ad with data:", {
       ...data,
       adminId: data.adminId,
@@ -164,6 +152,7 @@ export async function createTenantPromo(data: {
   storageKey?: string;
 }) {
   try {
+    await requireTenantRecord(data.tenantId, { sections: ["ads"] });
     console.log(
       "[PROMO_ACTION]: Attempting to create Tenant Promo for tenant:",
       data.tenantId,
@@ -213,6 +202,7 @@ export async function updatePromoStatus(
   reason?: string,
 ) {
   try {
+    await requireStaffAny("ads");
     const before = await (prisma as any).tenantPromo.findUnique({ where: { id: promoId }, select: { status: true } });
     const takenDown = status === "REJECTED" && before?.status === "APPROVED";
     const note = reason?.trim();
@@ -298,6 +288,7 @@ export async function updatePromoStatus(
 /** Approved tenant promos that haven't ended (live now or scheduled). */
 export async function getLivePromosAction() {
   try {
+    await requireStaffAny("ads");
     return await (prisma as any).tenantPromo.findMany({
       where: { status: "APPROVED", endDate: { gte: new Date() } },
       include: { tenant: { select: { shopName: true, unitId: true } } },
@@ -312,6 +303,7 @@ export async function getLivePromosAction() {
 /** Ended or rejected promos, newest first — read-only audit history. */
 export async function getPromoHistoryAction() {
   try {
+    await requireStaffAny("ads");
     const now = new Date();
     return await (prisma as any).tenantPromo.findMany({
       where: {
@@ -332,6 +324,7 @@ export async function getPromoHistoryAction() {
 
 export async function getPendingPromos() {
   try {
+    await requireStaffAny("ads");
     return await (prisma as any).tenantPromo.findMany({
       where: { status: "PENDING" },
       include: { tenant: true },
@@ -359,20 +352,21 @@ export async function getActivePromos(category?: string) {
   }
 }
 
-export async function deletePromo(id: string, userId?: string) {
+export async function deletePromo(id: string, _userId?: string) {
   try {
+    const account = await requireAccount();
     const promo = await (prisma.tenantPromo as any).findUnique({
       where: { id },
       include: { tenant: { select: { userId: true } } },
     });
     if (!promo) return { success: false, error: "This promotion no longer exists." };
     // A tenant can only delete their own campaigns.
-    if (userId && promo.tenant?.userId !== userId) {
+    if (!holds(account, "ads") && !worksFor(account, promo.tenant?.userId, "ads")) {
       return { success: false, error: "You can only delete your own promotions." };
     }
     if (promo?.storageKey) {
-      const storage = getCloudStorageProvider();
-      await storage.deleteFile(promo.storageKey);
+      // The key was saved from the tenant's browser: promo media only.
+      await destroyFile(promo.storageKey, ["tenant-promos"]);
     }
 
     await (prisma as any).tenantPromo.delete({ where: { id } });
@@ -399,6 +393,7 @@ export async function updateMallAd(
   },
 ) {
   try {
+    await requireStaffAny("ads");
     const existing = await (prisma.mallAd as any).findUnique({ where: { id } });
     const updateData: any = { ...data };
     
@@ -429,6 +424,7 @@ export async function updateMallAd(
 
 export async function deleteMallAd(id: string) {
   try {
+    await requireStaffAny("ads");
     const ad = await (prisma.mallAd as any).findUnique({ where: { id } });
     if (!ad) {
       return { success: false, error: "Ad not found." };
@@ -440,8 +436,7 @@ export async function deleteMallAd(id: string) {
     }
 
     if (ad.storageKey) {
-      const storage = getCloudStorageProvider();
-      await storage.deleteFile(ad.storageKey);
+      await destroyFile(ad.storageKey);
     }
 
     await (prisma as any).mallAd.delete({
@@ -459,6 +454,7 @@ export async function deleteMallAd(id: string) {
 
 export async function getTenantByUserId(userId: string) {
   try {
+    await requireStore(userId, { sections: ["ads"], staff: ["ads"] });
     const tenant = await (prisma as any).tenant.findUnique({
       where: { userId },
     });
@@ -471,6 +467,7 @@ export async function getTenantByUserId(userId: string) {
 
 export async function getPromosByTenant(tenantId: string) {
   try {
+    await requireTenantRecord(tenantId, { sections: ["ads"], staff: ["ads"] });
     return await (prisma as any).tenantPromo.findMany({
       where: { tenantId },
       orderBy: { createdAt: "desc" },
@@ -485,6 +482,7 @@ export async function updateTenantPromoStatus(
   status: "APPROVED" | "REJECTED",
 ) {
   try {
+    await requireStaffAny("ads");
     await (prisma as any).tenantPromo.update({
       where: { id },
       data: { status },
@@ -503,12 +501,13 @@ export async function updateTenantPromoStatus(
 
 export async function deleteTenantPromo(id: string) {
   try {
+    await requireStaffAny("ads");
     const promo = await (prisma.tenantPromo as any).findUnique({
       where: { id },
     });
     if (promo?.storageKey) {
-      const storage = getCloudStorageProvider();
-      await storage.deleteFile(promo.storageKey);
+      // The key was saved from the tenant's browser: promo media only.
+      await destroyFile(promo.storageKey, ["tenant-promos"]);
     }
 
     await (prisma as any).tenantPromo.delete({
@@ -535,12 +534,12 @@ export async function getApprovedTenantPromos() {
       },
       include: {
         tenant: {
-          include: {
-            user: {
-              select: {
-                name: true,
-              },
-            },
+          select: {
+            id: true,
+            shopName: true,
+            unitId: true,
+            logoUrl: true,
+            user: { select: { name: true } },
           },
         },
       },

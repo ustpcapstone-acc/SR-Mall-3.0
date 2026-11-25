@@ -1,5 +1,7 @@
 "use server";
 
+import { currentAccount, requireStaff } from "@/lib/auth-server";
+import { holds, requireSelf, requireStore } from "@/lib/action-guard";
 import { prisma } from "@srmall/database";
 import { revalidatePath } from "next/cache";
 import { findInappropriateLanguage } from "@/lib/comment-moderation";
@@ -163,13 +165,10 @@ async function tenantForUser(userId?: string) {
   });
 }
 
-async function requireAdmin(adminUserId?: string) {
-  if (!adminUserId) return false;
-  const admin = await prisma.user.findUnique({
-    where: { id: adminUserId },
-    select: { role: true },
-  });
-  return admin?.role === "ADMIN";
+/** Moderators: from the signed session, never from the id the browser sends. */
+async function requireAdmin(_adminUserId?: string) {
+  const account = await currentAccount();
+  return !!account && holds(account, "users");
 }
 
 export async function submitReviewAction(
@@ -179,6 +178,7 @@ export async function submitReviewAction(
   tenantId?: string,
 ) {
   try {
+    await requireSelf(userId);
     if (!userId) {
       return {
         success: false,
@@ -309,6 +309,7 @@ export async function editMyReviewAction(
   tenantId?: string,
 ) {
   try {
+    await requireSelf(userId);
     if (!userId) return { success: false, error: "Unauthorized" };
     if (rating < 1 || rating > 5)
       return { success: false, error: "Invalid rating" };
@@ -369,6 +370,7 @@ export async function editMyReviewAction(
 
 export async function deleteMyReviewAction(userId: string, tenantId?: string) {
   try {
+    await requireSelf(userId);
     if (!userId) return { success: false, error: "Unauthorized" };
 
     const existingReview = await prisma.review.findFirst({
@@ -465,6 +467,7 @@ export async function getAllTenantRatingsAction() {
 
 export async function getMyReviewAction(userId: string, tenantId?: string) {
   try {
+    await requireSelf(userId);
     const review = await (prisma as any).review.findFirst({
       where: {
         userId,
@@ -632,6 +635,7 @@ async function notifyReviewModeration(
  */
 export async function markReviewSpamAction(reviewId: string, isSpam: boolean) {
   try {
+    await requireStaff("users");
     const parties = await reviewParties(reviewId);
     // Flagging hides the review; clearing the flag publishes it again. That
     // keeps every review in exactly one moderation bucket.
@@ -664,6 +668,7 @@ export async function setCommentStatusAction(
   days?: number,
 ) {
   try {
+    await requireStaff("users");
     // RESTRICTED was enforced exactly like MUTED — fold it in.
     const normalized = status === "RESTRICTED" ? "MUTED" : status;
     const muteDays = days && days > 0 ? days : 7;
@@ -690,6 +695,7 @@ export async function setCommentStatusAction(
 
 export async function approveReviewAction(reviewId: string) {
   try {
+    await requireStaff("users");
     const review = await prisma.review.update({
       where: { id: reviewId },
       data: { isApproved: true, isSpam: false },
@@ -708,6 +714,7 @@ export async function approveReviewAction(reviewId: string) {
 
 export async function unpublishReviewAction(reviewId: string) {
   try {
+    await requireStaff("users");
     const parties = await reviewParties(reviewId);
     await prisma.review.update({
       where: { id: reviewId },
@@ -724,6 +731,7 @@ export async function unpublishReviewAction(reviewId: string) {
 
 export async function deleteReviewAction(reviewId: string) {
   try {
+    await requireStaff("users");
     const parties = await reviewParties(reviewId);
     await prisma.review.delete({ where: { id: reviewId } });
     await notifyReviewModeration(parties, "deleted");
@@ -765,6 +773,7 @@ export async function getTenantReviewsAction(
   } = {},
 ) {
   try {
+    await requireStore(userId, { sections: ["reviews"] });
     const tenant = await tenantForUser(userId);
     if (!tenant) return { success: false as const, error: "No storefront is linked to this account." };
 
@@ -872,6 +881,7 @@ async function ownedReview(userId: string, reviewId: string) {
 /** Tenant: add, edit or (with an empty text) remove the shop's public reply. */
 export async function replyToReviewAction(userId: string, reviewId: string, reply: string) {
   try {
+    await requireStore(userId, { sections: ["reviews"] });
     const owned = await ownedReview(userId, reviewId);
     if ("error" in owned) return { success: false, error: owned.error };
 
@@ -910,6 +920,7 @@ export async function replyToReviewAction(userId: string, reviewId: string, repl
 /** Tenant: ask the mall admin to review a fake or abusive review. */
 export async function reportReviewAction(userId: string, reviewId: string, reason: string) {
   try {
+    await requireStore(userId, { sections: ["reviews"] });
     const owned = await ownedReview(userId, reviewId);
     if ("error" in owned) return { success: false, error: owned.error };
 

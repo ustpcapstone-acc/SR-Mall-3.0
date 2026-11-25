@@ -1,9 +1,11 @@
 "use server";
 
+import { requireStaffAny } from "@/lib/action-guard";
 import { prisma } from "@srmall/database";
 
 export async function getRecentActivity(limit = 10) {
   try {
+    await requireStaffAny("dashboard");
     const activities: any[] = [];
     const queryTake = Math.max(10, Math.ceil(limit / 2));
 
@@ -165,6 +167,7 @@ function percentChange(current: number, previous: number) {
  */
 export async function getAdminDashboardAction(adminUserId?: string) {
   try {
+    await requireStaffAny("dashboard");
     const { leaseEndDate, daysFromToday } = await import("@/lib/lease");
     const now = new Date();
     const reservationCutoff = new Date(now.getTime() - RESERVATION_WINDOW_MS);

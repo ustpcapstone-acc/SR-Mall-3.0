@@ -2,7 +2,7 @@
 
 import { prisma } from "@srmall/database";
 import { revalidatePath } from "next/cache";
-import { getCloudStorageProvider } from "@/lib/cloud-storage";
+import { destroyFile } from "@/lib/upload-server";
 import { requireStaff } from "@/lib/auth-server";
 
 /*
@@ -155,6 +155,7 @@ export async function getPublicViewCarouselAction() {
 
 export async function getAllCarouselItemsAction() {
   try {
+    await requireStaff("cms");
     const carouselItems = await prisma.publicViewCarousel.findMany({
       orderBy: { priority: "desc" },
     });
@@ -230,8 +231,7 @@ export async function deleteCarouselItemAction(id: string) {
   try {
     const item = await prisma.publicViewCarousel.findUnique({ where: { id } });
     if (item?.storageKey) {
-      const storage = getCloudStorageProvider();
-      await storage.deleteFile(item.storageKey);
+      await destroyFile(item.storageKey);
     }
 
     await prisma.publicViewCarousel.delete({

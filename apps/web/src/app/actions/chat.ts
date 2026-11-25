@@ -4,7 +4,9 @@ import { prisma } from "@srmall/database";
 import { safeUserSelect } from "@/lib/user-select";
 import { after } from "next/server";
 import { notifyChatMessage } from "@/lib/notify-chat";
-import { isChatBlocked, markConversationReadAction } from "@/app/actions/chat-queries";
+import { markConversationReadAction } from "@/app/actions/chat-queries";
+import { isChatBlocked } from "@/lib/chat-block";
+import { canSpeakAs, isStandIn } from "@/lib/chat-access";
 
 // Chat data is fetched on the client and pushed by Supabase Realtime, so these
 // actions deliberately do NOT call revalidatePath(): doing so makes Next.js
@@ -63,7 +65,8 @@ export async function sendMessage(data: {
       resolveTargetUser(recipientType, shopName, tenantId),
     ]);
 
-    if (!sender) {
+    // The email comes from the browser: it must be the signed-in person's.
+    if (!sender || !(await canSpeakAs(sender.id)) || (recipientType === "admin" && (await isStandIn(sender.id)))) {
       return { success: false, error: "Please sign in again to send messages." };
     }
 

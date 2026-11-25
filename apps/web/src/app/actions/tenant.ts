@@ -1,5 +1,6 @@
 "use server";
 
+import { requireSelf, requireStaffAny, requireStore } from "@/lib/action-guard";
 import { isListed } from "@/lib/products";
 import { prisma } from "@srmall/database";
 import { emailBaseUrl } from "@/utils/get-base-url";
@@ -20,6 +21,7 @@ export async function updateStorefrontAction(
   profile: Partial<DigitalStorefront>,
 ) {
   try {
+    await requireStore(userId, { sections: ["storefront"], staff: ["tenant_monitoring"] });
     const user = await prisma.user.findUnique({
       where: { id: userId },
     });
@@ -112,6 +114,7 @@ export async function updateTenantProfileAction(
   },
 ) {
   try {
+    await requireSelf(userId);
     const updateTasks = [];
 
     // The email follows the same rules as the other settings pages: Gmail only,
@@ -175,6 +178,7 @@ export async function updateTenantProfileAction(
 
 export async function getStorefrontAction(userId: string) {
   try {
+    await requireStore(userId, { sections: ["overview", "storefront", "payments"], staff: ["tenant_monitoring"] });
     const tenant = await prisma.tenant.findUnique({
       where: { userId },
     });
@@ -207,6 +211,7 @@ export async function getStorefrontAction(userId: string) {
 
 export async function getTenantProfileAction(userId: string) {
   try {
+    await requireSelf(userId);
     const user = await prisma.user.findUnique({
       where: { id: userId },
       include: {
@@ -236,6 +241,7 @@ export async function getTenantProfileAction(userId: string) {
 
 export async function deactivateTenantTerminalAction(userId: string) {
   try {
+    await requireSelf(userId);
     await prisma.tenant.update({
       where: { userId },
       data: { status: "SUSPENDED" },
@@ -382,6 +388,7 @@ export async function getAllStorefrontsAction() {
 
 export async function getAllTenantsAction() {
   try {
+    await requireStaffAny("tenant_monitoring");
     const tenants = await (prisma as any).tenant.findMany({
       orderBy: { shopName: "asc" },
       include: {
@@ -477,6 +484,7 @@ export async function getStorefrontByIdAction(id: string) {
  */
 export async function checkEmailExists(email: string) {
   try {
+    await requireStaffAny("tenant_monitoring");
     const existingUser = await prisma.user.findUnique({
       where: { email },
     });
@@ -500,6 +508,7 @@ export async function registerTenantAction(data: {
   rentCost: number;
 }) {
   try {
+    await requireStaffAny("tenant_monitoring");
     // New accounts must use a Gmail address.
     const email = (data.email || "").trim().toLowerCase();
     if (!/^[^\s@]+@gmail\.com$/.test(email)) {
@@ -574,6 +583,7 @@ export async function requestTenantAction(
   data: { shopName: string; description: string },
 ) {
   try {
+    await requireSelf(userId);
     // Verify the user exists in database first
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user)
@@ -675,6 +685,7 @@ export async function requestTenantAction(
 
 export async function approveTenantAction(tenantId: string, unitId?: string) {
   try {
+    await requireStaffAny("bookings", "tenant_monitoring");
     const tenant = await prisma.tenant.findUnique({
       where: { id: tenantId },
       include: { user: { select: safeUserSelect } },
@@ -749,6 +760,7 @@ export async function approveTenantAction(tenantId: string, unitId?: string) {
 
 export async function getPendingTenantsAction() {
   try {
+    await requireStaffAny("bookings");
     // Expiry sweeps run in the background after this response (throttled),
     // so the admin never waits on auto-reject writes and emails.
     const { scheduleSweeps } = await import("@/lib/sweeps");
@@ -764,8 +776,9 @@ export async function getPendingTenantsAction() {
   }
 }
 
-export async function deleteTenantAction(tenantId: string, adminUserId?: string) {
+export async function deleteTenantAction(tenantId: string, _adminUserId?: string) {
   try {
+    const actorId = (await requireStaffAny("tenant_monitoring")).id;
     // First get the tenant to find the associated user
     const tenant = await prisma.tenant.findUnique({
       where: { id: tenantId },
@@ -779,7 +792,7 @@ export async function deleteTenantAction(tenantId: string, adminUserId?: string)
     // Keep a permanent history record before the tenant (and invoices) are deleted.
     // A tenant already marked PAST was recorded when that happened.
     if (tenant.status !== "PAST" && tenant.status !== "PENDING" && tenant.status !== "REJECTED") {
-      await recordTenantExit(tenantId, "REMOVED", { endedById: adminUserId });
+      await recordTenantExit(tenantId, "REMOVED", { endedById: actorId });
     }
 
     // Free up the unit if they had one
@@ -826,6 +839,7 @@ export async function deleteTenantAction(tenantId: string, adminUserId?: string)
 
 export async function rejectTenantAction(tenantId: string) {
   try {
+    await requireStaffAny("bookings", "tenant_monitoring");
     const tenant = await prisma.tenant.update({
       where: { id: tenantId },
       data: { status: "REJECTED" },
@@ -927,6 +941,7 @@ export async function processExpiredMerchantApplicationsAction() {
 
 export async function getTenantStatusAction(userId: string) {
   try {
+    await requireSelf(userId);
     const tenant = await prisma.tenant.findUnique({
       where: { userId },
       select: { status: true },
@@ -941,6 +956,7 @@ export async function getTenantReportDataAction(filter?: {
   year?: number;
 }) {
   try {
+    await requireStaffAny("tenant_monitoring");
     const tenants = await (prisma as any).tenant.findMany({
       include: {
         user: {
@@ -1059,9 +1075,10 @@ export async function adminUpdateTenantAction(
     description?: string;
     rentCost?: number;
   },
-  adminUserId?: string,
+  _adminUserId?: string,
 ) {
   try {
+    const actorId = (await requireStaffAny("tenant_monitoring")).id;
     const currentTenant = await prisma.tenant.findUnique({
       where: { id: tenantId },
     });
@@ -1069,7 +1086,7 @@ export async function adminUpdateTenantAction(
     if (!currentTenant) return { success: false, error: "Tenant not found" };
 
     if (data.status === "PAST" && currentTenant.status !== "PAST") {
-      await recordTenantExit(tenantId, "MARKED_PAST", { endedById: adminUserId });
+      await recordTenantExit(tenantId, "MARKED_PAST", { endedById: actorId });
     }
 
     const targetUnitId = data.unitId || currentTenant.unitId;
@@ -1134,6 +1151,7 @@ export async function adminUpdateTenantAction(
  */
 export async function getAllPostSalesAction() {
   try {
+    await requireStaffAny("cms");
     const tenants = await prisma.tenant.findMany({
       select: {
         id: true,
@@ -1163,6 +1181,7 @@ export async function getAllPostSalesAction() {
  */
 export async function deleteAdminPostSaleAction(tenantId: string, saleId: string) {
   try {
+    await requireStaffAny("cms");
     const tenant = await prisma.tenant.findUnique({ where: { id: tenantId } });
     if (!tenant) return { success: false, error: "Tenant not found" };
 
@@ -1189,6 +1208,7 @@ export async function deleteAdminPostSaleAction(tenantId: string, saleId: string
  */
 export async function updateAdminPostSaleAction(tenantId: string, saleId: string, newImageUrl: string, newTitle: string) {
   try {
+    await requireStaffAny("cms");
     const tenant = await prisma.tenant.findUnique({ where: { id: tenantId } });
     if (!tenant) return { success: false, error: "Tenant not found" };
 
@@ -1218,6 +1238,7 @@ export async function updateAdminPostSaleAction(tenantId: string, saleId: string
  */
 export async function getPastTenantsAction() {
   try {
+    await requireStaffAny("users");
     const rows = await prisma.$queryRawUnsafe<any[]>(
       `SELECT * FROM "TenantHistory" ORDER BY "endedAt" DESC LIMIT 500`,
     );
@@ -1243,6 +1264,7 @@ export async function getPastTenantsAction() {
 
 export async function getMyShopSettingsAction(userId: string) {
   try {
+    await requireSelf(userId);
     const rows = await prisma.$queryRawUnsafe<any[]>(
       `SELECT "id", "shopName", "description", "logoUrl", "category", "phone", "openingHours", "unitId", "status"
          FROM "Tenant" WHERE "userId" = $1`,
@@ -1277,6 +1299,7 @@ export async function updateMyShopSettingsAction(
   data: { shopName: string; description?: string; category?: string; phone?: string; openingHours?: string },
 ) {
   try {
+    await requireSelf(userId);
     const shopName = (data.shopName || "").trim();
     if (shopName.length < 2 || shopName.length > 80) {
       return { success: false, error: "Shop name must be 2–80 characters." };
@@ -1314,13 +1337,17 @@ export async function updateMyShopSettingsAction(
 /** Upload a shop logo: updates the shop only (not the owner's personal avatar). */
 export async function uploadShopLogoAction(userId: string, formData: FormData) {
   try {
+    await requireSelf(userId);
     const file = formData.get("file") as File | null;
     if (!file) return { success: false, error: "No file provided." };
     if (!file.type?.startsWith("image/")) return { success: false, error: "Please choose an image file." };
     if (file.size > 5 * 1024 * 1024) return { success: false, error: "Images must be under 5 MB." };
 
-    const { getCloudStorageProvider } = await import("@/lib/cloud-storage");
-    const { url } = await getCloudStorageProvider().uploadFile(file, "tenant-logos");
+    const { validateImageFile } = await import("@/lib/cloud-storage");
+    const check = validateImageFile(file);
+    if (!check.valid) return { success: false, error: check.error };
+    const { storeFile } = await import("@/lib/upload-server");
+    const { url } = await storeFile(file, "tenant-logos");
     await prisma.tenant.update({ where: { userId }, data: { logoUrl: url } });
 
     revalidatePath("/tenantdashboard");

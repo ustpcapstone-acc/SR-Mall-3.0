@@ -1,5 +1,8 @@
 "use server";
 
+import { requireSuperuser } from "@/lib/auth-server";
+import { requireSelf } from "@/lib/action-guard";
+import { sendNotifyEmail } from "@/lib/notify-email";
 import { prisma } from "@srmall/database";
 import { getBaseUrl } from "@/utils/get-base-url";
 import {
@@ -21,27 +24,8 @@ export async function sendMassEmailAnnouncement(
   message: string,
 ) {
   try {
-    const appUrl = await getBaseUrl();
-
-    // Call the internal API route
-    const response = await fetch(`${appUrl}/api/notify`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        type: "GENERAL_ANNOUNCEMENT",
-        data: {
-          subject,
-          message,
-        },
-      }),
-    });
-
-    const result = await response.json();
-    if (!response.ok || !result.success) {
-      throw new Error(result.message || "Failed to dispatch emails API");
-    }
+    await requireSuperuser();
+    await sendNotifyEmail({ type: "GENERAL_ANNOUNCEMENT", data: { subject, message } });
 
     return { success: true, message: "Mass email sent successfully." };
   } catch (error: any) {
@@ -110,6 +94,7 @@ export async function getNotificationSettings(
   userId: string,
 ): Promise<{ success: boolean; data?: NotificationSettings; error?: string }> {
   try {
+    await requireSelf(userId);
     let existing: Array<{ type: string; enabled: boolean; channels: unknown }> =
       [];
     try {
@@ -160,6 +145,7 @@ export async function saveNotificationSettings(
   settings: NotificationSettings,
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    await requireSelf(userId);
     const rows = NOTIFICATION_CATALOG.filter((m) => settings[m.type]).map(
       (m) => ({
         userId,
@@ -204,6 +190,7 @@ export async function sendTestNotification(
   type: string,
 ): Promise<{ success: boolean; message?: string; error?: string }> {
   try {
+    await requireSelf(userId);
     const meta = getNotificationMeta(type);
     if (!meta) {
       return { success: false, error: "Unknown notification type." };

@@ -1,5 +1,6 @@
 "use server";
 
+import { requireAccount } from "@/lib/action-guard";
 import { v2 as cloudinary } from "cloudinary";
 
 // Initialize Cloudinary with server-side secrets
@@ -11,8 +12,9 @@ cloudinary.config({
 
 export async function uploadImageServerAction(formData: FormData): Promise<string | null> {
   try {
+    await requireAccount();
     const file = formData.get("file") as File;
-    if (!file) return null;
+    if (!file || !file.type?.startsWith("image/")) return null;
 
     // Convert file to base64
     const bytes = await file.arrayBuffer();

@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { getActiveMallAds } from "@/app/actions/ads";
+import { denyUnlessSuperuser } from "@/lib/route-guard";
 
 export async function GET() {
+  const denied = await denyUnlessSuperuser();
+  if (denied) return denied;
+
   try {
     console.log("🔍 Testing ads fetch...");
     const ads = await getActiveMallAds();

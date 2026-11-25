@@ -1,5 +1,7 @@
 "use server";
 
+import { actingUserId } from "@/lib/auth-server";
+import { holds, requireAccount, requireStaffAny } from "@/lib/action-guard";
 import { prisma } from "@srmall/database";
 import { revalidatePath } from "next/cache";
 
@@ -14,6 +16,9 @@ export async function createLostAndFoundItem(data: {
   imageUrl?: string;
 }) {
   try {
+    const account = await requireAccount();
+    // Only the CMS may file a report under someone else's name (or none).
+    if (!holds(account, "cms")) data = { ...data, userId: actingUserId(account) };
     const item = await prisma.lostAndFoundItem.create({
       data: {
         type: data.type,
@@ -54,6 +59,7 @@ export async function createLostAndFoundItem(data: {
 
 export async function getLostAndFoundItems(type?: "LOST" | "FOUND") {
   try {
+    const account = await requireAccount();
     const whereClause = type ? { type } : {};
     const items = await prisma.lostAndFoundItem.findMany({
       where: whereClause,
@@ -63,7 +69,8 @@ export async function getLostAndFoundItems(type?: "LOST" | "FOUND") {
       },
     });
 
-    return { success: true, data: items };
+    // Reporters' names and emails are for the CMS only.
+    return { success: true, data: holds(account, "cms") ? items : items.map((i) => ({ ...i, user: null })) };
   } catch (error: any) {
     console.error("Failed to get lost and found items", error);
     return { success: false, error: error.message || "Something went wrong" };
@@ -72,6 +79,7 @@ export async function getLostAndFoundItems(type?: "LOST" | "FOUND") {
 
 export async function updateLostAndFoundItemStatus(id: string, status: string) {
   try {
+    await requireStaffAny("cms");
     const item = await prisma.lostAndFoundItem.update({
       where: { id },
       data: { status },
@@ -103,6 +111,7 @@ export async function updateLostAndFoundItemStatus(id: string, status: string) {
 
 export async function deleteLostAndFoundItem(id: string) {
   try {
+    await requireStaffAny("cms");
     await prisma.lostAndFoundItem.delete({
       where: { id },
     });

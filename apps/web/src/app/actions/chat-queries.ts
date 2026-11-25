@@ -1,5 +1,9 @@
 "use server";
 
+import { holds, requireStaffAny } from "@/lib/action-guard";
+import { currentAccount } from "@/lib/auth-server";
+import { canSpeakAs, isStandIn, requireConversations, requireSpeaker } from "@/lib/chat-access";
+import { isChatBlocked } from "@/lib/chat-block";
 import { prisma } from "@srmall/database";
 import { safeUserSelect } from "@/lib/user-select";
 import { after } from "next/server";
@@ -59,6 +63,7 @@ async function adminUserIds(): Promise<string[]> {
 /** Mark conversations as read for a user (opening a chat, or a message arriving in it). */
 export async function markConversationReadAction(userId: string, conversationIds: string[]) {
   try {
+    await requireSpeaker(userId);
     const ids = (conversationIds || []).filter((id) => id && !id.startsWith("new-"));
     if (!userId || ids.length === 0) return { success: true };
     await prisma.$executeRawUnsafe(
@@ -89,7 +94,7 @@ export async function markConversationReadAction(userId: string, conversationIds
 
 /** Total unread chat messages for the sidebar / launcher badges. */
 export async function getChatUnreadTotal(userId: string): Promise<number> {
-  if (!userId) return 0;
+  if (!(await canSpeakAs(userId))) return 0;
   const me = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
   const isAdmin = me?.role === "ADMIN";
   const admins = isAdmin ? await adminUserIds() : [];
@@ -136,6 +141,8 @@ export async function getUnreadChatsAction(
   const empty = { total: 0, items: [] as UnreadChat[] };
   if (!userId) return empty;
   try {
+    if (!(await canSpeakAs(userId))) return empty;
+    const standIn = await isStandIn(userId);
     const me = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
     if (!me) return empty;
     const role = String(me.role || "").toUpperCase();
@@ -176,6 +183,7 @@ export async function getUnreadChatsAction(
       const last = latestBy.get(c.id);
       if (!peer || !last) continue;
       const peerRole = String(peer.role || "").toUpperCase();
+      if (standIn && peerRole === "ADMIN") continue;
       const name =
         peerRole === "ADMIN" ? "SR Mall Admin" : peer.tenant?.shopName || peer.name || peer.email || "Customer";
       const href =
@@ -255,6 +263,8 @@ export async function getConversationHistory(
       },
     });
     if (!user) return [];
+    await requireSpeaker(user.id);
+    if (recipientType === "admin" && (await isStandIn(user.id))) return [];
 
     let targetUser = null;
     if (recipientType === "admin") {
@@ -318,6 +328,8 @@ export async function getConversationHistory(
 // Fetch conversations specifically for the logged-in tenant (deduplicated by partner user)
 export async function getTenantConversations(userId: string) {
   try {
+    await requireSpeaker(userId);
+    const standIn = await isStandIn(userId);
     const rawConversations = await prisma.conversation.findMany({
       where: {
         OR: [{ targetId: userId }, { userId: userId }],
@@ -337,7 +349,7 @@ export async function getTenantConversations(userId: string) {
     const partnerMap = new Map<string, any>();
     for (const c of rawConversations) {
       const partner = c.userId === userId ? c.target : c.user;
-      if (!partner?.id) continue;
+      if (!partner?.id || (standIn && partner.role === "ADMIN")) continue;
       const partnerId = partner.id;
 
       if (!partnerMap.has(partnerId)) {
@@ -433,6 +445,7 @@ export async function getMyChatListAction(userId: string): Promise<MyChatRow[]> 
 // Fetch conversations specifically for the Admin (deduplicated by partner user)
 export async function getAdminConversations(adminUserId?: string) {
   try {
+    await requireStaffAny("messages");
     const rawConversations = await prisma.conversation.findMany({
       where: {
         OR: [
@@ -531,6 +544,7 @@ export async function getMessagesByConversation(
       allConversationIds && allConversationIds.length > 0
         ? allConversationIds
         : [conversationId];
+    await requireConversations(ids);
 
     // Filtered by conversation(s) and bounded by a cursor — never the whole
     // thread. Returns up to `limit` messages, oldest → newest.
@@ -560,6 +574,7 @@ export async function replyToConversation(
   explicitSenderId?: string,
 ) {
   try {
+    await requireConversations([conversationId]);
     const conversation = await prisma.conversation.findUnique({
       where: { id: conversationId },
       include: {
@@ -571,6 +586,7 @@ export async function replyToConversation(
     if (!conversation) throw new Error("Conversation not found");
 
     const senderId = explicitSenderId || (isFromTarget ? conversation.targetId : conversation.userId);
+    await requireSpeaker(senderId);
     // Who receives it. A participant replies to the other participant. An
     // admin who isn't in the chat (the admin inbox is shared, and lists each
     // chat under its non-admin person — e.g. a chat another admin account
@@ -714,14 +730,10 @@ export async function deleteMessageAction(messageId: string, currentUserId?: str
       return { success: false, error: "Message not found or already unsent." };
     }
 
-    if (currentUserId) {
-      const user = await prisma.user.findUnique({ where: { id: currentUserId } });
-      const isAdmin = user?.role === "ADMIN";
-      const isOwner = msg.senderId === currentUserId || (user?.email && msg.sender?.email === user.email);
-
-      if (!isAdmin && !isOwner) {
-        return { success: false, error: "You are only permitted to unsend your own messages." };
-      }
+    // Your own message, or any message for mall staff who handle Messages.
+    const account = await currentAccount();
+    if (!account || !(holds(account, "messages") || (await canSpeakAs(msg.senderId)))) {
+      return { success: false, error: "You are only permitted to unsend your own messages." };
     }
 
     await prisma.message.delete({
@@ -761,14 +773,10 @@ export async function unsendImageAction(messageId: string, currentUserId?: strin
       return { success: false, error: "Message not found or already deleted." };
     }
 
-    if (currentUserId) {
-      const user = await prisma.user.findUnique({ where: { id: currentUserId } });
-      const isAdmin = user?.role === "ADMIN";
-      const isOwner = msg.senderId === currentUserId || (user?.email && msg.sender?.email === user.email);
-
-      if (!isAdmin && !isOwner) {
-        return { success: false, error: "You are only permitted to unsend your own attachments." };
-      }
+    // Your own message, or any message for mall staff who handle Messages.
+    const account = await currentAccount();
+    if (!account || !(holds(account, "messages") || (await canSpeakAs(msg.senderId)))) {
+      return { success: false, error: "You are only permitted to unsend your own attachments." };
     }
 
     // If message only has an image and no text, delete the entire message
@@ -790,29 +798,15 @@ export async function unsendImageAction(messageId: string, currentUserId?: strin
   }
 }
 
-// Check if blocker has blocked blockedId specifically from messaging
-export async function isChatBlocked(blockerId: string, blockedId: string): Promise<boolean> {
-  try {
-    if (!blockerId || !blockedId) return false;
-    const rows = await prisma.$queryRawUnsafe<any[]>(
-      `SELECT id FROM "BlockedChatUser" WHERE "blockerId" = $1 AND "blockedId" = $2 LIMIT 1`,
-      blockerId,
-      blockedId
-    );
-    return Array.isArray(rows) && rows.length > 0;
-  } catch (error) {
-    return false;
-  }
-}
-
 // Server action to check chat block status
 export async function checkBlockStatusAction(blockerId: string, blockedId: string): Promise<boolean> {
+  if (!(await canSpeakAs(blockerId)) && !(await canSpeakAs(blockedId))) return false;
   return await isChatBlocked(blockerId, blockedId);
 }
 
 /** Has the shop (its tenant account) blocked `userId` from messaging it? */
 export async function isBlockedByShopAction(tenantId: string, userId: string): Promise<boolean> {
-  if (!tenantId || !userId) return false;
+  if (!tenantId || !(await canSpeakAs(userId))) return false;
   const tenant = await prisma.tenant.findUnique({ where: { id: tenantId }, select: { userId: true } });
   return tenant ? isChatBlocked(tenant.userId, userId) : false;
 }
@@ -829,6 +823,7 @@ export async function toggleBlockUserAction(
     let isBlocked: boolean;
 
     if (typeof arg2 === "boolean") {
+      await requireStaffAny("messages");
       const admin = await prisma.user.findFirst({
         where: { role: "ADMIN" },
         orderBy: { createdAt: "asc" },
@@ -842,6 +837,8 @@ export async function toggleBlockUserAction(
       blockedId = arg2;
       isBlocked = !!arg3;
     }
+
+    if (typeof arg2 !== "boolean") await requireSpeaker(blockerId);
 
     if (!blockerId || !blockedId) {
       return { success: false, error: "Missing blocker or blocked user ID." };
@@ -872,6 +869,7 @@ export async function toggleBlockUserAction(
 
 export async function getPortalAdminAction() {
   try {
+    if (!(await currentAccount())) return null;
     // The "portal admin" is always the oldest admin account — the same one
     // sendMessage routes public chats to, so block checks line up.
     const admin = await prisma.user.findFirst({
@@ -887,6 +885,7 @@ export async function getPortalAdminAction() {
 
 export async function getOrCreateAdminConversationForTenantAction(tenantId: string) {
   try {
+    await requireStaffAny("tenant_monitoring", "messages");
     const tenant = await prisma.tenant.findUnique({
       where: { id: tenantId },
       include: { user: { select: safeUserSelect } },

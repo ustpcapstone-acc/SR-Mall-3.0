@@ -1,15 +1,20 @@
 "use server";
 
+import { requireStaffAny, requireStore, requireTenantRecord } from "@/lib/action-guard";
 import { prisma } from "@srmall/database";
 import { safeUserSelect } from "@/lib/user-select";
 import { revalidatePath } from "next/cache";
-import { getBaseUrl } from "@/utils/get-base-url";
+import { after } from "next/server";
+import { sendNotifyEmail } from "@/lib/notify-email";
 import { notify, resolveChannels } from "@/lib/notify";
 
 export async function getTenantInvoices(tenantId: string) {
   try {
+    const account = await requireTenantRecord(tenantId, { sections: ["payments"], staff: ["tenant_monitoring"] });
+    // Store staff see only the invoices of the space they work in.
+    const staffLease = account.tenantStaff?.leaseId;
     const invoices = await (prisma as any).invoice.findMany({
-      where: { tenantId },
+      where: { tenantId, ...(staffLease && { OR: [{ leaseId: null }, { leaseId: staffLease }] }) },
       orderBy: { createdAt: "desc" },
     });
     return invoices;
@@ -25,6 +30,11 @@ export async function submitDepositSlip(
   storageKey?: string,
 ) {
   try {
+    const owner = await (prisma as any).invoice.findUnique({ where: { id: invoiceId }, select: { tenantId: true, leaseId: true } });
+    const account = await requireTenantRecord(owner?.tenantId ?? "", { sections: ["payments"] });
+    if (account.tenantStaff && owner?.leaseId && owner.leaseId !== account.tenantStaff.leaseId) {
+      return { success: false, error: "You don't have access to this." };
+    }
     const invoice = await (prisma as any).invoice.update({
       where: { id: invoiceId },
       data: {
@@ -59,6 +69,7 @@ export async function submitDepositSlip(
 
 export async function getAllInvoices() {
   try {
+    await requireStaffAny("tenant_monitoring");
     const invoices = await (prisma as any).invoice.findMany({
       include: {
         tenant: {
@@ -80,6 +91,7 @@ export async function getAllInvoices() {
 
 export async function updateInvoiceStatus(invoiceId: string, status: string) {
   try {
+    await requireStaffAny("tenant_monitoring");
     const before = await (prisma as any).invoice.findUnique({
       where: { id: invoiceId },
       select: {
@@ -141,6 +153,7 @@ export async function recordManualPaymentAction(
   referenceNo: string,
 ) {
   try {
+    await requireStaffAny("tenant_monitoring", "dashboard");
     const invoice = await (prisma as any).invoice.update({
       where: { id: invoiceId },
       data: {
@@ -178,13 +191,8 @@ export async function recordManualPaymentAction(
         prefs[tenantUserId]?.channels.includes("EMAIL");
 
       if (wantsEmail && invoice?.tenant?.user?.email) {
-        const appUrl = await getBaseUrl();
-        fetch(`${appUrl}/api/notify`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
+        after(() =>
+          sendNotifyEmail({
             type: "PAYMENT_CONFIRMED",
             email: invoice.tenant.user.email,
             data: {
@@ -192,9 +200,9 @@ export async function recordManualPaymentAction(
               shopName: invoice.tenant.shopName,
               referenceNo: referenceNo,
             },
-          }),
-        }).catch((err: any) =>
-          console.error("Failed to dispatch payment confirmation email:", err),
+          }).catch((err: any) =>
+            console.error("Failed to dispatch payment confirmation email:", err),
+          ),
         );
       }
     }
@@ -216,6 +224,7 @@ export async function generateInvoice(data: {
   description?: string;
 }) {
   try {
+    await requireStaffAny("tenant_monitoring");
     const invoiceNumber = `#INV-${Date.now().toString().slice(-6)}`;
     const invoice = await (prisma as any).invoice.create({
       data: {
@@ -250,13 +259,8 @@ export async function generateInvoice(data: {
 
     // Notify Tenant of Bill Posted
     if (invoice?.tenant?.user?.email) {
-      const appUrl = await getBaseUrl();
-      fetch(`${appUrl}/api/notify`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
+      after(() =>
+        sendNotifyEmail({
           type: "BILL_POSTED",
           email: invoice.tenant.user.email,
           data: {
@@ -265,9 +269,9 @@ export async function generateInvoice(data: {
             amount: data.amount,
             month: data.month,
           },
-        }),
-      }).catch((err: any) =>
-        console.error("Failed to dispatch bill posted email:", err),
+        }).catch((err: any) =>
+          console.error("Failed to dispatch bill posted email:", err),
+        ),
       );
     }
 
@@ -282,6 +286,7 @@ export async function generateInvoice(data: {
 
 export async function getTenantPaymentScheduleAction(userId: string) {
   try {
+    await requireStore(userId, { sections: ["overview", "payments"], staff: ["tenant_monitoring"] });
     const tenant = await (prisma as any).tenant.findUnique({
       where: { userId },
       include: {

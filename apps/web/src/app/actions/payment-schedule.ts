@@ -6,6 +6,7 @@
  * schedule for their Payments page.
  */
 import { prisma } from "@srmall/database";
+import { requireStaffAny, requireStore } from "@/lib/action-guard";
 
 export type ScheduleStatus = "PAID" | "DUE" | "OVERDUE" | "VERIFYING" | "REJECTED";
 
@@ -79,11 +80,9 @@ function toEntries(rows: Row[], now: Date): ScheduleEntry[] {
 const ROW_SQL = `SELECT "id","invoiceNumber","month","amount","status","dueDate","paidAt","updatedAt","referenceNo","tenantId" FROM "Invoice"`;
 
 /** Admin: every tenant with their payment schedule. */
-export async function getPaymentLedgerAction(adminUserId?: string) {
+export async function getPaymentLedgerAction(_adminUserId?: string) {
   try {
-    if (!adminUserId) return { success: false as const, error: "Admin access required" };
-    const admin = await prisma.user.findUnique({ where: { id: adminUserId }, select: { role: true } });
-    if (admin?.role !== "ADMIN") return { success: false as const, error: "Admin access required" };
+    await requireStaffAny("tenant_monitoring");
 
     const [rows, tenants] = await Promise.all([
       prisma.$queryRawUnsafe<Row[]>(ROW_SQL),
@@ -120,6 +119,7 @@ export async function getPaymentLedgerAction(adminUserId?: string) {
 export async function getMyPaymentScheduleAction(userId?: string) {
   try {
     if (!userId) return { success: false as const, error: "Please sign in again." };
+    await requireStore(userId, { sections: ["payments"], staff: ["tenant_monitoring"] });
     const tenant = await prisma.tenant.findUnique({ where: { userId }, select: { id: true, shopName: true, unitId: true } });
     if (!tenant) return { success: false as const, error: "Tenant record not found." };
     const rows = await prisma.$queryRawUnsafe<Row[]>(`${ROW_SQL} WHERE "tenantId" = $1`, tenant.id);

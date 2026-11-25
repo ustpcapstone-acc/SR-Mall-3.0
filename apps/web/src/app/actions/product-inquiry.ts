@@ -6,6 +6,7 @@
  * automated reply from the shop with the product's current availability,
  * read from the database at that moment.
  */
+import { requireActingAs } from "@/lib/action-guard";
 import { prisma } from "@srmall/database";
 import { sendMessage } from "@/app/actions/chat";
 import { availabilityLabel, isListed, isOutOfStock, stockCount } from "@/lib/products";
@@ -13,6 +14,7 @@ import { availabilityLabel, isListed, isOutOfStock, stockCount } from "@/lib/pro
 export async function sendProductInquiryAction(userId: string, shopId: string, productId: string) {
   try {
     if (!userId) return { success: false as const, error: "Please sign in to send an inquiry." };
+    await requireActingAs(userId);
 
     const [user, shop] = await Promise.all([
       prisma.user.findUnique({ where: { id: userId }, select: { email: true } }),

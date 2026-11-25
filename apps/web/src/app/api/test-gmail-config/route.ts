@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
+import { denyUnlessSuperuser } from "@/lib/route-guard";
 
 export async function GET() {
+  const denied = await denyUnlessSuperuser();
+  if (denied) return denied;
+
   const results: Record<string, any> = {};
 
   // 1. Check env vars
@@ -10,9 +14,7 @@ export async function GET() {
       ? `✅ Set (length: ${process.env.GMAIL_APP_PASSWORD.length})`
       : "❌ MISSING",
     GMAIL_CLIENT_ID: process.env.GMAIL_CLIENT_ID ? "✅ Set" : "⚠️ Not set (App Password fallback will be used)",
-    DATABASE_URL: process.env.DATABASE_URL
-      ? `✅ Set (${process.env.DATABASE_URL.substring(0, 60)}...)`
-      : "❌ MISSING",
+    DATABASE_URL: process.env.DATABASE_URL ? "✅ Set" : "❌ MISSING",
   };
 
   // 2. Test database - PasswordResetToken table

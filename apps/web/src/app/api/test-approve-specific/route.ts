@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@srmall/database";
+import { denyUnlessSuperuser } from "@/lib/route-guard";
 
 export async function POST(request: Request) {
+  const denied = await denyUnlessSuperuser();
+  if (denied) return denied;
+
   try {
     console.log("=== TEST: Approving specific tenant promo ===");
 

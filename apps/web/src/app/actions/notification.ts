@@ -1,5 +1,6 @@
 "use server";
 
+import { requireActingAs } from "@/lib/action-guard";
 import { prisma } from "@srmall/database";
 import { typesInGroup, type NotificationTabGroup } from "@/lib/notification-types";
 
@@ -34,6 +35,7 @@ export async function getNotificationsAction(
   options: { tab?: NotificationTab; excludeMessages?: boolean; before?: string | null; limit?: number } = {},
 ) {
   try {
+    await requireActingAs(userId);
     if (!userId) return { success: false as const, error: "Not signed in" };
     const limit = Math.min(Math.max(options.limit ?? 30, 1), 100);
     const tab = options.tab ?? "ALL";
@@ -85,6 +87,7 @@ export async function getNotificationsAction(
 /** Mark one notification read — only if it belongs to `userId`. */
 export async function markNotificationAsReadAction(userId: string, notificationId: string) {
   try {
+    await requireActingAs(userId);
     const res = await prisma.notification.updateMany({
       where: { id: notificationId, userId },
       data: { isRead: true },
@@ -98,6 +101,7 @@ export async function markNotificationAsReadAction(userId: string, notificationI
 /** Mark everything read (optionally leaving chat alerts alone, as the bell does). */
 export async function markAllNotificationsAsReadAction(userId: string, options: { excludeMessages?: boolean } = {}) {
   try {
+    await requireActingAs(userId);
     await prisma.notification.updateMany({
       where: { userId, isRead: false, ...(options.excludeMessages ? { type: { not: "MESSAGE" } } : {}) },
       data: { isRead: true },
@@ -111,6 +115,7 @@ export async function markAllNotificationsAsReadAction(userId: string, options: 
 /** Delete one notification — only your own. */
 export async function deleteNotificationAction(userId: string, notificationId: string) {
   try {
+    await requireActingAs(userId);
     const res = await prisma.notification.deleteMany({ where: { id: notificationId, userId } });
     return { success: res.count > 0 };
   } catch (error) {
@@ -121,6 +126,7 @@ export async function deleteNotificationAction(userId: string, notificationId: s
 /** Delete all of your read notifications. */
 export async function clearReadNotificationsAction(userId: string) {
   try {
+    await requireActingAs(userId);
     const res = await prisma.notification.deleteMany({ where: { userId, isRead: true } });
     return { success: true, deleted: res.count };
   } catch (error) {
@@ -130,6 +136,7 @@ export async function clearReadNotificationsAction(userId: string) {
 
 export async function getUnreadMessageCountAction(userId: string) {
   try {
+    await requireActingAs(userId);
     // Unread = messages newer than the user's last visit to each conversation
     // (ConversationRead), so opening one chat no longer clears every badge.
     const { getChatUnreadTotal } = await import("@/app/actions/chat-queries");
@@ -141,6 +148,7 @@ export async function getUnreadMessageCountAction(userId: string) {
 
 export async function markMessageNotificationsAsReadAction(userId: string) {
   try {
+    await requireActingAs(userId);
     const currentUser = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
     
     let whereClause: any = { userId, isRead: false, type: "MESSAGE" };

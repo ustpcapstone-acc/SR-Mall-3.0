@@ -1,5 +1,6 @@
 "use server";
 
+import { requireSelf, requireStaffAny } from "@/lib/action-guard";
 import { prisma } from "@srmall/database";
 import { emailBaseUrl } from "@/utils/get-base-url";
 import { safeUserSelect } from "@/lib/user-select";
@@ -15,6 +16,7 @@ export async function submitInquiryAction(data: {
   storageKey?: string;
 }) {
   try {
+    await requireSelf(data.userId);
     const inquiry = await prisma.eventInquiry.create({
       data: {
         userId: data.userId,
@@ -104,6 +106,7 @@ export async function submitInquiryAction(data: {
 
 export async function getInquiriesAction() {
   try {
+    await requireStaffAny("bookings");
     // Expiry sweeps run in the background after this response (throttled),
     // so the admin never waits on auto-reject writes and emails.
     const { scheduleSweeps } = await import("@/lib/sweeps");
@@ -130,6 +133,7 @@ export async function updateInquiryStatusAction(
   feedback?: string,
 ) {
   try {
+    await requireStaffAny("bookings");
     const inquiry = await prisma.eventInquiry.update({
       where: { id },
       data: { status },
@@ -324,6 +328,7 @@ export async function getApprovedEventsWithImagesAction() {
  */
 export async function getAdminEventsAction() {
   try {
+    await requireStaffAny("cms");
     const cutoff = startOfTodayPH();
     const events = await prisma.eventInquiry.findMany({
       where: { status: "ACCEPTED" },
@@ -350,6 +355,7 @@ export async function updateInquiryImageAction(
   storageKey?: string,
 ) {
   try {
+    await requireStaffAny("cms");
     const inquiry = await prisma.eventInquiry.update({
       where: { id },
       data: {
@@ -379,6 +385,7 @@ export async function updateEventInfoAction(
   },
 ) {
   try {
+    await requireStaffAny("cms");
     const patch: Record<string, any> = {};
     if (data.fbAccount !== undefined) patch.fbAccount = data.fbAccount;
     if (data.contactNumber !== undefined) patch.contactNumber = data.contactNumber;
@@ -410,12 +417,13 @@ export async function updateEventInfoAction(
 
 export async function deleteInquiryAction(id: string) {
   try {
+    await requireStaffAny("cms");
     const inquiry = await prisma.eventInquiry.findUnique({ where: { id } });
     if (inquiry && inquiry.storageKey) {
       try {
-        const { getCloudStorageProvider } = await import("@/lib/cloud-storage");
-        const storageProvider = getCloudStorageProvider();
-        await storageProvider.deleteFile(inquiry.storageKey);
+        const { destroyFile } = await import("@/lib/upload-server");
+        // The key was saved from the customer's browser: event images only.
+        await destroyFile(inquiry.storageKey, ["inquiries"]);
       } catch (err) {
         console.error("Failed to delete image from storage:", err);
       }
