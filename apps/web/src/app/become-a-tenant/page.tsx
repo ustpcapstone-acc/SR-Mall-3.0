@@ -223,12 +223,23 @@ export default function BecomeATenantPage() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  // Take keyboard and screen-reader users straight to the first field to fix
+  // (its error message is already linked to it, so it is read out on focus).
+  const focusFirstError = () =>
+    // Two frames: the first lets React commit the new error state.
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        document.querySelector<HTMLElement>('main [aria-invalid="true"]')?.focus();
+      }),
+    );
+
   const next = async () => {
     const stepErrors =
       step === 0 ? checkAccount(form) : step === 1 ? checkBusiness(form, SHOP_CATEGORIES) : step === 2 ? checkDocuments(form.documents) : {};
     if (Object.keys(stepErrors).length) {
       setErrors(stepErrors);
       setBanner("Please fix the highlighted fields.");
+      focusFirstError();
       return;
     }
     if (step === 0) {
@@ -237,6 +248,7 @@ export default function BecomeATenantPage() {
       setBusy(false);
       if (!available) {
         setErrors({ email: "An account already uses this email. Sign in instead, or use another email." });
+        focusFirstError();
         return;
       }
     }
@@ -279,12 +291,16 @@ export default function BecomeATenantPage() {
 
           <section className="mt-8 rounded-xl border border-kumo-line bg-kumo-base p-5 shadow-sm sm:p-8">
             <h2 className="text-xl font-semibold text-kumo-default">{STEPS[step].title}</h2>
-            {banner && <Banner variant="error" className="mt-4" description={banner} />}
+            {banner && (
+              <div role="alert">
+                <Banner variant="error" className="mt-4" description={banner} />
+              </div>
+            )}
 
             <div className="mt-6 space-y-5">
               {step === 0 && (
                 <>
-                  <Input label="Full name" autoComplete="name" value={form.name} onChange={set("name")} error={errors.name} />
+                  <Input label="Full name" autoComplete="name" value={form.name} onChange={set("name")} error={errors.name} aria-invalid={!!errors.name} />
                   <Input
                     label="Email"
                     type="email"
@@ -292,7 +308,7 @@ export default function BecomeATenantPage() {
                     description="You'll use this to sign in at the tenant portal."
                     value={form.email}
                     onChange={set("email")}
-                    error={errors.email}
+                    error={errors.email} aria-invalid={!!errors.email}
                   />
                   <Input
                     label="Password"
@@ -301,7 +317,7 @@ export default function BecomeATenantPage() {
                     description={`At least ${PASSWORD_MIN} characters, with letters and numbers.`}
                     value={form.password}
                     onChange={set("password")}
-                    error={errors.password}
+                    error={errors.password} aria-invalid={!!errors.password}
                   />
                 </>
               )}
@@ -313,14 +329,14 @@ export default function BecomeATenantPage() {
                     description="As shown on your DTI or SEC registration."
                     value={form.companyName}
                     onChange={set("companyName")}
-                    error={errors.companyName}
+                    error={errors.companyName} aria-invalid={!!errors.companyName}
                   />
                   <Input
                     label="Store name"
                     description="The name shoppers will see in the mall directory."
                     value={form.shopName}
                     onChange={set("shopName")}
-                    error={errors.shopName}
+                    error={errors.shopName} aria-invalid={!!errors.shopName}
                   />
                   <Select
                     label="Business category"
@@ -331,7 +347,7 @@ export default function BecomeATenantPage() {
                       setErrors((er) => ({ ...er, category: undefined }));
                     }}
                     items={Object.fromEntries(SHOP_CATEGORIES.map((c) => [c, c]))}
-                    error={errors.category}
+                    error={errors.category} aria-invalid={!!errors.category}
                     className="w-full"
                   >
                     {SHOP_CATEGORIES.map((c) => (
@@ -346,7 +362,7 @@ export default function BecomeATenantPage() {
                     autoComplete="tel"
                     value={form.phone}
                     onChange={set("phone")}
-                    error={errors.phone}
+                    error={errors.phone} aria-invalid={!!errors.phone}
                   />
                   <Input
                     label="Business address"
@@ -354,7 +370,7 @@ export default function BecomeATenantPage() {
                     description="Your registered address, not the mall unit."
                     value={form.businessAddress}
                     onChange={set("businessAddress")}
-                    error={errors.businessAddress}
+                    error={errors.businessAddress} aria-invalid={!!errors.businessAddress}
                   />
                 </>
               )}

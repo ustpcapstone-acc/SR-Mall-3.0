@@ -3,6 +3,14 @@
 import { prisma } from "@srmall/database";
 import { revalidatePath } from "next/cache";
 import { getCloudStorageProvider } from "@/lib/cloud-storage";
+import { requireStaff } from "@/lib/auth-server";
+
+/*
+ * Server actions can be called by anyone who knows how, whatever page they
+ * are on, so the dashboard redirect does not protect them. Every action here
+ * that changes the public site checks for a signed-in staff account with the
+ * Public-View CMS permission. The public reads stay open.
+ */
 
 // Public View Config Actions
 export async function getPublicViewConfigAction() {
@@ -53,6 +61,8 @@ export async function updatePublicViewConfigAction(
     venueEyebrow?: string | null;
     venueTitle?: string | null;
     venueDescription?: string | null;
+    venueImageUrl?: string | null;
+    venueImageAlt?: string | null;
     reviewsTitle?: string | null;
     reviewsDescription?: string | null;
     locationTitle?: string | null;
@@ -78,6 +88,7 @@ export async function updatePublicViewConfigAction(
   },
   adminId?: string,
 ) {
+  await requireStaff("cms");
   try {
     // Same record the getter returns (newest), so a save always lands where it is read.
     const existingConfig = await prisma.publicViewConfig.findFirst({
@@ -168,6 +179,7 @@ export async function createCarouselItemAction(
   },
   adminId?: string,
 ) {
+  await requireStaff("cms");
   try {
     const carouselItem = await prisma.publicViewCarousel.create({
       data: data,
@@ -195,6 +207,7 @@ export async function updateCarouselItemAction(
     storageKey?: string;
   },
 ) {
+  await requireStaff("cms");
   try {
     const updatedItem = await prisma.publicViewCarousel.update({
       where: { id },
@@ -213,6 +226,7 @@ export async function updateCarouselItemAction(
 }
 
 export async function deleteCarouselItemAction(id: string) {
+  await requireStaff("cms");
   try {
     const item = await prisma.publicViewCarousel.findUnique({ where: { id } });
     if (item?.storageKey) {
@@ -233,6 +247,7 @@ export async function deleteCarouselItemAction(id: string) {
 }
 
 export async function toggleCarouselItemAction(id: string) {
+  await requireStaff("cms");
   try {
     const item = await prisma.publicViewCarousel.findUnique({
       where: { id },

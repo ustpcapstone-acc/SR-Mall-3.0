@@ -1,5 +1,6 @@
 "use client";
 
+import { optimizedImage } from "@/lib/media";
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Calendar, ArrowRight, ArrowLeft } from "lucide-react";
@@ -167,7 +168,7 @@ export const UpcomingEventsSlider = () => {
               className="absolute inset-0 w-full h-full"
             >
               <img
-                src={currentEvent.imageUrl}
+                src={optimizedImage(currentEvent.imageUrl, 1600)}
                 alt={currentEvent.title}
                 className="absolute inset-0 w-full h-full object-cover"
               />

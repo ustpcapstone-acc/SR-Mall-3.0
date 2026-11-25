@@ -1,5 +1,6 @@
 "use client";
 
+import { optimizedImage } from "@/lib/media";
 import {
   availabilityLabel,
   isOutOfStock,
@@ -441,7 +442,7 @@ export default function ShopProfilePage() {
               ) : coverUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={coverUrl}
+                  src={optimizedImage(coverUrl, 1600)}
                   alt={`${shop.shop_name} cover`}
                   className="absolute inset-0 h-full w-full object-cover transition-transform duration-1000 hover:scale-105"
                 />
@@ -450,7 +451,7 @@ export default function ShopProfilePage() {
                   {shop.logo_url && !shop.logo_url.startsWith("blob:") && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={logo}
+                      src={optimizedImage(logo, 240)}
                       alt=""
                       aria-hidden
                       className="h-full w-full scale-125 object-cover opacity-25 blur-2xl"
@@ -543,8 +544,8 @@ export default function ShopProfilePage() {
                 <div className="flex items-end gap-3 sm:gap-4">
                   <div className="h-14 w-14 shrink-0 overflow-hidden rounded-full border-2 border-white/85 bg-white shadow-xl sm:h-16 sm:w-16">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={logo}
+                    <img loading="lazy" decoding="async"
+                      src={optimizedImage(logo, 240)}
                       alt={`${shop.shop_name} logo`}
                       className="h-full w-full object-cover"
                     />
@@ -644,8 +645,8 @@ export default function ShopProfilePage() {
                 )}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={getSafeUrl(url, i)}
+                <img loading="lazy" decoding="async"
+                  src={optimizedImage(getSafeUrl(url, i), 1200)}
                   alt=""
                   className="h-full w-full object-cover"
                 />
@@ -738,8 +739,8 @@ export default function ShopProfilePage() {
                             <div className="h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-[#F4EEE6] dark:bg-zinc-800">
                               {p.image_url ? (
                                 // eslint-disable-next-line @next/next/no-img-element
-                                <img
-                                  src={getSafeUrl(p.image_url, i)}
+                                <img loading="lazy" decoding="async"
+                                  src={optimizedImage(getSafeUrl(p.image_url, i), 600)}
                                   alt=""
                                   className="h-full w-full object-cover"
                                 />
@@ -864,7 +865,7 @@ export default function ShopProfilePage() {
                       {product.image_url ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
-                          src={getSafeUrl(product.image_url, index)}
+                          src={optimizedImage(getSafeUrl(product.image_url, index), 600)}
                           alt={product.name || "Product"}
                           loading="lazy"
                           className={clsx(
@@ -1023,8 +1024,8 @@ export default function ShopProfilePage() {
                         {sale.image_url &&
                         !sale.image_url.startsWith("blob:") ? (
                           // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={sale.image_url}
+                          <img loading="lazy" decoding="async"
+                            src={optimizedImage(sale.image_url, 1200)}
                             alt={sale.title}
                             className="h-full w-full object-cover"
                           />

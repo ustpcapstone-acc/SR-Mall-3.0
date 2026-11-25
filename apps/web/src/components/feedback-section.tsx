@@ -21,7 +21,7 @@ import {
   deleteMyReviewAction,
   getMyReviewAction,
 } from "@/app/actions/review";
-import { getAllStorefrontsAction } from "@/app/actions/tenant";
+import { loadStorefronts } from "@/lib/shared-request";
 import { LoginModal } from "@/components/login-modal";
 import { useAuth } from "@/app/providers";
 
@@ -90,7 +90,7 @@ export const FeedbackSection = ({
   // ── Load available storefronts if not locked to tenantId ───
   useEffect(() => {
     if (!tenantId) {
-      getAllStorefrontsAction()
+      loadStorefronts()
         .then((res) => {
           if (res.success && res.data) {
             setAvailableTenants(res.data);

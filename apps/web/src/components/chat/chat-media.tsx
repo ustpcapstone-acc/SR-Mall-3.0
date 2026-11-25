@@ -1,5 +1,6 @@
 "use client";
 
+import { optimizedImage } from "@/lib/media";
 import React, { useEffect, useState } from "react";
 import clsx from "clsx";
 import { Maximize2 } from "lucide-react";
@@ -40,7 +41,7 @@ export function ChatAvatar({
     >
       {show ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={src!} alt={name || "Avatar"} onError={() => setBroken(true)} className="w-full h-full object-cover" />
+        <img src={optimizedImage(src!, 96)} alt={name || "Avatar"} onError={() => setBroken(true)} className="w-full h-full object-cover" />
       ) : (
         <span className="text-xs font-bold text-slate-500">{initialsOf(name)}</span>
       )}
@@ -70,7 +71,8 @@ export function ChatImage({ url, onOpen }: { url: string; onOpen: (url: string) 
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src={url}
+        src={optimizedImage(url, 800)}
+        decoding="async"
         alt="Photo"
         loading="lazy"
         onError={() => setBroken(true)}

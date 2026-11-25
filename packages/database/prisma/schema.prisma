@@ -361,6 +361,8 @@ model PublicViewConfig {
   venueEyebrow           String?
   venueTitle             String?
   venueDescription       String?
+  venueImageUrl          String?
+  venueImageAlt          String?
   reviewsTitle           String?
   reviewsDescription     String?
   locationTitle          String?

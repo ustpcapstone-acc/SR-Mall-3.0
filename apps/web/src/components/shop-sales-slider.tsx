@@ -1,5 +1,6 @@
 "use client";
 
+import { optimizedImage } from "@/lib/media";
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Tag, ArrowRight, ArrowLeft } from "lucide-react";
@@ -154,7 +155,7 @@ export const ShopSalesSlider = ({ shops }: { shops: any[] }) => {
                 />
               ) : (
                 <img
-                  src={currentSale.imageUrl}
+                  src={optimizedImage(currentSale.imageUrl, 1600)}
                   alt={currentSale.title}
                   className="absolute inset-0 w-full h-full object-cover"
                 />

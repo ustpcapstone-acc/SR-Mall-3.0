@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Search, X, Navigation, Tag } from "lucide-react";
 import Link from "next/link";
+import { optimizedImage } from "@/lib/media";
 
 // Default SR-MANAGE Ad when nothing is live
 const DEFAULT_AD = {
@@ -19,6 +20,7 @@ export const AdBanner = ({
   ads,
   tenantPromos,
   extraItems,
+  loaded,
   searchQuery = "",
   setSearchQuery = () => {},
   handleSearchClick = () => {},
@@ -29,6 +31,8 @@ export const AdBanner = ({
   ads?: any[];
   tenantPromos?: any[];
   extraItems?: any[];
+  /** The parent has finished loading ads (undefined: the banner loads its own). */
+  loaded?: boolean;
   searchQuery?: string;
   setSearchQuery?: (val: string) => void;
   handleSearchClick?: () => void;
@@ -70,10 +74,26 @@ export const AdBanner = ({
 
     if (combined.length > 0) {
       setLocalAds(combined);
-    } else {
+    } else if (loaded === undefined) {
+      // Used on its own: load the ads here.
       fetchActiveAds();
+    } else if (loaded) {
+      // The page loaded them and there are none live.
+      setLocalAds([DEFAULT_AD]);
     }
-  }, [ads, tenantPromos, extraItems]);
+    // While the page is still loading, wait instead of fetching the same
+    // lists a second time (server actions queue, so that delayed the page).
+  }, [ads, tenantPromos, extraItems, loaded]);
+
+  // Only the slide on screen and the next one load their media; a slide's
+  // media stays once loaded so cycling back never flashes. Before, every
+  // slide's full-size image and video downloaded (and played) at once.
+  const [warm, setWarm] = useState<Set<number>>(() => new Set([0, 1]));
+  const upNext = (currentIndex + 1) % Math.max(localAds.length, 1);
+  if (!warm.has(currentIndex) || !warm.has(upNext)) {
+    // Adjusting state while rendering (React's pattern for derived state).
+    setWarm(new Set([...warm, currentIndex, upNext]));
+  }
 
   // Separate effect for interval
   useEffect(() => {
@@ -141,25 +161,41 @@ export const AdBanner = ({
               url?.match(/\.(mp4|webm|mov|ogg)$/i) ||
               url?.includes("/video/upload/");
 
+            if (!warm.has(index)) return <div className="w-full h-full bg-black" />;
+            const active = index === currentIndex;
             return isVideo ? (
               <video
                 src={url}
+                ref={(v) => {
+                  // Only the slide on screen plays.
+                  if (!v) return;
+                  if (active) void v.play().catch(() => {});
+                  else v.pause();
+                }}
                 className="w-full h-full object-cover transition-transform duration-[20s] scale-105 group-hover:scale-110"
-                autoPlay
+                autoPlay={active}
+                preload={active ? "auto" : "metadata"}
                 loop
                 muted
                 playsInline
               />
             ) : (
               <img
-                src={ad.promoImage || ad.imageUrl}
+                src={optimizedImage(ad.promoImage || ad.imageUrl, 1920)}
                 alt={ad.title}
+                fetchPriority={index === 0 ? "high" : "auto"}
+                decoding="async"
                 className="w-full h-full object-cover transition-transform duration-[20s] scale-105 group-hover:scale-110"
               />
             );
           })()}
           <div className="absolute inset-0 bg-linear-to-r from-black/80 via-black/40 to-transparent flex items-center">
-            <div className="max-w-7xl mx-auto px-5 sm:px-10 w-full flex flex-col lg:flex-row lg:items-center justify-between gap-10">
+            {/* The leaving slide's text fades out fast and the new text only
+                comes in after it, so two headlines never sit on top of each
+                other during the 1s image cross-fade. */}
+            <div
+              className={`max-w-7xl mx-auto px-5 sm:px-10 w-full flex flex-col lg:flex-row lg:items-center justify-between gap-10 transition-opacity ${index === currentIndex ? "opacity-100 duration-500 delay-500" : "opacity-0 duration-200"}`}
+            >
               <div className="max-w-sm sm:max-w-2xl animate-fade-in-up">
                 <h2 className="font-display text-3xl sm:text-5xl lg:text-6xl font-semibold text-white mb-3 sm:mb-6 leading-[1.05] tracking-tight line-clamp-3">
                   {ad.title}
@@ -195,6 +231,7 @@ export const AdBanner = ({
                       type="text"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
+                      aria-label="Search shops or products"
                       placeholder="Search shops or products..."
                       className="w-full px-4 py-3 bg-transparent text-white focus:outline-hidden text-sm font-medium placeholder:text-white/40"
                     />
@@ -265,9 +302,17 @@ export const AdBanner = ({
             <button
               suppressHydrationWarning
               key={index}
+              type="button"
               onClick={() => setCurrentIndex(index)}
-              className={`w-1.5 h-1.5 rounded-full transition-all ${index === currentIndex ? "bg-primary w-4" : "bg-slate-400 dark:bg-white/50 hover:bg-primary dark:hover:bg-white"}`}
-            />
+              aria-label={`Show slide ${index + 1} of ${localAds.length}`}
+              aria-current={index === currentIndex ? "true" : undefined}
+              // The dot stays small; the padding gives fingers a 22px+ target.
+              className="group/dot -m-2 p-2 flex items-center"
+            >
+              <span
+                className={`block h-1.5 rounded-full transition-all ${index === currentIndex ? "bg-primary w-4" : "w-1.5 bg-slate-400 dark:bg-white/50 group-hover/dot:bg-primary dark:group-hover/dot:bg-white"}`}
+              />
+            </button>
           ))}
         </div>
       )}

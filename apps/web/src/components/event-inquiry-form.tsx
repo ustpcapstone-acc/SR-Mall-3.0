@@ -1,5 +1,6 @@
 "use client";
 
+import { optimizedImage } from "@/lib/media";
 import React, { useEffect, useRef, useState } from "react";
 import {
   AlertCircle,
@@ -50,12 +51,16 @@ export const EventInquiryForm = ({
   eyebrow,
   title,
   description,
+  imageUrl,
+  imageAlt,
 }: {
   isAuthenticated: boolean;
   user?: any;
   eyebrow?: string | null;
   title?: string | null;
   description?: string | null;
+  imageUrl?: string | null;
+  imageAlt?: string | null;
 }) => {
   const eyebrowText = eyebrow?.trim() || "Venue booking";
   const headingText = title?.trim() || "Plan your next *big*\n*day* here.";
@@ -215,10 +220,12 @@ export const EventInquiryForm = ({
           </div>
 
           <div className="mt-8 overflow-hidden rounded-[1.4rem] border border-[#EFE9E2] bg-[#EFE9E2] shadow-[0_18px_40px_-28px_rgba(33,25,27,0.4)] dark:border-white/10 dark:bg-zinc-900">
-            {/* Existing project asset — no unrelated stock imagery. */}
+            {/* Set in CMS → General Settings; the built-in picture is the fallback. */}
             <img
-              src="/images/storefront_hero_placeholder_2_1774159273401.png"
-              alt="SR Mall venue space"
+              src={optimizedImage(imageUrl?.trim() || "/images/storefront_hero_placeholder_2_1774159273401.png", 1200)}
+              alt={(imageUrl?.trim() && imageAlt?.trim()) || "SR Mall venue space"}
+              loading="lazy"
+              decoding="async"
               className="h-56 w-full object-cover sm:h-64 lg:h-76"
             />
           </div>

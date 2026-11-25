@@ -13,7 +13,7 @@ export default function NotFound() {
         </div>
 
         <p className="text-xs font-semibold text-primary">
-          SR-MANAGE
+          SR Mall
         </p>
         <h1 className="mt-3 bg-linear-to-br from-charcoal via-charcoal to-slate-400 bg-clip-text text-7xl font-semibold tracking-tight text-transparent dark:from-white dark:via-white dark:to-zinc-600 sm:text-8xl">
           404

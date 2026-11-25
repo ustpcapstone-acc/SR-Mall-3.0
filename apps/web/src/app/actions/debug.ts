@@ -3,6 +3,10 @@
 import { prisma } from "@srmall/database";
 
 export async function debugDatabaseAction() {
+  // Local development only: it returns user names, emails and roles.
+  if (process.env.NODE_ENV === "production") {
+    return { success: false, error: "Not available" };
+  }
   try {
     // Test database connection
     const userCount = await prisma.user.count();

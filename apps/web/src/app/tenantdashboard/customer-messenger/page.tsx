@@ -1,5 +1,6 @@
 "use client";
 
+import { optimizedImage } from "@/lib/media";
 import React, { Suspense, useState, useEffect, useRef, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import {
@@ -174,7 +175,9 @@ function CustomerMessenger({ inbox }: { inbox: Inbox }) {
     fetchConversations();
     // Conversation previews refresh every 15s; live messages arrive through
     // Supabase Realtime instead of hammering this endpoint.
-    const interval = setInterval(fetchConversations, 15000);
+    const interval = setInterval(() => {
+      if (!document.hidden) fetchConversations();
+    }, 15000);
     return () => clearInterval(interval);
   }, [fetchConversations]);
 
@@ -347,7 +350,9 @@ function CustomerMessenger({ inbox }: { inbox: Inbox }) {
     try {
       const { uploadImageServerAction } = await import("@/app/actions/upload");
       const formData = new FormData();
-      formData.append("file", file);
+      // Shrunk first: the action accepts 1 MB and phone photos are larger.
+      const { shrinkImage } = await import("@/lib/shrink-image");
+      formData.append("file", await shrinkImage(file));
       return await uploadImageServerAction(formData);
     } catch (err) {
       console.error("Cloudinary upload error:", err);
@@ -653,7 +658,7 @@ function CustomerMessenger({ inbox }: { inbox: Inbox }) {
                   >
                     {otherPerson?.avatarUrl ? (
                       <img
-                        src={otherPerson.avatarUrl}
+                        src={optimizedImage(otherPerson.avatarUrl, 96)}
                         alt="Avatar"
                         className="w-full h-full object-cover"
                       />
@@ -767,7 +772,7 @@ function CustomerMessenger({ inbox }: { inbox: Inbox }) {
                           <div className="w-8 h-8 lg:w-9 lg:h-9 rounded-full bg-slate-100 dark:bg-zinc-800 flex items-center justify-center overflow-hidden border border-slate-200 dark:border-white/10">
                             {otherPerson?.avatarUrl ? (
                               <img
-                                src={otherPerson.avatarUrl}
+                                src={optimizedImage(otherPerson.avatarUrl, 96)}
                                 alt="Avatar"
                                 className="w-full h-full object-cover"
                               />
@@ -830,7 +835,7 @@ function CustomerMessenger({ inbox }: { inbox: Inbox }) {
                               {isMyMsg && !isTemporary && (
                                 <UnsendButton onClick={() => setUnsendTarget(msg)} />
                               )}
-                              {!isMyMsg && <ChatAvatar src={senderAvatar} name={senderName} />}
+                              {!isMyMsg && <ChatAvatar src={optimizedImage(senderAvatar, 96)} name={senderName} />}
                               <div
                                 className={clsx(
                                   "flex flex-col",
@@ -879,7 +884,7 @@ function CustomerMessenger({ inbox }: { inbox: Inbox }) {
                                 <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-zinc-800 flex items-center justify-center overflow-hidden shrink-0 border border-slate-100 dark:border-white/5">
                                   {senderAvatar ? (
                                     <img
-                                      src={senderAvatar}
+                                      src={optimizedImage(senderAvatar, 96)}
                                       alt="Sender"
                                       className="w-full h-full object-cover"
                                     />
@@ -991,7 +996,7 @@ function CustomerMessenger({ inbox }: { inbox: Inbox }) {
                             <div className="w-16 h-16 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-500 font-bold text-2xl flex items-center justify-center mb-3 overflow-hidden border border-slate-100 dark:border-white/5">
                               {otherPerson?.avatarUrl ? (
                                 <img
-                                  src={otherPerson.avatarUrl}
+                                  src={optimizedImage(otherPerson.avatarUrl, 96)}
                                   alt="Avatar"
                                   className="w-full h-full object-cover"
                                 />
@@ -1041,7 +1046,7 @@ function CustomerMessenger({ inbox }: { inbox: Inbox }) {
             className="relative max-w-4xl max-h-[90vh] flex flex-col items-center animate-scale-up"
           >
             <img
-              src={lightboxImageUrl}
+              src={optimizedImage(lightboxImageUrl, 2000)}
               alt="Full Preview"
               className="max-w-full max-h-[80vh] rounded-2xl object-contain shadow-2xl border border-white/10"
             />

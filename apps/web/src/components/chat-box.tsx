@@ -1,5 +1,6 @@
 "use client";
 
+import { optimizedImage } from "@/lib/media";
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   X,
@@ -19,7 +20,7 @@ import { ChatAvatar, ChatImage, bubblePadding } from "@/components/chat/chat-med
 import { LoginModal } from "./login-modal";
 import { markMessageNotificationsAsReadAction } from "@/app/actions/notification";
 import { refreshChatUnread, setViewingChats } from "@/lib/chat-unread";
-import { getAllStorefrontsAction } from "@/app/actions/tenant";
+import { loadStorefronts } from "@/lib/shared-request";
 import {
   subscribeToConversation,
   subscribeToInbox,
@@ -72,7 +73,7 @@ function ShopAvatar({ name, logo, className = "w-12 h-12" }: { name: string; log
     <div className={`${className} rounded-full overflow-hidden bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-sm border border-slate-100 dark:border-white/5 shrink-0`}>
       {logo && !broken ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={logo} alt="" onError={() => setBroken(true)} className="w-full h-full object-cover" />
+        <img src={optimizedImage(logo, 96)} alt="" onError={() => setBroken(true)} className="w-full h-full object-cover" />
       ) : (
         initials
       )}
@@ -144,7 +145,7 @@ export const ChatBox = ({
   // Fetch true shops from DB
   useEffect(() => {
     async function fetchShops() {
-      const res = await getAllStorefrontsAction();
+      const res = await loadStorefronts();
       if (res.success && res.data) {
         const shops: ChatShop[] = res.data.map((s: any) => ({
           id: s.id,
@@ -531,7 +532,9 @@ export const ChatBox = ({
     try {
       const { uploadImageServerAction } = await import("@/app/actions/upload");
       const formData = new FormData();
-      formData.append("file", file);
+      // Shrunk first: the action accepts 1 MB and phone photos are larger.
+      const { shrinkImage } = await import("@/lib/shrink-image");
+      formData.append("file", await shrinkImage(file));
       return await uploadImageServerAction(formData);
     } catch (err) {
       console.error("Cloudinary upload error:", err);
@@ -717,13 +720,13 @@ export const ChatBox = ({
                   <Building2 size={20} />
                 ) : selectedShop.logo ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={selectedShop.logo} alt="" className="w-full h-full object-cover" />
+                  <img src={optimizedImage(selectedShop.logo, 96)} alt="" className="w-full h-full object-cover" />
                 ) : (
                   (selectedShop.name || "?").charAt(0).toUpperCase()
                 )
               ) : isAuthenticated && user?.avatarUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={user.avatarUrl} alt="" className="w-full h-full object-cover" />
+                <img src={optimizedImage(user.avatarUrl, 96)} alt="" className="w-full h-full object-cover" />
               ) : isAuthenticated ? (
                 (user?.name || user?.email || "?").charAt(0).toUpperCase()
               ) : (
@@ -1026,7 +1029,7 @@ export const ChatBox = ({
                       <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-zinc-800 flex items-center justify-center overflow-hidden shrink-0 border border-slate-100 dark:border-white/5">
                         {senderAvatar ? (
                           <img
-                            src={senderAvatar}
+                            src={optimizedImage(senderAvatar, 96)}
                             alt="Sender"
                             className="w-full h-full object-cover"
                           />
@@ -1166,7 +1169,7 @@ export const ChatBox = ({
             className="relative max-w-4xl max-h-[90vh] flex flex-col items-center animate-scale-up"
           >
             <img
-              src={lightboxImageUrl}
+              src={optimizedImage(lightboxImageUrl, 2000)}
               alt="Full Preview"
               className="max-w-full max-h-[80vh] rounded-2xl object-contain shadow-2xl border border-white/10"
             />

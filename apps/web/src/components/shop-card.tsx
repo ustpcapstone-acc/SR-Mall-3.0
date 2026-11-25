@@ -1,5 +1,7 @@
 "use client";
 
+import { hasAssignedUnit } from "@/lib/products";
+import { optimizedImage } from "@/lib/media";
 import React, { useRef, useState } from "react";
 import Link from "next/link";
 import clsx from "clsx";
@@ -79,7 +81,7 @@ export const ShopCard = ({ shop, onClick, onMessage }: ShopCardProps) => {
     setPlaying(false);
   };
   const logo = logoBroken ? null : usable(shop.logo_url);
-  const hasUnit = unit_id && unit_id !== "PENDING_ASSIGNMENT";
+  const hasUnit = hasAssignedUnit(unit_id);
   const floor = shop.floor ? FLOOR_LABELS[shop.floor] || shop.floor : null;
   const location = hasUnit ? `Unit ${unit_id}${floor ? ` · ${floor}` : ""}` : "Opening soon";
   const rating = shop.reviewCount ? Number(shop.avgRating || 0) : 0;
@@ -132,7 +134,7 @@ export const ShopCard = ({ shop, onClick, onMessage }: ShopCardProps) => {
         ) : promoImage ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={promoImage}
+            src={optimizedImage(promoImage, 800)}
             alt={promo?.title || shop_name}
             loading="lazy"
             onError={() => setPromoBroken(true)}
@@ -141,7 +143,7 @@ export const ShopCard = ({ shop, onClick, onMessage }: ShopCardProps) => {
         ) : cover ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={cover}
+            src={optimizedImage(cover, 800)}
             alt={shop_name}
             loading="lazy"
             onError={() => setCoverBroken(true)}
@@ -152,7 +154,7 @@ export const ShopCard = ({ shop, onClick, onMessage }: ShopCardProps) => {
           <div className="absolute inset-0 flex items-center justify-center bg-linear-to-br from-slate-50 to-slate-100 dark:from-zinc-900 dark:to-zinc-950">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={logo}
+              src={optimizedImage(logo, 200)}
               alt={shop_name}
               loading="lazy"
               onError={() => setLogoBroken(true)}

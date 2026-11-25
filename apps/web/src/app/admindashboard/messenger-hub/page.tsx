@@ -1,5 +1,6 @@
 "use client";
 
+import { optimizedImage } from "@/lib/media";
 import React, { useState, useEffect, useRef, Suspense, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import {
@@ -219,7 +220,9 @@ function MessengerHubContent() {
     fetchConversations(true);
     // Conversation previews refresh every 15s; live messages arrive through
     // Supabase Realtime instead of hammering this endpoint.
-    const interval = setInterval(() => fetchConversations(false), 15000);
+    const interval = setInterval(() => {
+      if (!document.hidden) fetchConversations(false);
+    }, 15000);
 
 
     return () => clearInterval(interval);
@@ -428,7 +431,9 @@ function MessengerHubContent() {
     try {
       const { uploadImageServerAction } = await import("@/app/actions/upload");
       const formData = new FormData();
-      formData.append("file", file);
+      // Shrunk first: the action accepts 1 MB and phone photos are larger.
+      const { shrinkImage } = await import("@/lib/shrink-image");
+      formData.append("file", await shrinkImage(file));
       return await uploadImageServerAction(formData);
     } catch (err) {
       console.error("Cloudinary upload error:", err);
@@ -685,7 +690,7 @@ function MessengerHubContent() {
                     <div className="w-10 h-10 rounded-full bg-blue-500/10 text-blue-500 flex items-center justify-center font-bold overflow-hidden shrink-0 border border-slate-100 dark:border-white/5 relative">
                       {otherUser?.avatarUrl ? (
                         <img
-                          src={otherUser.avatarUrl}
+                          src={optimizedImage(otherUser.avatarUrl, 96)}
                           alt="Avatar"
                           className="w-full h-full object-cover"
                         />
@@ -762,7 +767,7 @@ function MessengerHubContent() {
                     <div className="w-9 h-9 rounded-full bg-slate-100 dark:bg-zinc-800 flex items-center justify-center font-bold text-sm overflow-hidden border border-slate-200 dark:border-white/10">
                       {activeOtherUser?.avatarUrl ? (
                         <img
-                          src={activeOtherUser.avatarUrl}
+                          src={optimizedImage(activeOtherUser.avatarUrl, 96)}
                           alt="Avatar"
                           className="w-full h-full object-cover"
                         />
@@ -834,7 +839,7 @@ function MessengerHubContent() {
                         {msg.senderId === user?.id && !isTemporary && (
                           <UnsendButton onClick={() => setUnsendTarget(msg)} />
                         )}
-                        {!isFromAdmin && <ChatAvatar src={senderAvatar} name={senderName} />}
+                        {!isFromAdmin && <ChatAvatar src={optimizedImage(senderAvatar, 96)} name={senderName} />}
 
                         <div className={`flex flex-col ${isFromAdmin ? "items-end" : "items-start"}`}>
                           <div className="relative group/bubble">
@@ -883,7 +888,7 @@ function MessengerHubContent() {
                           <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-zinc-800 flex items-center justify-center overflow-hidden shrink-0 border border-slate-100 dark:border-white/5">
                             {senderAvatar ? (
                               <img
-                                src={senderAvatar}
+                                src={optimizedImage(senderAvatar, 96)}
                                 alt="Sender"
                                 className="w-full h-full object-cover"
                               />
@@ -1012,7 +1017,7 @@ function MessengerHubContent() {
                     <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xl overflow-hidden border border-slate-100 dark:border-white/5 shrink-0">
                       {activeOtherUser?.avatarUrl ? (
                         <img
-                          src={activeOtherUser.avatarUrl}
+                          src={optimizedImage(activeOtherUser.avatarUrl, 96)}
                           alt="Avatar"
                           className="w-full h-full object-cover"
                         />
@@ -1099,7 +1104,7 @@ function MessengerHubContent() {
             className="relative max-w-4xl max-h-[90vh] flex flex-col items-center animate-scale-up"
           >
             <img
-              src={lightboxImageUrl}
+              src={optimizedImage(lightboxImageUrl, 2000)}
               alt="Full Preview"
               className="max-w-full max-h-[80vh] rounded-2xl object-contain shadow-2xl border border-white/10"
             />

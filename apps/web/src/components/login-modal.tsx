@@ -255,7 +255,7 @@ export const LoginModal = ({ isOpen, onClose, nextPath }: LoginModalProps) => {
                         <label className={LABEL}>Recovery Email</label>
                         <div className="relative group">
                           <Mail size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-primary transition-colors" />
-                          <input {...register("email")} type="email" placeholder="Enter your registered email" className={`${INPUT} pl-14 pr-6 py-4`} />
+                          <input {...register("email")} type="email" aria-label="Recovery email" placeholder="Enter your registered email" className={`${INPUT} pl-14 pr-6 py-4`} />
                         </div>
                       </div>
                       <button
@@ -280,14 +280,14 @@ export const LoginModal = ({ isOpen, onClose, nextPath }: LoginModalProps) => {
                         <div className="grid grid-cols-1 min-[380px]:grid-cols-2 gap-3">
                           <div className="space-y-2">
                             <label className={LABEL}>First Name</label>
-                            <input {...register("firstName")} type="text" placeholder="Juan" autoComplete="given-name" className={`${INPUT} px-4 py-3.5`} />
+                            <input {...register("firstName")} type="text" aria-label="First name" placeholder="Juan" autoComplete="given-name" className={`${INPUT} px-4 py-3.5`} />
                             {errors.firstName && (
                               <span className="text-[10px] text-red-500 px-1">{errors.firstName.message?.toString()}</span>
                             )}
                           </div>
                           <div className="space-y-2">
                             <label className={LABEL}>Last Name</label>
-                            <input {...register("lastName")} type="text" placeholder="Dela Cruz" autoComplete="family-name" className={`${INPUT} px-4 py-3.5`} />
+                            <input {...register("lastName")} type="text" aria-label="Last name" placeholder="Dela Cruz" autoComplete="family-name" className={`${INPUT} px-4 py-3.5`} />
                             {errors.lastName && (
                               <span className="text-[10px] text-red-500 px-1">{errors.lastName.message?.toString()}</span>
                             )}
@@ -302,13 +302,15 @@ export const LoginModal = ({ isOpen, onClose, nextPath }: LoginModalProps) => {
                           <input
                             {...register("email")}
                             type="email"
+                            aria-label={isSignUp ? "Gmail address" : "Email address"}
+                            aria-invalid={!!errors.email}
                             placeholder={isSignUp ? "yourname@gmail.com" : "Enter your email"}
                             autoComplete="email"
                             className={`${INPUT} pl-14 pr-6 ${isSignUp ? "py-3.5" : "py-4"}`}
                           />
                         </div>
                         {errors.email ? (
-                          <span className="text-[10px] text-red-500 px-1">{errors.email.message?.toString()}</span>
+                          <span role="alert" className="text-xs text-red-500 px-1">{errors.email.message?.toString()}</span>
                         ) : (
                           isSignUp && (
                             <span className="text-[10px] text-slate-400 px-1">New accounts need a @gmail.com address.</span>
@@ -326,7 +328,7 @@ export const LoginModal = ({ isOpen, onClose, nextPath }: LoginModalProps) => {
                                 setIsForgotPassword(true);
                                 setError(null);
                               }}
-                              className="text-[10px] font-bold text-primary hover:underline"
+                              className="text-xs font-bold text-primary hover:underline"
                             >
                               Forgot Password?
                             </button>
@@ -337,6 +339,8 @@ export const LoginModal = ({ isOpen, onClose, nextPath }: LoginModalProps) => {
                           <input
                             {...register("password")}
                             type={showPassword ? "text" : "password"}
+                            aria-label="Password"
+                            aria-invalid={!!errors.password}
                             placeholder="••••••••"
                             autoComplete={isSignUp ? "new-password" : "current-password"}
                             className={`${INPUT} pl-14 pr-12 ${isSignUp ? "py-3.5" : "py-4"}`}

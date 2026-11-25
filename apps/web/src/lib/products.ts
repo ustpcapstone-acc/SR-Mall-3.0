@@ -40,3 +40,12 @@ export function availabilityLabel(p: ProductLike): string {
 /** Link to a product's page. */
 export const productHref = (shopId: string, productId: string) =>
   `/products/${encodeURIComponent(shopId)}/${encodeURIComponent(productId)}`;
+
+/**
+ * Has the shop been given a real unit yet? New shops carry a placeholder
+ * ("PENDING", "PENDING_ASSIGNMENT") until the admin assigns one, and that
+ * placeholder was showing on public cards as "Unit PENDING".
+ */
+export function hasAssignedUnit(unitId?: string | null): unitId is string {
+  return !!unitId && !/^pending/i.test(unitId.trim());
+}

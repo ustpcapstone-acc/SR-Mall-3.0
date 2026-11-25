@@ -33,7 +33,8 @@ export default function LeasePayments() {
   };
 
   React.useEffect(() => {
-    let intervalId: NodeJS.Timeout;
+    let intervalId: NodeJS.Timeout | undefined;
+    let onVisible: (() => void) | undefined;
 
     if (user?.id) {
       const fetchData = async () => {
@@ -46,11 +47,22 @@ export default function LeasePayments() {
       };
 
       fetchData();
-      // Simulate Supabase Realtime with high-frequency polling
-      intervalId = setInterval(fetchData, 10000);
+      // Quiet refresh every 60s while the tab is visible, and right away when
+      // the tenant comes back to it. (It polled every 10s even in hidden tabs,
+      // and each poll queued ahead of the tenant's own clicks.)
+      intervalId = setInterval(() => {
+        if (!document.hidden) void fetchData();
+      }, 60000);
+      onVisible = () => {
+        if (!document.hidden) void fetchData();
+      };
+      document.addEventListener("visibilitychange", onVisible);
     }
-    return () => clearInterval(intervalId);
-  }, [user]);
+    return () => {
+      clearInterval(intervalId);
+      if (onVisible) document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [user?.id]);
 
   const unpaidBalance = payments
     .filter((p) => p.status === "PENDING" || p.status === "OVERDUE")

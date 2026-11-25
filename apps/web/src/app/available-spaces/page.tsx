@@ -1,5 +1,6 @@
 "use client";
 
+import { optimizedImage } from "@/lib/media";
 import React, { useState, useEffect } from "react";
 import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
@@ -74,13 +75,13 @@ export default function AvailableSpacesPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 relative z-10">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-primary transition-all mb-8 group"
+            className="inline-flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-primary transition-all mb-8 group"
           >
             <ArrowLeft
               size={14}
               className="group-hover:-translate-x-1 transition-transform"
             />
-            Back to Public View
+            Back to Home
           </Link>
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
             <div className="space-y-4 max-w-2xl">
@@ -103,6 +104,7 @@ export default function AvailableSpacesPage() {
                 />
                 <input
                   type="text"
+                  aria-label="Search unit IDs"
                   placeholder="Search unit IDs (e.g. A-101)..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -170,7 +172,7 @@ export default function AvailableSpacesPage() {
           ) : filteredSlots.length > 0 ? (
             <>
               <div className="mb-10 flex items-center justify-between">
-                <p className="text-xs font-semibold text-slate-400">
+                <p className="text-xs font-semibold text-slate-600 dark:text-slate-400">
                   Showing {filteredSlots.length} available units
                 </p>
               </div>
@@ -197,8 +199,8 @@ export default function AvailableSpacesPage() {
                   >
                     <div className="aspect-4/3 sm:aspect-16/10 relative overflow-hidden bg-slate-100 dark:bg-black">
                       {slot.space_images && slot.space_images[0] ? (
-                        <img
-                          src={slot.space_images[0]}
+                        <img loading="lazy" decoding="async"
+                          src={optimizedImage(slot.space_images[0], 800)}
                           alt={`Space ${slot.unit_id}`}
                           className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
                         />
@@ -250,7 +252,7 @@ export default function AvailableSpacesPage() {
 
                     <div className="p-3 sm:p-8 flex items-center justify-between bg-white dark:bg-zinc-900/50">
                       <div className="space-y-0.5 sm:space-y-1.5">
-                        <p className="text-xs font-semibold text-slate-400">
+                        <p className="text-xs font-semibold text-slate-600 dark:text-slate-400">
                           Floor Area
                         </p>
                         <div className="flex items-baseline gap-1">

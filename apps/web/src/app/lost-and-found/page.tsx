@@ -4,7 +4,6 @@ import React, { useState, useEffect } from "react";
 import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { useAuth } from "@/app/providers";
-import { useRouter } from "next/navigation";
 import {
   Search,
   Package,
@@ -32,10 +31,11 @@ import { createLostAndFoundItem, getLostAndFoundItems } from "@/app/actions/lost
 import { uploadImageServerAction } from "@/app/actions/upload";
 import { ChatBox } from "@/components/chat-box";
 import { ChatLauncher } from "@/components/chat-launcher";
+import { LoginModal } from "@/components/login-modal";
 
 export default function LostAndFoundPage() {
-  const { isAuthenticated, user, logout } = useAuth();
-  const router = useRouter();
+  const { isAuthenticated, authReady, user, logout } = useAuth();
+  const [isLoginOpen, setIsLoginOpen] = useState(false);
 
   const [activeTab, setActiveTab] = useState<"found" | "lost" | "report" | "claimed">("found");
   const [isMerchantModalOpen, setIsMerchantModalOpen] = useState(false);
@@ -74,13 +74,12 @@ export default function LostAndFoundPage() {
     setIsLoadingItems(false);
   };
 
+  // Signed-out visitors used to be sent to the home page without a word (and,
+  // because this ran before the saved session was read, so were signed-in
+  // people opening the link directly). Now they get a sign-in prompt instead.
   useEffect(() => {
-    if (!isAuthenticated) {
-      router.push("/");
-    } else {
-      loadItems();
-    }
-  }, [isAuthenticated, router]);
+    if (isAuthenticated) loadItems();
+  }, [isAuthenticated]);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -128,7 +127,40 @@ export default function LostAndFoundPage() {
     setIsSubmitting(false);
   };
 
-  if (!isAuthenticated) return null;
+  if (!authReady) return null;
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-black">
+        <Navbar />
+        <main className="flex-1 flex items-center justify-center px-4 pt-28 pb-16">
+          <div className="w-full max-w-md text-center bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/10 rounded-3xl shadow-xl p-8 sm:p-10">
+            <div className="mx-auto mb-5 w-14 h-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
+              <Package size={26} />
+            </div>
+            <h1 className="font-display text-2xl sm:text-3xl font-semibold text-charcoal dark:text-white mb-3">
+              Lost and Found
+            </h1>
+            <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed mb-8">
+              Sign in to browse items found in the mall, report something you lost, or claim an item that is yours.
+            </p>
+            <button
+              type="button"
+              onClick={() => setIsLoginOpen(true)}
+              className="w-full px-6 py-3.5 bg-primary text-white text-sm font-semibold rounded-xl hover:bg-primary-hover transition-all active:scale-95 shadow-lg shadow-primary/30"
+            >
+              Sign in to continue
+            </button>
+            <Link href="/" className="inline-flex items-center gap-1.5 mt-5 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-primary">
+              <ArrowLeft size={14} /> Back to home
+            </Link>
+          </div>
+        </main>
+        <Footer />
+        <LoginModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} />
+      </div>
+    );
+  }
 
   return (
     <div

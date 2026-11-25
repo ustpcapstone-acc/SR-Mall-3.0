@@ -161,7 +161,7 @@ export function ShopsMarquee({ shops, promos }: { shops: DigitalStorefront[]; pr
                 >
                   <Sparkles className="size-4 text-amber-200" aria-hidden />
                   <span className="font-display text-[clamp(1.25rem,2.6vw,2rem)] italic">{b.label}</span>
-                  {b.at && <span className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-white/70">at {b.at}</span>}
+                  {b.at && <span className="text-xs font-semibold uppercase tracking-[0.2em] text-white/85">at {b.at}</span>}
                 </Link>
               );
             })}

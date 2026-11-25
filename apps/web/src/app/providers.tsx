@@ -23,6 +23,8 @@ interface AuthUser {
 
 interface AuthContextType {
   isAuthenticated: boolean;
+  /** False until the saved session has been read on this page load. */
+  authReady: boolean;
   user: AuthUser | null;
   login: (
     id: string,
@@ -107,6 +109,7 @@ export const AppProviders = ({ children }: { children: React.ReactNode }) => {
   // ── Auth state ──
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [authReady, setAuthReady] = useState(false);
   const expiryTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const logout = useCallback(() => {
@@ -174,6 +177,7 @@ export const AppProviders = ({ children }: { children: React.ReactNode }) => {
       setIsAuthenticated(true);
       setUser(stored.user);
     }
+    setAuthReady(true);
 
     const checkExpiry = () => {
       if (!localStorage.getItem(SESSION_KEY)) return;
@@ -233,7 +237,7 @@ export const AppProviders = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <AuthContext.Provider
-      value={{ isAuthenticated, user, login, updateUser, logout }}
+      value={{ isAuthenticated, authReady, user, login, updateUser, logout }}
     >
       {children}
     </AuthContext.Provider>

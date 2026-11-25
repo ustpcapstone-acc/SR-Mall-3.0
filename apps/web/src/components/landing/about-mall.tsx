@@ -1,5 +1,6 @@
 "use client";
 
+import { optimizedImage } from "@/lib/media";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { Reveal } from "@/components/landing/reveal";
@@ -79,7 +80,7 @@ export function AboutMall({ config, shopCount, spacesForRent }: { config: Config
           <div className="relative aspect-4/5 overflow-hidden rounded-2xl bg-slate-100 dark:bg-zinc-900 sm:aspect-4/3 lg:aspect-4/5">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={config?.aboutImageUrl || "/images/mall/facade.webp"}
+              src={optimizedImage(config?.aboutImageUrl || "/images/mall/facade.webp", 1200)}
               alt="SR Mall"
               loading="lazy"
               decoding="async"

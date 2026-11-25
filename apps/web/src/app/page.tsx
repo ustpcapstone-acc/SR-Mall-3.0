@@ -1,5 +1,6 @@
 "use client";
 
+import { optimizedImage } from "@/lib/media";
 import React, { useState, useEffect, useRef } from "react";
 import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
@@ -33,7 +34,8 @@ import Link from "next/link";
 import { useAuth } from "@/app/providers";
 import { spaCache } from "@/utils/cache";
 import { DigitalStorefront } from "@/types/storefront";
-import { getAllStorefrontsAction } from "@/app/actions/tenant";
+import { loadStorefronts, primeSharedRequest } from "@/lib/shared-request";
+import { getHomePageDataAction } from "@/app/actions/home";
 import { getPublicAreaSlots } from "@/app/actions/space-slot";
 
 import { AreaSlot } from "@srmall/database";
@@ -46,7 +48,7 @@ import { applyThemeColor, mapEmbedSrc, PUBLIC_CONFIG_CACHE_KEY } from "@/lib/the
 import { mergeSlotPatch, slotAccess, useLiveSlots } from "@/lib/slot-live";
 import { toast } from "sonner";
 import { ProductCard } from "@/components/product-card";
-import { productHref } from "@/lib/products";
+import { hasAssignedUnit, productHref } from "@/lib/products";
 import { useRouter } from "next/navigation";
 import clsx from "clsx";
 import { useChatUnread } from "@/lib/chat-unread";
@@ -174,6 +176,7 @@ export default function PublicDigitalConcierge() {
     setCampaignMuted(v.muted);
   };
   const [ads, setAds] = useState<any[]>(() => spaCache.get("public_ads") || []);
+  const [adsLoaded, setAdsLoaded] = useState(() => spaCache.has("public_ads"));
   const [tenantPromos, setTenantPromos] = useState<any[]>(() => spaCache.get("public_promos") || []);
   const [carouselItems, setCarouselItems] = useState<any[]>(() => spaCache.get("public_carousel") || []);
   const router = useRouter();
@@ -211,11 +214,7 @@ export default function PublicDigitalConcierge() {
 
   useEffect(() => {
     const hasCache = spaCache.has("public_shops");
-    fetchConfig();
-    fetchShops(hasCache);
-    fetchSlots(hasCache);
-    fetchAds(hasCache);
-    fetchCarousel();
+    void loadHome(hasCache);
 
     // Scroll restoration for Featured Products
     const shouldScroll = sessionStorage.getItem("scroll_to_featured");
@@ -324,9 +323,36 @@ export default function PublicDigitalConcierge() {
     };
   }, []);
 
-  const fetchConfig = async () => {
+  // First load: one round trip for everything (see getHomePageDataAction).
+  // Later refreshes (tab focus, live slots) still use the single reads below.
+  const loadHome = async (hasCache: boolean) => {
+    if (!hasCache) {
+      setLoadingShops(true);
+      setLoadingSlots(true);
+    }
+    let d: Awaited<ReturnType<typeof getHomePageDataAction>>;
     try {
-      const data = await getPublicViewConfigAction();
+      d = await getHomePageDataAction();
+    } catch (e) {
+      console.error(e);
+      fetchConfig();
+      fetchShops(hasCache);
+      fetchSlots(hasCache);
+      fetchAds(hasCache);
+      fetchCarousel();
+      return;
+    }
+    primeSharedRequest("storefronts", d.storefronts);
+    void fetchConfig(d.config);
+    void fetchShops(true, d.storefronts);
+    void fetchSlots(true, d.slots);
+    void fetchAds(true, { ads: d.ads, promos: d.promos });
+    void fetchCarousel(d.carousel);
+  };
+
+  const fetchConfig = async (preloaded?: Awaited<ReturnType<typeof getPublicViewConfigAction>>) => {
+    try {
+      const data = preloaded ?? (await getPublicViewConfigAction());
       setConfig(data);
       spaCache.set("public_config", data);
       // Shared with the navbar on every other public page (logo, name, theme).
@@ -340,21 +366,31 @@ export default function PublicDigitalConcierge() {
     }
   };
 
-  const fetchAds = async (isBackground = false) => {
+  const fetchAds = async (
+    isBackground = false,
+    preloaded?: {
+      ads: Awaited<ReturnType<typeof getActiveMallAds>>;
+      promos: Awaited<ReturnType<typeof getApprovedTenantPromos>>;
+    },
+  ) => {
     try {
-      const [adsData, tenantPromosData] = await Promise.all([getActiveMallAds(), getApprovedTenantPromos()]);
+      const [adsData, tenantPromosData] = preloaded
+        ? [preloaded.ads, preloaded.promos]
+        : await Promise.all([getActiveMallAds(), getApprovedTenantPromos()]);
       setAds(adsData);
       setTenantPromos(tenantPromosData);
       spaCache.set("public_ads", adsData);
       spaCache.set("public_promos", tenantPromosData);
     } catch (error) {
       console.error("Public view: error fetching ads:", error);
+    } finally {
+      setAdsLoaded(true);
     }
   };
 
-  const fetchCarousel = async () => {
+  const fetchCarousel = async (preloaded?: Awaited<ReturnType<typeof getPublicViewCarouselAction>>) => {
     try {
-      const data = await getPublicViewCarouselAction();
+      const data = preloaded ?? (await getPublicViewCarouselAction());
       setCarouselItems(data);
       spaCache.set("public_carousel", data);
     } catch (error) {
@@ -362,9 +398,9 @@ export default function PublicDigitalConcierge() {
     }
   };
 
-  const fetchShops = async (isBackground = false) => {
+  const fetchShops = async (isBackground = false, preloaded?: Awaited<ReturnType<typeof loadStorefronts>>) => {
     if (!isBackground) setLoadingShops(true);
-    const res = await getAllStorefrontsAction();
+    const res = preloaded ?? (await loadStorefronts());
     if (res.success && res.data) {
       setShops(res.data);
       spaCache.set("public_shops", res.data);
@@ -384,9 +420,9 @@ export default function PublicDigitalConcierge() {
     setLoadingShops(false);
   };
 
-  const fetchSlots = async (isBackground = false) => {
+  const fetchSlots = async (isBackground = false, preloaded?: Awaited<ReturnType<typeof getPublicAreaSlots>>) => {
     if (!isBackground) setLoadingSlots(true);
-    const res = await getPublicAreaSlots();
+    const res = preloaded ?? (await getPublicAreaSlots());
     if (res.success && res.data) {
       setSlots(res.data);
       spaCache.set("public_slots", res.data);
@@ -484,10 +520,13 @@ export default function PublicDigitalConcierge() {
       {/* High Impact Hero Carousel */}
       {/* High Impact Hero Carousel with Search */}
       <section className={clsx("w-full", "relative", "bg-black", "pt-20", "hero-enter")}>
+        {/* The banner headline changes with each slide; this is the page's fixed main heading. */}
+        <h1 className="sr-only">SR Mall: shops, dining and spaces in Jasaan</h1>
         <AdBanner
           ads={ads}
           tenantPromos={tenantPromos}
           extraItems={carouselItems}
+          loaded={adsLoaded}
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
           handleSearchClick={handleSearchClick}
@@ -795,6 +834,7 @@ export default function PublicDigitalConcierge() {
                   />
                   <input suppressHydrationWarning
                     type="text"
+                    aria-label="Search stores, brands, or unit IDs"
                     placeholder="Search stores, brands, or unit IDs..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
@@ -827,8 +867,8 @@ export default function PublicDigitalConcierge() {
                               className="w-full p-3 sm:p-4 flex items-center gap-3 sm:gap-4 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors border-b border-slate-50 dark:border-white/5 last:border-0 text-left group/item"
                             >
                               <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-slate-100 dark:bg-zinc-800 overflow-hidden shrink-0 border border-slate-200 dark:border-white/10">
-                                <img
-                                  src={s.logo_url || "/images/logo/logoshop.jpg"}
+                                <img loading="lazy" decoding="async"
+                                  src={optimizedImage(s.logo_url || "/images/logo/logoshop.jpg", 160)}
                                   className="w-full h-full object-cover group-hover/item:scale-110 transition-transform"
                                   alt="Shop Logo"
                                 />
@@ -838,7 +878,7 @@ export default function PublicDigitalConcierge() {
                                   {s.shop_name}
                                 </p>
                                 <p className="text-xs font-bold text-slate-400">
-                                  {s.unit_id} — Plaza Wing
+                                  {hasAssignedUnit(s.unit_id) ? `${s.unit_id} — Plaza Wing` : "Unit to be assigned"}
                                 </p>
                               </div>
                               <Navigation
@@ -1089,7 +1129,7 @@ export default function PublicDigitalConcierge() {
         id="availability"
         className={clsx(
           "screen-section",
-          "py-24 sm:py-32 lg:py-40",
+          "py-24 sm:py-28",
           "bg-white dark:bg-black",
           "relative",
           "overflow-hidden",
@@ -1265,8 +1305,8 @@ export default function PublicDigitalConcierge() {
                       )}
                     >
                       {slot.space_images && slot.space_images[0] ? (
-                        <img
-                          src={slot.space_images[0]}
+                        <img loading="lazy" decoding="async"
+                          src={optimizedImage(slot.space_images[0], 800)}
                           alt={`Space ${slot.unit_id}`}
                           className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
                         />
@@ -1535,6 +1575,8 @@ export default function PublicDigitalConcierge() {
           eyebrow={config?.venueEyebrow}
           title={config?.venueTitle}
           description={config?.venueDescription}
+          imageUrl={config?.venueImageUrl}
+          imageAlt={config?.venueImageAlt}
         />
       </section>
 
@@ -1665,6 +1707,7 @@ export default function PublicDigitalConcierge() {
             setIsChatOpen(true);
           }
         }}
+        aria-label={isChatOpen ? "Close messages" : unreadMessages > 0 ? `Messages, ${unreadMessages} unread` : "Messages"}
         className={`fixed bottom-4 right-4 sm:bottom-10 sm:right-10 w-14 h-14 sm:w-20 sm:h-20 bg-primary text-white rounded-full flex items-center justify-center shadow-2xl shadow-primary/40 hover:scale-110 active:scale-95 transition-all z-50 group ${isChatOpen ? "rotate-90" : ""}`}
       >
         {isChatOpen ? <X size={32} /> : <MessageCircle size={32} />}

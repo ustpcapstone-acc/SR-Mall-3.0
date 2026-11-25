@@ -1,5 +1,6 @@
 "use client";
 
+import { optimizedImage } from "@/lib/media";
 import React from "react";
 import { ShoppingBag, ArrowRight } from "lucide-react";
 import clsx from "clsx";
@@ -42,8 +43,8 @@ export const ProductCard = ({
       {/* Background Image */}
       <div className="absolute inset-0 z-0">
         {product.image_url ? (
-          <img
-            src={product.image_url}
+          <img loading="lazy" decoding="async"
+            src={optimizedImage(product.image_url, 600)}
             className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
             alt={product.name}
           />
@@ -55,7 +56,7 @@ export const ProductCard = ({
       </div>
 
       {/* Overlays */}
-      <div className="absolute inset-0 bg-linear-to-t from-black via-black/20 to-transparent opacity-60 group-hover:opacity-80 transition-opacity duration-700 z-10" />
+      <div className="absolute inset-0 bg-linear-to-t from-black via-black/30 to-transparent opacity-80 group-hover:opacity-90 transition-opacity duration-700 z-10" />
       <div className="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity duration-700 z-11" />
 
       {/* Out of stock */}
@@ -76,17 +77,17 @@ export const ProductCard = ({
       <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-5 md:p-6 z-30 transform translate-y-0 md:translate-y-3 group-hover:translate-y-0 transition-all duration-700 text-left">
         <div className="space-y-2">
           <div className="overflow-hidden">
-            <h4 className="text-base sm:text-lg font-semibold text-white tracking-tight leading-none transform translate-y-0 md:translate-y-full group-hover:translate-y-0 transition-transform duration-700 delay-100 line-clamp-2">
+            <h4 className="text-base sm:text-lg font-semibold text-white tracking-tight leading-tight line-clamp-2">
               {product.name}
             </h4>
           </div>
 
           <div className="flex items-end justify-between gap-2">
             <div className="space-y-0.5">
-              <p className="text-xs font-bold text-white/50">
+              <p className="text-xs font-bold text-white/75">
                 Curated Item
               </p>
-              <p className="text-lg sm:text-xl font-semibold text-primary drop-shadow-[0_0_15px_rgba(190,30,45,0.5)]">
+              <p className="text-lg sm:text-xl font-semibold text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.6)]">
                 {product.price}
               </p>
             </div>

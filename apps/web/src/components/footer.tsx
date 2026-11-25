@@ -1,5 +1,6 @@
 "use client";
 
+import { optimizedImage } from "@/lib/media";
 import Link from "next/link";
 
 import { Mail, Phone, MapPin, Instagram, Facebook, Globe, Clock } from "lucide-react";
@@ -67,8 +68,8 @@ export const Footer = ({ config }: FooterProps = {}) => {
         {/* About SR Mall */}
         <div className="space-y-5">
           <Link href="/" className="group flex items-center gap-2.5" aria-label={`${name} home`}>
-            <img
-              src={config?.logoUrl || "/images/srmall-logo/sr_logo2.jpg"}
+            <img loading="lazy" decoding="async"
+              src={optimizedImage(config?.logoUrl || "/images/srmall-logo/sr_logo2.jpg", 240)}
               alt=""
               width={40}
               height={40}

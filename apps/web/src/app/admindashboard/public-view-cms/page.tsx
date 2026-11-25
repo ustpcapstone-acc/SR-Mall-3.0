@@ -94,6 +94,8 @@ interface PublicViewConfig {
   venueEyebrow: string | null;
   venueTitle: string | null;
   venueDescription: string | null;
+  venueImageUrl: string | null;
+  venueImageAlt: string | null;
   reviewsTitle: string | null;
   reviewsDescription: string | null;
   locationTitle: string | null;
@@ -146,6 +148,8 @@ export default function PublicViewCMSPage() {
     venueEyebrow: "",
     venueTitle: "",
     venueDescription: "",
+    venueImageUrl: "",
+    venueImageAlt: "",
     reviewsTitle: "",
     reviewsDescription: "",
     locationTitle: "",
@@ -1136,6 +1140,61 @@ export default function PublicViewCMSPage() {
                         onChange={(e) => handleConfigChange("venueDescription", e.target.value)}
                         className="cms-input min-h-[88px] resize-none"
                         placeholder="Esports nights, sports meets, fitness events, trade shows and community gatherings. Tell us what you're planning and the events team gets back to you."
+                      />
+                    </Field>
+                    <div className="space-y-2">
+                      <p className="text-xs font-semibold text-slate-400">Section photo</p>
+                      <div className="aspect-4/3 w-full max-w-sm bg-slate-100 dark:bg-zinc-800 rounded-2xl border-2 border-dashed border-slate-300 dark:border-white/10 flex items-center justify-center overflow-hidden">
+                        {/* The homepage's built-in picture shows until one is uploaded. */}
+                        <img
+                          src={config.venueImageUrl || DEFAULT_VENUE_IMAGE}
+                          alt={config.venueImageAlt || "Venue booking section photo"}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="flex flex-wrap items-center gap-3">
+                        <label className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-white text-xs font-semibold cursor-pointer hover:bg-primary-hover focus-within:ring-4 focus-within:ring-primary/30">
+                          <Edit size={14} />
+                          {config.venueImageUrl ? "Change photo" : "Upload photo"}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="sr-only"
+                            onChange={(e) => {
+                              void handleImageUpload("venueImageUrl", e);
+                              e.target.value = "";
+                            }}
+                          />
+                        </label>
+                        {config.venueImageUrl && (
+                          <button
+                            type="button"
+                            onClick={() => handleConfigChange("venueImageUrl", "")}
+                            className="text-xs font-semibold text-slate-500 hover:text-primary"
+                          >
+                            Use the built-in picture
+                          </button>
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-500">
+                        Landscape works best (at least 1200 × 900), with the subject in the middle and no text in it.
+                      </p>
+                    </div>
+                    <Field label="Photo URL" hint="Filled in automatically when you upload." error={configErrors.venueImageUrl}>
+                      <input
+                        value={config.venueImageUrl ?? ""}
+                        onChange={(e) => handleConfigChange("venueImageUrl", e.target.value)}
+                        className="cms-input"
+                        placeholder="https://…"
+                      />
+                    </Field>
+                    <Field label="Photo description" hint="What the photo shows, for screen readers and search engines.">
+                      <input
+                        value={config.venueImageAlt ?? ""}
+                        onChange={(e) => handleConfigChange("venueImageAlt", e.target.value)}
+                        className="cms-input"
+                        placeholder="Crowd watching a lion dance at the SR Mall entrance"
+                        maxLength={160}
                       />
                     </Field>
                   </div>
@@ -2615,6 +2674,9 @@ const THEME_PRESETS = [
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const URL_RE = /^https?:\/\/\S+$/i;
 
+/** Shown on the homepage (and previewed here) until a venue photo is uploaded. */
+const DEFAULT_VENUE_IMAGE = "/images/storefront_hero_placeholder_2_1774159273401.png";
+
 function validateConfig(config: Record<string, any>) {
   const errors: Record<string, string> = {};
   const val = (k: string) => String(config[k] ?? "").trim();
@@ -2624,7 +2686,7 @@ function validateConfig(config: Record<string, any>) {
     errors.themeColor = "Use a 6-digit hex code, e.g. #BE1E2D";
   for (const k of ["contactEmail", "footerEmail"])
     if (val(k) && !EMAIL_RE.test(val(k))) errors[k] = "Enter a valid email address.";
-  for (const k of ["googleMapsEmbedUrl", "footerInstagram", "footerFacebook", "footerWebsite"])
+  for (const k of ["venueImageUrl", "googleMapsEmbedUrl", "footerInstagram", "footerFacebook", "footerWebsite"])
     if (val(k) && !URL_RE.test(val(k))) errors[k] = "Must start with https://";
   return errors;
 }

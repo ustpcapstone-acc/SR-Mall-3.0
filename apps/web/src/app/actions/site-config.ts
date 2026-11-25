@@ -2,6 +2,7 @@
 
 import { prisma } from "@srmall/database";
 import { revalidatePath } from "next/cache";
+import { requireStaff } from "@/lib/auth-server";
 
 export async function getSiteConfig() {
   try {
@@ -53,6 +54,8 @@ export async function updateSiteConfig(data: {
   defaultAdCta?: string;
 }) {
   try {
+    // Changes the public site (including maintenance mode): CMS staff only.
+    await requireStaff("cms");
     const current = await prisma.siteConfig.findUnique({
       where: { id: "singleton" },
       select: { isMaintenance: true },

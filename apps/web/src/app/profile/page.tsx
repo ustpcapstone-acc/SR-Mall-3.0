@@ -9,7 +9,7 @@ import { AlertTriangle, Bell, Handshake, Heart, Loader2, Lock, LogOut, Store, Tr
 import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { useAuth } from "@/app/providers";
-import { getAllStorefrontsAction } from "@/app/actions/tenant";
+import { loadStorefronts } from "@/lib/shared-request";
 import { MerchantApplicationModal } from "@/components/merchant-application-modal";
 import {
   PrimaryButton,
@@ -42,7 +42,7 @@ function FavoritesCard({ userId }: { userId: string }) {
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([syncFavorites(userId), getAllStorefrontsAction()]).then(([favIds, res]) => {
+    Promise.all([syncFavorites(userId), loadStorefronts()]).then(([favIds, res]) => {
       if (cancelled) return;
       setIds(favIds);
       setShops(res.success && res.data ? (res.data as Shop[]) : []);

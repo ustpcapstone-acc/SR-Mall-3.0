@@ -1,5 +1,6 @@
 "use client";
 
+import { optimizedImage } from "@/lib/media";
 import React, { useState, useEffect } from "react";
 import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
@@ -19,7 +20,7 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import Link from "next/link";
-import { getAllStorefrontsAction } from "@/app/actions/tenant";
+import { loadStorefronts } from "@/lib/shared-request";
 import { useAuth } from "@/app/providers";
 import { spaCache } from "@/utils/cache";
 import clsx from "clsx";
@@ -58,7 +59,7 @@ export default function AllProductsPage() {
 
   const fetchProducts = async (isBackground = false) => {
     if (!isBackground) setLoading(true);
-    const res = await getAllStorefrontsAction();
+    const res = await loadStorefronts();
     if (res.success && res.data) {
       const allProducts = res.data.flatMap((shop: any) =>
         (shop.products || []).map((p: any) => ({
@@ -118,7 +119,7 @@ export default function AllProductsPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 relative z-10">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-primary transition-all mb-8 group"
+            className="inline-flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-primary transition-all mb-8 group"
           >
             <ArrowLeft
               size={14}
@@ -148,6 +149,7 @@ export default function AllProductsPage() {
                 />
                 <input
                   type="text"
+                  aria-label="Search products or stores"
                   placeholder="Search products or stores..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -187,8 +189,8 @@ export default function AllProductsPage() {
                           >
                             <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-slate-100 dark:bg-zinc-800 overflow-hidden shrink-0">
                               {p.image_url ? (
-                                <img
-                                  src={p.image_url}
+                                <img loading="lazy" decoding="async"
+                                  src={optimizedImage(p.image_url, 600)}
                                   className="w-full h-full object-cover group-hover/item:scale-110 transition-transform"
                                   alt={p.name}
                                 />
@@ -330,7 +332,7 @@ export default function AllProductsPage() {
           ) : sortedProducts.length > 0 ? (
             <>
               <div className="mb-10 flex items-center justify-between">
-                <p className="text-xs font-semibold text-slate-400">
+                <p className="text-xs font-semibold text-slate-600 dark:text-slate-400">
                   Showing {sortedProducts.length} items
                 </p>
               </div>

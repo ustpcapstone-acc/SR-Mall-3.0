@@ -24,9 +24,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SR-MANAGE | Public Digital Concierge",
+  title: "SR Mall | Shops, dining and spaces in Jasaan",
   description:
-    "Experience the Future of Shopping with SR Mall Management System",
+    "SR Mall in Jasaan, Misamis Oriental: browse the shops and their products, see what's on, and rent a space.",
 };
 
 // Prevent iOS Safari auto-zoom on input focus while still allowing user pinch-to-zoom

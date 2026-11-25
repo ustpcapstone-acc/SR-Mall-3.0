@@ -1,5 +1,7 @@
 "use client";
 
+import { hasAssignedUnit } from "@/lib/products";
+import { optimizedImage } from "@/lib/media";
 import React, { useState, useEffect } from "react";
 import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
@@ -86,13 +88,13 @@ export default function TenantDirectoryPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 relative z-10">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-primary transition-all mb-8 group"
+            className="inline-flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-primary transition-all mb-8 group"
           >
             <ArrowLeft
               size={14}
               className="group-hover:-translate-x-1 transition-transform"
             />
-            Back to Public View
+            Back to Home
           </Link>
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
             <div className="space-y-4 max-w-2xl">
@@ -116,6 +118,7 @@ export default function TenantDirectoryPage() {
                 />
                 <input
                   type="text"
+                  aria-label="Search stores or unit IDs"
                   placeholder="Search stores or unit IDs..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -148,8 +151,8 @@ export default function TenantDirectoryPage() {
                             className="w-full p-3 sm:p-4 flex items-center gap-3 sm:gap-4 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors border-b border-slate-50 dark:border-white/5 last:border-0 text-left group/item"
                           >
                             <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-slate-100 dark:bg-zinc-800 overflow-hidden shrink-0 border border-slate-200 dark:border-white/10">
-                              <img
-                                src={s.logo_url || "/images/logo/logoshop.jpg"}
+                              <img loading="lazy" decoding="async"
+                                src={optimizedImage(s.logo_url || "/images/logo/logoshop.jpg", 200)}
                                 className="w-full h-full object-cover group-hover/item:scale-110 transition-transform"
                                 alt="Shop Logo"
                               />
@@ -159,7 +162,7 @@ export default function TenantDirectoryPage() {
                                 {s.shop_name}
                               </p>
                               <p className="text-xs font-bold text-slate-400">
-                                {s.unit_id} — Plaza Wing
+                                {hasAssignedUnit(s.unit_id) ? `${s.unit_id} — Plaza Wing` : "Unit to be assigned"}
                               </p>
                             </div>
                             <ChevronDown
@@ -251,7 +254,7 @@ export default function TenantDirectoryPage() {
           ) : filteredShops.length > 0 ? (
             <>
               <div className="mb-10 flex items-center justify-between">
-                <p className="text-xs font-semibold text-slate-400">
+                <p className="text-xs font-semibold text-slate-600 dark:text-slate-400">
                   Showing {filteredShops.length} stores
                 </p>
               </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import { optimizedImage } from "@/lib/media";
 import React, { useState, useEffect, useLayoutEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -14,7 +15,7 @@ import {
   ShoppingBag,
   LayoutDashboard,
 } from "lucide-react";
-import { getAllStorefrontsAction } from "@/app/actions/tenant";
+import { loadStorefronts } from "@/lib/shared-request";
 import { getPublicViewConfigAction } from "@/app/actions/cms";
 import { applyThemeColor, PUBLIC_CONFIG_CACHE_KEY } from "@/lib/theme";
 import { syncFavorites } from "@/lib/favorites";
@@ -115,6 +116,15 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  // While the phone menu is open the page behind it stays put.
+  useEffect(() => {
+    if (!isMobileMenuOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [isMobileMenuOpen]);
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
   const [allShops, setAllShops] = useState<DigitalStorefront[]>([]);
 
@@ -195,6 +205,9 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
       }
       if (best) setActiveNav(best.navId);
       else if (window.scrollY < window.innerHeight * 0.6) setActiveNav("home");
+      // Between linked sections (e.g. reviews): highlight nothing rather than
+      // leaving the last section's link lit.
+      else setActiveNav("");
     };
     const release = () => {
       if (!glideLock.current) return;
@@ -262,16 +275,23 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
 
   useEffect(() => {
     loadFavorites();
-
-    const fetchShops = async () => {
-      const res = await getAllStorefrontsAction();
-      if (res.success && res.data) setAllShops(res.data);
-    };
-    fetchShops();
-
     window.addEventListener("favorites-updated", loadFavorites);
     return () => window.removeEventListener("favorites-updated", loadFavorites);
   }, []);
+
+  // The shop list is only needed to show favourites, so it is fetched only
+  // when there are some (and shared with the page through loadStorefronts).
+  const hasFavorites = favoriteIds.length > 0;
+  useEffect(() => {
+    if (!hasFavorites) return;
+    let cancelled = false;
+    void loadStorefronts().then((res) => {
+      if (!cancelled && res.success && res.data) setAllShops(res.data);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [hasFavorites]);
 
   const favoriteShops = allShops.filter((s) => favoriteIds.includes(s.id));
 
@@ -315,7 +335,7 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
           >
             <div className="relative w-9 h-9 sm:w-11 sm:h-11 bg-white rounded-lg sm:rounded-xl overflow-hidden shadow-md border-2 border-primary/10 group-hover:border-primary/40 transition-all duration-500 flex items-center justify-center">
               <img
-                src={config?.logoUrl || "/images/srmall-logo/sr_logo2.jpg"}
+                src={optimizedImage(config?.logoUrl || "/images/srmall-logo/sr_logo2.jpg", 240)}
                 alt={config?.companyName || "SR Logo"}
                 className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
               />
@@ -454,7 +474,7 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
                         )}
                       >
                         {user?.avatarUrl ? (
-                          <img src={user.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                          <img src={optimizedImage(user.avatarUrl, 96)} alt="Avatar" className="w-full h-full object-cover" />
                         ) : (
                           user?.name ? user.name.charAt(0).toUpperCase() : "U"
                         )}
@@ -612,6 +632,7 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
                 <button
                   suppressHydrationWarning
                   onClick={() => setIsLoginOpen(true)}
+                  aria-label="Sign in"
                   className="flex items-center justify-center w-10 h-10 sm:w-auto sm:px-8 sm:py-2.5 rounded-full bg-primary text-white font-bold text-sm hover:bg-primary-hover transition-all duration-300 shadow-xl shadow-primary/20 active:scale-95"
                 >
                   <User size={18} className="sm:hidden" />
@@ -623,6 +644,8 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
             <button
               suppressHydrationWarning
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
+              aria-expanded={isMobileMenuOpen}
               className="md:hidden p-2 text-charcoal dark:text-white hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
             >
               {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
@@ -633,13 +656,13 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
 
       {/* Mobile Menu Overlay */}
       {isMobileMenuOpen && (
-        <div className="fixed inset-0 top-20 z-40 bg-white dark:bg-zinc-900 md:hidden overflow-y-auto animate-fade-in">
+        <div className="fixed inset-0 top-20 z-[55] bg-white dark:bg-zinc-900 md:hidden overflow-y-auto animate-fade-in">
           {isAuthenticated && (
             <div className="px-6 py-6 border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/5">
               <div className="flex items-center gap-4">
                 <div className="w-14 h-14 rounded-2xl bg-primary text-white flex items-center justify-center font-bold text-xl overflow-hidden border-2 border-white dark:border-zinc-800 shadow-lg">
                   {user?.avatarUrl ? (
-                    <img src={user.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                    <img src={optimizedImage(user.avatarUrl, 96)} alt="Avatar" className="w-full h-full object-cover" />
                   ) : (
                     user?.name ? user.name.charAt(0).toUpperCase() : "U"
                   )}

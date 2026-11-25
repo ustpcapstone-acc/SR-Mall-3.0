@@ -92,6 +92,14 @@
   }
 }
 
+/* Frosted panels (navbar, phone menu, ...). Six places used "glass" but it
+   was never defined, so they were plain 70% white and the page showed through
+   behind their links. The element's own 70% background class sets the tint. */
+@utility glass {
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  backdrop-filter: blur(16px) saturate(180%);
+}
+
 @utility glass-premium {
   @apply bg-white/70 dark:bg-black/40 backdrop-blur-xl border border-white/20 dark:border-white/10;
 }
