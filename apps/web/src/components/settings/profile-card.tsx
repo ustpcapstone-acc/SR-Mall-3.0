@@ -3,6 +3,7 @@
 import { User } from "lucide-react";
 import { Field, INPUT_CLASS, SettingsCard } from "./settings-ui";
 import { PhotoPicker } from "./settings-cards";
+import { DraftNote } from "@/components/drafts/draft-note";
 import type { useMyAccount } from "./use-my-account";
 
 /** Photo, name, email, phone (+ department/bio for admins). Saved with the page's SaveBar. */
@@ -84,6 +85,7 @@ export function ProfileCard({
           </Field>
         )}
       </div>
+      <DraftNote draft={me.draft} />
     </SettingsCard>
   );
 }

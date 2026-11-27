@@ -75,11 +75,11 @@ export function PhotoPicker({
         </span>
       </button>
       <div className="space-y-2">
-        <p className="text-xs font-semibold text-slate-400">{label}</p>
+        <p className="text-xs font-semibold text-kumo-subtle">{label}</p>
         <SecondaryButton type="button" onClick={() => input.current?.click()} disabled={busy} className="h-9 px-4">
           {busy ? <Loader2 size={14} className="animate-spin" /> : <Camera size={14} />} Change
         </SecondaryButton>
-        <p className="text-xs text-slate-400">{hint}</p>
+        <p className="text-xs text-kumo-subtle">{hint}</p>
       </div>
       <input ref={input} type="file" accept="image/*" className="hidden" onChange={(e) => pick(e.target.files?.[0])} />
     </div>
@@ -97,7 +97,7 @@ function PasswordInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
         type="button"
         onClick={() => setShow((v) => !v)}
         aria-label={show ? "Hide password" : "Show password"}
-        className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-primary"
+        className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-kumo-subtle hover:text-primary"
       >
         {show ? <EyeOff size={16} /> : <Eye size={16} />}
       </button>
@@ -106,7 +106,7 @@ function PasswordInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
 }
 
 /**
- * Change password — or, for accounts created with Google that have no
+ * Change password, or, for accounts created with Google that have no
  * password yet, send a code to set one (reset-password page).
  */
 export function PasswordCard({ userId, email, hasPassword }: { userId: string; email: string; hasPassword: boolean }) {
@@ -158,7 +158,7 @@ export function PasswordCard({ userId, email, hasPassword }: { userId: string; e
   if (!hasPassword) {
     return (
       <SettingsCard title="Password" subtitle="You sign in with Google. You can also add a password." icon={KeyRound}>
-        <p className="text-sm text-slate-600 dark:text-slate-300">
+        <p className="text-sm text-kumo-subtle">
           Your account has no SR Mall password yet, so you sign in with <strong>Continue with Google</strong>. To also
           sign in with email + password, we&apos;ll email a code to <strong>{email}</strong>.
         </p>
@@ -276,7 +276,7 @@ export function NotificationsCard({ userId, role }: { userId: string; role: "ADM
           <Loader2 className="animate-spin text-primary" size={24} />
         </div>
       ) : items.length === 0 ? (
-        <p className="text-sm text-slate-500">There are no notification settings for your account.</p>
+        <p className="text-sm text-kumo-subtle">There are no notification settings for your account.</p>
       ) : (
         <div className="space-y-8">
           {(["MONEY", "ACTION", "SECURITY", "INFO"] as NotificationGroup[]).map((groupKey) => {
@@ -284,13 +284,13 @@ export function NotificationsCard({ userId, role }: { userId: string; role: "ADM
             if (!group.length) return null;
             return (
               <div key={groupKey} className="space-y-1">
-                <div className="pb-2 border-b border-slate-100 dark:border-white/5">
+                <div className="pb-2 border-b border-kumo-line">
                   <h3 className="text-xs font-semibold text-primary">
                     {NOTIFICATION_GROUPS[groupKey].label}
                   </h3>
-                  <p className="text-xs text-slate-400">{NOTIFICATION_GROUPS[groupKey].hint}</p>
+                  <p className="text-xs text-kumo-subtle">{NOTIFICATION_GROUPS[groupKey].hint}</p>
                 </div>
-                <ul className="divide-y divide-slate-100 dark:divide-white/5">
+                <ul className="divide-y divide-kumo-line">
                   {group.map((item) => {
                     const setting = prefs[item.type];
                     const enabled = setting?.enabled ?? item.defaultEnabled;
@@ -298,8 +298,8 @@ export function NotificationsCard({ userId, role }: { userId: string; role: "ADM
                     return (
                       <li key={item.type} className="flex flex-col md:flex-row md:items-center justify-between gap-3 py-4">
                         <div className="min-w-0">
-                          <p className="text-sm font-bold text-charcoal dark:text-white">{item.label}</p>
-                          <p className="text-xs text-slate-400">{item.description}</p>
+                          <p className="text-sm font-bold text-kumo-default">{item.label}</p>
+                          <p className="text-xs text-kumo-subtle">{item.description}</p>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
                           {(["IN_APP", "EMAIL"] as NotificationChannel[]).map((ch) => (
@@ -313,7 +313,7 @@ export function NotificationsCard({ userId, role }: { userId: string; role: "ADM
                                 "px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors disabled:opacity-40",
                                 channels.includes(ch) && enabled
                                   ? "bg-primary/10 border-primary/40 text-primary"
-                                  : "border-slate-200 dark:border-white/10 text-slate-400",
+                                  : "border-kumo-line text-kumo-subtle",
                               )}
                             >
                               {CHANNEL_LABEL[ch]}
@@ -323,7 +323,7 @@ export function NotificationsCard({ userId, role }: { userId: string; role: "ADM
                             type="button"
                             onClick={() => test(item.type)}
                             disabled={!enabled}
-                            className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-200 dark:border-white/10 text-slate-400 hover:text-primary disabled:opacity-40"
+                            className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-kumo-line text-kumo-subtle hover:text-primary disabled:opacity-40"
                           >
                             Test
                           </button>
@@ -335,7 +335,7 @@ export function NotificationsCard({ userId, role }: { userId: string; role: "ADM
                             onClick={() => update(item.type, { enabled: !enabled })}
                             className={clsx(
                               "w-12 h-7 rounded-full relative transition-colors shrink-0",
-                              enabled ? "bg-primary" : "bg-slate-200 dark:bg-zinc-700",
+                              enabled ? "bg-primary" : "bg-kumo-line",
                             )}
                           >
                             <span
@@ -406,7 +406,7 @@ export function DeleteAccountCard({
       icon={Trash2}
       tone="bg-red-500/10 text-red-600"
     >
-      <p className="text-sm text-slate-600 dark:text-slate-300">
+      <p className="text-sm text-kumo-subtle">
         Your profile, reviews, messages and favourites are deleted. This can&apos;t be undone.
       </p>
       <button
@@ -420,14 +420,14 @@ export function DeleteAccountCard({
       {open && (
         <div className="fixed inset-0 z-250 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-xs" onClick={() => !busy && setOpen(false)} />
-          <div role="dialog" aria-modal="true" className="relative w-full max-w-md bg-white dark:bg-zinc-950 rounded-4xl shadow-2xl p-7 space-y-5 animate-fade-in-up">
+          <div role="dialog" aria-modal="true" className="relative w-full max-w-md bg-kumo-base rounded-2xl shadow-2xl p-7 space-y-5 animate-fade-in-up">
             <div className="flex items-start gap-3">
               <span className="w-11 h-11 rounded-2xl bg-red-500/10 text-red-600 flex items-center justify-center shrink-0">
                 <AlertTriangle size={20} />
               </span>
               <div>
-                <h2 className="text-lg font-semibold text-charcoal dark:text-white">Delete your account?</h2>
-                <p className="text-sm text-slate-500">This permanently removes your account. It can&apos;t be undone.</p>
+                <h2 className="text-lg font-semibold text-kumo-default">Delete your account?</h2>
+                <p className="text-sm text-kumo-subtle">This permanently removes your account. It can&apos;t be undone.</p>
               </div>
             </div>
             {hasPassword ? (

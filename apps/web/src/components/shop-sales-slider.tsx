@@ -87,14 +87,14 @@ export const ShopSalesSlider = ({ shops }: { shops: any[] }) => {
   const currentSale = sales[currentIndex];
 
   return (
-    <section id="shop-sales" className="py-20 bg-white dark:bg-black overflow-hidden">
+    <section id="shop-sales" className="py-20 bg-kumo-base overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
           <div className="space-y-4">
-            <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-semibold text-charcoal dark:text-white tracking-tight">
+            <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-semibold text-kumo-default tracking-tight">
               Shop <span className="text-primary">Sales</span>
             </h2>
-            <p className="text-slate-500 dark:text-slate-400 font-medium max-w-xl text-lg">
+            <p className="text-kumo-subtle font-medium max-w-xl text-lg">
               Check out the latest promotions, sales, and new arrivals from our tenants.
             </p>
           </div>
@@ -102,14 +102,14 @@ export const ShopSalesSlider = ({ shops }: { shops: any[] }) => {
           <div className="flex items-center gap-4">
             <button
               onClick={() => paginate(-1)}
-              className="p-4 rounded-full bg-slate-100 dark:bg-zinc-800 text-charcoal dark:text-white hover:bg-primary hover:text-white transition-all active:scale-95 shadow-lg border border-slate-200 dark:border-white/5"
+              className="p-4 rounded-full bg-kumo-recessed text-kumo-default hover:bg-primary hover:text-white transition-all active:scale-95 shadow-lg border border-kumo-line"
               suppressHydrationWarning
             >
               <ArrowLeft size={24} />
             </button>
             <button
               onClick={() => paginate(1)}
-              className="p-4 rounded-full bg-slate-100 dark:bg-zinc-800 text-charcoal dark:text-white hover:bg-primary hover:text-white transition-all active:scale-95 shadow-lg border border-slate-200 dark:border-white/5"
+              className="p-4 rounded-full bg-kumo-recessed text-kumo-default hover:bg-primary hover:text-white transition-all active:scale-95 shadow-lg border border-kumo-line"
               suppressHydrationWarning
             >
               <ArrowRight size={24} />
@@ -117,7 +117,7 @@ export const ShopSalesSlider = ({ shops }: { shops: any[] }) => {
           </div>
         </div>
 
-        <div className="relative h-[400px] sm:h-[500px] md:h-[600px] w-full rounded-[2.5rem] overflow-hidden shadow-2xl">
+        <div className="relative h-[400px] sm:h-[500px] md:h-[600px] w-full rounded-2xl overflow-hidden shadow-2xl">
           <AnimatePresence initial={false} custom={direction}>
             <motion.div
               key={currentIndex}

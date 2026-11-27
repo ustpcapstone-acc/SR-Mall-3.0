@@ -63,8 +63,8 @@ function FavoritesCard({ userId }: { userId: string }) {
         </div>
       ) : favorites.length === 0 ? (
         <div className="py-10 text-center space-y-3">
-          <Heart className="mx-auto text-slate-300" size={32} />
-          <p className="text-sm text-slate-500">No favourites yet. Tap the heart on any shop to save it here.</p>
+          <Heart className="mx-auto text-kumo-subtle" size={32} />
+          <p className="text-sm text-kumo-subtle">No favourites yet. Tap the heart on any shop to save it here.</p>
           <Link href="/tenant-directory" className="inline-flex text-xs font-semibold text-primary hover:underline">
             Browse the mall directory →
           </Link>
@@ -72,14 +72,14 @@ function FavoritesCard({ userId }: { userId: string }) {
       ) : (
         <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {favorites.map((s) => (
-            <li key={s.id} className="flex items-center gap-3 p-3 rounded-2xl border border-slate-100 dark:border-white/5">
+            <li key={s.id} className="flex items-center gap-3 p-3 rounded-2xl border border-kumo-line">
               <Link href={`/shop/${s.id}`} className="flex items-center gap-3 flex-1 min-w-0 group">
                 <span className="w-12 h-12 rounded-xl bg-primary/10 text-primary overflow-hidden flex items-center justify-center font-semibold shrink-0">
                   {s.logo_url ? <img src={s.logo_url} alt="" className="w-full h-full object-cover" /> : <Store size={18} />}
                 </span>
                 <span className="min-w-0">
-                  <span className="block text-sm font-bold text-charcoal dark:text-white truncate group-hover:text-primary">{s.shop_name}</span>
-                  <span className="block text-xs text-slate-400 truncate">
+                  <span className="block text-sm font-bold text-kumo-default truncate group-hover:text-primary">{s.shop_name}</span>
+                  <span className="block text-xs text-kumo-subtle truncate">
                     {s.category || "Shop"} · {s.unit_id}
                   </span>
                 </span>
@@ -90,7 +90,7 @@ function FavoritesCard({ userId }: { userId: string }) {
                   if (!(await setFavorite(s.id, false, userId))) toast.error("Couldn't remove the favourite");
                 }}
                 aria-label={`Remove ${s.shop_name} from favourites`}
-                className="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-500/10"
+                className="p-2 rounded-lg text-kumo-subtle hover:text-red-600 hover:bg-red-500/10"
               >
                 <X size={16} />
               </button>
@@ -118,7 +118,7 @@ export default function CustomerProfile() {
   const body = me.error ? (
     <div className="py-20 text-center space-y-3">
       <AlertTriangle className="mx-auto text-primary" size={28} />
-      <p className="font-bold text-charcoal dark:text-white">{me.error}</p>
+      <p className="font-bold text-kumo-default">{me.error}</p>
       <SecondaryButton onClick={() => me.reload()}>Try again</SecondaryButton>
     </div>
   ) : !me.account || !me.form ? (
@@ -175,7 +175,7 @@ export default function CustomerProfile() {
   );
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-black selection:bg-primary selection:text-white">
+    <div className="min-h-screen bg-kumo-recessed selection:bg-primary selection:text-white">
       <Navbar />
       <main className="pt-28 sm:pt-32 pb-20 px-4">
         <div className="max-w-6xl mx-auto">{body}</div>

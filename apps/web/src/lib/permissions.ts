@@ -8,6 +8,7 @@ export type StaffPermission =
   | "dashboard"
   | "bookings"
   | "leasing"
+  | "payments"
   | "spaces"
   | "messages"
   | "complaints"
@@ -29,6 +30,8 @@ export const STAFF_SECTIONS: Section[] = [
   { key: "dashboard", label: "Dashboard", description: "Mall overview, sales and finance summary.", paths: ["/admindashboard"] },
   { key: "bookings", label: "Bookings", description: "Space reservations and event bookings.", paths: ["/admindashboard/bookings"] },
   { key: "leasing", label: "Leasing", description: "Rent requests, renewals and e-invoices.", paths: ["/admindashboard/rent-requests", "/admindashboard/renewals"] },
+  // Opens parts of pages other sections own; their other buttons stay off limits.
+  { key: "payments", label: "Payments", description: "Check deposit slips, record and void payments, post bills and renewal payments. Tenant details are view only.", paths: ["/admindashboard/payments", "/admindashboard/tenant-monitoring", "/admindashboard/renewals"] },
   { key: "spaces", label: "Floor Spaces & Map", description: "Units, floor map and availability.", paths: ["/admindashboard/space-manager"] },
   { key: "messages", label: "Messages", description: "Chats with tenants and customers.", paths: ["/admindashboard/messenger-hub", "/admindashboard/messages"] },
   { key: "complaints", label: "Complaints", description: "Tenant complaints and their replies.", paths: ["/admindashboard/complaints"] },
@@ -53,27 +56,24 @@ function under(path: string, base: string) {
 }
 
 /**
- * What a staff-portal path needs: a permission key, "any" for pages open to all
- * staff, or "superuser" for paths no section claims.
+ * What a staff-portal path needs: any one of these permission keys, "any" for
+ * pages open to all staff, or "superuser" for paths no section claims.
  */
-export function permissionForPath(path: string): StaffPermission | "any" | "superuser" {
+export function permissionsForPath(path: string): StaffPermission[] | "any" | "superuser" {
   if (ALWAYS_ALLOWED.some((p) => under(path, p))) return "any";
-  if (path === "/admindashboard" || path === "/admindashboard/") return "dashboard";
-  for (const s of STAFF_SECTIONS) {
-    if (s.key === "dashboard") continue;
-    if (s.paths.some((p) => under(path, p))) return s.key;
-  }
-  return "superuser";
+  if (path === "/admindashboard" || path === "/admindashboard/") return ["dashboard"];
+  const keys = STAFF_SECTIONS.filter((s) => s.key !== "dashboard" && s.paths.some((p) => under(path, p))).map((s) => s.key);
+  return keys.length ? keys : "superuser";
 }
 
 export type StaffAccess = { isSuperuser: boolean; permissions: StaffPermission[] };
 
 export function canOpen(access: StaffAccess, path: string) {
   if (access.isSuperuser) return true;
-  const need = permissionForPath(path);
+  const need = permissionsForPath(path);
   if (need === "any") return true;
   if (need === "superuser") return false;
-  return access.permissions.includes(need);
+  return need.some((key) => access.permissions.includes(key));
 }
 
 /** Where a staff account lands after sign-in: the first section it can open. */

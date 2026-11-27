@@ -22,12 +22,15 @@ import {
   toPaymentForm,
   todayPH,
 } from "@/components/leasing/shared";
+import { useFloors } from "@/lib/use-floors";
+import { useDraft } from "@/lib/drafts/use-draft";
+import { DraftNote } from "@/components/drafts/draft-note";
 
 type Tab = "PENDING" | "APPROVED" | "REJECTED" | "ALL";
 
-const floorLabel = (f?: string | null) => (f ? `${f.charAt(0).toUpperCase()}${f.slice(1)} floor` : "");
 
 export default function RentRequestsPage() {
+  const { label: floorLabel } = useFloors();
   const [rows, setRows] = useState<RentRequestRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("PENDING");
@@ -163,6 +166,7 @@ function Detail({ label, children }: { label: string; children: React.ReactNode 
 
 function ReviewRequest({ request: r, onDone }: { request: RentRequestRow; onDone: () => void }) {
   const [mode, setMode] = useState<"view" | "approve" | "reject">("view");
+  const { label: floorLabel } = useFloors();
   const [opening, setOpening] = useState<string | null>(null);
 
   const openDoc = async (type: string) => {
@@ -293,6 +297,20 @@ function ApproveForm({ request: r, onCancel, onDone }: { request: RentRequestRow
   const [saving, setSaving] = useState(false);
   const [invoiceId, setInvoiceId] = useState<string | null>(null);
 
+  // Payment details are never kept on this device, only the lease terms and note.
+  const draft = useDraft({
+    form: "admin.rent-approval",
+    scope: [r.id],
+    value: { startOn, rent, comment },
+    initial: { startOn: todayPH(), rent: String(listed), comment: "" },
+    onRestore: (saved) => {
+      setStartOn(saved.startOn);
+      setRent(saved.rent);
+      setPayment((p) => ({ ...p, amount: String((Number(p.months) || 0) * (Number(saved.rent) || 0)) }));
+      setComment(saved.comment);
+    },
+  });
+
   const months = Number(payment.months) || 0;
   const paidThrough = startOn && months > 0 ? formatPHDate(addMonths(phDayStart(startOn), months)) : null;
 
@@ -300,9 +318,13 @@ function ApproveForm({ request: r, onCancel, onDone }: { request: RentRequestRow
     e.preventDefault();
     setSaving(true);
     setError(null);
-    const res = await approveRentRequestAction(r.id, { ...toPaymentForm(payment), startOn, monthlyRent: Number(rent), comment });
+    const res = await draft.send(() =>
+      approveRentRequestAction(r.id, { ...toPaymentForm(payment), startOn, monthlyRent: Number(rent), comment }),
+    );
     setSaving(false);
+    if (!res) return;
     if (!res.success) return setError(res.error);
+    draft.clear();
     toast.success(`Unit ${r.unitId} assigned to ${r.tenant.shopName}. The e-invoice was sent.`);
     setInvoiceId(res.invoiceId);
   };
@@ -349,6 +371,7 @@ function ApproveForm({ request: r, onCancel, onDone }: { request: RentRequestRow
       <PaymentFields value={payment} onChange={setPayment} monthlyRent={Number(rent) || 0} />
       {paidThrough && <p className="text-sm text-kumo-subtle">Paid through {paidThrough}. The next renewal is due that day.</p>}
       <InputArea label="Note to the tenant" description="Optional" value={comment} onValueChange={setComment} maxLength={1000} />
+      <DraftNote draft={draft} />
       <div className="flex justify-end gap-2">
         <Button type="button" variant="secondary" onClick={onCancel}>
           Back
@@ -365,14 +388,23 @@ function RejectForm({ request: r, onCancel, onDone }: { request: RentRequestRow;
   const [reason, setReason] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const draft = useDraft({
+    form: "admin.rent-rejection",
+    scope: [r.id],
+    value: { reason },
+    initial: { reason: "" },
+    onRestore: (saved) => setReason(saved.reason),
+  });
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     setError(null);
-    const res = await rejectRentRequestAction(r.id, reason);
+    const res = await draft.send(() => rejectRentRequestAction(r.id, reason));
     setSaving(false);
+    if (!res) return;
     if (!res.success) return setError(res.error);
+    draft.clear();
     toast.success("Request rejected. The tenant was told why.");
     onDone();
   };
@@ -388,6 +420,7 @@ function RejectForm({ request: r, onCancel, onDone }: { request: RentRequestRow;
         maxLength={1000}
         required
       />
+      <DraftNote draft={draft} />
       <div className="flex justify-end gap-2">
         <Button type="button" variant="secondary" onClick={onCancel}>
           Back

@@ -28,6 +28,7 @@ interface FooterProps {
 const DEFAULT_HOURS = "Mon–Sun: 10:00 AM – 9:00 PM";
 
 const FIND_YOUR_WAY = [
+  { href: "/about", label: "About us" },
   { href: "/tenant-directory", label: "Shops" },
   { href: "/products", label: "Products" },
   { href: "/available-spaces", label: "Spaces" },
@@ -37,7 +38,7 @@ const FIND_YOUR_WAY = [
   { href: "/become-a-tenant", label: "Become a tenant" },
 ];
 
-const columnLabel = "text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400";
+const columnLabel = "text-xs font-semibold uppercase tracking-[0.2em] text-kumo-subtle";
 const linkHover = "transition-colors hover:text-primary";
 
 export const Footer = ({ config }: FooterProps = {}) => {
@@ -63,7 +64,7 @@ export const Footer = ({ config }: FooterProps = {}) => {
   const watermarkSize = `${Math.min(27, 189 / Math.max(name.length, 1)) * (caps ? 0.78 : 1)}vw`;
 
   return (
-    <footer className="relative overflow-hidden bg-zinc-50 dark:bg-zinc-950 text-charcoal dark:text-white pt-20 border-t border-slate-200 dark:border-white/5 transition-colors">
+    <footer className="relative overflow-hidden bg-kumo-recessed text-kumo-default pt-20 border-t border-kumo-line transition-colors">
       <div className="mx-auto grid max-w-[1400px] gap-12 px-4 sm:px-6 md:grid-cols-[1.4fr_1fr_1fr_1fr] lg:px-8">
         {/* About SR Mall */}
         <div className="space-y-5">
@@ -73,13 +74,13 @@ export const Footer = ({ config }: FooterProps = {}) => {
               alt=""
               width={40}
               height={40}
-              className="size-10 shrink-0 rounded-[0.9rem] object-cover shadow-[0_6px_16px_-8px_var(--color-primary)] transition-transform duration-500 group-hover:-rotate-6"
+              className="size-10 shrink-0 rounded-lg object-cover shadow-[0_6px_16px_-8px_var(--color-primary)] transition-transform duration-500 group-hover:-rotate-6"
             />
             <span className="font-display text-lg font-semibold leading-none">{name}</span>
           </Link>
-          <p className="max-w-sm text-sm leading-relaxed text-slate-500 dark:text-slate-400">
+          <p className="max-w-sm text-sm leading-relaxed text-kumo-subtle">
             {config?.footerDescription ||
-              "The ultimate destination for shopping, dining, and leisure in Misamis Oriental. We're committed to delivering a superior experience for all visitors."}
+              "Shops, food and services in Misamis Oriental."}
           </p>
           {socials.length > 0 && (
             <div className="flex gap-2">
@@ -91,7 +92,7 @@ export const Footer = ({ config }: FooterProps = {}) => {
                   rel="noopener noreferrer"
                   aria-label={label}
                   title={label}
-                  className="grid size-10 place-items-center rounded-full border border-slate-200 dark:border-white/10 transition-colors hover:border-primary hover:bg-primary hover:text-white"
+                  className="grid size-10 place-items-center rounded-full border border-kumo-line transition-colors hover:border-primary hover:bg-primary hover:text-white"
                 >
                   <Icon size={16} />
                 </a>
@@ -155,7 +156,7 @@ export const Footer = ({ config }: FooterProps = {}) => {
         </div>
       </div>
 
-      <div className="mx-auto mt-16 flex max-w-[1400px] flex-col gap-2 border-t border-slate-200 dark:border-white/10 px-4 pt-6 text-xs text-slate-500 dark:text-slate-400 sm:flex-row sm:justify-between sm:px-6 lg:px-8">
+      <div className="mx-auto mt-16 flex max-w-[1400px] flex-col gap-2 border-t border-kumo-line px-4 pt-6 text-xs text-kumo-subtle sm:flex-row sm:justify-between sm:px-6 lg:px-8">
         <p>{config?.footerCopyrightText || `© ${year} ${name}. All rights reserved.`}</p>
         <p>Designed and developed by Jerick Aradilla, Scott Dugang and Nielchi Juarez</p>
       </div>

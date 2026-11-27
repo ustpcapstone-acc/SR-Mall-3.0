@@ -61,6 +61,7 @@ export function BillsToPay({ bills, onSubmitted }: { bills: BillToPay[]; onSubmi
                   {b.overdue ? "Overdue since" : "Due"} {formatPHDate(b.dueDate)}
                 </span>
               </p>
+              {b.officeNote && <p className="mt-1 text-sm font-medium text-kumo-danger wrap-anywhere">{b.officeNote}</p>}
             </div>
             <div className="flex items-center justify-between gap-4 sm:justify-end">
               <span className="text-base font-semibold text-kumo-default">{peso(b.amount)}</span>

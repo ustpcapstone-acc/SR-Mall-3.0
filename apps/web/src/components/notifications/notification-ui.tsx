@@ -36,7 +36,7 @@ export function NotificationIcon({ type, size = 18, boxed = false }: { type: str
   const Icon = ICONS[info.icon];
   if (!boxed) return <Icon size={size} className={info.tone} />;
   return (
-    <span className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-zinc-800 flex items-center justify-center shrink-0">
+    <span className="w-10 h-10 rounded-xl bg-kumo-recessed flex items-center justify-center shrink-0">
       <Icon size={size} className={info.tone} />
     </span>
   );
@@ -44,7 +44,7 @@ export function NotificationIcon({ type, size = 18, boxed = false }: { type: str
 
 export function NotificationTypeLabel({ type, className }: { type: string; className?: string }) {
   return (
-    <span className={clsx("text-xs font-semibold text-slate-400", className)}>
+    <span className={clsx("text-xs font-semibold text-kumo-subtle", className)}>
       {notificationTypeInfo(type).label}
     </span>
   );

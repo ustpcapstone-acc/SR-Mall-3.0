@@ -4,7 +4,7 @@
  * Email clients only understand simple HTML, so this is table-based with
  * inline styles, a hidden preview line, a real button (plus a plain link
  * under it in case the button is blocked), and a settings link in the footer.
- * All text is escaped — chat excerpts and names come from users.
+ * All text is escaped, chat excerpts and names come from users.
  */
 
 const BRAND = "#BE1E2D";
@@ -118,7 +118,7 @@ export function buildNotificationEmail(e: NotificationEmail) {
         ${button}
         <tr><td style="padding:28px 32px 0;"><div style="height:1px;background:#e2e8f0;"></div></td></tr>
         <tr><td style="padding:18px 32px 28px;font-size:12px;line-height:1.6;color:#94a3b8;text-align:center;">
-          This is an automated message from ${site} — replies to this email aren&rsquo;t read.<br/>
+          This is an automated message from ${site}. Replies to this email aren&rsquo;t read.<br/>
           ${settings}
         </td></tr>
       </table>
@@ -139,7 +139,7 @@ export function buildNotificationText(e: NotificationEmail) {
     e.quote ? `\n${e.quote.author}: "${e.quote.text}"` : null,
     e.link ? `\n${e.ctaLabel || defaultCtaLabel(e.link)}: ${e.link}` : null,
     "",
-    "— SR Mall (automated message, replies aren't read)",
+    "SR Mall (automated message, replies aren't read)",
     e.settingsUrl ? `Manage notification settings: ${e.settingsUrl}` : null,
   ]
     .filter((l) => l !== null)

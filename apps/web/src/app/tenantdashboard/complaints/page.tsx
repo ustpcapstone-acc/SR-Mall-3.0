@@ -6,6 +6,8 @@ import { Button, Input, InputArea, Loader, Select, cn } from "@cloudflare/kumo";
 import { ArrowClockwise, Camera, Plus } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { useAuth } from "@/app/providers";
+import { useDraft } from "@/lib/drafts/use-draft";
+import { DraftNote } from "@/components/drafts/draft-note";
 import { createComplaintAction, getComplaintAction, getMyComplaintsAction } from "@/app/actions/complaint";
 import { announceComplaintsChanged } from "@/lib/complaint-unread";
 import {
@@ -36,6 +38,19 @@ function NewComplaintModal({ userId, onClose, onCreated }: { userId: string; onC
   const [photos, setPhotos] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const draft = useDraft({
+    form: "tenant.complaint",
+    workspace: true,
+    value: { category, subject, details, priority, photos },
+    initial: { category: "", subject: "", details: "", priority: "NORMAL" as ComplaintPriority, photos: [] as string[] },
+    onRestore: (saved) => {
+      setCategory(saved.category);
+      setSubject(saved.subject);
+      setDetails(saved.details);
+      setPriority(saved.priority);
+      setPhotos(saved.photos);
+    },
+  });
 
   const addPhotos = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []).slice(0, MAX_PHOTOS - photos.length);
@@ -53,9 +68,11 @@ function NewComplaintModal({ userId, onClose, onCreated }: { userId: string; onC
 
   const submit = async () => {
     setSaving(true);
-    const res = await createComplaintAction(userId, { category, subject, details, priority, photos });
+    const res = await draft.send(() => createComplaintAction(userId, { category, subject, details, priority, photos }));
     setSaving(false);
+    if (!res) return;
     if (!res.success) return void toast.error(res.error);
+    draft.clear();
     toast.success("Complaint sent to the mall admin");
     announceComplaintsChanged();
     onCreated(res.id);
@@ -165,6 +182,8 @@ function NewComplaintModal({ userId, onClose, onCreated }: { userId: string; onC
             )}
           </div>
         </div>
+
+        <DraftNote draft={draft} />
       </div>
     </AdminDialog>
   );

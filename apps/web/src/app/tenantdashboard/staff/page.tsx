@@ -19,6 +19,8 @@ import {
 } from "@/app/actions/space-staff";
 import { SPACE_SECTIONS } from "@/lib/tenant-permissions";
 import { DialogHeader } from "@/components/leasing/shared";
+import { useDraft } from "@/lib/drafts/use-draft";
+import { DraftNote } from "@/components/drafts/draft-note";
 
 const sectionLabel = (key: string) => SPACE_SECTIONS.find((s) => s.key === key)?.label ?? key;
 
@@ -65,7 +67,7 @@ export default function SpaceStaffPage() {
         <div>
           <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-kumo-default">Staff{data ? `, Unit ${data.unitId}` : ""}</h1>
           <p className="mt-1 max-w-2xl text-sm text-kumo-subtle">
-            Staff sign in at /tenant-portal with their own email and password. They only see this space, and only the
+            Staff sign in as a tenant on the sign-in page, with their own email and password. They only see this space, and only the
             sections their role opens.
           </p>
         </div>
@@ -265,14 +267,28 @@ function RoleForm({ role, onDone }: { role: SpaceRoleRow | null; onDone: () => v
   const [permissions, setPermissions] = useState<string[]>(role?.permissions ?? []);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const draft = useDraft({
+    form: "tenant.staff-role",
+    workspace: true,
+    scope: [role?.id ?? "new"],
+    editing: Boolean(role),
+    value: { name, permissions },
+    initial: { name: role?.name ?? "", permissions: role?.permissions ?? [] },
+    onRestore: (saved) => {
+      setName(saved.name);
+      setPermissions(saved.permissions);
+    },
+  });
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     setError(null);
-    const res = await saveSpaceRoleAction({ id: role?.id, name, permissions });
+    const res = await draft.send(() => saveSpaceRoleAction({ id: role?.id, name, permissions }));
     setSaving(false);
+    if (!res) return;
     if (!res.success) return setError(res.error);
+    draft.clear();
     toast.success(role ? "Role updated." : "Role created.");
     onDone();
   };
@@ -288,6 +304,7 @@ function RoleForm({ role, onDone }: { role: SpaceRoleRow | null; onDone: () => v
             <Checkbox.Item key={s.key} value={s.key} label={s.label} description={s.description} />
           ))}
         </Checkbox.Group>
+        <DraftNote draft={draft} />
         <div className="flex justify-end gap-2">
           <Dialog.Close render={(props) => <Button {...props} variant="secondary">Cancel</Button>} />
           <Button type="submit" variant="primary" loading={saving}>
@@ -307,15 +324,28 @@ function StaffForm({ roles, onDone }: { roles: SpaceRoleRow[]; onDone: () => voi
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const items = Object.fromEntries(roles.map((r) => [r.id, r.name]));
+  const draft = useDraft({
+    form: "tenant.add-staff",
+    workspace: true,
+    value: { name, email, roleId },
+    initial: { name: "", email: "", roleId: roles[0]?.id ?? "" },
+    onRestore: (saved) => {
+      setName(saved.name);
+      setEmail(saved.email);
+      setRoleId(roles.some((r) => r.id === saved.roleId) ? saved.roleId : (roles[0]?.id ?? ""));
+    },
+  });
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     setError(null);
-    const res = await createSpaceStaffAction({ name, email, password, roleId });
+    const res = await draft.send(() => createSpaceStaffAction({ name, email, password, roleId }));
     setSaving(false);
+    if (!res) return;
     if (!res.success) return setError(res.error);
-    toast.success(`${name} can now sign in at /tenant-portal.`);
+    draft.clear();
+    toast.success(`${name} can now sign in as a tenant on the sign-in page.`);
     onDone();
   };
 
@@ -342,6 +372,7 @@ function StaffForm({ roles, onDone }: { roles: SpaceRoleRow[]; onDone: () => voi
             </Select.Option>
           ))}
         </Select>
+        <DraftNote draft={draft} />
         <div className="flex justify-end gap-2">
           <Dialog.Close render={(props) => <Button {...props} variant="secondary">Cancel</Button>} />
           <Button type="submit" variant="primary" loading={saving}>

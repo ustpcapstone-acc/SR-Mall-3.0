@@ -316,6 +316,8 @@ export async function getAdminDashboardAction(adminUserId?: string) {
     const bucketByKey = new Map(buckets.map((b) => [b.key, b]));
 
     for (const inv of invoices) {
+      // Cancelled bills are neither billed nor owed.
+      if (inv.status === "VOID") continue;
       const amount = Number(inv.amount || 0);
       const createdKey = monthKey(new Date(inv.createdAt));
       const billedBucket = bucketByKey.get(createdKey);

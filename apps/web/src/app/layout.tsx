@@ -40,6 +40,7 @@ export const viewport = {
 
 import { Toaster } from "sonner";
 import { ConfirmHost } from "@/components/confirm-dialog";
+import { ConnectionBanner } from "@/components/drafts/connection-banner";
 
 export default function RootLayout({
   children,
@@ -65,6 +66,7 @@ export default function RootLayout({
             {children}
             <Toaster richColors position="top-right" />
               <ConfirmHost />
+            <ConnectionBanner />
           </AuthProvider>
         </ThemeProvider>
       </body>

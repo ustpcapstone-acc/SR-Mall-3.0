@@ -67,7 +67,7 @@ export async function downloadInvoicePdf(invoiceId: string): Promise<string | nu
       : null;
   const details: [string, string][] = [
     ["Issued", formatPHDate(inv.issuedAt)],
-    ["Space", inv.unitId ? `Unit ${inv.unitId}${inv.floor ? `, ${inv.floor} floor` : ""}` : "-"],
+    ["Space", inv.unitId ? `Unit ${inv.unitId}${inv.floor ? `, ${inv.floor}` : ""}` : "-"],
     ...(period ? ([["Billing period", period]] as [string, string][]) : []),
     ...(inv.paidAt ? ([["Paid on", formatPHDate(inv.paidAt)]] as [string, string][]) : [["Due", formatPHDate(inv.dueDate)]] as [string, string][]),
     ...(inv.paymentMethod ? ([["Method", inv.paymentMethod]] as [string, string][]) : []),

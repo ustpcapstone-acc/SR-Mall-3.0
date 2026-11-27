@@ -1,5 +1,5 @@
 /**
- * Shop sale posts (Tenant.postSales) — when they expire. Client/server safe.
+ * Shop sale posts (Tenant.postSales), when they expire. Client/server safe.
  *
  * A post runs until the end of its `ends_at` day in Philippine time
  * (11:59 PM, UTC+8). Older posts saved before `ends_at` existed run until the

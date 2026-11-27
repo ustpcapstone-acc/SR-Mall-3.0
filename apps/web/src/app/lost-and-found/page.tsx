@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { useAuth } from "@/app/providers";
-import { Package, ArrowLeft, LogOut, Store, Loader2, Image as ImageIcon } from "lucide-react";
+import { LogOut, Store, Loader2, Image as ImageIcon } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@cloudflare/kumo";
 import { FilterRow, PublicHeader } from "@/components/public-header";
@@ -14,6 +14,18 @@ import { uploadImageServerAction } from "@/app/actions/upload";
 import { ChatBox } from "@/components/chat-box";
 import { ChatLauncher } from "@/components/chat-launcher";
 import { LoginModal } from "@/components/login-modal";
+import { useDraft } from "@/lib/drafts/use-draft";
+import { DraftNote } from "@/components/drafts/draft-note";
+
+const EMPTY_REPORT = {
+  type: "FOUND" as "LOST" | "FOUND",
+  title: "",
+  description: "",
+  date: "",
+  time: "",
+  location: "",
+  imageUrl: "",
+};
 
 export default function LostAndFoundPage() {
   const { isAuthenticated, authReady, user, logout } = useAuth();
@@ -29,16 +41,9 @@ export default function LostAndFoundPage() {
   const [isLoadingItems, setIsLoadingItems] = useState(true);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [reportForm, setReportForm] = useState({
-    type: "FOUND" as "LOST" | "FOUND",
-    title: "",
-    description: "",
-    date: "",
-    time: "",
-    location: "",
-    imageUrl: ""
-  });
+  const [reportForm, setReportForm] = useState(EMPTY_REPORT);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const draft = useDraft({ form: "customer.lost-and-found", value: reportForm, initial: EMPTY_REPORT, onRestore: setReportForm });
 
   const loadItems = async () => {
     setIsLoadingItems(true);
@@ -72,7 +77,7 @@ export default function LostAndFoundPage() {
       
       const imageUrl = await uploadImageServerAction(formData);
       if (imageUrl) {
-        setReportForm({ ...reportForm, imageUrl: imageUrl });
+        setReportForm((current) => ({ ...current, imageUrl }));
         toast.success("Image Uploaded");
       } else {
         toast.error("Failed to upload image");
@@ -87,19 +92,26 @@ export default function LostAndFoundPage() {
   const handleReportSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    const res = await createLostAndFoundItem({
-      type: reportForm.type,
-      title: reportForm.title,
-      description: reportForm.description,
-      date: reportForm.date,
-      time: reportForm.time,
-      location: reportForm.location,
-      imageUrl: reportForm.imageUrl,
-      userId: user?.id,
-    });
+    const res = await draft.send(() =>
+      createLostAndFoundItem({
+        type: reportForm.type,
+        title: reportForm.title,
+        description: reportForm.description,
+        date: reportForm.date,
+        time: reportForm.time,
+        location: reportForm.location,
+        imageUrl: reportForm.imageUrl,
+        userId: user?.id,
+      }),
+    );
+    if (!res) {
+      setIsSubmitting(false);
+      return;
+    }
     if (res.success) {
+      draft.clear();
       toast.success("Report Submitted", { description: "We have received your report. An admin will review it shortly." });
-      setReportForm({ type: "FOUND", title: "", description: "", date: "", time: "", location: "", imageUrl: "" });
+      setReportForm(EMPTY_REPORT);
       setActiveTab(reportForm.type === "FOUND" ? "found" : "lost");
       loadItems();
     } else {
@@ -112,28 +124,23 @@ export default function LostAndFoundPage() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-black">
+      <div className="flex min-h-screen flex-col bg-kumo-recessed">
         <Navbar />
-        <main className="flex-1 flex items-center justify-center px-4 pt-28 pb-16">
-          <div className="w-full max-w-md text-center bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/10 rounded-3xl shadow-xl p-8 sm:p-10">
-            <div className="mx-auto mb-5 w-14 h-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
-              <Package size={26} />
-            </div>
-            <h1 className="font-display text-2xl sm:text-3xl font-semibold text-charcoal dark:text-white mb-3">
-              Lost and Found
-            </h1>
-            <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed mb-8">
-              Sign in to browse items found in the mall, report something you lost, or claim an item that is yours.
+        <main className="flex flex-1 items-center justify-center px-4 pb-16 pt-28">
+          <div className="w-full max-w-md rounded-2xl border border-kumo-line bg-kumo-base p-8 text-center">
+            <h1 className="font-display text-2xl font-semibold tracking-tight text-kumo-default sm:text-3xl">Lost and found</h1>
+            <p className="mt-2 text-base text-kumo-subtle">
+              Sign in to see items found in the mall, report something you lost, or claim an item that is yours.
             </p>
             <button
               type="button"
               onClick={() => setIsLoginOpen(true)}
-              className="w-full px-6 py-3.5 bg-primary text-white text-sm font-semibold rounded-xl hover:bg-primary-hover transition-all active:scale-95 shadow-lg shadow-primary/30"
+              className={cn(BUTTON, "mt-6 h-12 w-full justify-center bg-primary text-white hover:bg-primary-hover")}
             >
               Sign in to continue
             </button>
-            <Link href="/" className="inline-flex items-center gap-1.5 mt-5 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-primary">
-              <ArrowLeft size={14} /> Back to home
+            <Link href="/" className="mt-4 inline-block text-sm font-medium text-kumo-link hover:underline">
+              Back to home
             </Link>
           </div>
         </main>
@@ -161,7 +168,7 @@ export default function LostAndFoundPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-black selection:bg-primary selection:text-white">
+    <div className="min-h-screen bg-kumo-recessed selection:bg-primary selection:text-white">
       <Navbar />
 
       <PublicHeader title="Lost and found" description="Report something you lost, or find something you misplaced in the mall.">
@@ -291,6 +298,7 @@ export default function LostAndFoundPage() {
                 </label>
               </div>
               <div className="md:col-span-2">
+                <DraftNote draft={draft} className="mb-3" />
                 <button
                   type="submit"
                   disabled={isSubmitting || uploadingImage}

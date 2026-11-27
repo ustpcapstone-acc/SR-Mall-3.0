@@ -9,22 +9,11 @@ import { useAuth } from "@/app/providers";
 import { supabase } from "@/utils/supabase";
 import { rememberGooglePortal } from "@/lib/google-portal";
 
-type Portal = "ADMIN" | "TENANT";
+// The staff sign-in. Customers and tenants share /login (components/login-modal.tsx).
+const AREA = "/admindashboard";
 
-const COPY: Record<Portal, { eyebrow: string; title: string; description: string; area: string }> = {
-  ADMIN: {
-    eyebrow: "Staff portal",
-    title: "Sign in to SR Mall staff",
-    description: "For mall management and staff accounts.",
-    area: "/admindashboard",
-  },
-  TENANT: {
-    eyebrow: "Tenant portal",
-    title: "Sign in to your tenant account",
-    description: "Manage your spaces, storefront and payments.",
-    area: "/tenantdashboard",
-  },
-};
+// A page left open while the system restarted or updated can't reach it until reloaded.
+const NO_REPLY = "Couldn't reach the system. Refresh this page and try again.";
 
 function GoogleIcon() {
   return (
@@ -37,8 +26,7 @@ function GoogleIcon() {
   );
 }
 
-function PortalLoginForm({ portal }: { portal: Portal }) {
-  const copy = COPY[portal];
+function PortalLoginForm() {
   const router = useRouter();
   const params = useSearchParams();
   const { login } = useAuth();
@@ -47,9 +35,9 @@ function PortalLoginForm({ portal }: { portal: Portal }) {
   const [busy, setBusy] = useState<"password" | "google" | "reset" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Return to the page that sent the visitor here, but only inside this portal's area.
+  // Return to the page that sent the visitor here, but only inside the staff area.
   const next = params.get("next");
-  const safeNext = next && (next === copy.area || next.startsWith(copy.area + "/")) ? next : null;
+  const safeNext = next && (next === AREA || next.startsWith(AREA + "/")) ? next : null;
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,20 +47,25 @@ function PortalLoginForm({ portal }: { portal: Portal }) {
     }
     setBusy("password");
     setError(null);
-    const res = await loginAction({ email, password }, portal);
-    if (!res.success || !res.data) {
-      setError(res.error || "Invalid email or password.");
+    try {
+      const res = await loginAction({ email, password }, "ADMIN");
+      if (!res.success || !res.data) {
+        setError(res.error || "Invalid email or password.");
+        setBusy(null);
+        return;
+      }
+      login(res.data.id, res.data.name, res.data.email, res.data.role, res.data.avatarUrl);
+      router.replace(safeNext || res.redirectTo || AREA);
+    } catch {
+      setError(NO_REPLY);
       setBusy(null);
-      return;
     }
-    login(res.data.id, res.data.name, res.data.email, res.data.role, res.data.avatarUrl);
-    router.replace(safeNext || res.redirectTo || copy.area);
   };
 
   const onGoogle = async () => {
     setBusy("google");
     setError(null);
-    rememberGooglePortal(portal);
+    rememberGooglePortal("ADMIN");
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: { redirectTo: `${window.location.origin}/auth/callback`, queryParams: { prompt: "select_account" } },
@@ -91,10 +84,15 @@ function PortalLoginForm({ portal }: { portal: Portal }) {
     }
     setBusy("reset");
     setError(null);
-    const res = await requestPasswordResetAction(value);
-    setBusy(null);
-    if (res.success) router.push(`/auth/reset-password?email=${encodeURIComponent(value)}`);
-    else setError(res.error || "Couldn't send the reset email.");
+    try {
+      const res = await requestPasswordResetAction(value);
+      if (res.success) router.push(`/auth/reset-password?email=${encodeURIComponent(value)}`);
+      else setError(res.error || "Couldn't send the reset email.");
+    } catch {
+      setError(NO_REPLY);
+    } finally {
+      setBusy(null);
+    }
   };
 
   return (
@@ -104,9 +102,8 @@ function PortalLoginForm({ portal }: { portal: Portal }) {
           SR Mall
         </Link>
         <div className="rounded-xl border border-kumo-line bg-kumo-base p-6 shadow-sm sm:p-8">
-          <p className="text-xs font-medium uppercase tracking-wide text-kumo-subtle">{copy.eyebrow}</p>
-          <h1 className="mt-1 text-xl font-semibold text-kumo-default">{copy.title}</h1>
-          <p className="mt-1 text-sm text-kumo-subtle">{copy.description}</p>
+          <h1 className="font-display text-2xl font-semibold tracking-tight text-kumo-default">Sign in to SR Mall staff</h1>
+          <p className="mt-1 text-sm text-kumo-subtle">For mall management and staff accounts.</p>
 
           {error && <Banner variant="error" className="mt-5" description={error} />}
 
@@ -159,28 +156,19 @@ function PortalLoginForm({ portal }: { portal: Portal }) {
         </div>
 
         <p className="mt-6 text-center text-sm text-kumo-subtle">
-          {portal === "TENANT" ? (
-            <>
-              Shopping at SR Mall?{" "}
-              <Link href="/login" className="text-kumo-link hover:underline">
-                Customer sign-in
-              </Link>
-            </>
-          ) : (
-            <Link href="/" className="text-kumo-link hover:underline">
-              Back to SR Mall
-            </Link>
-          )}
+          <Link href="/" className="text-kumo-link hover:underline">
+            Back to SR Mall
+          </Link>
         </p>
       </div>
     </main>
   );
 }
 
-export function PortalLogin({ portal }: { portal: Portal }) {
+export function PortalLogin() {
   return (
     <Suspense fallback={null}>
-      <PortalLoginForm portal={portal} />
+      <PortalLoginForm />
     </Suspense>
   );
 }

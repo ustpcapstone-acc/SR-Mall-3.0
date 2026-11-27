@@ -24,6 +24,8 @@ import {
   type TenantDocType,
   type TenantDocument,
 } from "@/lib/tenant-onboarding";
+import { useDraft } from "@/lib/drafts/use-draft";
+import { DraftNote } from "@/components/drafts/draft-note";
 
 const STEPS = [
   { title: "Account", description: "Your sign-in details" },
@@ -181,6 +183,26 @@ export default function BecomeATenantPage() {
   const [banner, setBanner] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [agreed, setAgreed] = useState(false);
+  const [registered, setRegistered] = useState(false);
+
+  // The password and business papers are never kept on this device.
+  const typed = ({ name, email, companyName, shopName, category, phone, businessAddress }: TenantApplication) => ({
+    name,
+    email,
+    companyName,
+    shopName,
+    category,
+    phone,
+    businessAddress,
+  });
+  const draft = useDraft({
+    form: "public.become-a-tenant",
+    guest: true,
+    enabled: !registered,
+    value: typed(form),
+    initial: typed(EMPTY),
+    onRestore: (saved) => setForm((f) => ({ ...f, ...saved })),
+  });
 
   const set = (field: keyof TenantApplication) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm((f) => ({ ...f, [field]: e.target.value }));
@@ -244,9 +266,10 @@ export default function BecomeATenantPage() {
     }
     if (step === 0) {
       setBusy(true);
-      const { available } = await checkTenantEmailAction(form.email);
+      const check = await draft.send(() => checkTenantEmailAction(form.email));
       setBusy(false);
-      if (!available) {
+      if (!check) return;
+      if (!check.available) {
         setErrors({ email: "An account already uses this email. Sign in instead, or use another email." });
         focusFirstError();
         return;
@@ -262,7 +285,11 @@ export default function BecomeATenantPage() {
     }
     setBusy(true);
     setBanner(null);
-    const res = await registerTenantAction(form);
+    const res = await draft.send(() => registerTenantAction(form));
+    if (!res) {
+      setBusy(false);
+      return;
+    }
     if (!res.success) {
       setBusy(false);
       setErrors(res.fieldErrors ?? {});
@@ -270,6 +297,8 @@ export default function BecomeATenantPage() {
       if (typeof res.step === "number") setStep(res.step);
       return;
     }
+    draft.clear();
+    setRegistered(true);
     login(res.user.id, res.user.name, res.user.email, res.user.role);
     router.replace(res.redirectTo);
   };
@@ -311,7 +340,7 @@ export default function BecomeATenantPage() {
                     label="Email"
                     type="email"
                     autoComplete="email"
-                    description="You'll use this to sign in at the tenant portal."
+                    description="You'll use this to sign in as a tenant."
                     value={form.email}
                     onChange={set("email")}
                     error={errors.email} aria-invalid={!!errors.email}
@@ -449,6 +478,8 @@ export default function BecomeATenantPage() {
               )}
             </div>
 
+            <DraftNote draft={draft} className="mt-6" />
+
             <div className="mt-8 flex items-center justify-between gap-3 border-t border-kumo-line pt-5">
               {step > 0 ? (
                 <Button type="button" variant="secondary" onClick={() => goTo(step - 1)} disabled={busy}>
@@ -471,8 +502,8 @@ export default function BecomeATenantPage() {
 
           <p className="mt-6 text-center text-sm text-kumo-subtle">
             Already a tenant?{" "}
-            <Link href="/tenant-portal" className="text-kumo-link hover:underline">
-              Sign in at the tenant portal
+            <Link href="/login?role=tenant" className="text-kumo-link hover:underline">
+              Sign in as a tenant
             </Link>
           </p>
           {busy && step === STEPS.length - 1 && (

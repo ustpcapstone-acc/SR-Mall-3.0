@@ -1,8 +1,8 @@
 /**
  * Campaign dates in Philippine time (UTC+8), client/server safe.
  *
- * A date input gives "YYYY-MM-DD". `new Date("2026-09-30")` is midnight UTC —
- * 8:00 AM in Manila — so a campaign "ending Sep 30" used to stop at 8 AM.
+ * A date input gives "YYYY-MM-DD". `new Date("2026-09-30")` is midnight UTC,
+ * 8:00 AM in Manila, so a campaign "ending Sep 30" used to stop at 8 AM.
  * These helpers make a campaign run from 00:00 on its start day to 23:59 on
  * its end day, Manila time.
  */
@@ -22,5 +22,17 @@ export function formatPHDate(value: string | Date) {
     month: "short",
     day: "numeric",
     year: "numeric",
+  });
+}
+
+/** "Sep 30, 2026, 3:15 PM" in Manila time. */
+export function formatPHDateTime(value: string | Date) {
+  return new Date(value).toLocaleString("en-PH", {
+    timeZone: "Asia/Manila",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
   });
 }

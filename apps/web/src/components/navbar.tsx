@@ -129,6 +129,10 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
   const [allShops, setAllShops] = useState<DigitalStorefront[]>([]);
 
+  // The full menu needs a wide screen, wider still beside the signed-in buttons.
+  // Below that the menu button opens the same links.
+  const wideMenuOnly = isAuthenticated;
+
   const navItems = [
     { id: "home", label: "Home", href: "/" },
     { id: "directory", label: "Mall Directory", href: "/#directory" },
@@ -309,8 +313,8 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
           "bg-white/70",
           "dark:bg-black/70",
           "border-b",
-          "border-slate-100",
-          "dark:border-white/5",
+          "border-kumo-line",
+          "",
         )}
       >
         <div
@@ -342,7 +346,7 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
               />
             </div>
             <div className="flex flex-col">
-              <span className="font-display text-base sm:text-xl font-semibold tracking-tight text-charcoal dark:text-white leading-none">
+              <span className="font-display text-base sm:text-xl font-semibold tracking-tight text-kumo-default leading-none">
                 {config?.companyName || "SR Mall"}
               </span>
             </div>
@@ -353,7 +357,7 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
             className={clsx(
               "relative",
               "hidden",
-              "lg:flex",
+              wideMenuOnly ? "xl:flex" : "lg:flex",
               "items-center",
               "justify-center",
               "gap-1",
@@ -378,7 +382,7 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
                     "relative py-1.5 px-2.5 xl:px-3 text-sm font-medium transition-colors whitespace-nowrap rounded-lg",
                     isActive
                       ? "text-primary"
-                      : "text-slate-600 dark:text-slate-300 hover:text-charcoal dark:hover:text-white",
+                      : "text-kumo-subtle hover:text-kumo-default",
                   )}
                 >
                   {item.label}
@@ -395,7 +399,7 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
 
           {/* Right: Actions */}
           <div className={clsx("flex items-center gap-2 sm:gap-3 shrink-0")}>
-            <p className="hidden 2xl:block text-sm text-slate-500 dark:text-slate-400 whitespace-nowrap">
+            <p className="hidden 2xl:block text-sm text-kumo-subtle whitespace-nowrap">
               Open daily, {config?.footerOpeningHours?.trim() || "10 AM to 9 PM"}
             </p>
 
@@ -434,11 +438,11 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
                       "font-semibold",
                       "text-xs",
                       "rounded-full",
-                      "hover:bg-slate-200",
+                      "hover:bg-kumo-tint",
                       "transition-colors",
                       "shadow-md",
                       "border",
-                      "border-slate-100",
+                      "border-kumo-line",
                     )}
                   >
                     Dashboard
@@ -457,12 +461,12 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
                         "items-center",
                         "gap-2",
                         "p-1 sm:px-3 sm:py-1.5",
-                        "bg-slate-100",
-                        "dark:bg-zinc-800",
+                        "bg-kumo-recessed",
+                        "",
                         "rounded-full",
                         "border",
-                        "border-slate-200",
-                        "dark:border-white/5",
+                        "border-kumo-line",
+                        "",
                         "transition-all",
                         "hover:shadow-md",
                       )}
@@ -479,7 +483,7 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
                           "font-bold",
                           "text-xs sm:text-sm",
                           "overflow-hidden",
-                          "border border-slate-100 dark:border-white/5",
+                          "border border-kumo-line",
                         )}
                       >
                         {user?.avatarUrl ? (
@@ -498,19 +502,19 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
                       >
                         <span
                           className={clsx(
-                            "text-[10px] sm:text-xs",
+                            "text-xs sm:text-xs",
                             "font-bold",
-                            "text-charcoal",
-                            "dark:text-white",
+                            "text-kumo-default",
+                            "",
                           )}
                         >
                           {user?.name?.split(" ")[0]}
                         </span>
                         <span
                           className={clsx(
-                            "text-xs sm:text-[10px]",
-                            "text-slate-500",
-                            "dark:text-slate-400",
+                            "text-xs sm:text-xs",
+                            "text-kumo-subtle",
+                            "",
                             "font-medium",
                             "tracking-tight",
                           )}
@@ -520,7 +524,7 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
                       </div>
                       <ChevronDown
                         size={14}
-                        className={`text-slate-400 transition-transform ${isProfileOpen ? "rotate-180" : ""}`}
+                        className={`text-kumo-subtle transition-transform ${isProfileOpen ? "rotate-180" : ""}`}
                       />
                     </button>
 
@@ -532,13 +536,13 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
                           "right-0",
                           "mt-3",
                           "w-64 sm:w-72",
-                          "bg-white",
-                          "dark:bg-zinc-900",
-                          "rounded-2xl sm:rounded-3xl",
+                          "bg-kumo-base",
+                          "",
+                          "rounded-2xl sm:rounded-2xl",
                           "shadow-2xl",
                           "border",
-                          "border-slate-200",
-                          "dark:border-white/5",
+                          "border-kumo-line",
+                          "",
                           "animate-fade-in-up",
                           "overflow-hidden",
                           "z-60",
@@ -549,17 +553,17 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
                             "px-6",
                             "py-4",
                             "border-b",
-                            "border-slate-100",
-                            "dark:border-white/5",
-                            "bg-slate-50/50",
-                            "dark:bg-white/5",
+                            "border-kumo-line",
+                            "",
+                            "bg-kumo-recessed",
+                            "",
                           )}
                         >
                           <p
                             className={clsx(
-                              "text-[10px]",
+                              "text-xs",
                               "font-semibold",
-                              "text-slate-400",
+                              "text-kumo-subtle",
                             )}
                           >
                             Account Overview
@@ -579,10 +583,10 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
                               "py-3",
                               "text-xs",
                               "font-bold",
-                              "text-charcoal",
-                              "dark:text-white",
-                              "hover:bg-slate-50",
-                              "dark:hover:bg-white/5",
+                              "text-kumo-default",
+                              "",
+                              "hover:bg-kumo-tint",
+                              "",
                               "transition-colors",
                             )}
                           >
@@ -592,7 +596,7 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
                             <Link
                               href="/account"
                               onClick={() => setIsProfileOpen(false)}
-                              className="w-full flex items-center gap-3 px-6 py-3 text-xs font-bold text-charcoal dark:text-white hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
+                              className="w-full flex items-center gap-3 px-6 py-3 text-xs font-bold text-kumo-default hover:bg-kumo-tint transition-colors"
                             >
                               <LayoutDashboard size={16} className="text-primary" /> My Account
                             </Link>
@@ -601,7 +605,7 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
                             <Link
                               href="/become-a-tenant"
                               onClick={() => setIsProfileOpen(false)}
-                              className="w-full flex items-center gap-3 px-6 py-3 text-xs font-bold text-charcoal dark:text-white hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
+                              className="w-full flex items-center gap-3 px-6 py-3 text-xs font-bold text-kumo-default hover:bg-kumo-tint transition-colors"
                             >
                               <Store size={16} className="text-primary" /> Become a Tenant
                             </Link>
@@ -609,7 +613,7 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
 
                         </div>
 
-                        <div className="p-2 border-t border-slate-100 dark:border-white/5">
+                        <div className="p-2 border-t border-kumo-line">
                           <button
                             suppressHydrationWarning
                             onClick={() => logout()}
@@ -664,7 +668,7 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
               aria-expanded={isMobileMenuOpen}
-              className="md:hidden p-2 text-charcoal dark:text-white hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
+              className={clsx(wideMenuOnly ? "xl:hidden" : "lg:hidden", "p-2 text-kumo-default hover:bg-kumo-tint rounded-lg transition-colors")}
             >
               {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
@@ -674,9 +678,9 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
 
       {/* Mobile Menu Overlay */}
       {isMobileMenuOpen && (
-        <div className="fixed inset-0 top-20 z-[55] bg-white dark:bg-zinc-900 md:hidden overflow-y-auto animate-fade-in">
+        <div className={clsx("fixed inset-0 top-20 z-[55] bg-kumo-base overflow-y-auto animate-fade-in", wideMenuOnly ? "xl:hidden" : "lg:hidden")}>
           {isAuthenticated && (
-            <div className="px-6 py-6 border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/5">
+            <div className="px-6 py-6 border-b border-kumo-line bg-kumo-recessed">
               <div className="flex items-center gap-4">
                 <div className="w-14 h-14 rounded-2xl bg-primary text-white flex items-center justify-center font-bold text-xl overflow-hidden border-2 border-white dark:border-zinc-800 shadow-lg">
                   {user?.avatarUrl ? (
@@ -686,7 +690,7 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
                   )}
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-lg font-semibold text-charcoal dark:text-white leading-tight">
+                  <span className="text-lg font-semibold text-kumo-default leading-tight">
                     {user?.name || user?.email?.split('@')[0]}
                   </span>
                   <span className="text-xs font-bold text-primary mt-0.5">
@@ -709,10 +713,10 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
                     onSectionLink(e, link.id, true);
                   }}
                   className={clsx(
-                    "flex items-center justify-between py-4 border-b border-slate-100 dark:border-white/5 text-base transition-colors",
+                    "flex items-center justify-between py-4 border-b border-kumo-line text-base transition-colors",
                     isActive
                       ? "text-primary font-semibold"
-                      : "text-slate-700 dark:text-slate-200 font-bold hover:text-charcoal dark:hover:text-white",
+                      : "text-kumo-default font-bold hover:text-kumo-default",
                   )}
                 >
                   <span className="flex items-center gap-2">
@@ -725,7 +729,7 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
                     size={16}
                     className={clsx(
                       "-rotate-90 transition-transform",
-                      isActive ? "text-primary" : "text-slate-300",
+                      isActive ? "text-primary" : "text-kumo-subtle",
                     )}
                   />
                 </Link>
@@ -736,7 +740,7 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
                 <Link
                   href="/profile"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center justify-between py-4 border-b border-slate-100 dark:border-white/5 text-base font-bold text-slate-700 dark:text-slate-200 hover:text-primary transition-colors"
+                  className="flex items-center justify-between py-4 border-b border-kumo-line text-base font-bold text-kumo-default hover:text-primary transition-colors"
                 >
                   My Profile
                   <User size={16} className="text-primary/60" />
@@ -749,7 +753,7 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
                 <Link
                   href={dashboardHref(user.role)}
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center justify-between py-4 border-b border-slate-100 dark:border-white/5 text-base font-bold text-primary"
+                  className="flex items-center justify-between py-4 border-b border-kumo-line text-base font-bold text-primary"
                 >
                   {dashboardHref(user.role) === "/account" ? "My Account" : "Go to Dashboard"}
                   <ChevronDown
@@ -776,7 +780,7 @@ export const Navbar = ({ config: propConfig }: NavbarProps = {}) => {
               <Link
                 href="/become-a-tenant"
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="flex items-center justify-between py-4 border-b border-slate-100 dark:border-white/5 text-base font-bold text-primary"
+                className="flex items-center justify-between py-4 border-b border-kumo-line text-base font-bold text-primary"
               >
                 Become a Tenant
                 <ChevronDown size={16} className="-rotate-90 text-primary/40" />

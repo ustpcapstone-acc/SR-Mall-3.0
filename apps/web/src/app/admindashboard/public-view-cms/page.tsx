@@ -4,43 +4,32 @@ import { confirmAction } from "@/components/confirm-dialog";
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
+  getAboutPageAction,
   getPublicViewConfigAction,
   updatePublicViewConfigAction,
-  getAllCarouselItemsAction,
-  createCarouselItemAction,
-  updateCarouselItemAction,
-  deleteCarouselItemAction,
-  toggleCarouselItemAction,
 } from "@/app/actions/cms";
+import { AboutEditor } from "@/components/admin/about-editor";
+import { unnamedItem, type AboutPageContent } from "@/lib/about";
 import { getLostAndFoundItems, updateLostAndFoundItemStatus, createLostAndFoundItem } from "@/app/actions/lost-and-found";
-import { getAdminEventsAction, updateInquiryImageAction, deleteInquiryAction, updateEventInfoAction } from "@/app/actions/inquiry";
+import { FileButton, Thumb } from "@/components/admin/media";
 import { Info } from "lucide-react";
 import { toast } from "sonner";
+import { useDraft } from "@/lib/drafts/use-draft";
+import { DraftNote } from "@/components/drafts/draft-note";
 import { getAllPostSalesAction, deleteAdminPostSaleAction, updateAdminPostSaleAction } from "@/app/actions/tenant";
 import {
   Plus,
   Trash2,
   Edit,
-  Eye,
-  EyeOff,
   Image as ImageIcon,
-  Loader2,
   CheckCircle,
-  AlertTriangle,
-  ExternalLink,
   Settings,
-  Layout,
   Monitor,
-  Layers,
   Save,
-  X,
-  ChevronRight,
   Sparkles,
   Globe,
-  Calendar as CalendarIcon,
   Search,
   Upload,
-  MapPin,
   Phone,
 } from "lucide-react";
 import {
@@ -48,27 +37,10 @@ import {
   mapEmbedSrc,
 } from "@/lib/theme";
 import clsx from "clsx";
-import { Button, Checkbox, Select, cn } from "@cloudflare/kumo";
+import { Button, Select, cn } from "@cloudflare/kumo";
 import { ArrowSquareOut, PencilSimple, Plus as PlusIcon, Trash } from "@phosphor-icons/react";
 import { AdminDialog, AdminPage, EmptyNote, PageTabs, Panel } from "@/components/admin/page-kit";
 import { formatSaleDate, isSaleActive, saleEndsAt } from "@/lib/post-sales";
-import { CustomSelect } from "@/components/ui/custom-select";
-
-interface CarouselItem {
-  id: string;
-  adminId: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-  title: string;
-  description: string;
-  imageUrl: string;
-  linkUrl: string | null;
-  isActive: boolean;
-  priority: number;
-  startDate: Date | null;
-  endDate: Date | null;
-  storageKey?: string | null;
-}
 
 interface PublicViewConfig {
   logoUrl: string | null;
@@ -84,6 +56,8 @@ interface PublicViewConfig {
   aboutTitle: string | null;
   aboutDescription: string | null;
   aboutImageUrl: string | null;
+  /** About Us content and section visibility; missing if it couldn't load. */
+  aboutPage?: AboutPageContent;
   videoTitle: string | null;
   videoDescription: string | null;
   productsTitle: string | null;
@@ -172,23 +146,8 @@ export default function PublicViewCMSPage() {
     footerOpeningHours: "",
   });
 
-  const [carouselItems, setCarouselItems] = useState<CarouselItem[]>([]);
-  const [isCarouselModalOpen, setIsCarouselModalOpen] = useState(false);
-  const [editingCarouselItem, setEditingCarouselItem] =
-    useState<CarouselItem | null>(null);
-  const [carouselForm, setCarouselForm] = useState({
-    title: "",
-    description: "",
-    imageUrl: "",
-    linkUrl: "",
-    priority: 0,
-    isActive: true,
-    storageKey: "",
-  });
-
-  const [approvedEvents, setApprovedEvents] = useState<any[]>([]);
   const [allPostSales, setAllPostSales] = useState<any[]>([]);
-  // Running sales vs. ended ones (no longer on the public page) — see lib/post-sales.
+  // Running sales vs. ended ones (no longer on the public page), see lib/post-sales.
   const activePostSales = allPostSales.filter((s: any) => isSaleActive(s));
   const pastPostSales = allPostSales
     .filter((s: any) => !isSaleActive(s))
@@ -206,66 +165,20 @@ export default function PublicViewCMSPage() {
     imageUrl: "",
   });
 
-  const [isEventInfoModalOpen, setIsEventInfoModalOpen] = useState(false);
-  const [editingEventId, setEditingEventId] = useState<string | null>(null);
-  const [eventInfoForm, setEventInfoForm] = useState({
-    eventName: "",
-    eventType: "",
-    eventDate: "",
-    eventTime: "",
-    message: "",
-    fbAccount: "",
-    contactNumber: "",
+  const itemDraft = useDraft({
+    form: "admin.lost-and-found",
+    enabled: isLostFoundModalOpen,
+    value: lostFoundForm,
+    initial: {
+      type: "FOUND" as "LOST" | "FOUND",
+      title: "",
+      description: "",
+      location: "",
+      date: new Date().toISOString().split("T")[0],
+      imageUrl: "",
+    },
+    onRestore: setLostFoundForm,
   });
-  const [deleteEventTarget, setDeleteEventTarget] = useState<any | null>(null);
-
-  const openEventInfoModal = (ev: any) => {
-    setEditingEventId(ev.id);
-    setEventInfoForm({
-      eventName: ev.eventName || "",
-      eventType: ev.eventType || "Community Gatherings",
-      eventDate: ev.eventDate
-        ? new Date(ev.eventDate).toISOString().slice(0, 10)
-        : "",
-      eventTime: ev.eventTime || "",
-      message: ev.message || "",
-      fbAccount: ev.fbAccount || "",
-      contactNumber: ev.contactNumber || "",
-    });
-    setIsEventInfoModalOpen(true);
-  };
-
-  const handleUpdateEventInfo = async () => {
-    if (!editingEventId) return;
-    if (!eventInfoForm.eventDate || !eventInfoForm.eventTime) {
-      showToast("Please set both the event date and time", "error");
-      return;
-    }
-    setIsSaving(true);
-    try {
-      const res = await updateEventInfoAction(editingEventId, {
-        eventName: eventInfoForm.eventName,
-        eventType: eventInfoForm.eventType,
-        eventDate: eventInfoForm.eventDate,
-        eventTime: eventInfoForm.eventTime,
-        message: eventInfoForm.message,
-        fbAccount: eventInfoForm.fbAccount,
-        contactNumber: eventInfoForm.contactNumber,
-      });
-      if (res.success) {
-        showToast("Event updated successfully", "success");
-        setIsEventInfoModalOpen(false);
-        const refreshed = await getAdminEventsAction();
-        if (refreshed.success) setApprovedEvents(refreshed.data || []);
-      } else {
-        showToast(res.error || "Failed to update event", "error");
-      }
-    } catch (e) {
-      showToast("Error updating event", "error");
-    } finally {
-      setIsSaving(false);
-    }
-  };
 
   const showToast = (msg: string, type: "success" | "error") => {
     if (type === "success") toast.success(msg);
@@ -275,25 +188,22 @@ export default function PublicViewCMSPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [configData, carouselData, eventsData, lostFoundData] = await Promise.all([
+        const [configData, aboutData, lostFoundData] = await Promise.all([
           getPublicViewConfigAction(),
-          getAllCarouselItemsAction(),
-          getAdminEventsAction(),
+          getAboutPageAction(),
           getLostAndFoundItems(),
         ]);
 
         setConfig((prev) => {
-          const next = configData
-            ? { ...prev, ...configData, companyName: configData.companyName || "SR MALL" }
-            : prev;
+          const next = {
+            ...prev,
+            ...(configData ? { ...configData, companyName: configData.companyName || "SR MALL" } : {}),
+            aboutPage: aboutData.success ? aboutData.data : undefined,
+          };
           setSavedConfig(next);
           return next;
         });
 
-        setCarouselItems(carouselData || []);
-        if (eventsData?.success) {
-          setApprovedEvents(eventsData.data || []);
-        }
         if (lostFoundData?.success) {
           setLostAndFoundItems(lostFoundData.data || []);
         }
@@ -314,6 +224,15 @@ export default function PublicViewCMSPage() {
   // Last saved version of the config: drives the unsaved-changes bar.
   const [savedConfig, setSavedConfig] = useState<PublicViewConfig | null>(null);
   const isDirty = savedConfig !== null && JSON.stringify(config) !== JSON.stringify(savedConfig);
+  const configDraft = useDraft({
+    form: "admin.website-content",
+    enabled: savedConfig !== null,
+    editing: true,
+    value: config,
+    initial: savedConfig ?? config,
+    // An older draft may not hold the About Us content: keep what was loaded.
+    onRestore: (saved) => setConfig((prev) => ({ ...prev, ...saved, aboutPage: saved.aboutPage ?? prev.aboutPage })),
+  });
   const configErrors = validateConfig(config);
   const hasConfigErrors = Object.keys(configErrors).length > 0;
 
@@ -335,6 +254,9 @@ export default function PublicViewCMSPage() {
     setConfig((prev) => ({ ...prev, [field]: value }));
   };
 
+  const handleAboutChange = (change: (current: AboutPageContent) => AboutPageContent) =>
+    setConfig((prev) => (prev.aboutPage ? { ...prev, aboutPage: change(prev.aboutPage) } : prev));
+
   const handleImageUpload = async (
     field: keyof PublicViewConfig,
     event: React.ChangeEvent<HTMLInputElement>,
@@ -353,86 +275,6 @@ export default function PublicViewCMSPage() {
     } catch (error) {
       console.error("Upload error:", error);
       showToast("Couldn't upload the file. Please try again.", "error");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleCarouselUpload = async (
-    event: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    setIsSaving(true);
-    try {
-      const { getCloudStorageProvider } = await import("@/lib/cloud-storage");
-      const storageProvider = getCloudStorageProvider();
-      const result = await storageProvider.uploadFile(file, "carousel");
-
-      setCarouselForm((prev) => ({
-        ...prev,
-        imageUrl: result.url,
-        storageKey: result.key,
-      }));
-      showToast("Banner image uploaded", "success");
-    } catch (error) {
-      console.error("Upload error:", error);
-      showToast("Failed to upload carousel media", "error");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleEventImageUpload = async (
-    eventId: string,
-    event: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    setIsSaving(true);
-    try {
-      const { getCloudStorageProvider } = await import("@/lib/cloud-storage");
-      const storageProvider = getCloudStorageProvider();
-      const result = await storageProvider.uploadFile(file, "inquiries");
-
-      const updateResult = await updateInquiryImageAction(eventId, result.url, result.key);
-      if (updateResult.success) {
-        setApprovedEvents((prev) =>
-          prev.map((ev) =>
-            ev.id === eventId ? { ...ev, imageUrl: result.url, storageKey: result.key, isPublic: !ev.isPast } : ev,
-          )
-        );
-        showToast("Event image updated successfully", "success");
-      } else {
-        showToast("Failed to update event image in DB", "error");
-      }
-    } catch (error) {
-      console.error("Upload error:", error);
-      showToast("Failed to upload event media", "error");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const confirmDeleteEvent = async () => {
-    if (!deleteEventTarget) return;
-    const id = deleteEventTarget.id;
-
-    setIsSaving(true);
-    try {
-      const result = await deleteInquiryAction(id);
-      if (result.success) {
-        setApprovedEvents((prev: any[]) => prev.filter((ev: any) => ev.id !== id));
-        setDeleteEventTarget(null);
-        showToast("Event deleted successfully", "success");
-      } else {
-        showToast("Failed to delete event", "error");
-      }
-    } catch (error) {
-      console.error("Error deleting event:", error);
-      showToast("Failed to delete event", "error");
     } finally {
       setIsSaving(false);
     }
@@ -491,7 +333,12 @@ export default function PublicViewCMSPage() {
     }
     setIsSaving(true);
     try {
-      await updatePublicViewConfigAction(config);
+      const sent = await configDraft.send(async () => {
+        await updatePublicViewConfigAction(config);
+        return true;
+      });
+      if (!sent) return;
+      configDraft.clear();
       setSavedConfig(config);
       // Navbar on other public pages reads this cache; refresh it.
       try {
@@ -570,10 +417,10 @@ export default function PublicViewCMSPage() {
   const handleCreateLostFound = async () => {
     setIsSaving(true);
     try {
-      const res = await createLostAndFoundItem({
-        ...lostFoundForm,
-      });
+      const res = await itemDraft.send(() => createLostAndFoundItem({ ...lostFoundForm }));
+      if (!res) return;
       if (res.success && res.data) {
+        itemDraft.clear();
         setLostAndFoundItems(prev => [res.data, ...prev]);
         setIsLostFoundModalOpen(false);
         setLostFoundForm({ type: "FOUND", title: "", description: "", location: "", date: new Date().toISOString().split("T")[0], imageUrl: "" });
@@ -583,99 +430,6 @@ export default function PublicViewCMSPage() {
       }
     } catch (e) {
       showToast("Error creating item", "error");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const openCarouselModal = (item: CarouselItem | null = null) => {
-    setEditingCarouselItem(item);
-    setCarouselForm({
-      title: item?.title || "",
-      description: item?.description || "",
-      imageUrl: item?.imageUrl || "",
-      linkUrl: item?.linkUrl || "",
-      priority: item?.priority || 0,
-      isActive: item?.isActive ?? true,
-      storageKey: item?.storageKey || "",
-    });
-    setIsCarouselModalOpen(true);
-  };
-
-  const closeCarouselModal = () => {
-    setIsCarouselModalOpen(false);
-    setEditingCarouselItem(null);
-  };
-
-  const handleCreateCarouselItem = async () => {
-    setIsSaving(true);
-    try {
-      const newItem = await createCarouselItemAction(carouselForm);
-      setCarouselItems((prev: any[]) => [...prev, newItem]);
-      closeCarouselModal();
-      showToast("Billboard item deployed!", "success");
-    } catch (error) {
-      console.error("Error creating carousel item:", error);
-      showToast("Failed to deploy carousel item", "error");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleUpdateCarouselItem = async () => {
-    if (!editingCarouselItem) return;
-
-    setIsSaving(true);
-    try {
-      const updatedItem = await updateCarouselItemAction(
-        editingCarouselItem.id,
-        carouselForm,
-      );
-      setCarouselItems((prev: any[]) =>
-        prev.map((item: any) =>
-          item.id === editingCarouselItem.id ? updatedItem : item,
-        ),
-      );
-      closeCarouselModal();
-      showToast("Billboard content updated!", "success");
-    } catch (error) {
-      console.error("Error updating carousel item:", error);
-      showToast("Failed to update billboard", "error");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleDeleteCarouselItem = async (id: string) => {
-    if (!(await confirmAction({ title: "Delete this banner?", description: "It is removed from the homepage and can't be restored.", confirmLabel: "Delete banner" }))) return;
-
-    setIsSaving(true);
-    try {
-      await deleteCarouselItemAction(id);
-      setCarouselItems((prev: any[]) => prev.filter((item: any) => item.id !== id));
-      showToast("Content purged from system", "success");
-    } catch (error) {
-      console.error("Error deleting carousel item:", error);
-      showToast("Failed to purge content", "error");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleToggleCarouselItem = async (id: string) => {
-    setIsSaving(true);
-    try {
-      const updatedItem = await toggleCarouselItemAction(id);
-      setCarouselItems((prev: any[]) =>
-        prev.map((item: any) => (item.id === id ? updatedItem : item)),
-      );
-      showToast(
-        updatedItem.isActive ? "Segment is now live" : "Segment archived",
-        "success",
-      );
-    } catch (error) {
-      console.error("Error toggling carousel item:", error);
-      showToast("Visibility toggle failed", "error");
     } finally {
       setIsSaving(false);
     }
@@ -704,6 +458,7 @@ export default function PublicViewCMSPage() {
       icon: Globe,
       desc: "Branding, contact, map & home page copy",
     },
+    { id: "about", label: "About Us page", icon: Info, desc: "Mission, services, features and visibility" },
 
     {
       id: "postsales",
@@ -711,15 +466,13 @@ export default function PublicViewCMSPage() {
       icon: Monitor,
       desc: "Manage Tenant Sales Posts",
     },
-    { id: "carousel", label: "Billboards", icon: Layout, desc: "Homepage Banners" },
-    { id: "events", label: "Upcoming Events", icon: CalendarIcon, desc: "Approved Event Images" },
     { id: "lostfound", label: "Lost & Found", icon: Search, desc: "Manage reported items" },
   ];
 
   return (
     <AdminPage
       title="Website Content"
-      description="Manage homepage banners, event photos, sales announcements, and mall information shown to visitors."
+      description="Manage sales announcements, lost and found and mall information shown to visitors."
       actions={
         <>
           <a href="/" target="_blank" rel="noopener noreferrer" className={cn(LINK_BUTTON, "border border-kumo-line text-kumo-default hover:bg-kumo-tint")}>
@@ -938,7 +691,7 @@ export default function PublicViewCMSPage() {
                         value={config.productsDescription ?? ""}
                         onChange={(e) => handleConfigChange("productsDescription", e.target.value)}
                         className="cms-input min-h-[72px] resize-none"
-                        placeholder="Handpicked collections from our premier tenants, refreshed daily."
+                        placeholder="Items sold by the shops at SR Mall."
                       />
                     </Field>
                   </div>
@@ -963,7 +716,7 @@ export default function PublicViewCMSPage() {
                         value={config.directoryDescription ?? ""}
                         onChange={(e) => handleConfigChange("directoryDescription", e.target.value)}
                         className="cms-input min-h-[88px] resize-none"
-                        placeholder="Navigate through our curated ecosystem of high-end retail, digital-first storefronts, and world-class dining destinations."
+                        placeholder="Find the shops and places to eat at SR Mall."
                       />
                     </Field>
                   </div>
@@ -988,7 +741,7 @@ export default function PublicViewCMSPage() {
                         value={config.spacesDescription ?? ""}
                         onChange={(e) => handleConfigChange("spacesDescription", e.target.value)}
                         className="cms-input min-h-[88px] resize-none"
-                        placeholder="Join our premium retail ecosystem. Explore high-visibility slots designed for modern brands and start your journey at SR Mall."
+                        placeholder="Units you can rent at SR Mall. Open one to see its size and ask about it."
                       />
                     </Field>
                   </div>
@@ -997,12 +750,12 @@ export default function PublicViewCMSPage() {
                     <p className="text-sm font-semibold text-kumo-default">
                       Venue booking
                     </p>
-                    <Field label="Eyebrow label">
+                    <Field label="Small label above the heading (optional)">
                       <input
                         value={config.venueEyebrow ?? ""}
                         onChange={(e) => handleConfigChange("venueEyebrow", e.target.value)}
                         className="cms-input"
-                        placeholder="Venue booking"
+                        placeholder="Leave empty for none"
                       />
                     </Field>
                     <Field
@@ -1107,12 +860,12 @@ export default function PublicViewCMSPage() {
                     <p className="text-sm font-semibold text-kumo-default">
                       Location
                     </p>
-                    <Field label="Heading" hint="Use a line break for “Prime location.” and “Endless access.”">
+                    <Field label="Heading" hint="Use a line break for “Find us” and “in Jasaan.”">
                       <textarea
                         value={config.locationTitle ?? ""}
                         onChange={(e) => handleConfigChange("locationTitle", e.target.value)}
                         className="cms-input min-h-[72px] resize-none"
-                        placeholder={"Prime location.\nEndless access."}
+                        placeholder={"Find us\nin Jasaan."}
                       />
                     </Field>
                     <Field label="Description" hint="Shown under the location heading.">
@@ -1127,71 +880,10 @@ export default function PublicViewCMSPage() {
                 </div>
               </SettingsCard>
 
-              {/* ── About Our Vision ─────────────────────────────────────── */}
-              <SettingsCard
-                title="About Our Vision"
-                sub="Tell the story behind the mall."
-              >
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                  <div className="md:col-span-1 space-y-4">
-                    <p className="text-sm font-medium text-kumo-default">
-                      Section photo
-                    </p>
-                    <div className="aspect-4/5 bg-kumo-recessed rounded-lg border-2 border-dashed border-kumo-line flex items-center justify-center overflow-hidden relative group">
-                      {config.aboutImageUrl ? (
-                        <img
-                          src={config.aboutImageUrl}
-                          alt="About section"
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <ImageIcon size={32} className="text-slate-400" />
-                      )}
-                      <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center cursor-pointer transition-opacity text-white text-xs font-semibold gap-1">
-                        <Edit size={22} />
-                        Change
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={(e) => handleImageUpload("aboutImageUrl", e)}
-                        />
-                      </label>
-                    </div>
-                    <Field label="Image URL" hint="Filled in automatically when you upload.">
-                      <input
-                        value={config.aboutImageUrl ?? ""}
-                        onChange={(e) => handleConfigChange("aboutImageUrl", e.target.value)}
-                        className="cms-input"
-                        placeholder="https://…"
-                      />
-                    </Field>
-                  </div>
-                  <div className="md:col-span-2 space-y-5">
-                    <Field label="Section headline" hint="Leave empty to keep “Our Legacy”.">
-                      <input
-                        value={config.aboutTitle ?? ""}
-                        onChange={(e) => handleConfigChange("aboutTitle", e.target.value)}
-                        className="cms-input"
-                        placeholder="Our Legacy"
-                      />
-                    </Field>
-                    <Field label="Narrative text" hint="Leave empty to keep the original story.">
-                      <textarea
-                        value={config.aboutDescription ?? ""}
-                        onChange={(e) => handleConfigChange("aboutDescription", e.target.value)}
-                        className="cms-input min-h-[220px] resize-none"
-                        placeholder="Since 1995..."
-                      />
-                    </Field>
-                  </div>
-                </div>
-              </SettingsCard>
-
               {/* ── Featured video ───────────────────────────────────────── */}
               <SettingsCard
                 title="Featured video"
-                sub="The cinematic section below the featured products"
+                sub="The video section below the featured products"
               >
                 <div className="flex flex-col md:flex-row md:items-start items-center gap-8">
                   <div className="w-full md:w-48 shrink-0 aspect-video bg-kumo-recessed rounded-lg border-2 border-dashed border-kumo-line flex items-center justify-center overflow-hidden group relative">
@@ -1229,7 +921,7 @@ export default function PublicViewCMSPage() {
                         value={config.videoTitle ?? ""}
                         onChange={(e) => handleConfigChange("videoTitle", e.target.value)}
                         className="cms-input"
-                        placeholder="Elevate Your Lifestyle."
+                        placeholder="See SR Mall."
                       />
                     </Field>
                     <Field label="Description">
@@ -1237,7 +929,7 @@ export default function PublicViewCMSPage() {
                         value={config.videoDescription ?? ""}
                         onChange={(e) => handleConfigChange("videoDescription", e.target.value)}
                         className="cms-input min-h-[88px] resize-none"
-                        placeholder="Watch our latest visual showcase highlighting the premier shopping and dining experiences waiting for you at SR Mall. Immerse yourself in the extraordinary."
+                        placeholder="Watch a short video of the shops and dining at SR Mall."
                       />
                     </Field>
                     <Field label="Link label" hint="The link that jumps to the shop directory.">
@@ -1262,7 +954,7 @@ export default function PublicViewCMSPage() {
                     value={config.footerDescription ?? ""}
                     onChange={(e) => handleConfigChange("footerDescription", e.target.value)}
                     className="cms-input min-h-[88px] resize-none"
-                    placeholder="The ultimate destination for shopping, dining, and leisure…"
+                    placeholder="Shops, food and services in Misamis Oriental."
                   />
                 </Field>
 
@@ -1356,6 +1048,28 @@ export default function PublicViewCMSPage() {
             </div>
           )}
 
+          {activeTab === "about" && (
+            <div className="space-y-6">
+              <SectionHeader
+                title="About Us page"
+                sub="Edit each section and choose which ones visitors see. Save changes to publish."
+                action={
+                  <a href="/about" target="_blank" rel="noopener noreferrer" className={cn(LINK_BUTTON, "border border-kumo-line text-kumo-default hover:bg-kumo-tint")}>
+                    <ArrowSquareOut size={16} aria-hidden /> View page
+                  </a>
+                }
+              />
+              {configErrors.aboutPage && <FieldError message={configErrors.aboutPage} />}
+              <AboutEditor
+                config={config}
+                about={config.aboutPage}
+                onConfig={handleConfigChange}
+                onAbout={handleAboutChange}
+                onGeneral={() => setActiveTab("general")}
+              />
+            </div>
+          )}
+
           {activeTab === "postsales" && (
             <div className="space-y-6">
               <SectionHeader title="Shop Sales Monitoring" sub="Manage tenant promotional posts and sales announcements." />
@@ -1378,128 +1092,6 @@ export default function PublicViewCMSPage() {
                   <SaleGrid sales={pastPostSales} onImage={handleUpdatePostSaleImage} onDelete={handleDeletePostSale} />
                 </section>
               )}
-            </div>
-          )}
-
-          {activeTab === "carousel" && (
-            <div className="space-y-6">
-              <SectionHeader
-                title="Digital Billboards"
-                sub="Manage high-priority advertising banners."
-                action={
-                  <Button variant="primary" icon={<PlusIcon />} onClick={() => openCarouselModal()}>
-                    New banner
-                  </Button>
-                }
-              />
-
-              {carouselItems.length === 0 ? (
-                <Panel flush>
-                  <EmptyNote title="No billboards yet">Add a banner to show it on the homepage.</EmptyNote>
-                </Panel>
-              ) : (
-                <ul className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
-                  {carouselItems.map((item: any) => (
-                    <li key={item.id} className={CMS_CARD}>
-                      <Thumb url={item.imageUrl} alt={item.title} />
-                      <div className="flex flex-1 flex-col gap-1 p-4">
-                        <h3 className="line-clamp-1 text-base font-semibold text-kumo-default">{item.title}</h3>
-                        <p className="line-clamp-2 text-sm text-kumo-subtle">{item.description}</p>
-                        <p className="text-sm">
-                          <span className={cn("font-medium", item.isActive ? "text-kumo-success" : "text-kumo-subtle")}>
-                            {item.isActive ? "Live" : "Hidden"}
-                          </span>
-                          <span className="text-kumo-subtle">, priority {item.priority}</span>
-                        </p>
-                        <div className="mt-auto flex flex-wrap justify-end gap-2 pt-3">
-                          <Button size="sm" variant="secondary" onClick={() => handleToggleCarouselItem(item.id)}>
-                            {item.isActive ? "Hide" : "Show"}
-                          </Button>
-                          <Button size="sm" variant="secondary" icon={<PencilSimple />} onClick={() => openCarouselModal(item)}>
-                            Edit
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="secondary-destructive"
-                            shape="square"
-                            icon={<Trash />}
-                            aria-label={`Delete ${item.title}`}
-                            onClick={() => handleDeleteCarouselItem(item.id)}
-                          />
-                        </div>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          )}
-
-          {activeTab === "events" && (
-            <div className="space-y-6">
-              <SectionHeader
-                title="Upcoming Events"
-                sub="Approved events show on the public page until their event day ends. Upload an image to publish one."
-              />
-
-              {(() => {
-                const upcoming = approvedEvents.filter((ev: any) => !ev.isPast);
-                const past = approvedEvents.filter((ev: any) => ev.isPast);
-                const renderCard = (ev: any) => (
-                  <li key={ev.id} className={cn(CMS_CARD, ev.isPast && "opacity-70")}>
-                    <Thumb url={ev.imageUrl} alt={ev.eventName || ev.eventType} empty="No image yet" />
-                    <div className="flex flex-1 flex-col gap-1 p-4">
-                      <h3 className="text-base font-semibold text-kumo-default">{ev.eventName || ev.eventType}</h3>
-                      <p className="text-sm text-kumo-subtle">
-                        {ev.eventType}, {new Date(ev.eventDate).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" })}
-                        {ev.eventTime ? `, ${ev.eventTime}` : ""}
-                      </p>
-                      <p
-                        className={cn(
-                          "text-sm font-medium",
-                          ev.isPast ? "text-kumo-subtle" : ev.isPublic ? "text-kumo-success" : "text-kumo-warning",
-                        )}
-                      >
-                        {ev.isPast ? "Ended, hidden" : ev.isPublic ? "Live on site" : "Needs image"}
-                      </p>
-                      <div className="mt-auto flex flex-wrap justify-end gap-2 pt-3">
-                        {!ev.isPast && (
-                          <FileButton accept="image/*" onChange={(e) => handleEventImageUpload(ev.id, e)}>
-                            {ev.imageUrl ? "Change image" : "Upload image"}
-                          </FileButton>
-                        )}
-                        <Button size="sm" variant="secondary" icon={<PencilSimple />} onClick={() => openEventInfoModal(ev)}>
-                          Edit
-                        </Button>
-                        <Button size="sm" variant="secondary-destructive" icon={<Trash />} onClick={() => setDeleteEventTarget(ev)}>
-                          Delete
-                        </Button>
-                      </div>
-                    </div>
-                  </li>
-                );
-                return (
-                  <>
-                    {upcoming.length === 0 ? (
-                      <Panel flush>
-                        <EmptyNote title="No upcoming approved events" />
-                      </Panel>
-                    ) : (
-                      <ul className="grid gap-4 md:grid-cols-2">{upcoming.map(renderCard)}</ul>
-                    )}
-
-                    {past.length > 0 && (
-                      <section className="space-y-3">
-                        <h3 className="text-base font-semibold text-kumo-default">
-                          Past events ({past.length}){" "}
-                          <span className="text-sm font-normal text-kumo-subtle">(no longer shown on the public page)</span>
-                        </h3>
-                        <ul className="grid gap-4 md:grid-cols-2">{past.map(renderCard)}</ul>
-                      </section>
-                    )}
-                  </>
-                );
-              })()}
             </div>
           )}
 
@@ -1584,6 +1176,7 @@ export default function PublicViewCMSPage() {
               )}
             </div>
           )}
+          <DraftNote draft={configDraft} className="mt-6" />
           {isDirty && (
             <div className="sticky bottom-4 z-30 mt-6">
               <div className="flex flex-col justify-between gap-3 rounded-xl border border-kumo-line bg-kumo-base p-4 shadow-lg sm:flex-row sm:items-center">
@@ -1603,278 +1196,6 @@ export default function PublicViewCMSPage() {
           )}
         </div>
       </div>
-
-      {/* Carousel Modal */}
-      <AdminDialog
-        open={isCarouselModalOpen}
-        onClose={closeCarouselModal}
-        size="lg"
-        title="Homepage banner"
-        description="Set the picture, text and priority."
-        footer={
-          <>
-            <Button variant="secondary" onClick={closeCarouselModal}>
-              Cancel
-            </Button>
-            <Button
-              variant="primary"
-              loading={isSaving}
-              onClick={editingCarouselItem ? handleUpdateCarouselItem : handleCreateCarouselItem}
-            >
-              Publish banner
-            </Button>
-          </>
-        }
-      >
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <InputGroup label="Billboard Title">
-                  <input
-                    value={carouselForm.title}
-                    onChange={(e) =>
-                      setCarouselForm((prev: any) => ({
-                        ...prev,
-                        title: e.target.value,
-                      }))
-                    }
-                    className="cms-input"
-                  />
-                </InputGroup>
-                <InputGroup label="Display Priority">
-                  <input
-                    type="number"
-                    value={carouselForm.priority}
-                    onChange={(e) =>
-                      setCarouselForm((prev: any) => ({
-                        ...prev,
-                        priority: parseInt(e.target.value) || 0,
-                      }))
-                    }
-                    className="cms-input"
-                  />
-                </InputGroup>
-                <div className="md:col-span-2">
-                  <InputGroup label="Narrative Text">
-                    <textarea
-                      value={carouselForm.description}
-                      onChange={(e) =>
-                        setCarouselForm((prev: any) => ({
-                          ...prev,
-                          description: e.target.value,
-                        }))
-                      }
-                      className="cms-input min-h-[80px] resize-none"
-                    />
-                  </InputGroup>
-                </div>
-                <div className="md:col-span-2">
-                  <InputGroup label="Visual Asset URL">
-                    <div className="flex gap-4">
-                      <input
-                        value={carouselForm.imageUrl}
-                        onChange={(e) =>
-                          setCarouselForm((prev: any) => ({
-                            ...prev,
-                            imageUrl: e.target.value,
-                          }))
-                        }
-                        className="cms-input flex-1"
-                        placeholder="https://..."
-                      />
-                      <label className="shrink-0 p-4 bg-primary/10 text-primary border border-primary/20 rounded-2xl cursor-pointer hover:bg-primary/20 transition-all">
-                        <ImageIcon size={20} />
-                        <input
-                          type="file"
-                          className="hidden"
-                          accept="image/*"
-                          onChange={handleCarouselUpload}
-                        />
-                      </label>
-                    </div>
-                  </InputGroup>
-                </div>
-                <InputGroup label="Action Link">
-                  <input
-                    value={carouselForm.linkUrl}
-                    onChange={(e) =>
-                      setCarouselForm((prev: any) => ({
-                        ...prev,
-                        linkUrl: e.target.value,
-                      }))
-                    }
-                    className="cms-input"
-                    placeholder="/offers"
-                  />
-                </InputGroup>
-                <div className="flex items-end pb-2">
-                  <Checkbox
-                    label="Show on the homepage"
-                    checked={!!carouselForm.isActive}
-                    onCheckedChange={(v) => setCarouselForm((prev: any) => ({ ...prev, isActive: Boolean(v) }))}
-                  />
-                </div>
-              </div>
-      </AdminDialog>
-
-      {/* Event Info Modal */}
-      <AdminDialog
-        open={isEventInfoModalOpen}
-        onClose={() => setIsEventInfoModalOpen(false)}
-        size="lg"
-        title="Edit event"
-        description="Update the event details shown on the public page."
-        footer={
-          <>
-            <Button variant="secondary" disabled={isSaving} onClick={() => setIsEventInfoModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="primary" loading={isSaving} onClick={handleUpdateEventInfo}>
-              Save changes
-            </Button>
-          </>
-        }
-      >
-        <div className="space-y-4">
-              <InputGroup label="Event Name">
-                <input
-                  value={eventInfoForm.eventName}
-                  onChange={(e) =>
-                    setEventInfoForm((prev) => ({
-                      ...prev,
-                      eventName: e.target.value,
-                    }))
-                  }
-                  className="cms-input"
-                  placeholder="e.g. Summer Esports Championship"
-                />
-              </InputGroup>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                    Event Type
-                  </label>
-                  <CustomSelect
-                    value={eventInfoForm.eventType}
-                    onChange={(value) =>
-                      setEventInfoForm((prev) => ({ ...prev, eventType: value }))
-                    }
-                    options={Array.from(
-                      new Set([
-                        "Esports & Gaming Events",
-                        "Mini Sports Competitions",
-                        "Fitness & Active Events",
-                        "Trade Shows & Exhibitions",
-                        "Community Gatherings",
-                        ...(eventInfoForm.eventType
-                          ? [eventInfoForm.eventType]
-                          : []),
-                      ]),
-                    ).map((type) => ({ value: type, label: type }))}
-                    ariaLabel="Event type"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                    Event Date
-                  </label>
-                  <input
-                    type="date"
-                    value={eventInfoForm.eventDate}
-                    onChange={(e) =>
-                      setEventInfoForm((prev) => ({
-                        ...prev,
-                        eventDate: e.target.value,
-                      }))
-                    }
-                    className="cms-input"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                    Event Time
-                  </label>
-                  <input
-                    type="time"
-                    value={eventInfoForm.eventTime}
-                    onChange={(e) =>
-                      setEventInfoForm((prev) => ({
-                        ...prev,
-                        eventTime: e.target.value,
-                      }))
-                    }
-                    className="cms-input"
-                  />
-                </div>
-                <InputGroup label="FB Account URL/Name">
-                  <input
-                    value={eventInfoForm.fbAccount}
-                    onChange={(e) =>
-                      setEventInfoForm((prev) => ({
-                        ...prev,
-                        fbAccount: e.target.value,
-                      }))
-                    }
-                    className="cms-input"
-                    placeholder="e.g. fb.com/events"
-                  />
-                </InputGroup>
-              </div>
-
-              <InputGroup label="Contact Number">
-                <input
-                  value={eventInfoForm.contactNumber}
-                  onChange={(e) =>
-                    setEventInfoForm((prev) => ({
-                      ...prev,
-                      contactNumber: e.target.value,
-                    }))
-                  }
-                  className="cms-input"
-                  placeholder="e.g. 09123456789"
-                />
-              </InputGroup>
-
-              <InputGroup label="Event Message / Notes">
-                <textarea
-                  value={eventInfoForm.message}
-                  onChange={(e) =>
-                    setEventInfoForm((prev) => ({
-                      ...prev,
-                      message: e.target.value,
-                    }))
-                  }
-                  rows={3}
-                  className="cms-input resize-none"
-                  placeholder="Optional details shown with the event"
-                />
-              </InputGroup>
-        </div>
-      </AdminDialog>
-
-      <AdminDialog
-        open={!!deleteEventTarget}
-        onClose={() => !isSaving && setDeleteEventTarget(null)}
-        size="sm"
-        title="Delete this event?"
-        footer={
-          <>
-            <Button variant="secondary" disabled={isSaving} onClick={() => setDeleteEventTarget(null)}>
-              Cancel
-            </Button>
-            <Button variant="destructive" loading={isSaving} onClick={confirmDeleteEvent}>
-              Delete event
-            </Button>
-          </>
-        }
-      >
-        <p className="text-sm text-kumo-default">
-          <strong>{deleteEventTarget?.eventName || deleteEventTarget?.eventType}</strong> will be removed from the public page
-          along with its uploaded image. This can&apos;t be undone.
-        </p>
-      </AdminDialog>
 
       {/* Lost and Found Modal */}
       <AdminDialog
@@ -2024,39 +1345,6 @@ function matchesLostFound(item: any, filter: string) {
 const isVideoUrl = (url: string) => url.startsWith("data:video") || /\.(mp4|webm|ogg)$/i.test(url);
 
 /** A 16:9 picture or video, or a note when there is none. */
-function Thumb({ url, alt, empty = "No image" }: { url?: string | null; alt: string; empty?: string }) {
-  return (
-    <div className="relative aspect-video w-full overflow-hidden bg-kumo-recessed">
-      {!url ? (
-        <p className="absolute inset-0 flex items-center justify-center text-sm text-kumo-subtle">{empty}</p>
-      ) : isVideoUrl(url) ? (
-        <video src={url} className="absolute inset-0 size-full object-cover" autoPlay muted loop playsInline aria-label={alt} />
-      ) : (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={url} alt={alt} className="absolute inset-0 size-full object-cover" />
-      )}
-    </div>
-  );
-}
-
-/** A small button that opens the file picker. */
-function FileButton({
-  accept,
-  onChange,
-  children,
-}: {
-  accept: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="inline-flex h-6.5 cursor-pointer items-center rounded-md border border-kumo-line px-2 text-xs font-medium text-kumo-default hover:bg-kumo-tint focus-within:ring-2 focus-within:ring-kumo-brand">
-      {children}
-      <input type="file" accept={accept} className="sr-only" onChange={onChange} />
-    </label>
-  );
-}
-
 function SaleGrid({
   sales,
   onImage,
@@ -2133,6 +1421,7 @@ function validateConfig(config: Record<string, any>) {
     if (val(k) && !EMAIL_RE.test(val(k))) errors[k] = "Enter a valid email address.";
   for (const k of ["venueImageUrl", "googleMapsEmbedUrl", "footerInstagram", "footerFacebook", "footerWebsite"])
     if (val(k) && !URL_RE.test(val(k))) errors[k] = "Must start with https://";
+  if (config.aboutPage && unnamedItem(config.aboutPage)) errors.aboutPage = "Give every service and feature a name.";
   return errors;
 }
 

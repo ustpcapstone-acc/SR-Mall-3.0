@@ -1,3 +1,8 @@
+import { formatPHDate } from "@/lib/ph-date";
+import type { ReportStatus } from "@/lib/leasing";
+import { NO_METHOD, sumAmounts, totalsByMethod, type CollectionReport } from "@/lib/collections";
+import { phDayStart } from "@/lib/ph-date";
+
 /**
  * Helper to convert an image URL to a Base64 string.
  * This ensures the image is correctly embedded in the PDF even on cross-origin or complex environments.
@@ -438,4 +443,236 @@ export const generateVoucherPDF = async (data: {
   );
 
   doc.save(`${data.shopName.replace(/\s+/g, "_")}_Credentials.pdf`);
+};
+
+export type PaymentReportRow = {
+  invoiceNumber: string;
+  description: string;
+  unitId: string | null;
+  dueDate: string | Date;
+  paidOn: string | Date | null;
+  method: string | null;
+  referenceNo: string | null;
+  amount: number;
+  status: ReportStatus;
+};
+
+const PAYMENT_STATUS: Record<PaymentReportRow["status"], string> = {
+  PAID: "Paid",
+  DUE: "Due",
+  OVERDUE: "Overdue",
+  VOID: "Voided",
+  CHECKING: "Being checked",
+  REJECTED: "Rejected",
+};
+
+const pesos = (n: number) => `PHP ${n.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+/** One shop's Payment History Report: totals, then every invoice, newest due date first. */
+export const generatePaymentHistoryPDF = async (
+  shop: { shopName: string; units: string; ownerName?: string | null },
+  rows: PaymentReportRow[],
+) => {
+  if (typeof window === "undefined") return;
+
+  const { jsPDF } = await import("jspdf");
+  const { default: autoTable } = await import("jspdf-autotable");
+
+  const doc = new jsPDF("l", "mm", "a4");
+
+  try {
+    const logoBase64 = await getBase64ImageFromURL(LOGO_URL);
+    doc.addImage(logoBase64, "JPEG", 14, 10, 15, 15);
+  } catch (e) {
+    doc.setFillColor(190, 30, 45);
+    doc.rect(14, 10, 15, 15, "F");
+  }
+
+  doc.setTextColor(190, 30, 45);
+  doc.setFontSize(20);
+  doc.setFont("helvetica", "bold");
+  doc.text("SR-MANAGE", 32, 20);
+
+  doc.setTextColor(40, 40, 40);
+  doc.setFontSize(18);
+  doc.text("Payment History Report", 14, 37);
+
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+  doc.text(`Shop: ${shop.shopName}`, 14, 45);
+  doc.text(`Unit: ${shop.units}`, 14, 50);
+  if (shop.ownerName) doc.text(`Owner: ${shop.ownerName}`, 14, 55);
+  doc.text(`Generated on: ${formatPHDate(new Date())}`, 283, 45, { align: "right" });
+
+  // Totals. Voided invoices are listed but not counted.
+  const sum = (list: PaymentReportRow[]) => list.reduce((total, r) => total + r.amount, 0);
+  const counted = rows.filter((r) => r.status !== "VOID");
+  const paid = counted.filter((r) => r.status === "PAID");
+  const unpaid = counted.filter((r) => r.status !== "PAID");
+  const totals: [string, string][] = [
+    ["INVOICES", `${rows.length}`],
+    ["TOTAL BILLED", pesos(sum(counted))],
+    [`TOTAL PAID (${paid.length})`, pesos(sum(paid))],
+    [`NOT YET PAID (${unpaid.length})`, pesos(sum(unpaid))],
+  ];
+  doc.setFillColor(245, 245, 245);
+  doc.rect(14, 60, 269, 20, "F");
+  totals.forEach(([label, value], i) => {
+    const x = 20 + i * 67;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.setTextColor(100, 100, 100);
+    doc.text(label, x, 67);
+    doc.setFontSize(13);
+    doc.setTextColor(190, 30, 45);
+    doc.text(value, x, 75);
+  });
+
+  const newest = [...rows].sort((a, b) => new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime());
+  autoTable(doc, {
+    startY: 86,
+    head: [["Invoice", "Description", "Unit", "Due date", "Date paid", "Method and reference", "Status", "Amount"]],
+    body: newest.map((r) => [
+      r.invoiceNumber,
+      r.description,
+      r.unitId || "-",
+      formatPHDate(r.dueDate),
+      r.paidOn ? formatPHDate(r.paidOn) : "-",
+      [r.method, r.referenceNo && `Ref ${r.referenceNo}`].filter(Boolean).join("\n") || "-",
+      PAYMENT_STATUS[r.status],
+      pesos(r.amount),
+    ]),
+    headStyles: { fillColor: [190, 30, 45], textColor: [255, 255, 255], fontStyle: "bold" },
+    alternateRowStyles: { fillColor: [248, 248, 248] },
+    styles: { fontSize: 8, cellPadding: 2.5, valign: "middle" },
+    columnStyles: { 1: { cellWidth: 60 }, 7: { halign: "right", fontStyle: "bold" } },
+    didParseCell: (cell) => {
+      if (cell.column.index === 7 && cell.section === "head") cell.cell.styles.halign = "right";
+      if (cell.section !== "body" || cell.column.index !== 6) return;
+      if (cell.cell.raw === "Paid") cell.cell.styles.textColor = [4, 120, 87];
+      if (cell.cell.raw === "Overdue" || cell.cell.raw === "Rejected") cell.cell.styles.textColor = [190, 30, 45];
+    },
+  });
+
+  const pages = doc.getNumberOfPages();
+  for (let page = 1; page <= pages; page++) {
+    doc.setPage(page);
+    doc.setFontSize(8);
+    doc.setTextColor(150, 150, 150);
+    doc.text(`Page ${page} of ${pages}`, 14, 202);
+    doc.text("SR Mall Property Management", 283, 202, { align: "right" });
+  }
+
+  const slug = shop.shopName.replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-+|-+$/g, "") || "Shop";
+  doc.save(`SR-Payment-History-${slug}-${new Date().toISOString().slice(0, 10)}.pdf`);
+};
+
+/** Money received on one day, with totals by method and places to sign. */
+export const generateCollectionReportPDF = async (report: CollectionReport) => {
+  if (typeof window === "undefined") return;
+
+  const { jsPDF } = await import("jspdf");
+  const { default: autoTable } = await import("jspdf-autotable");
+
+  const doc = new jsPDF("l", "mm", "a4");
+
+  try {
+    const logoBase64 = await getBase64ImageFromURL(LOGO_URL);
+    doc.addImage(logoBase64, "JPEG", 14, 10, 15, 15);
+  } catch (e) {
+    doc.setFillColor(190, 30, 45);
+    doc.rect(14, 10, 15, 15, "F");
+  }
+
+  doc.setTextColor(190, 30, 45);
+  doc.setFontSize(20);
+  doc.setFont("helvetica", "bold");
+  doc.text("SR-MANAGE", 32, 20);
+
+  doc.setTextColor(40, 40, 40);
+  doc.setFontSize(18);
+  doc.text("Daily Collection Report", 14, 37);
+
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+  doc.text(`Money received on ${formatPHDate(phDayStart(report.date))}`, 14, 45);
+  doc.text(`Generated on: ${formatPHDate(new Date())}`, 283, 45, { align: "right" });
+
+  const head = { fillColor: [190, 30, 45] as [number, number, number], textColor: [255, 255, 255] as [number, number, number], fontStyle: "bold" as const };
+  autoTable(doc, {
+    startY: 51,
+    head: [["Method", "Payments", "Amount"]],
+    body: totalsByMethod(report.rows).map((t) => [t.method, String(t.count), pesos(t.amount)]),
+    foot: [["Total", String(report.rows.length), pesos(sumAmounts(report.rows))]],
+    headStyles: head,
+    footStyles: { fillColor: [245, 245, 245], textColor: [40, 40, 40], fontStyle: "bold" },
+    styles: { fontSize: 9, cellPadding: 2.5 },
+    tableWidth: 140,
+  });
+
+  const after = () => (doc as any).lastAutoTable.finalY as number;
+  autoTable(doc, {
+    startY: after() + 8,
+    head: [["Shop", "Unit", "Invoice", "For", "Method and reference", "Accepted by", "Amount"]],
+    body: report.rows.length
+      ? report.rows.map((r) => [
+          r.shopName,
+          r.unitId || "-",
+          r.invoiceNumber,
+          r.month,
+          [r.method || NO_METHOD, r.referenceNo && `Ref ${r.referenceNo}`].filter(Boolean).join("\n"),
+          r.acceptedBy || "-",
+          pesos(r.amount),
+        ])
+      : [[{ content: "No payments were received on this day.", colSpan: 7 }]],
+    headStyles: head,
+    alternateRowStyles: { fillColor: [248, 248, 248] },
+    styles: { fontSize: 8, cellPadding: 2.5, valign: "middle" },
+    columnStyles: { 6: { halign: "right", fontStyle: "bold" } },
+    // A payment is never cut across two pages.
+    rowPageBreak: "avoid",
+  });
+
+  if (report.voided.length) {
+    autoTable(doc, {
+      startY: after() + 8,
+      head: [["Voided on this day (not counted)", "Invoice", "Method and reference", "Voided by", "Reason", "Amount"]],
+      body: report.voided.map((v) => [
+        v.shopName,
+        v.invoiceNumber,
+        [v.method, v.referenceNo && `Ref ${v.referenceNo}`].filter(Boolean).join("\n") || "-",
+        v.actorName || "-",
+        v.reason || "-",
+        pesos(v.amount),
+      ]),
+      headStyles: { fillColor: [90, 90, 90], textColor: [255, 255, 255], fontStyle: "bold" },
+      styles: { fontSize: 8, cellPadding: 2.5, valign: "middle" },
+      columnStyles: { 4: { cellWidth: 70 }, 5: { halign: "right" } },
+      rowPageBreak: "avoid",
+    });
+  }
+
+  // Room to count the cash and sign, on a new page if this one is full.
+  let y = after() + 14;
+  if (y > 170) {
+    doc.addPage();
+    y = 24;
+  }
+  doc.setFontSize(10);
+  doc.setTextColor(40, 40, 40);
+  doc.text("Cash counted: ______________________", 14, y);
+  doc.text("Difference: ______________________", 110, y);
+  doc.text("Prepared by: ______________________", 14, y + 14);
+  doc.text("Checked by: ______________________", 110, y + 14);
+
+  const pages = doc.getNumberOfPages();
+  for (let page = 1; page <= pages; page++) {
+    doc.setPage(page);
+    doc.setFontSize(8);
+    doc.setTextColor(150, 150, 150);
+    doc.text(`Page ${page} of ${pages}`, 14, 202);
+    doc.text("SR Mall Property Management", 283, 202, { align: "right" });
+  }
+
+  doc.save(`SR-Collections-${report.date}.pdf`);
 };

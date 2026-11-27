@@ -1,5 +1,5 @@
 /**
- * Email sending (the name is historical — every email goes through here).
+ * Email sending (the name is historical, every email goes through here).
  *
  *  0. Resend HTTP API when RESEND_API_KEY is set. Used on Cloudflare Workers,
  *     which can't open SMTP connections.
@@ -19,7 +19,7 @@ export async function sendGmail(options: {
 }) {
   const { to, cc, subject, text, html } = options;
 
-  // ─── Option 0: Resend (HTTP — works on Cloudflare Workers) ───
+  // ─── Option 0: Resend (HTTP, works on Cloudflare Workers) ───
   const resendKey = process.env.RESEND_API_KEY;
   if (resendKey) {
     const from = process.env.RESEND_FROM || "SR Mall <onboarding@resend.dev>";

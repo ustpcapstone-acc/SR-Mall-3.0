@@ -64,7 +64,7 @@ async function seedSettings(userId: string): Promise<NotificationSettings> {
     };
   }
 
-  // Best effort — if the row-per-type table has not been migrated in yet the
+  // Best effort, if the row-per-type table has not been migrated in yet the
   // defaults are still returned so the settings screen stays usable.
   try {
     await prisma.notificationPref.createMany({
@@ -78,7 +78,7 @@ async function seedSettings(userId: string): Promise<NotificationSettings> {
     });
   } catch (err) {
     console.error(
-      "NotificationPref seed failed — run `npm run db:push`:",
+      "NotificationPref seed failed. Run `npm run db:push`:",
       err,
     );
   }
@@ -103,7 +103,7 @@ export async function getNotificationSettings(
       });
     } catch (err) {
       console.error(
-        "NotificationPref read failed — run `npm run db:push`:",
+        "NotificationPref read failed. Run `npm run db:push`:",
         err,
       );
       return { success: true, data: await seedSettings(userId) };
@@ -175,7 +175,7 @@ export async function saveNotificationSettings(
     return {
       success: false,
       error: missingTable
-        ? "The NotificationPref table is missing — run `npm run db:push` (or apply the migration), then try again."
+        ? "The NotificationPref table is missing. Run `npm run db:push` (or apply the migration), then try again."
         : error.message || "Failed to save notification settings",
     };
   }
@@ -215,7 +215,7 @@ export async function sendTestNotification(
       return {
         success: true,
         message:
-          "Nothing was sent — this alert is turned off or has no channels selected.",
+          "Nothing was sent: this alert is turned off or has no channels selected.",
       };
     }
 

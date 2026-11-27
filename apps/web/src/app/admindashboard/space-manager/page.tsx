@@ -5,6 +5,7 @@ import {
   getAreaSlots,
   upsertAreaSlot,
   deleteAreaSlot,
+  getUnitHoldsAction,
   getReservedSlotsWithDetailsAction,
 } from "@/app/actions/space-slot";
 import { Car, Coffee, ShoppingBag, Smartphone, Store } from "lucide-react";
@@ -19,14 +20,26 @@ import {
   PencilSimple,
   Plus,
   SquaresFour,
+  Stack,
   Trash,
   UploadSimple,
 } from "@phosphor-icons/react";
-import { AdminDialog, AdminPage, EmptyNote, Panel, SearchField } from "@/components/admin/page-kit";
+import { AdminDialog, AdminPage, EmptyNote, Panel, SearchField, Stat } from "@/components/admin/page-kit";
 import SpaceDetailModal from "@/components/space-detail-modal";
 import { toast } from "sonner";
 import { ReservationDecisionModal, type ReservationRow } from "@/components/admin/reservation-decision-modal";
 import { ChatConfirmModal } from "@/components/chat/chat-ui";
+import { useDraft } from "@/lib/drafts/use-draft";
+import { DraftNote } from "@/components/drafts/draft-note";
+import { FloorManager } from "@/components/admin/floor-manager";
+import { FloorMap, type MapTile } from "@/components/admin/floor-map";
+import { getFloorLayoutsAction } from "@/app/actions/floors";
+import { AUTO_LAYOUT, type FloorLayout } from "@/lib/floor-layout";
+import { useFloors } from "@/lib/use-floors";
+import { MAX_UNIT_RENT, NO_HOLD, twinMessage, unitKey, unitLock, type UnitHold } from "@/lib/unit-rules";
+import Link from "next/link";
+import { getMyStaffAccessAction } from "@/app/actions/staff";
+import { canOpen } from "@/lib/permissions";
 
 // Define the slot type based on Prisma schema
 interface AreaSlot {
@@ -58,12 +71,6 @@ const FLOOR_CATEGORIES = [
   { id: "parking", name: "Parking", icon: Car },
 ];
 
-const FLOORS = [
-  { id: "ground", name: "Ground Floor", level: 0 },
-  { id: "first", name: "First Floor", level: 1 },
-  { id: "second", name: "Second Floor", level: 2 },
-];
-
 const CATEGORY_ITEMS: Record<string, string> = {
   all: "All categories",
   ...Object.fromEntries(FLOOR_CATEGORIES.map((c) => [c.id, c.name])),
@@ -80,6 +87,8 @@ export default function SpaceManagerPage() {
   const [slots, setSlots] = useState<FloorPlanSlot[]>([]);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
+  const [managingFloors, setManagingFloors] = useState(false);
+  const { floors: mallFloors, label: floorLabel } = useFloors();
   const [activeSlot, setActiveSlot] = useState<Partial<FloorPlanSlot> | null>(
     null,
   );
@@ -94,7 +103,8 @@ export default function SpaceManagerPage() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   /** The unit selected on the map. */
   const [pickedId, setPickedId] = useState<string | null>(null);
-  const floorPlanRef = useRef<HTMLDivElement>(null);
+  /** Saved arrangement and floor plan picture, by floor id. */
+  const [layouts, setLayouts] = useState<Record<string, FloorLayout>>({});
 
   const [previewSlot, setPreviewSlot] = useState<FloorPlanSlot | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -105,6 +115,52 @@ export default function SpaceManagerPage() {
   const [decision, setDecision] = useState<{ row: ReservationRow; action: "approve" | "reject" } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<FloorPlanSlot | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  /** The unit as the editor opened it, to tell unsaved edits apart. */
+  const [startSlot, setStartSlot] = useState<Partial<FloorPlanSlot> | null>(null);
+  /** Units with a lease or tenant, keyed by unit id. The server checks again on save. */
+  const [holds, setHolds] = useState<Record<string, UnitHold>>({});
+  const saved = startSlot?.id ? startSlot : null;
+  const hold = (saved?.unit_id && holds[saved.unit_id]) || NO_HOLD;
+  const lock = unitLock(saved ? { status: saved.status!, tenant_id: (saved as { tenant_id?: string | null }).tenant_id } : null, hold);
+  /** Who reserved each reserved unit, and how long is left to decide. */
+  const [reservations, setReservations] = useState<Record<string, { name: string; left: string }>>({});
+  const [canSeeTenants, setCanSeeTenants] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    getMyStaffAccessAction().then(
+      (access) => alive && setCanSeeTenants(Boolean(access && canOpen(access, "/admindashboard/tenant-monitoring"))),
+    );
+    return () => {
+      alive = false;
+    };
+  }, []);
+  // Only what the editor changes; map positions are worked out on every load.
+  const typed = (slot: Partial<FloorPlanSlot>, feature: string) => ({
+    unit_id: slot.unit_id,
+    floor: slot.floor,
+    category: slot.category,
+    sqm_size: slot.sqm_size,
+    base_rent: slot.base_rent,
+    status: slot.status,
+    space_images: slot.space_images,
+    features: slot.features,
+    feature,
+  });
+  const draft = useDraft({
+    form: "admin.space",
+    scope: [startSlot?.id ?? "new"],
+    enabled: isEditing && Boolean(activeSlot && startSlot),
+    editing: Boolean(startSlot?.id),
+    value: activeSlot ? typed(activeSlot, newFeatureInput) : null,
+    initial: startSlot ? typed(startSlot, "") : null,
+    onRestore: (saved) => {
+      if (!saved) return;
+      const { feature, ...fields } = saved;
+      setActiveSlot((slot) => ({ ...slot, ...fields }));
+      setNewFeatureInput(feature);
+    },
+  });
 
   const openDecision = async (slot: FloorPlanSlot, action: "approve" | "reject") => {
     // Show the modal right away, then fill in who reserved it and the time left.
@@ -140,38 +196,43 @@ export default function SpaceManagerPage() {
     loadSlots();
   }, []);
 
-  const loadSlots = async () => {
-    setLoading(true);
-    const result = await getAreaSlots();
+  /** `quiet` keeps the page on screen while it reloads. */
+  const loadSlots = async (quiet = false) => {
+    if (!quiet) setLoading(true);
+    const [result, held, reserved, arranged] = await Promise.all([
+      getAreaSlots(),
+      getUnitHoldsAction(),
+      getReservedSlotsWithDetailsAction(),
+      getFloorLayoutsAction(),
+    ]);
+    if (arranged.success) setLayouts(arranged.data);
+    else toast.error(arranged.error);
+    if (held.success) setHolds(held.data);
+    else toast.error(held.error);
+    if (reserved.success) {
+      setReservations(
+        Object.fromEntries(
+          (reserved.data ?? []).map((r: any) => [
+            r.unit_id,
+            { name: r.reservingUser?.name || r.reservingUser?.email || "a customer", left: r.remainingFormatted },
+          ]),
+        ),
+      );
+    }
     if (result.success && result.data) {
       // Sort slots naturally by unit_id (FS1, FS2, FS3... FS10)
       const sortedData = [...result.data].sort((a, b) =>
         a.unit_id.localeCompare(b.unit_id, undefined, { numeric: true, sensitivity: 'base' })
       );
 
-      const floorCounts: Record<string, number> = {};
-
-      const slotsWithPositions = sortedData.map(
-        (slot: any) => {
-          const floor = slot.floor || "ground";
-          if (floorCounts[floor] === undefined) floorCounts[floor] = 0;
-          const floorIndex = floorCounts[floor]++;
-
-          // Ignore database x/y coordinates to force a strict auto-flowing grid.
-          // This ensures that when a space is deleted, the remaining spaces will "shift up" to fill the gap.
-          return {
-            ...slot,
-            x: (floorIndex % 6) * 150 + 50,
-            y: Math.floor(floorIndex / 6) * 120 + 50,
-            width: slot.width || 120,
-            height: slot.height || 80,
-            floor: floor,
-            category: slot.category || "retail",
-            features: Array.isArray(slot.features) ? slot.features : [],
-          };
-        }
+      setSlots(
+        sortedData.map((slot: any) => ({
+          ...slot,
+          floor: slot.floor || "ground",
+          category: slot.category || "retail",
+          features: Array.isArray(slot.features) ? slot.features : [],
+        })),
       );
-      setSlots(slotsWithPositions);
     }
     setLoading(false);
   };
@@ -183,13 +244,21 @@ export default function SpaceManagerPage() {
       toast.error("Unit ID is required");
       return;
     }
+    if (twin) {
+      toast.error(twinMessage(twin.unit_id));
+      return;
+    }
     if (!activeSlot.sqm_size || activeSlot.sqm_size <= 0) {
       toast.error("Enter the space size in square meters");
       return;
     }
+    if (!activeSlot.base_rent || activeSlot.base_rent <= 0) {
+      toast.error("Enter the monthly rent");
+      return;
+    }
 
     setIsSaving(true);
-    const result = await upsertAreaSlot({
+    const result = await draft.send(() => upsertAreaSlot({
       id: activeSlot.id,
       unit_id: unitId,
       status: activeSlot.status || "AVAILABLE",
@@ -199,14 +268,12 @@ export default function SpaceManagerPage() {
       features: activeSlot.features || [],
       floor: activeSlot.floor || "ground",
       category: activeSlot.category || "retail",
-      x: activeSlot.x || 0,
-      y: activeSlot.y || 0,
-      width: activeSlot.width || 120,
-      height: activeSlot.height || 80,
-    } as any);
+    }));
 
     setIsSaving(false);
+    if (!result) return;
     if (result.success) {
+      draft.clear();
       toast.success(activeSlot.id ? `Unit ${unitId} updated` : `Unit ${unitId} added`);
       setIsEditing(false);
       setActiveSlot(null);
@@ -248,10 +315,8 @@ export default function SpaceManagerPage() {
       const storageProvider = getCloudStorageProvider();
       const result = await storageProvider.uploadFile(file, "spaces");
 
-      setActiveSlot({
-        ...activeSlot,
-        space_images: [...(activeSlot.space_images || []), result.url],
-      });
+      // Keep whatever was typed while the photo was uploading.
+      setActiveSlot((slot) => slot && { ...slot, space_images: [...(slot.space_images || []), result.url] });
       toast.success("Media Uploaded", {
         description: "The photo was added. Save the space to keep it.",
       });
@@ -268,51 +333,95 @@ export default function SpaceManagerPage() {
     }
   };
 
-  const filteredSlots = slots.filter((s) => {
-    const matchesSearch = s.unit_id
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase());
-    const matchesFloor = selectedFloor === "all" || s.floor === selectedFloor;
-    const matchesCategory =
-      selectedCategory === "all" || s.category === selectedCategory;
-    return matchesSearch && matchesFloor && matchesCategory;
-  });
+  // A unit on a floor that isn't in the list still gets a button, so it can't go missing.
+  const floors = [
+    ...mallFloors,
+    ...[...new Set(slots.map((s) => s.floor || "ground"))]
+      .filter((id) => !mallFloors.some((f) => f.id === id))
+      .map((id) => ({ id, name: floorLabel(id) })),
+  ];
+  const activeFloor = floors.some((f) => f.id === selectedFloor) ? selectedFloor : (floors[0]?.id ?? "ground");
 
-  const currentFloorSlots = filteredSlots.filter(
-    (s) => s.floor === selectedFloor,
+  /** The shop on a unit (rented or assigned), if any. */
+  const shopOn = (slot: FloorPlanSlot) => holds[slot.unit_id]?.leasedTo || holds[slot.unit_id]?.assignedTo || null;
+  /** One line on who has a unit; empty for a unit nobody is on. */
+  const whoIsOn = (slot: FloorPlanSlot) => {
+    const shop = shopOn(slot);
+    if (shop) return holds[slot.unit_id]?.leasedTo ? `Rented by ${shop}` : `Assigned to ${shop}, no lease`;
+    if (slot.status === "RESERVED") {
+      const r = reservations[slot.unit_id];
+      return r ? `Reserved by ${r.name}, ${r.left} left` : "Reserved";
+    }
+    return slot.status === "OCCUPIED" ? "No tenant linked" : "";
+  };
+  const tenantLink = (slot: FloorPlanSlot) => {
+    const id = holds[slot.unit_id]?.tenantId;
+    return id && canSeeTenants ? (
+      <Link href={`/admindashboard/tenant-monitoring?tenant=${id}`} className="text-sm font-medium text-kumo-link hover:underline">
+        View tenant
+      </Link>
+    ) : null;
+  };
+
+  // A search looks through every floor, by unit number or shop name.
+  const query = searchQuery.trim().toLowerCase();
+  const matches = slots.filter(
+    (s) =>
+      (selectedCategory === "all" || s.category === selectedCategory) &&
+      (!query || [s.unit_id, shopOn(s) ?? ""].some((v) => v.toLowerCase().includes(query))),
   );
+  const filteredSlots = query ? matches : matches.filter((s) => s.floor === activeFloor);
+  const currentFloorSlots = matches.filter((s) => s.floor === activeFloor);
+  /** Every unit in the mall with this status. */
+  const mallCount = (status: string) => slots.filter((s) => s.status === status).length;
 
   const getCategoryIcon = (category: string) => {
     const cat = FLOOR_CATEGORIES.find((c) => c.id === category);
     return cat ? cat.icon : Store;
   };
   const categoryName = (category?: string) => FLOOR_CATEGORIES.find((c) => c.id === category)?.name ?? category ?? "Retail";
-  const floorName = FLOORS.find((f) => f.id === selectedFloor)?.name;
-  const floorSlots = slots.filter((s) => s.floor === selectedFloor);
+  const floorName = floorLabel(activeFloor);
+  const floorSlots = slots.filter((s) => s.floor === activeFloor);
   const countOf = (status: string) => floorSlots.filter((s) => s.status === status).length;
   const picked = currentFloorSlots.find((s) => s.id === pickedId) ?? null;
 
+  // Another unit whose ID only differs by capitals or spaces from the one being typed.
+  const typedId = activeSlot?.unit_id?.trim() ?? "";
+  const twin =
+    typedId && typedId !== startSlot?.unit_id
+      ? slots.find((s) => s.id !== startSlot?.id && unitKey(s.unit_id) === unitKey(typedId))
+      : undefined;
+
+  /** Why the unit chosen for deletion has to stay; null when it can go. */
+  const deleteBlock = (() => {
+    if (!deleteTarget) return null;
+    const held = holds[deleteTarget.unit_id];
+    const reserved = deleteTarget.status === "RESERVED";
+    if (held || (reserved && (deleteTarget as { tenant_id?: string | null }).tenant_id)) {
+      return unitLock(deleteTarget, held).note;
+    }
+    return reserved || deleteTarget.status === "OCCUPIED" ? "Set it to Available with Edit first." : null;
+  })();
+
+  const openEditor = (slot: Partial<FloorPlanSlot>) => {
+    setStartSlot(slot);
+    setActiveSlot(slot);
+    setNewFeatureInput("");
+    setIsEditing(true);
+  };
   const addSpace = () => {
-    setActiveSlot({
+    openEditor({
       unit_id: "",
       status: "AVAILABLE",
       sqm_size: 0,
       base_rent: 0,
       space_images: [],
       features: [],
-      x: 100,
-      y: 100,
-      width: 120,
-      height: 80,
-      floor: selectedFloor,
+      floor: activeFloor,
       category: "retail",
     });
-    setIsEditing(true);
   };
-  const editSpace = (slot: FloorPlanSlot) => {
-    setActiveSlot(slot);
-    setIsEditing(true);
-  };
+  const editSpace = (slot: FloorPlanSlot) => openEditor(slot);
 
   /** What can be done with a unit: used by the map panel, cards and list. */
   const slotActions = (slot: FloorPlanSlot) => (
@@ -347,18 +456,18 @@ export default function SpaceManagerPage() {
   const toolbar = (
     <div className="flex flex-wrap items-center gap-2">
       <div role="group" aria-label="Floor" className="flex flex-wrap gap-1">
-        {FLOORS.map((floor) => (
+        {floors.map((floor) => (
           <Button
             key={floor.id}
-            variant={selectedFloor === floor.id ? "primary" : "secondary"}
-            aria-pressed={selectedFloor === floor.id}
+            variant={activeFloor === floor.id ? "primary" : "secondary"}
+            aria-pressed={activeFloor === floor.id}
             onClick={() => setSelectedFloor(floor.id)}
           >
-            {floor.name}
+            {floor.name} ({slots.filter((s) => s.floor === floor.id).length})
           </Button>
         ))}
       </div>
-      <SearchField value={searchQuery} onChange={setSearchQuery} placeholder="Search unit number" className="sm:w-56" />
+      <SearchField value={searchQuery} onChange={setSearchQuery} placeholder="Search unit or shop" className="sm:w-56" />
       <Select
         aria-label="Category"
         value={selectedCategory}
@@ -394,6 +503,21 @@ export default function SpaceManagerPage() {
     </div>
   );
 
+  /** How a unit looks on the map. */
+  const mapTile = (id: string): MapTile => {
+    const slot = slots.find((s) => s.id === id)!;
+    const Icon = getCategoryIcon(slot.category || "retail");
+    const status = STATUS[slot.status] ?? STATUS.MAINTENANCE;
+    const reservation = slot.status === "RESERVED" ? reservations[slot.unit_id] : undefined;
+    return {
+      color: status.color,
+      label: [`Unit ${slot.unit_id}, ${status.label}`, whoIsOn(slot)].filter(Boolean).join(", "),
+      title: whoIsOn(slot) || undefined,
+      lines: [`${slot.sqm_size} sqm`, shopOn(slot) ?? (reservation ? `${reservation.left} left` : status.label)],
+      icon: <Icon size={14} aria-hidden className="shrink-0 text-kumo-subtle" />,
+    };
+  };
+
   const floorPlan = (
     <Panel
       flush
@@ -405,9 +529,9 @@ export default function SpaceManagerPage() {
             {showGrid ? "Hide grid lines" : "Show grid lines"}
           </Button>
           <div role="group" aria-label="Zoom" className="flex items-center gap-1">
-            <Button size="sm" variant="secondary" shape="square" icon={<Minus />} aria-label="Zoom out" onClick={() => setZoomLevel(Math.max(0.5, zoomLevel - 0.1))} />
+            <Button size="sm" variant="secondary" shape="square" icon={<Minus />} aria-label="Zoom out" onClick={() => setZoomLevel(Math.max(0.5, zoomLevel - 0.25))} />
             <span className="min-w-12 text-center text-sm tabular-nums text-kumo-subtle">{Math.round(zoomLevel * 100)}%</span>
-            <Button size="sm" variant="secondary" shape="square" icon={<Plus />} aria-label="Zoom in" onClick={() => setZoomLevel(Math.min(2, zoomLevel + 0.1))} />
+            <Button size="sm" variant="secondary" shape="square" icon={<Plus />} aria-label="Zoom in" onClick={() => setZoomLevel(Math.min(3, zoomLevel + 0.25))} />
           </div>
           <Button
             size="sm"
@@ -428,6 +552,31 @@ export default function SpaceManagerPage() {
         ))}
       </div>
 
+      {/* Search results from every floor; choosing one shows it on the map. */}
+      {query && (
+        <div className="flex flex-wrap items-center gap-2 border-b border-kumo-line px-4 py-2 sm:px-5" role="status">
+          <span className="text-sm text-kumo-subtle">
+            {matches.length === 0
+              ? "No unit or shop matches on any floor."
+              : `${matches.length} match${matches.length === 1 ? "" : "es"} on all floors:`}
+          </span>
+          {matches.slice(0, 12).map((slot) => (
+            <Button
+              key={slot.id}
+              size="sm"
+              variant={slot.id === pickedId && slot.floor === activeFloor ? "primary" : "secondary"}
+              onClick={() => {
+                setSelectedFloor(slot.floor || "ground");
+                setPickedId(slot.id);
+              }}
+            >
+              {slot.unit_id}, {floorLabel(slot.floor)}
+            </Button>
+          ))}
+          {matches.length > 12 && <span className="text-sm text-kumo-subtle">and {matches.length - 12} more in List view.</span>}
+        </div>
+      )}
+
       {/* The chosen unit and what can be done with it. */}
       <div className="flex min-h-14 flex-wrap items-center justify-between gap-3 border-b border-kumo-line px-4 py-2 sm:px-5" aria-live="polite">
         {picked ? (
@@ -438,6 +587,8 @@ export default function SpaceManagerPage() {
                 , {categoryName(picked.category)}, {picked.sqm_size} sqm,{" "}
               </span>
               <span className={cn("font-medium", STATUS[picked.status]?.className)}>{STATUS[picked.status]?.label}</span>
+              {whoIsOn(picked) && <span className="block text-kumo-subtle">{whoIsOn(picked)}</span>}
+              {tenantLink(picked)}
             </p>
             {slotActions(picked)}
           </>
@@ -446,54 +597,20 @@ export default function SpaceManagerPage() {
         )}
       </div>
 
-      <div ref={floorPlanRef} className={cn("overflow-auto p-4", isFullscreen ? "h-[calc(100dvh-14rem)]" : "h-[540px]")}>
-        <div style={{ transform: `scale(${zoomLevel})`, transformOrigin: "top left" }} className="relative min-h-[620px] min-w-[950px] rounded-lg border border-dashed border-kumo-line">
-          {showGrid && (
-            <svg aria-hidden className="pointer-events-none absolute inset-0 size-full text-kumo-subtle opacity-20">
-              <defs>
-                <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
-                  <path d="M 20 0 L 0 0 0 20" fill="none" stroke="currentColor" strokeWidth="0.5" />
-                </pattern>
-              </defs>
-              <rect width="100%" height="100%" fill="url(#grid)" />
-            </svg>
-          )}
-          {currentFloorSlots.map((slot) => {
-            const Icon = getCategoryIcon(slot.category || "retail");
-            const status = STATUS[slot.status] ?? STATUS.MAINTENANCE;
-            return (
-              <button
-                key={slot.id}
-                type="button"
-                onClick={() => setPickedId(slot.id)}
-                aria-pressed={slot.id === pickedId}
-                aria-label={`Unit ${slot.unit_id}, ${status.label}`}
-                className={cn(
-                  "absolute flex cursor-pointer flex-col justify-between rounded-lg border-2 bg-kumo-base p-2 text-left hover:shadow-md",
-                  slot.id === pickedId && "ring-2 ring-kumo-brand ring-offset-2",
-                )}
-                style={{
-                  left: `${slot.x}px`,
-                  top: `${slot.y}px`,
-                  width: `${slot.width}px`,
-                  height: `${slot.height}px`,
-                  borderColor: status.color,
-                  backgroundColor: `${status.color}14`,
-                }}
-              >
-                <span className="flex items-center justify-between gap-1">
-                  <span className="truncate text-sm font-semibold text-kumo-default">{slot.unit_id}</span>
-                  <Icon size={14} aria-hidden className="shrink-0 text-kumo-subtle" />
-                </span>
-                <span className="text-xs leading-tight text-kumo-subtle">
-                  <span className="block truncate">{slot.sqm_size} sqm</span>
-                  <span className="block truncate">{status.label}</span>
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      <FloorMap
+        key={activeFloor}
+        floorId={activeFloor}
+        units={floorSlots as (FloorPlanSlot & { id: string })[]}
+        shown={new Set(currentFloorSlots.map((s) => s.id))}
+        layout={layouts[activeFloor] ?? AUTO_LAYOUT}
+        pickedId={pickedId}
+        onPick={setPickedId}
+        zoom={zoomLevel}
+        showGrid={showGrid}
+        className={isFullscreen ? "max-h-[calc(100dvh-14rem)]" : "max-h-[640px]"}
+        tile={mapTile}
+        onSaved={() => loadSlots(true)}
+      />
     </Panel>
   );
 
@@ -515,8 +632,11 @@ export default function SpaceManagerPage() {
               <span className={cn("text-sm font-medium", STATUS[slot.status]?.className)}>{STATUS[slot.status]?.label}</span>
             </div>
             <p className="text-sm text-kumo-subtle">
+              {query && `${floorLabel(slot.floor)}, `}
               {categoryName(slot.category)}, {slot.sqm_size} sqm
             </p>
+            {whoIsOn(slot) && <p className="text-sm text-kumo-default">{whoIsOn(slot)}</p>}
+            {tenantLink(slot)}
             <p className="text-sm font-medium tabular-nums text-kumo-default">₱{slot.base_rent.toLocaleString()}</p>
             <div className="mt-auto pt-3">{slotActions(slot)}</div>
           </div>
@@ -534,6 +654,7 @@ export default function SpaceManagerPage() {
               <Table.Head>Unit</Table.Head>
               <Table.Head>Floor</Table.Head>
               <Table.Head>Status</Table.Head>
+              <Table.Head>Tenant</Table.Head>
               <Table.Head>Size</Table.Head>
               <Table.Head>Rent</Table.Head>
               <Table.Head className="text-right">Actions</Table.Head>
@@ -546,9 +667,13 @@ export default function SpaceManagerPage() {
                   <p className="font-medium text-kumo-default">{slot.unit_id}</p>
                   <p className="text-sm text-kumo-subtle">{categoryName(slot.category)}</p>
                 </Table.Cell>
-                <Table.Cell className="whitespace-nowrap text-sm">{FLOORS.find((f) => f.id === slot.floor)?.name ?? slot.floor}</Table.Cell>
+                <Table.Cell className="whitespace-nowrap text-sm">{floorLabel(slot.floor)}</Table.Cell>
                 <Table.Cell>
                   <span className={cn("text-sm font-medium", STATUS[slot.status]?.className)}>{STATUS[slot.status]?.label}</span>
+                </Table.Cell>
+                <Table.Cell className="text-sm">
+                  <p className="text-kumo-default">{whoIsOn(slot) || "-"}</p>
+                  {tenantLink(slot)}
                 </Table.Cell>
                 <Table.Cell className="whitespace-nowrap text-sm">{slot.sqm_size} sqm</Table.Cell>
                 <Table.Cell className="whitespace-nowrap text-sm tabular-nums">₱{slot.base_rent.toLocaleString()}</Table.Cell>
@@ -569,7 +694,7 @@ export default function SpaceManagerPage() {
     floorPlan
   ) : filteredSlots.length === 0 ? (
     <Panel flush>
-      <EmptyNote title="No spaces match">Try another floor, category or unit number.</EmptyNote>
+      <EmptyNote title="No spaces match">Try another floor, category, unit number or shop name.</EmptyNote>
     </Panel>
   ) : viewMode === "grid" ? (
     cards
@@ -590,11 +715,27 @@ export default function SpaceManagerPage() {
           title="Floor Spaces and Map"
           description="Manage mall floors, view rentable spaces and update lease units."
           actions={
-            <Button variant="primary" icon={<Plus />} onClick={addSpace}>
-              Add Space
-            </Button>
+            <>
+              <Button variant="secondary" icon={<Stack />} onClick={() => setManagingFloors(true)}>
+                Manage floors
+              </Button>
+              <Button variant="primary" icon={<Plus />} onClick={addSpace}>
+                Add Space
+              </Button>
+            </>
           }
         >
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+            <Stat label="All units" value={loading ? "-" : slots.length} hint={`${floors.length} floor${floors.length === 1 ? "" : "s"}`} />
+            {(["AVAILABLE", "OCCUPIED", "RESERVED", "MAINTENANCE"] as const).map((status) => (
+              <Stat
+                key={status}
+                label={STATUS[status].label}
+                value={loading ? "-" : mallCount(status)}
+                tone={status === "RESERVED" && mallCount(status) ? "warning" : "default"}
+              />
+            ))}
+          </div>
           {toolbar}
           {content}
         </AdminPage>
@@ -612,6 +753,9 @@ export default function SpaceManagerPage() {
             placeholder="e.g. L1-105"
             value={activeSlot?.unit_id || ""}
             onChange={(e) => setActiveSlot({ ...activeSlot!, unit_id: e.target.value })}
+            readOnly={lock.idLocked}
+            description={lock.idLocked ? "Locked while this unit is in use." : undefined}
+            error={twin ? twinMessage(twin.unit_id) : undefined}
             required
             className="w-full"
           />
@@ -619,11 +763,11 @@ export default function SpaceManagerPage() {
             <Select
               label="Floor"
               value={activeSlot?.floor || "ground"}
-              items={Object.fromEntries(FLOORS.map((f) => [f.id, f.name]))}
+              items={Object.fromEntries(floors.map((f) => [f.id, f.name]))}
               onValueChange={(v) => v != null && setActiveSlot({ ...activeSlot!, floor: v as string })}
               className="w-full"
             >
-              {FLOORS.map((floor) => (
+              {floors.map((floor) => (
                 <Select.Option key={floor.id} value={floor.id}>
                   {floor.name}
                 </Select.Option>
@@ -643,16 +787,38 @@ export default function SpaceManagerPage() {
               ))}
             </Select>
           </div>
-          <Input
-            label="Size (sqm)"
-            type="number"
-            placeholder="0"
-            description="Rent isn't shown here or to the public. It's set per tenant in Tenant Monitoring."
-            value={activeSlot?.sqm_size || ""}
-            onChange={(e) => setActiveSlot({ ...activeSlot!, sqm_size: parseFloat(e.target.value) })}
-            required
-            className="w-full"
-          />
+          <div className="grid items-start gap-4 sm:grid-cols-2">
+            <Input
+              label="Size (sqm)"
+              type="number"
+              step="any"
+              min={0}
+              placeholder="0"
+              value={activeSlot?.sqm_size || ""}
+              onChange={(e) => setActiveSlot({ ...activeSlot!, sqm_size: parseFloat(e.target.value) })}
+              required
+              className="w-full"
+            />
+            <Input
+              label="Monthly rent (PHP)"
+              type="number"
+              step="0.01"
+              min={0}
+              max={MAX_UNIT_RENT}
+              placeholder="0"
+              value={activeSlot?.base_rent || ""}
+              onChange={(e) => setActiveSlot({ ...activeSlot!, base_rent: parseFloat(e.target.value) || 0 })}
+              required
+              className="w-full"
+              description={
+                hold.leasedTo
+                  ? "The current lease keeps its own rent. This is the listed price after it."
+                  : hold.assignedTo
+                    ? "No lease is recorded, so this also shows as this tenant's rent."
+                    : "Tenants see this in Rent a Space. Hidden from the public."
+              }
+            />
+          </div>
 
           <div>
             <p className="mb-1.5 text-sm font-medium text-kumo-default">Status</p>
@@ -666,12 +832,14 @@ export default function SpaceManagerPage() {
                   type="button"
                   variant={activeSlot?.status === status ? "primary" : "secondary"}
                   aria-pressed={activeSlot?.status === status}
+                  disabled={!lock.statuses.some((allowed) => allowed === status)}
                   onClick={() => setActiveSlot({ ...activeSlot!, status: status as any })}
                 >
                   {STATUS[status].label}
                 </Button>
               ))}
             </div>
+            <p className="mt-2 text-sm text-kumo-subtle">{lock.note}</p>
           </div>
 
           <section className="space-y-2 border-t border-kumo-line pt-4">
@@ -691,6 +859,9 @@ export default function SpaceManagerPage() {
               </Button>
             </div>
             {!!activeSlot?.space_images?.length && (
+              <p className="text-sm text-kumo-subtle">The cover photo is the one visitors see first.</p>
+            )}
+            {!!activeSlot?.space_images?.length && (
               <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4">
                 {activeSlot.space_images.map((img: string, i: number) => (
                   <li key={i} className="space-y-1">
@@ -698,6 +869,27 @@ export default function SpaceManagerPage() {
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={img} alt={`Photo ${i + 1}`} className="absolute inset-0 size-full object-cover" />
                     </div>
+                    {i === 0 ? (
+                      <p className="flex h-6.5 items-center justify-center text-xs font-semibold text-kumo-default">Cover photo</p>
+                    ) : (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        className="w-full justify-center"
+                        aria-label={`Make photo ${i + 1} the cover`}
+                        onClick={() =>
+                          setActiveSlot((slot) => {
+                            if (!slot) return slot;
+                            const rest = [...(slot.space_images || [])];
+                            const [chosen] = rest.splice(i, 1);
+                            return { ...slot, space_images: [chosen, ...rest] };
+                          })
+                        }
+                      >
+                        Make cover
+                      </Button>
+                    )}
                     <Button
                       type="button"
                       size="sm"
@@ -761,10 +953,12 @@ export default function SpaceManagerPage() {
               </ul>
             ) : (
               <p className="rounded-lg border border-dashed border-kumo-line p-3 text-sm text-kumo-subtle">
-                No features added yet. The public view shows the mall&apos;s standard features until you add your own.
+                No features added yet. Visitors only see the features you add here.
               </p>
             )}
           </section>
+
+          <DraftNote draft={draft} />
 
           <div className="flex flex-col-reverse gap-2 border-t border-kumo-line pt-4 sm:flex-row sm:justify-end">
             <Button type="button" variant="secondary" onClick={() => setIsEditing(false)}>
@@ -777,6 +971,13 @@ export default function SpaceManagerPage() {
         </form>
       </AdminDialog>
 
+      <FloorManager
+        open={managingFloors}
+        onClose={() => setManagingFloors(false)}
+        unitsOn={(id) => slots.filter((s) => s.floor === id).length}
+        onAdded={setSelectedFloor}
+      />
+
       {decision && (
         <ReservationDecisionModal
           reservation={decision.row}
@@ -786,14 +987,25 @@ export default function SpaceManagerPage() {
         />
       )}
 
-      {deleteTarget && (
+      <AdminDialog
+        open={Boolean(deleteBlock)}
+        onClose={() => setDeleteTarget(null)}
+        size="sm"
+        title={`Unit ${deleteTarget?.unit_id ?? ""} can't be deleted yet`}
+        description={deleteBlock ?? undefined}
+        footer={
+          <Button variant="secondary" onClick={() => setDeleteTarget(null)}>
+            Close
+          </Button>
+        }
+      >
+        {deleteTarget && tenantLink(deleteTarget)}
+      </AdminDialog>
+
+      {deleteTarget && !deleteBlock && (
         <ChatConfirmModal
           title={`Delete Unit ${deleteTarget.unit_id}?`}
-          message={
-            deleteTarget.status === "OCCUPIED" || deleteTarget.status === "RESERVED"
-              ? `This space is ${deleteTarget.status.toLowerCase()} and can't be deleted yet.`
-              : "The space, its photos and features will be removed from the floor plan and Available Spaces. This can't be undone."
-          }
+          message="The space, its photos and features will be removed from the floor plan and Available Spaces. This can't be undone."
           confirmLabel="Delete space"
           busy={isDeleting}
           onCancel={() => setDeleteTarget(null)}
@@ -803,6 +1015,7 @@ export default function SpaceManagerPage() {
 
       {previewSlot && (
         <SpaceDetailModal
+          preview
           slot={previewSlot as any}
           onClose={() => setPreviewSlot(null)}
         />

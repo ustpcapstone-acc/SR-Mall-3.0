@@ -1,5 +1,5 @@
 /**
- * Space reservation review window — one place for the hold length, so the
+ * Space reservation review window, one place for the hold length, so the
  * public pages, admin countdown, dashboard and auto-release all agree.
  * Client/server safe.
  */

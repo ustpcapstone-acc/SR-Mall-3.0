@@ -158,7 +158,7 @@ export async function getChatUnreadTotal(userId: string): Promise<number> {
 }
 
 export interface UnreadChat {
-  /** The contact (grouping key — one row per person/shop, like the messengers). */
+  /** The contact (grouping key, one row per person/shop, like the messengers). */
   key: string;
   /** Newest conversation with that contact (what the messenger opens). */
   conversationId: string;
@@ -173,7 +173,7 @@ export interface UnreadChat {
 }
 
 /**
- * Unread chats for the bell's Messages tab and every unread badge — one row
+ * Unread chats for the bell's Messages tab and every unread badge, one row
  * per contact, newest first. Same counting rules as `getChatUnreadTotal`,
  * so the bell, the sidebar and the chat launcher always agree.
  */
@@ -274,7 +274,7 @@ interface MessagePageOptions {
   limit?: number;
   /** ISO timestamp of the oldest message currently displayed. */
   before?: string;
-  /** Id of that same message — keeps pages exact on equal timestamps. */
+  /** Id of that same message, keeps pages exact on equal timestamps. */
   beforeId?: string;
 }
 
@@ -321,7 +321,7 @@ export async function getConversationHistory(
       targetUser = await prisma.user.findFirst({ where: { role: "ADMIN" } });
     } else if (recipientType === "shop" && (tenantId || shopName)) {
       // By id when the caller knows it; otherwise an exact (case-insensitive)
-      // name match — never a "contains" guess that could pick another shop.
+      // name match, never a "contains" guess that could pick another shop.
       const ref = tenantId ? await shopRef(tenantId) : null;
       shopId = ref?.shopId ?? null;
       const tenant = ref
@@ -605,7 +605,7 @@ export async function getMessagesByConversation(
         : [conversationId];
     await requireConversations(ids);
 
-    // Filtered by conversation(s) and bounded by a cursor — never the whole
+    // Filtered by conversation(s) and bounded by a cursor, never the whole
     // thread. Returns up to `limit` messages, oldest → newest.
     const messages = await prisma.message.findMany({
       where: {
@@ -649,7 +649,7 @@ export async function replyToConversation(
     await requireSpeaker(senderId);
     // Who receives it. A participant replies to the other participant. An
     // admin who isn't in the chat (the admin inbox is shared, and lists each
-    // chat under its non-admin person — e.g. a chat another admin account
+    // chat under its non-admin person, e.g. a chat another admin account
     // started with a shop via "Inquire") replies to that non-admin person,
     // not to the other admin.
     let recipientId: string;
@@ -661,7 +661,7 @@ export async function replyToConversation(
           ? conversation.targetId
           : conversation.userId;
 
-    // Block check and the sender lookup are independent — one round trip.
+    // Block check and the sender lookup are independent, one round trip.
     const [isBlocked, senderUser] = await Promise.all([
       // Check if recipient has blocked sender from sending messages (messaging-only block)
       isChatBlocked(recipientId, senderId),
@@ -932,7 +932,7 @@ export async function toggleBlockUserAction(
 export async function getPortalAdminAction() {
   try {
     if (!(await currentAccount())) return null;
-    // The "portal admin" is always the oldest admin account — the same one
+    // The "portal admin" is always the oldest admin account, the same one
     // sendMessage routes public chats to, so block checks line up.
     const admin = await prisma.user.findFirst({
       where: { role: "ADMIN" },

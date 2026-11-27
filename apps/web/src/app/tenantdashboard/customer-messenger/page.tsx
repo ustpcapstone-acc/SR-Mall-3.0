@@ -38,6 +38,9 @@ import {
   useChatBlock,
 } from "@/components/chat/chat-ui";
 import { toast } from "sonner";
+import { useDraft } from "@/lib/drafts/use-draft";
+import { DraftNote } from "@/components/drafts/draft-note";
+import { isOffline } from "@/lib/drafts/online";
 
 /**
  * ?inbox=mall    -> chats with the mall office (Home workspace)
@@ -93,6 +96,29 @@ function CustomerMessenger({ inbox }: { inbox: Inbox }) {
   const [realtimeStatus, setRealtimeStatus] =
     useState<ChatRealtimeStatus>("connecting");
   const [hasOlderMessages, setHasOlderMessages] = useState(true);
+
+  // One unfinished reply per conversation. Text that failed to send stays in the
+  // draft until it goes through.
+  const thread: string | null = activeChat ? (activeChat.type === "ADMIN" ? "mall" : activeChat.id) : null;
+  const [unsent, setUnsent] = useState<{ thread: string | null; tempId: string; text: string } | null>(null);
+  const lastThread = useRef<string | null>(null);
+  useEffect(() => {
+    if (!thread || lastThread.current === thread) return;
+    if (lastThread.current) setInputText("");
+    lastThread.current = thread;
+  }, [thread]);
+  const draft = useDraft({
+    form: "tenant.chat",
+    workspace: true,
+    scope: [thread],
+    enabled: Boolean(thread),
+    value: { text: inputText || (unsent?.thread === thread ? unsent.text : "") },
+    initial: { text: "" },
+    onRestore: (saved) => {
+      setUnsent(null);
+      setInputText(saved.text);
+    },
+  });
 
   activeChatIdRef.current = activeChat?.id || null;
   activeChatRef.current = activeChat;
@@ -385,6 +411,7 @@ function CustomerMessenger({ inbox }: { inbox: Inbox }) {
           return;
         }
         pendingFilesRef.current.delete(payload.tempId);
+        setUnsent((current) => (current?.tempId === payload.tempId ? null : current));
         if (res?.message) {
           setMessages((prev) => replaceOptimistic(prev, payload.tempId, res.message));
         }
@@ -412,6 +439,7 @@ function CustomerMessenger({ inbox }: { inbox: Inbox }) {
       }
 
       pendingFilesRef.current.delete(payload.tempId);
+      setUnsent((current) => (current?.tempId === payload.tempId ? null : current));
       // Swap temp-… for the real row (same id the realtime event carries).
       if (res?.message) {
         setMessages((prev) => replaceOptimistic(prev, payload.tempId, res.message));
@@ -427,6 +455,11 @@ function CustomerMessenger({ inbox }: { inbox: Inbox }) {
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if ((!inputText.trim() && !imageFile) || !activeChat) return;
+    if (isOffline()) {
+      draft.flush();
+      toast.error("You're offline. Your message is kept here. Send it when you're back online.");
+      return;
+    }
 
     const textToSend = inputText;
     const fileToSend = imageFile;
@@ -444,6 +477,7 @@ function CustomerMessenger({ inbox }: { inbox: Inbox }) {
     // Instant Optimistic Update
     const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     const contentToSend = textToSend || "📎 Image";
+    setUnsent({ thread, tempId, text: textToSend });
     setMessages((prev) =>
       normalizeMessages([
         ...prev,
@@ -478,7 +512,7 @@ function CustomerMessenger({ inbox }: { inbox: Inbox }) {
     });
   };
 
-  // Retry a failed bubble — its text and image are preserved.
+  // Retry a failed bubble, its text and image are preserved.
   const retryMessage = (message: any) => {
     if (!message?.id || message.sending) return;
     const file = pendingFilesRef.current.get(message.id) ?? null;
@@ -760,6 +794,7 @@ function CustomerMessenger({ inbox }: { inbox: Inbox }) {
                     </Button>
                   </div>
                 )}
+                <DraftNote draft={draft} className="mb-2 text-xs" />
                 <form onSubmit={handleSend} className="flex items-center gap-2">
                   <input
                     key={fileInputKey}

@@ -13,8 +13,14 @@ export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 export const TERM_CHOICES = [1, 3, 6, 12, 24] as const;
 export const MAX_MONTHS = 60;
 
-export type LeaseSettingsData = { reminderDays: number[]; graceDays: number; finalWarningDays: number };
-export const DEFAULT_LEASE_SETTINGS: LeaseSettingsData = { reminderDays: [7, 1], graceDays: 7, finalWarningDays: 1 };
+export type LeaseSettingsData = {
+  reminderDays: number[];
+  graceDays: number;
+  finalWarningDays: number;
+  /** Days before the due date a rent bill draft is prepared. */
+  billDaysBefore: number;
+};
+export const DEFAULT_LEASE_SETTINGS: LeaseSettingsData = { reminderDays: [7, 1], graceDays: 7, finalWarningDays: 1, billDaysBefore: 10 };
 
 /** Window the Renewals page calls "upcoming". */
 export const UPCOMING_WINDOW_DAYS = 30;
@@ -89,7 +95,9 @@ export function cleanSettings(input: Partial<LeaseSettingsData>): LeaseSettingsD
   if (!Number.isInteger(finalWarningDays) || finalWarningDays < 0 || finalWarningDays > graceDays) {
     return "The final warning must fall inside the grace period.";
   }
-  return { reminderDays, graceDays, finalWarningDays };
+  const billDaysBefore = Number(input.billDaysBefore ?? DEFAULT_LEASE_SETTINGS.billDaysBefore);
+  if (!Number.isInteger(billDaysBefore) || billDaysBefore < 1 || billDaysBefore > 30) return "Create rent bills 1 to 30 days before.";
+  return { reminderDays, graceDays, finalWarningDays, billDaysBefore };
 }
 
 export type InvoiceLine = { description: string; quantity: number; unitPrice: number; amount: number };
@@ -104,4 +112,12 @@ export function invoiceStatus(status: string, dueDate: Date | string, now: Date 
   if (status === "VOID") return "VOID";
   if (status === "OVERDUE" || daysUntil(dueDate, now) < 0) return "OVERDUE";
   return "DUE";
+}
+
+/** For payment reports: also says when a deposit slip is being checked or was rejected. */
+export type ReportStatus = EInvoiceStatus | "CHECKING" | "REJECTED";
+export function reportStatus(status: string, dueDate: Date | string, now: Date = new Date()): ReportStatus {
+  if (status === "REVIEWING") return "CHECKING";
+  if (status === "REJECTED") return "REJECTED";
+  return invoiceStatus(status, dueDate, now);
 }

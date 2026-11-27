@@ -111,7 +111,7 @@ export default function AllProductsPage() {
     }));
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-black font-sans selection:bg-primary selection:text-white">
+    <div className="min-h-screen bg-kumo-recessed font-sans selection:bg-primary selection:text-white">
       <Navbar />
 
       <PublicHeader title="Products" description="Browse what the shops at SR Mall sell.">

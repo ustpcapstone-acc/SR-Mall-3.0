@@ -1,5 +1,5 @@
 /**
- * Tenant History — a permanent snapshot saved whenever a tenant leaves, so the
+ * Tenant History, a permanent snapshot saved whenever a tenant leaves, so the
  * record survives the tenant being deleted or re-applying later.
  *
  * Call `recordTenantExit()` BEFORE the unit is freed / the record deleted
@@ -85,7 +85,7 @@ export async function recordTenantExit(
       unit ? prisma.areaSlot.findUnique({ where: { unit_id: unit }, select: { floor: true } }) : null,
       prisma.$queryRawUnsafe<{ paid: number; outstanding: number; n: number }[]>(
         `SELECT COALESCE(SUM(CASE WHEN "status" IN ('PAID','PAST') THEN "amount" END), 0)::float AS paid,
-                COALESCE(SUM(CASE WHEN "status" NOT IN ('PAID','PAST','REJECTED') THEN "amount" END), 0)::float AS outstanding,
+                COALESCE(SUM(CASE WHEN "status" NOT IN ('PAID','PAST','REJECTED','VOID') THEN "amount" END), 0)::float AS outstanding,
                 COUNT(*)::int AS n
            FROM "Invoice" WHERE "tenantId" = $1`,
         tenantId,

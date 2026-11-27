@@ -26,7 +26,7 @@ export async function GET(req: Request) {
     const today = new Date();
     const renewals = await runRenewalSweep(today);
 
-    // 72-hour auto-rejection sweep — event bookings
+    // 72-hour auto-rejection sweep, event bookings
     // that sat in PENDING for 3+ days flip to REJECTED through the same
     // actions the admin buttons use (identical notification behaviour).
     // Run daily here so the rule holds even if nobody opens a dashboard;

@@ -88,7 +88,7 @@ export function isChatRealtimeConfigured(): boolean {
 
 /**
  * Subscribe to message changes for one or more conversations.
- * Returns an unsubscribe function — call it from the effect cleanup.
+ * Returns an unsubscribe function, call it from the effect cleanup.
  */
 export function subscribeToConversation(
   conversationIds: Array<string | null | undefined>,
@@ -309,7 +309,7 @@ function dispose(id: string, entry: ChannelEntry): void {
 
 // ─── Inbox ────────────────────────────────────────────────────────────────────
 // Conversation lists (messenger hub / customer messenger) need to know about
-// messages in conversations they are NOT subscribed to yet — e.g. a customer
+// messages in conversations they are NOT subscribed to yet, e.g. a customer
 // opening a brand-new chat. One shared, unfiltered INSERT channel serves every
 // list on the page; listeners typically debounce a list refresh.
 
@@ -357,7 +357,7 @@ export function subscribeToInbox(
   };
 }
 
-/** Diagnostic helper — how many chat sockets are open right now. */
+/** Diagnostic helper, how many chat sockets are open right now. */
 export function openChatRealtimeChannels(): number {
   return registry.size;
 }

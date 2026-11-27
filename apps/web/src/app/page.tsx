@@ -6,7 +6,7 @@ import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { ShopCard } from "@/components/shop-card";
 import { SeeAllCard, SpaceCard } from "@/components/space-card";
-import { floorLabel } from "@/lib/floors";
+import { useFloors } from "@/lib/use-floors";
 import { AdBanner } from "@/components/ad-banner";
 import { UpcomingEventsSlider } from "@/components/upcoming-events-slider";
 import { ShopSalesSlider } from "@/components/shop-sales-slider";
@@ -110,6 +110,7 @@ function SectionTitleLines({
 
 export default function PublicDigitalConcierge() {
   const { isAuthenticated, user } = useAuth();
+  const { label: floorLabel } = useFloors();
   const [searchQuery, setSearchQuery] = useState("");
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
@@ -509,7 +510,7 @@ export default function PublicDigitalConcierge() {
     <div
       className={clsx(
         "min-h-screen",
-        "bg-slate-100",
+        "bg-kumo-recessed",
         "dark:bg-black",
         "font-sans",
         "selection:bg-primary",
@@ -561,11 +562,11 @@ export default function PublicDigitalConcierge() {
           className={clsx(
             "screen-section",
             "py-12 sm:py-24 lg:py-32",
-            "bg-white",
-            "dark:bg-zinc-900",
+            "bg-kumo-base",
+            "",
             "border-y",
-            "border-slate-100",
-            "dark:border-white/5",
+            "border-kumo-line",
+            "",
             "relative",
             "overflow-hidden",
           )}
@@ -575,21 +576,21 @@ export default function PublicDigitalConcierge() {
           <div
             className={clsx("max-w-7xl", "mx-auto", "px-4", "relative", "z-10")}
           >
-            {/* Section header — left-aligned on mobile, side-by-side on sm+ */}
+            {/* Section header, left-aligned on mobile, side-by-side on sm+ */}
             <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 sm:gap-8 mb-10 sm:mb-16 text-left">
               <div className="space-y-3">
-                <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-semibold text-charcoal dark:text-white tracking-tight leading-[1.05]">
+                <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-semibold text-kumo-default tracking-tight leading-[1.05]">
                   <SectionTitleLines
                     text={config?.productsTitle || "Featured\nProducts."}
-                    accentClass="text-slate-500 dark:text-slate-400"
+                    accentClass="text-kumo-subtle"
                     breakClassName="hidden sm:block"
                   />
                 </h2>
               </div>
               <div className="flex flex-col items-start sm:items-end gap-3">
-                <p className="max-w-xs text-sm text-slate-500 font-medium leading-relaxed sm:text-right">
+                <p className="max-w-xs text-sm text-kumo-subtle font-medium leading-relaxed sm:text-right">
                   {config?.productsDescription ||
-                    "Handpicked collections from our premier tenants, refreshed daily."}
+                    "Items sold by the shops at SR Mall."}
                 </p>
                 <Link
                   href="/products"
@@ -637,27 +638,27 @@ export default function PublicDigitalConcierge() {
         </section>
       )}
 
-      <section className="screen-section relative overflow-hidden py-14 sm:py-20 lg:py-28 bg-slate-100 dark:bg-zinc-950 border-y border-slate-200 dark:border-white/5">
+      <section className="screen-section relative overflow-hidden py-14 sm:py-20 lg:py-28 bg-kumo-recessed border-y border-kumo-line">
         <Reveal>
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-12 items-center gap-10 lg:gap-14">
           {/* Copy */}
           <div className="lg:col-span-5 space-y-6 sm:space-y-7">
-            <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-semibold text-charcoal dark:text-white tracking-tight leading-[1.05]">
-              {config?.videoTitle || "Elevate Your Lifestyle."}
+            <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-semibold text-kumo-default tracking-tight leading-[1.05]">
+              {config?.videoTitle || "See SR Mall."}
             </h2>
-            <span aria-hidden className="block w-16 h-1 rounded-full bg-primary dark:bg-[#BE1E2D]" />
+            <span aria-hidden className="block w-16 h-1 rounded-full bg-primary" />
 
-            <p className="text-slate-600 dark:text-slate-400 font-medium text-base sm:text-lg leading-relaxed max-w-xl">
+            <p className="text-kumo-subtle font-medium text-base sm:text-lg leading-relaxed max-w-xl">
               {config?.videoDescription ||
-                "Watch our latest visual showcase highlighting the premier shopping and dining experiences waiting for you at SR Mall. Immerse yourself in the extraordinary."}
+                "Watch a short video of the shops and dining at SR Mall."}
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3 pt-1">
               <button
                 suppressHydrationWarning
                 onClick={() => setIsVideoModalOpen(true)}
-                className="group inline-flex items-center justify-center gap-3 pl-2 pr-6 py-2 rounded-xl bg-primary dark:bg-[#BE1E2D] text-white font-bold text-sm sm:text-base shadow-xl shadow-primary/25 dark:shadow-[#BE1E2D]/25 hover:bg-primary/90 dark:hover:bg-[#9E1B26] active:scale-95 transition-all"
+                className="group inline-flex items-center justify-center gap-3 pl-2 pr-6 py-2 rounded-xl bg-primary text-white font-bold text-sm sm:text-base shadow-xl shadow-primary/25 hover:bg-primary/90 active:scale-95 transition-all"
               >
                 <span className="w-10 h-10 rounded-lg bg-white/15 flex items-center justify-center group-hover:bg-white/25 transition-colors">
                   <Play size={16} className="fill-current translate-x-px" />
@@ -666,7 +667,7 @@ export default function PublicDigitalConcierge() {
               </button>
               <a
                 href="#directory"
-                className="group inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl border border-slate-300 dark:border-white/15 text-charcoal dark:text-white font-bold text-sm sm:text-base hover:border-primary hover:text-primary dark:hover:border-[#BE1E2D] dark:hover:text-[#E04B57] transition-colors"
+                className="group inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl border border-kumo-line text-kumo-default font-bold text-sm sm:text-base hover:border-primary hover:text-primary transition-colors"
               >
                 {config?.videoCtaLabel || "Explore the shops"}
                 <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
@@ -687,9 +688,9 @@ export default function PublicDigitalConcierge() {
                 }
               }}
               aria-label="Play the full campaign video"
-              className="group relative block w-full text-left cursor-pointer rounded-[1.75rem] sm:rounded-[2.25rem] p-1.5 sm:p-2 bg-white/60 dark:bg-white/4 border border-slate-200 dark:border-white/10 shadow-2xl shadow-black/10 dark:shadow-black/50 focus:outline-hidden focus-visible:ring-4 focus-visible:ring-primary/30"
+              className="group relative block w-full text-left cursor-pointer rounded-2xl sm:rounded-2xl p-1.5 sm:p-2 bg-white/60 dark:bg-white/4 border border-kumo-line shadow-2xl shadow-black/10 dark:shadow-black/50 focus:outline-hidden focus-visible:ring-4 focus-visible:ring-primary/30"
             >
-              <div className="relative aspect-video overflow-hidden rounded-[1.4rem] sm:rounded-[1.8rem] bg-black">
+              <div className="relative aspect-video overflow-hidden rounded-2xl sm:rounded-2xl bg-black">
                 <video
                   ref={campaignVideoRef}
                   src={config?.featuredVideoUrl || "/vid/Download.mp4"}
@@ -707,7 +708,7 @@ export default function PublicDigitalConcierge() {
                 <span className="absolute inset-0 flex items-center justify-center">
                   <span className="relative flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-white/15 backdrop-blur-md border border-white/30 group-hover:scale-110 transition-transform duration-500">
                     <span className="absolute inset-0 rounded-full bg-white/20 animate-ping [animation-duration:2.5s]" />
-                    <span className="relative flex items-center justify-center w-11 h-11 sm:w-14 sm:h-14 rounded-full bg-primary dark:bg-[#BE1E2D] text-white shadow-lg">
+                    <span className="relative flex items-center justify-center w-11 h-11 sm:w-14 sm:h-14 rounded-full bg-primary text-white shadow-lg">
                       <Play size={20} className="fill-current translate-x-[2px]" />
                     </span>
                   </span>
@@ -717,7 +718,7 @@ export default function PublicDigitalConcierge() {
                 <div className="absolute inset-x-0 bottom-0 p-4 sm:p-7 flex items-end justify-between gap-4">
                   <div className="min-w-0">
                     <p className="text-base sm:text-xl font-semibold text-white tracking-tight truncate">
-                      {config?.featuredVideoTitle || "SR Mall Cinematic Experience"}
+                      {config?.featuredVideoTitle || "SR Mall video"}
                     </p>
                   </div>
                   {/* Sound on / off (the centre button plays the full video) */}
@@ -728,7 +729,7 @@ export default function PublicDigitalConcierge() {
                     aria-pressed={!campaignMuted}
                     aria-label={campaignMuted ? "Turn sound on" : "Turn sound off"}
                     title={campaignMuted ? "Turn sound on" : "Turn sound off"}
-                    className="relative z-20 shrink-0 inline-flex items-center gap-1.5 h-9 sm:h-10 pl-2.5 pr-3.5 rounded-full bg-white text-charcoal hover:bg-primary hover:text-white dark:hover:bg-[#BE1E2D] shadow-lg transition-colors focus:outline-hidden focus-visible:ring-2 focus-visible:ring-white/70"
+                    className="relative z-20 shrink-0 inline-flex items-center gap-1.5 h-9 sm:h-10 pl-2.5 pr-3.5 rounded-full bg-white text-kumo-default hover:bg-primary hover:text-white shadow-lg transition-colors focus:outline-hidden focus-visible:ring-2 focus-visible:ring-white/70"
                   >
                     {campaignMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
                     <span className="text-xs font-semibold">
@@ -748,7 +749,7 @@ export default function PublicDigitalConcierge() {
         id="directory"
         className={clsx(
           "screen-section",
-          "py-16 sm:py-20 lg:py-24 bg-slate-100 dark:bg-zinc-950",
+          "py-16 sm:py-20 lg:py-24 bg-kumo-recessed",
         )}
       >
         <Reveal>
@@ -762,29 +763,29 @@ export default function PublicDigitalConcierge() {
                     "text-3xl",
                     "sm:text-4xl",
                     "lg:text-5xl",
-                    "font-display", "font-semibold", "text-charcoal", "dark:text-white", "tracking-tight", "leading-[1.05]",
+                    "font-display", "font-semibold", "text-kumo-default", "", "tracking-tight", "leading-[1.05]",
                     "mb-6",
                     "sm:mb-8",
                   )}
                 >
                   <SectionTitleLines
                     text={config?.directoryTitle || "Mall\nDirectory."}
-                    accentClass="text-slate-500 dark:text-slate-400"
+                    accentClass="text-kumo-subtle"
                   />
                 </h2>
                 <p
                   className={clsx(
                     "text-sm",
                     "sm:text-lg",
-                    "text-slate-500",
-                    "dark:text-slate-400",
+                    "text-kumo-subtle",
+                    "",
                     "font-medium",
                     "leading-relaxed",
                     "max-w-xl",
                   )}
                 >
                   {config?.directoryDescription ||
-                    "Navigate through our curated ecosystem of high-end retail, digital-first storefronts, and world-class dining destinations."}
+                    "Find the shops and places to eat at SR Mall."}
                 </p>
               </div>
 
@@ -816,12 +817,12 @@ export default function PublicDigitalConcierge() {
 
                   {/* Predictive Search Panel */}
                   {searchQuery && (
-                    <div className="absolute top-full left-0 w-full mt-2 sm:mt-3 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-2xl sm:rounded-3xl shadow-2xl z-100 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300">
-                      <div className="p-3 sm:p-4 border-b border-slate-50 dark:border-white/5 flex justify-between items-center">
-                        <span className="text-xs font-semibold text-slate-400">
+                    <div className="absolute top-full left-0 w-full mt-2 sm:mt-3 bg-kumo-base border border-kumo-line rounded-2xl sm:rounded-2xl shadow-2xl z-100 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300">
+                      <div className="p-3 sm:p-4 border-b border-kumo-line flex justify-between items-center">
+                        <span className="text-xs font-semibold text-kumo-subtle">
                           Matching shops
                         </span>
-                        <button suppressHydrationWarning onClick={() => setSearchQuery("")} className="text-slate-400 hover:text-charcoal transition-colors">
+                        <button suppressHydrationWarning onClick={() => setSearchQuery("")} className="text-kumo-subtle hover:text-kumo-default transition-colors">
                           <X size={14} />
                         </button>
                       </div>
@@ -837,9 +838,9 @@ export default function PublicDigitalConcierge() {
                             <Link
                               key={s.id}
                               href={`/shop/${s.id}`}
-                              className="w-full p-3 sm:p-4 flex items-center gap-3 sm:gap-4 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors border-b border-slate-50 dark:border-white/5 last:border-0 text-left group/item"
+                              className="w-full p-3 sm:p-4 flex items-center gap-3 sm:gap-4 hover:bg-kumo-tint transition-colors border-b border-kumo-line last:border-0 text-left group/item"
                             >
-                              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-slate-100 dark:bg-zinc-800 overflow-hidden shrink-0 border border-slate-200 dark:border-white/10">
+                              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-kumo-recessed overflow-hidden shrink-0 border border-kumo-line">
                                 <img loading="lazy" decoding="async"
                                   src={optimizedImage(s.logo_url || "/images/logo/logoshop.jpg", 160)}
                                   className="w-full h-full object-cover group-hover/item:scale-110 transition-transform"
@@ -847,10 +848,10 @@ export default function PublicDigitalConcierge() {
                                 />
                               </div>
                               <div className="flex-1">
-                                <p className="text-xs font-semibold text-charcoal dark:text-white line-clamp-1">
+                                <p className="text-xs font-semibold text-kumo-default line-clamp-1">
                                   {s.shop_name}
                                 </p>
-                                <p className="text-xs font-bold text-slate-400">
+                                <p className="text-xs font-bold text-kumo-subtle">
                                   {hasAssignedUnit(s.unit_id)
                                     ? [`Unit ${s.unit_id}`, floorLabel((s as any).floor)].filter(Boolean).join(", ")
                                     : "Unit to be assigned"}
@@ -858,7 +859,7 @@ export default function PublicDigitalConcierge() {
                               </div>
                               <Navigation
                                 size={12}
-                                className="text-slate-300 group-hover/item:text-primary transition-colors sm:size-[14px]"
+                                className="text-kumo-subtle group-hover/item:text-primary transition-colors sm:size-[14px]"
                               />
                             </Link>
                           ))}
@@ -867,7 +868,7 @@ export default function PublicDigitalConcierge() {
                           s.unit_id.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           (s.description || "").toLowerCase().includes(searchQuery.toLowerCase())
                         ).length === 0 && (
-                            <div className="p-6 sm:p-8 text-center text-slate-400">
+                            <div className="p-6 sm:p-8 text-center text-kumo-subtle">
                               <Search size={24} className="mx-auto mb-2 opacity-20" />
                               <p className="text-xs font-bold">
                                 No matching shops found
@@ -935,7 +936,7 @@ export default function PublicDigitalConcierge() {
                     className={clsx(
                       "text-sm",
                       "font-bold",
-                      "text-slate-400",
+                      "text-kumo-subtle",
 
 
                     )}
@@ -975,18 +976,18 @@ export default function PublicDigitalConcierge() {
                     "w-full shrink-0 snap-center",
                     "py-20",
                     "text-center",
-                    "bg-zinc-50",
-                    "dark:bg-zinc-900",
-                    "rounded-[3rem]",
+                    "bg-kumo-recessed",
+                    "",
+                    "rounded-2xl",
                     "border",
                     "border-dashed",
-                    "border-slate-200",
-                    "dark:border-white/10",
+                    "border-kumo-line",
+                    "",
                   )}
                 >
                   <p
                     className={clsx(
-                      "text-slate-500",
+                      "text-kumo-subtle",
                       "font-bold",
 
 
@@ -1005,7 +1006,7 @@ export default function PublicDigitalConcierge() {
                 {visibleShopsArray.slice(0, 10).map((_, idx) => (
                   <div
                     key={idx}
-                    className="w-2 h-2 rounded-full bg-slate-200 dark:bg-zinc-800 transition-all"
+                    className="w-2 h-2 rounded-full bg-kumo-line transition-all"
                   ></div>
                 ))}
               </div>
@@ -1035,7 +1036,7 @@ export default function PublicDigitalConcierge() {
         className={clsx(
           "screen-section",
           "py-24 sm:py-28",
-          "bg-white dark:bg-black",
+          "bg-kumo-base",
           "relative",
           "overflow-hidden",
         )}
@@ -1073,27 +1074,27 @@ export default function PublicDigitalConcierge() {
                   "text-3xl",
                   "sm:text-4xl",
                   "lg:text-5xl",
-                  "font-display", "font-semibold", "text-charcoal", "dark:text-white", "tracking-tight", "leading-[1.05]",
+                  "font-display", "font-semibold", "text-kumo-default", "", "tracking-tight", "leading-[1.05]",
                 )}
               >
                 <SectionTitleLines
                   text={config?.spacesTitle || "Available\nSpaces."}
-                  accentClass="text-slate-500 dark:text-slate-400"
+                  accentClass="text-kumo-subtle"
                 />
               </h2>
               <p
                 className={clsx(
                   "text-sm",
                   "sm:text-lg",
-                  "text-slate-500",
-                  "dark:text-slate-400",
+                  "text-kumo-subtle",
+                  "",
                   "font-medium",
                   "max-w-xl",
                   "leading-relaxed",
                 )}
               >
                 {config?.spacesDescription ||
-                  "Join our premium retail ecosystem. Explore high-visibility slots designed for modern brands and start your journey at SR Mall."}
+                  "Units you can rent at SR Mall. Open one to see its size and ask about it."}
               </p>
             </div>
 
@@ -1149,7 +1150,7 @@ export default function PublicDigitalConcierge() {
                       "font-semibold",
 
 
-                      "text-slate-400",
+                      "text-kumo-subtle",
                     )}
                   >
                     Loading spaces...
@@ -1183,20 +1184,20 @@ export default function PublicDigitalConcierge() {
                     "w-full shrink-0 snap-center",
                     "py-20",
                     "text-center",
-                    "bg-slate-50",
-                    "dark:bg-zinc-900",
+                    "bg-kumo-recessed",
+                    "",
                     "border-2",
                     "border-dashed",
-                    "border-slate-200",
-                    "dark:border-white/5",
-                    "rounded-[3rem]",
+                    "border-kumo-line",
+                    "",
+                    "rounded-2xl",
                   )}
                 >
                   <p
                     className={clsx(
                       "text-sm",
                       "font-bold",
-                      "text-slate-500",
+                      "text-kumo-subtle",
 
 
                     )}
@@ -1222,7 +1223,7 @@ export default function PublicDigitalConcierge() {
                 {visibleSlotsArray.slice(0, 10).map((_, idx) => (
                   <div
                     key={idx}
-                    className="w-2 h-2 rounded-full bg-slate-200 dark:bg-zinc-800 transition-all"
+                    className="w-2 h-2 rounded-full bg-kumo-line transition-all"
                   ></div>
                 ))}
               </div>
@@ -1270,7 +1271,7 @@ export default function PublicDigitalConcierge() {
       {/* Venue Booking / Event Inquiry Section */}
       <section
         id="event-inquiry"
-        className="screen-section relative overflow-hidden bg-[#FAF7F3] dark:bg-zinc-950"
+        className="screen-section relative overflow-hidden bg-kumo-recessed"
       >
         <EventInquiryForm
           isAuthenticated={isAuthenticated}
@@ -1296,8 +1297,8 @@ export default function PublicDigitalConcierge() {
         className={clsx(
           "screen-section",
           "scroll-mt-20",
-          "bg-[#FAF7F3]",
-          "dark:bg-zinc-950",
+          "bg-kumo-recessed",
+          "",
           "py-16",
           "sm:py-24",
           "lg:py-28",
@@ -1306,15 +1307,12 @@ export default function PublicDigitalConcierge() {
         <Reveal>
         <div className={clsx("max-w-7xl", "mx-auto", "px-4", "sm:px-6", "lg:px-10")}>
           <div className="max-w-2xl">
-            <p className="text-xs font-bold text-[#C51D30]">
-              Visit us
-            </p>
-            <h2 className="mt-4 font-display text-3xl font-semibold leading-[1.05] tracking-tight text-[#21191B] dark:text-white sm:text-4xl lg:text-5xl">
+            <h2 className="font-display text-3xl font-semibold leading-[1.05] tracking-tight text-kumo-default sm:text-4xl lg:text-5xl">
               <span className="whitespace-pre-line">
-                {config?.locationTitle || "Prime location.\nEndless access."}
+                {config?.locationTitle || "Find us\nin Jasaan."}
               </span>
             </h2>
-            <p className="mt-5 max-w-xl text-base leading-relaxed text-[#70656A] dark:text-slate-400">
+            <p className="mt-5 max-w-xl text-base leading-relaxed text-kumo-subtle">
               {config?.contactDescription ||
                 "On the national highway in Brgy. Luz Banzon, Jasaan. Easy to reach from Cagayan de Oro and the towns of Misamis Oriental."}
             </p>
@@ -1322,7 +1320,7 @@ export default function PublicDigitalConcierge() {
 
           <div className="mt-10 grid gap-4 md:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] md:gap-5 lg:gap-6">
             {/* Interactive Google Map */}
-            <div className="relative min-h-88 overflow-hidden rounded-[1.75rem] border border-[#E8E2DE] bg-[#F4EEE6] shadow-[0_18px_40px_-32px_rgba(33,25,27,0.4)] dark:border-white/10 dark:bg-zinc-900 sm:min-h-104 md:min-h-0">
+            <div className="relative min-h-88 overflow-hidden rounded-2xl border border-kumo-line bg-kumo-recessed shadow-[0_18px_40px_-32px_rgba(33,25,27,0.4)] sm:min-h-104 md:min-h-0">
               <iframe
                 title="Map to SR Mall"
                 src={mapEmbedSrc(config)}
@@ -1338,7 +1336,7 @@ export default function PublicDigitalConcierge() {
 
             {/* Mall photo, contact card and directions */}
             <div className="flex flex-col gap-4">
-              <div className="relative aspect-16/10 overflow-hidden rounded-[1.75rem] border border-[#E8E2DE] shadow-[0_18px_40px_-32px_rgba(33,25,27,0.4)] dark:border-white/10">
+              <div className="relative aspect-16/10 overflow-hidden rounded-2xl border border-kumo-line shadow-[0_18px_40px_-32px_rgba(33,25,27,0.4)]">
                 {/* Existing SR Mall building photo. */}
                 <img
                   src="/images/mall/facade.webp"
@@ -1350,15 +1348,15 @@ export default function PublicDigitalConcierge() {
                 <div className="pointer-events-none absolute inset-0 bg-linear-to-t from-black/30 via-transparent to-transparent" />
               </div>
 
-              <div className="overflow-hidden rounded-2xl border border-[#E8E2DE] bg-white shadow-xs dark:border-white/10 dark:bg-zinc-900">
-                <div className="flex items-start gap-3 border-b border-[#E8E2DE] p-4 dark:border-white/10">
+              <div className="overflow-hidden rounded-2xl border border-kumo-line bg-kumo-base shadow-xs">
+                <div className="flex items-start gap-3 border-b border-kumo-line p-4">
                   <MapPin
                     size={20}
                     strokeWidth={1.8}
-                    className="mt-0.5 shrink-0 text-[#C51D30]"
+                    className="mt-0.5 shrink-0 text-primary"
                     aria-hidden
                   />
-                  <p className="text-[13.5px] font-medium leading-relaxed text-[#21191B] dark:text-slate-200 sm:text-sm">
+                  <p className="text-sm font-medium leading-relaxed text-kumo-default sm:text-sm">
                     {contactAddress}
                   </p>
                 </div>
@@ -1367,12 +1365,12 @@ export default function PublicDigitalConcierge() {
                     <Mail
                       size={20}
                       strokeWidth={1.8}
-                      className="mt-0.5 shrink-0 text-[#C51D30]"
+                      className="mt-0.5 shrink-0 text-primary"
                       aria-hidden
                     />
                     <a
                       href={`mailto:${contactEmail}`}
-                      className="break-all text-[13.5px] font-medium leading-relaxed text-[#21191B] transition-colors hover:text-[#C51D30] dark:text-slate-200 sm:text-sm"
+                      className="break-all text-sm font-medium leading-relaxed text-kumo-default transition-colors hover:text-primary sm:text-sm"
                     >
                       {contactEmail}
                     </a>
@@ -1384,7 +1382,7 @@ export default function PublicDigitalConcierge() {
                 href={directionsHref}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#C51D30] px-6 text-[14px] font-semibold text-white shadow-[0_10px_24px_-12px_rgba(197,29,48,0.7)] transition-all hover:bg-[#A8172A] hover:shadow-[0_14px_30px_-12px_rgba(197,29,48,0.75)] active:scale-[0.99]"
+                className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-6 text-sm font-semibold text-white shadow-[0_10px_24px_-12px_rgba(197,29,48,0.7)] transition-all hover:bg-primary-hover hover:shadow-[0_14px_30px_-12px_rgba(197,29,48,0.75)] active:scale-[0.99]"
               >
                 <Navigation size={16} aria-hidden />
                 Get directions
@@ -1422,7 +1420,7 @@ export default function PublicDigitalConcierge() {
               "-right-2",
               "bg-red-500",
               "text-white",
-              "text-[10px]",
+              "text-xs",
               "font-bold",
               unreadMessages > 0 ? "w-6 h-6 flex items-center justify-center text-xs" : "px-2 py-1",
               "rounded-full",

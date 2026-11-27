@@ -108,12 +108,12 @@ export function ShopsMarquee({ shops, promos }: { shops: DigitalStorefront[]; pr
   const half = (i: number, len: number) => i >= len / 2;
 
   return (
-    <section aria-label="Shops at SR Mall" className="relative overflow-hidden border-b border-slate-200 dark:border-white/5 pt-12 sm:pt-16">
+    <section aria-label="Shops at SR Mall" className="relative overflow-hidden border-b border-kumo-line pt-12 sm:pt-16">
       <div className="mx-auto mb-4 flex max-w-[1400px] items-center justify-between px-4 sm:px-6 lg:px-8">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">In the mall today</p>
         <Link
           href="/tenant-directory"
-          className="flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 hover:text-primary transition-colors"
+          className="flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.2em] text-kumo-subtle hover:text-primary transition-colors"
         >
           All {shopNames.length} {shopNames.length === 1 ? "shop" : "shops"}
           <ArrowUpRight className="size-3.5" aria-hidden />

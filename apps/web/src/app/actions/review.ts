@@ -7,6 +7,7 @@ import { holds, requireSelf, requireStore } from "@/lib/action-guard";
 import { prisma } from "@srmall/database";
 import { revalidatePath } from "next/cache";
 import { findInappropriateLanguage } from "@/lib/comment-moderation";
+import { PAGE_SIZE, clampPage, likeText } from "@/lib/paging";
 
 /**
  * The comment status that actually applies right now:
@@ -135,8 +136,8 @@ async function moderateCommentLanguage(
     muted: false,
     message:
       offense === 1
-        ? "Your comment contains inappropriate language. This is warning 1 of 2 — please revise it before posting."
-        : "Your comment still contains inappropriate language. This is warning 2 of 2 — a third offense pauses commenting for 24 hours.",
+        ? "Your comment contains inappropriate language. This is warning 1 of 2. Please revise it before posting."
+        : "Your comment still contains inappropriate language. This is warning 2 of 2. A third offense pauses commenting for 24 hours.",
   };
 }
 
@@ -520,25 +521,37 @@ export async function getApprovedReviewsAction(tenantId?: string) {
     const ref = tenantId ? await shopRef(tenantId) : null;
     if (ref) tenantId = ref.tenantId;
     const shopId = ref?.shopId ?? null;
-    const reviews = await (prisma as any).review.findMany({
-      where: {
-        isApproved: true,
-        isSpam: false,
-        tenantId: tenantId || null,
-        shopId,
-      },
-      include: {
-        user: {
-          select: { name: true, role: true },
+    const where = {
+      isApproved: true,
+      isSpam: false,
+      tenantId: tenantId || null,
+      shopId,
+    };
+    const [reviews, byRating] = await Promise.all([
+      (prisma as any).review.findMany({
+        where,
+        include: {
+          user: {
+            select: { name: true, role: true },
+          },
         },
-      },
-      orderBy: { createdAt: "desc" },
-      take: 50,
-    });
+        orderBy: { createdAt: "desc" },
+        take: 50,
+      }),
+      // The summary counts every published review, not only the 50 listed.
+      (prisma as any).review.groupBy({ by: ["rating"], where, _count: { _all: true } }),
+    ]);
+    /** How many gave 1, 2, 3, 4 and 5 stars. */
+    const counts = [1, 2, 3, 4, 5].map(
+      (stars) => (byRating.find((row: any) => row.rating === stars)?._count._all as number) ?? 0,
+    );
+    const total = counts.reduce((sum, n) => sum + n, 0);
+    const average = total ? counts.reduce((sum, n, i) => sum + n * (i + 1), 0) / total : 0;
 
     const extras = await reviewExtras(reviews.map((r: any) => r.id));
     return {
       success: true,
+      summary: { total, average, counts },
       data: reviews.map((review: any) => ({
         id: review.id,
         userId: review.userId,
@@ -560,18 +573,78 @@ export async function getApprovedReviewsAction(tenantId?: string) {
   }
 }
 
+export type ReviewBucket = "pending" | "published" | "flagged";
+
+/** Flagged: spam, or reported by the shop and waiting for an admin decision. */
+const REVIEW_BUCKETS = {
+  pending: { isSpam: false, reportedAt: null, isApproved: false },
+  published: { isSpam: false, reportedAt: null, isApproved: true },
+  flagged: { OR: [{ isSpam: true }, { reportedAt: { not: null } }] },
+};
+
 /**
- * Admin: returns ALL reviews with spam + user info
+ * Admin: one page of reviews in a queue, newest first, with the search and
+ * filters applied, plus the totals shown above the list.
  */
-export async function getAllReviewsAction(adminUserId?: string) {
+export async function getAdminReviewsAction(
+  input: { bucket?: ReviewBucket | null; search?: string; shop?: string; rating?: string; page?: number } = {},
+) {
   try {
-    // The session lives in localStorage, so there is no auth cookie to read;
-    // the caller passes the signed-in admin's id and we check the role in the DB.
-    // Admin check, the reviews and their reply/report fields in parallel:
-    // one database round trip of waiting instead of three in a row.
-    const [isAdmin, reviews, extraRows] = await Promise.all([
-      requireAdmin(adminUserId),
-      (prisma as any).review.findMany({
+    if (!(await requireAdmin())) {
+      return { success: false as const, error: "Admin access required" };
+    }
+    const [pending, published, flagged, average, restricted, shops] = await Promise.all([
+      prisma.review.count({ where: REVIEW_BUCKETS.pending }),
+      prisma.review.count({ where: REVIEW_BUCKETS.published }),
+      prisma.review.count({ where: REVIEW_BUCKETS.flagged }),
+      prisma.review.aggregate({ where: REVIEW_BUCKETS.published, _avg: { rating: true } }),
+      // Reviewers who are banned, or still muted.
+      prisma.user.count({
+        where: {
+          reviews: { some: {} },
+          OR: [
+            { commentStatus: "BANNED" },
+            {
+              commentStatus: { in: ["MUTED", "RESTRICTED"] },
+              OR: [{ commentRestrictedUntil: null }, { commentRestrictedUntil: { gt: new Date() } }],
+            },
+          ],
+        },
+      }),
+      prisma.tenant.findMany({
+        where: { reviews: { some: {} } },
+        select: { id: true, shopName: true },
+        orderBy: { shopName: "asc" },
+      }),
+    ]);
+    const counts = { pending, published, flagged };
+    // Open on the queue that needs work first.
+    const bucket: ReviewBucket =
+      input.bucket && input.bucket in REVIEW_BUCKETS
+        ? input.bucket
+        : pending > 0
+          ? "pending"
+          : flagged > 0
+            ? "flagged"
+            : "published";
+    const search = likeText(input.search);
+    const shop = String(input.shop ?? "all");
+    const rating = Number(input.rating);
+    const contains = { contains: search, mode: "insensitive" as const };
+    const where = {
+      AND: [
+        REVIEW_BUCKETS[bucket],
+        shop === "mall" ? { tenantId: null } : shop !== "all" ? { tenantId: shop } : {},
+        Number.isInteger(rating) && rating >= 1 && rating <= 5 ? { rating } : {},
+        search
+          ? { OR: [{ comment: contains }, { user: { name: contains } }, { user: { email: contains } }, { tenant: { shopName: contains } }] }
+          : {},
+      ],
+    };
+    const total = await prisma.review.count({ where });
+    const page = clampPage(input.page, total);
+    const reviews = await prisma.review.findMany({
+      where,
       include: {
         user: {
           select: {
@@ -585,32 +658,28 @@ export async function getAllReviewsAction(adminUserId?: string) {
         },
         tenant: { select: { id: true, shopName: true } },
       },
-      orderBy: { createdAt: "desc" },
-      }),
-      prisma
-        .$queryRawUnsafe<any[]>(`SELECT "id", "reply", "repliedAt", "reportedAt", "reportReason" FROM "Review"`)
-        .catch((error) => {
-          console.error("[reviews] extras lookup failed:", error);
-          return [] as any[];
-        }),
-    ]);
-    if (!isAdmin) {
-      return { success: false, error: "Admin access required" };
-    }
-    const extras = new Map<string, any>(extraRows.map((r: any) => [r.id, r]));
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      skip: (page - 1) * PAGE_SIZE,
+      take: PAGE_SIZE,
+    });
     return {
-      success: true,
-      data: reviews.map((r: any) => ({
-        ...r,
-        ...(extras.get(r.id) || {}),
-        user: r.user
-          ? { ...r.user, effectiveCommentStatus: effectiveCommentStatus(r.user) }
-          : null,
-      })),
+      success: true as const,
+      data: {
+        rows: reviews.map((r) => ({
+          ...r,
+          user: r.user ? { ...r.user, effectiveCommentStatus: effectiveCommentStatus(r.user) } : null,
+        })),
+        total,
+        page,
+        bucket,
+        counts,
+        stats: { total: pending + published + flagged, average: average._avg.rating ?? 0, restricted },
+        shops,
+      },
     };
   } catch (error) {
-    console.error("Get all reviews error:", error);
-    return { success: false, error: "Failed to load reviews" };
+    console.error("Get admin reviews error:", error);
+    return { success: false as const, error: "Failed to load reviews" };
   }
 }
 
@@ -680,7 +749,7 @@ export async function markReviewSpamAction(reviewId: string, isSpam: boolean) {
       where: { id: reviewId },
       data: { isSpam, isApproved: !isSpam },
     });
-    // The admin has decided — a shop's report on this review is resolved.
+    // The admin has decided, a shop's report on this review is resolved.
     await prisma.$executeRawUnsafe(
       `UPDATE "Review" SET "reportedAt" = NULL, "reportReason" = NULL WHERE "id" = $1`,
       reviewId,
@@ -706,7 +775,7 @@ export async function setCommentStatusAction(
 ) {
   try {
     await requireStaff("users");
-    // RESTRICTED was enforced exactly like MUTED — fold it in.
+    // RESTRICTED was enforced exactly like MUTED, fold it in.
     const normalized = status === "RESTRICTED" ? "MUTED" : status;
     const muteDays = days && days > 0 ? days : 7;
     const until =

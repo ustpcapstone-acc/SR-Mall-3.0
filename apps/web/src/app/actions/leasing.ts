@@ -9,6 +9,8 @@ import { previousShopOfUnit, shopNames } from "@/lib/shops";
 import { after } from "next/server";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@srmall/database";
+import { floorLabel } from "@/lib/floors";
+import { listFloors } from "@/lib/floors-server";
 import { AccessDenied, currentAccount, requireStaff } from "@/lib/auth-server";
 import { notify } from "@/lib/notify";
 import { phDayStart, formatPHDate } from "@/lib/ph-date";
@@ -36,6 +38,9 @@ import {
   sendInvoiceNotice,
   syncTenantUnit,
 } from "@/lib/leasing-server";
+import { logPayment, staffActor } from "@/lib/payments-server";
+import { OPEN_BILL, monthsCovered, sameDay } from "@/lib/rent-bills";
+import { requireStaffAny } from "@/lib/action-guard";
 import { requireTenantOwner } from "@/lib/workspace-server";
 
 type Fail = { success: false; error: string };
@@ -331,7 +336,7 @@ export async function getEInvoiceAction(invoiceId: string): Promise<{ success: t
     const ts = account.tenantStaff;
     const isStaff =
       !!ts && ts.permissions.includes("payments") && ts.tenantId === inv.tenantId && (!inv.leaseId || inv.leaseId === ts.leaseId);
-    if (!isOwner && !isStaff) await requireStaff("leasing");
+    if (!isOwner && !isStaff) await requireStaffAny("leasing", "payments");
 
     const unitId = inv.unitId || inv.tenant.unitId || null;
     const slot = unitId ? await prisma.areaSlot.findUnique({ where: { unit_id: unitId }, select: { floor: true } }) : null;
@@ -351,7 +356,7 @@ export async function getEInvoiceAction(invoiceId: string): Promise<{ success: t
         periodStart: inv.periodStart?.toISOString() ?? null,
         periodEnd: inv.periodEnd?.toISOString() ?? null,
         unitId,
-        floor: slot?.floor ?? null,
+        floor: slot ? floorLabel(slot.floor, await listFloors()) : null,
         lines,
         total: inv.amount,
         paymentMethod: inv.paymentMethod,
@@ -539,6 +544,7 @@ export async function approveRentRequestAction(
     if (!YMD.test(String(form?.startOn ?? ""))) return fail("Enter the lease start date.");
     const start = phDayStart(form.startOn);
     const comment = String(form?.comment ?? "").trim().slice(0, 1000) || null;
+    const by = await staffActor(staff.id);
 
     const result = await prisma.$transaction(async (tx) => {
       const req = await tx.rentRequest.findUnique({
@@ -575,7 +581,7 @@ export async function approveRentRequestAction(
         monthlyRent,
         periodStart: start,
         kind: "New lease",
-      });
+      }, by);
       await tx.rentRequest.update({
         where: { id: req.id },
         data: { status: "APPROVED", adminComment: comment, decidedById: staff.id, decidedAt: new Date(), leaseId: lease.id },
@@ -672,13 +678,33 @@ export type RenewalRow = {
   endReason: string | null;
   endedAt: string | null;
   lastInvoiceId: string | null;
+  /** A rent bill sent for the coming period and not yet paid. */
+  openBill: { invoiceNumber: string; amount: number; months: number; checking: boolean } | null;
 };
+
+/** The unpaid rent bill that starts on a lease's paid-through day. */
+function openBillOf(lease: {
+  endDate: Date;
+  invoices: { invoiceNumber: string; amount: number; status: string; periodStart: Date | null; periodEnd: Date | null }[];
+}) {
+  const bill = lease.invoices.find(
+    (i) => OPEN_BILL.includes(i.status) && i.periodStart && i.periodEnd && sameDay(i.periodStart, lease.endDate),
+  );
+  return bill
+    ? {
+        invoiceNumber: bill.invoiceNumber,
+        amount: bill.amount,
+        months: monthsCovered(bill.periodStart!, bill.periodEnd!),
+        checking: bill.status === "REVIEWING",
+      }
+    : null;
+}
 
 export async function listRenewalsAction(): Promise<
   { success: true; data: { leases: RenewalRow[]; settings: LeaseSettingsData } } | Fail
 > {
   try {
-    await requireStaff("leasing");
+    await requireStaffAny("leasing", "payments");
     await reconcileLeases();
     const settings = await getLeaseSettings();
     const since = new Date(Date.now() - 90 * 24 * 3600_000);
@@ -687,7 +713,10 @@ export async function listRenewalsAction(): Promise<
       orderBy: { endDate: "asc" },
       include: {
         tenant: { select: { shopName: true, user: { select: { name: true } } } },
-        invoices: { orderBy: { createdAt: "desc" }, take: 1, select: { id: true } },
+        invoices: {
+          orderBy: { createdAt: "desc" },
+          select: { id: true, invoiceNumber: true, amount: true, status: true, periodStart: true, periodEnd: true },
+        },
       },
     });
     const floors = new Map(
@@ -717,7 +746,8 @@ export async function listRenewalsAction(): Promise<
           stage: l.status === "ACTIVE" ? renewalStage(l.endDate, settings) : null,
           endReason: l.endReason,
           endedAt: l.endedAt?.toISOString() ?? null,
-          lastInvoiceId: l.invoices[0]?.id ?? null,
+          lastInvoiceId: l.invoices.find((i) => i.status === "PAID")?.id ?? null,
+          openBill: openBillOf(l),
         })),
       },
     };
@@ -728,8 +758,9 @@ export async function listRenewalsAction(): Promise<
 
 export async function recordRenewalAction(leaseId: string, form: PaymentForm) {
   try {
-    await requireStaff("leasing");
+    const staff = await requireStaffAny("leasing", "payments");
     const pay = checkPayment(form);
+    const by = await staffActor(staff.id);
     const out = await prisma.$transaction(async (tx) => {
       const lease = await tx.lease.findUnique({
         where: { id: String(leaseId) },
@@ -738,29 +769,69 @@ export async function recordRenewalAction(leaseId: string, form: PaymentForm) {
       if (!lease || lease.status !== "ACTIVE") {
         throw new UserError("This lease has ended. The tenant needs to send a new rent request.");
       }
-      const newEnd = addMonths(lease.endDate, pay.months);
+      // A bill already sent for the coming period is paid by this money first.
+      const open = (
+        await tx.invoice.findMany({
+          where: { leaseId: lease.id, status: { in: OPEN_BILL }, periodStart: { not: null }, periodEnd: { not: null } },
+          select: { id: true, invoiceNumber: true, amount: true, status: true, periodStart: true, periodEnd: true },
+        })
+      ).find((b) => sameDay(b.periodStart!, lease.endDate));
+      const covered = open ? monthsCovered(open.periodStart!, open.periodEnd!) : 0;
+      const rest = pay.months - covered;
+      const restAmount = Math.round((pay.amount - (open?.amount ?? 0)) * 100) / 100;
+      if (open) {
+        if (open.status === "REVIEWING") {
+          throw new UserError(`A deposit slip is waiting for bill ${open.invoiceNumber}. Approve or reject it on Payments first.`);
+        }
+        const exact = `bill ${open.invoiceNumber}, ${peso(open.amount)} for ${covered} month${covered === 1 ? "" : "s"}`;
+        if (rest < 0) throw new UserError(`There is an open ${exact}. Record at least ${covered} months.`);
+        if (rest === 0 && restAmount !== 0) throw new UserError(`The amount must match the open ${exact}.`);
+        if (rest > 0 && restAmount <= 0) throw new UserError(`The amount must cover the open ${exact}, plus the extra months.`);
+      }
+      const newEnd = open ? (rest ? addMonths(open.periodEnd!, rest) : open.periodEnd!) : addMonths(lease.endDate, pay.months);
       const moved = await tx.lease.updateMany({
         where: { id: lease.id, status: "ACTIVE", endDate: lease.endDate },
         data: { endDate: newEnd, noticesSent: [] },
       });
       if (!moved.count) throw new UserError("Someone just updated this lease. Reload and try again.");
+      if (open) {
+        const settled = await tx.invoice.updateMany({
+          where: { id: open.id, status: open.status },
+          data: { status: "PAID", paidAt: pay.paidAt, paymentMethod: pay.method, referenceNo: pay.referenceNo },
+        });
+        if (!settled.count) throw new UserError("The open bill just changed. Reload and try again.");
+        await logPayment(tx, {
+          invoiceId: open.id,
+          invoiceNumber: open.invoiceNumber,
+          tenantId: lease.tenantId,
+          action: "RECORDED",
+          amount: open.amount,
+          method: pay.method,
+          referenceNo: pay.referenceNo,
+          paidOn: pay.paidAt,
+          by,
+        });
+        if (!rest) return { lease, newEnd, invoice: { id: open.id, invoiceNumber: open.invoiceNumber, amount: open.amount }, received: pay.amount };
+      }
       const invoice = await createPaidInvoice(tx, {
         ...pay,
+        months: open ? rest : pay.months,
+        amount: open ? restAmount : pay.amount,
         tenantId: lease.tenantId,
         leaseId: lease.id,
         unitId: lease.unitId,
         monthlyRent: lease.monthlyRent,
-        periodStart: lease.endDate,
+        periodStart: open ? open.periodEnd! : lease.endDate,
         kind: "Renewal",
-      });
-      return { lease, newEnd, invoice };
+      }, by);
+      return { lease, newEnd, invoice, received: pay.amount };
     });
     after(async () => {
       await notify("PAYMENT_CONFIRMED", {
         recipients: [out.lease.tenant.userId],
         unitId: out.lease.unitId,
         title: `Lease renewed: Unit ${out.lease.unitId}`,
-        message: `Thank you. Unit ${out.lease.unitId} is now paid through ${formatPHDate(out.newEnd)} (${peso(out.invoice.amount)}).`,
+        message: `Thank you. Unit ${out.lease.unitId} is now paid through ${formatPHDate(out.newEnd)} (${peso(out.received)}).`,
         link: "/tenantdashboard/rent-a-space",
         email: false,
       });

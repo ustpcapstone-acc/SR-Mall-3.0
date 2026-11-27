@@ -74,37 +74,52 @@ export function PaymentFields({
   onChange,
   monthlyRent,
   monthsLabel = "Months paid",
+  billAmount,
+  extra = 0,
 }: {
   value: PaymentState;
   onChange: (next: PaymentState) => void;
   monthlyRent: number;
   monthsLabel?: string;
+  /** Paying one bill in full: no months to choose, and a reference is needed. */
+  billAmount?: number;
+  /** Charges beyond rent that the amount also has to cover (an open bill). */
+  extra?: number;
 }) {
   const [amountEdited, setAmountEdited] = useState(false);
   const set = (patch: Partial<PaymentState>) => onChange({ ...value, ...patch });
   const months = Number(value.months) || 0;
+  const oneBill = billAmount !== undefined;
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2">
-      <Input
-        label={monthsLabel}
-        type="number"
-        min={1}
-        max={60}
-        value={value.months}
-        onChange={(e) => {
-          const m = e.target.value;
-          set(amountEdited ? { months: m } : { months: m, amount: String((Number(m) || 0) * monthlyRent) });
-        }}
-        required
-      />
+    <div className="grid items-start gap-4 sm:grid-cols-2">
+      {!oneBill && (
+        <Input
+          label={monthsLabel}
+          type="number"
+          min={1}
+          max={60}
+          value={value.months}
+          onChange={(e) => {
+            const m = e.target.value;
+            set(amountEdited ? { months: m } : { months: m, amount: String(Math.round(((Number(m) || 0) * monthlyRent + extra) * 100) / 100) });
+          }}
+          required
+        />
+      )}
       <Input
         label="Amount received (PHP)"
         type="number"
         min={0}
         step="0.01"
         value={value.amount}
-        description={months > 0 ? `${months} x ${peso(monthlyRent)} = ${peso(months * monthlyRent)}` : undefined}
+        description={
+          oneBill
+            ? "Must match the bill."
+            : months > 0
+              ? `${months} x ${peso(monthlyRent)}${extra ? ` + ${peso(extra)} other charges` : ""} = ${peso(months * monthlyRent + extra)}`
+              : undefined
+        }
         onChange={(e) => {
           setAmountEdited(true);
           set({ amount: e.target.value });
@@ -125,14 +140,16 @@ export function PaymentFields({
           </Select.Option>
         ))}
       </Select>
-      <Input
-        label="Reference or OR number"
-        description="Optional"
-        value={value.referenceNo}
-        maxLength={100}
-        onChange={(e) => set({ referenceNo: e.target.value })}
-        className="sm:col-span-2"
-      />
+      <div className="grid sm:col-span-2">
+        <Input
+          label="Reference or OR number"
+          description={oneBill ? undefined : "Optional"}
+          required={oneBill}
+          value={value.referenceNo}
+          maxLength={100}
+          onChange={(e) => set({ referenceNo: e.target.value })}
+        />
+      </div>
     </div>
   );
 }

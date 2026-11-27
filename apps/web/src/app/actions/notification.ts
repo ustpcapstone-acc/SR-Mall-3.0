@@ -68,7 +68,7 @@ async function inWorkspace(userId: string): Promise<Prisma.NotificationWhereInpu
  * A page of the user's notifications (newest first).
  *  - `tab`: ALL, UNREAD, or a group (MONEY / ACTION / SECURITY / INFO / MESSAGE)
  *  - `excludeMessages`: leave chat alerts out (the bell; chat has its own badges)
- *  - `before`: cursor — ISO date of the last item already shown
+ *  - `before`: cursor, ISO date of the last item already shown
  * Also returns the unread count (non-message) for the bell badge.
  */
 export async function getNotificationsAction(
@@ -119,7 +119,7 @@ export async function getNotificationsAction(
   }
 }
 
-/** Mark one notification read — only if it belongs to `userId`. */
+/** Mark one notification read, only if it belongs to `userId`. */
 export async function markNotificationAsReadAction(userId: string, notificationId: string) {
   try {
     await requireActingAs(userId);
@@ -152,7 +152,7 @@ export async function markAllNotificationsAsReadAction(userId: string, options: 
   }
 }
 
-/** Delete one notification — only your own. */
+/** Delete one notification, only your own. */
 export async function deleteNotificationAction(userId: string, notificationId: string) {
   try {
     await requireActingAs(userId);

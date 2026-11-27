@@ -11,7 +11,10 @@ import { getBookingsDataAction } from "@/app/actions/bookings";
 import { useLiveSlots } from "@/lib/slot-live";
 import { DashboardSkeleton } from "@/components/dashboard-skeleton";
 import { toast } from "sonner";
+import { useDraft } from "@/lib/drafts/use-draft";
+import { DraftNote } from "@/components/drafts/draft-note";
 import { ReservationDecisionModal } from "@/components/admin/reservation-decision-modal";
+import { UpcomingEvents, type AdminEvent } from "@/components/admin/upcoming-events";
 
 // Calendar Helpers
 const getDaysInMonth = (year: number, month: number) =>
@@ -36,8 +39,10 @@ const MONTHS = [
 
 export default function MasterBookingsPage() {
   const [activeTab, setActiveTab] = useState<
-    "event" | "reservation"
+    "event" | "events" | "reservation"
   >("event");
+  /** Approved events, with their pictures. */
+  const [approvedEvents, setApprovedEvents] = useState<AdminEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
 
@@ -46,7 +51,7 @@ export default function MasterBookingsPage() {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const tab = params.get("tab");
-      if (tab === "reservation" || tab === "event") {
+      if (tab === "reservation" || tab === "event" || tab === "events") {
         setActiveTab(tab);
       }
     }
@@ -79,7 +84,7 @@ export default function MasterBookingsPage() {
 
     try {
       // One request for all tabs (see getBookingsDataAction).
-      const { slots, inquiries, reservedDetailed } =
+      const { slots, inquiries, reservedDetailed, events } =
         await getBookingsDataAction();
 
       if (reservedDetailed.success && reservedDetailed.data) {
@@ -90,6 +95,7 @@ export default function MasterBookingsPage() {
         );
       }
       if (inquiries.success) setEventInquiries(inquiries.data || []);
+      if (events.success) setApprovedEvents((events.data || []) as AdminEvent[]);
     } catch (err) {
       toast.error("Data synchronization failed");
     } finally {
@@ -119,6 +125,15 @@ export default function MasterBookingsPage() {
     setFeedback("");
   };
 
+  const noteDraft = useDraft({
+    form: "admin.event-decision",
+    scope: [modalInquiry?.id, modalAction],
+    enabled: Boolean(modalInquiry),
+    value: { feedback },
+    initial: { feedback: "" },
+    onRestore: (saved) => setFeedback(saved.feedback),
+  });
+
   const submitEventAction = async () => {
     if (!modalInquiry || !modalAction) return;
     if (modalAction === "REJECTED" && !feedback.trim()) {
@@ -127,12 +142,15 @@ export default function MasterBookingsPage() {
     }
 
     setIsProcessingEvent(modalInquiry.id);
-    const result = await updateInquiryStatusAction(
-      modalInquiry.id,
-      modalAction,
-      feedback,
+    const result = await noteDraft.send(() =>
+      updateInquiryStatusAction(modalInquiry.id, modalAction, feedback),
     );
+    if (!result) {
+      setIsProcessingEvent(null);
+      return;
+    }
     if (result.success) {
+      noteDraft.clear();
       toast.success(
         `Schedule ${modalAction === "ACCEPTED" ? "Locked" : "Released"}`,
       );
@@ -195,6 +213,8 @@ export default function MasterBookingsPage() {
     return <DashboardSkeleton />;
   }
 
+  // Approved but not on the public page yet, because they have no picture.
+  const needImage = approvedEvents.filter((ev) => !ev.isPast && !ev.imageUrl).length;
   const upcoming = acceptedEvents.filter((i) => new Date(i.eventDate).getTime() >= Date.now() - 864e5);
   const urgentReservations = reservedSlots.filter((r: any) => r.isUrgent).length;
   const eventsThisMonth = days.reduce((sum, d) => sum + getEventsForDay(d).length, 0);
@@ -204,7 +224,7 @@ export default function MasterBookingsPage() {
   return (
     <AdminPage
       title="Bookings and Reservations"
-      description="Manage event inquiries and space reservations in one place."
+      description="Manage event inquiries, approved events and space reservations in one place."
       actions={
         <Button variant="secondary" icon={<ArrowClockwise />} loading={isSyncing} onClick={() => loadData(true)}>
           Refresh
@@ -218,7 +238,7 @@ export default function MasterBookingsPage() {
           tone={pendingEvents.length ? "warning" : "default"}
           onClick={() => setActiveTab("event")}
         />
-        <Stat label="Approved events ahead" value={upcoming.length} onClick={() => setActiveTab("event")} />
+        <Stat label="Approved events ahead" value={upcoming.length} onClick={() => setActiveTab("events")} />
         <Stat
           label="Reservations waiting"
           value={reservedSlots.length}
@@ -235,12 +255,15 @@ export default function MasterBookingsPage() {
 
       <PageTabs
         value={activeTab}
-        onValueChange={(v) => setActiveTab(v as "event" | "reservation")}
+        onValueChange={(v) => setActiveTab(v as "event" | "events" | "reservation")}
         tabs={[
           { value: "event", label: `Event Bookings (${pendingEvents.length})` },
+          { value: "events", label: needImage ? `Upcoming Events (${needImage} need image)` : "Upcoming Events" },
           { value: "reservation", label: `Space Reservations (${reservedSlots.length})` },
         ]}
       />
+
+      {activeTab === "events" && <UpcomingEvents events={approvedEvents} onChanged={() => loadData(true)} />}
 
       {activeTab === "event" && (
         <div className="grid items-start gap-6 xl:grid-cols-5">
@@ -475,6 +498,7 @@ export default function MasterBookingsPage() {
           rows={5}
           className="w-full"
         />
+        <DraftNote draft={noteDraft} className="mt-3" />
       </AdminDialog>
 
       <AdminDialog

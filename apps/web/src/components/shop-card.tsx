@@ -2,7 +2,7 @@
 
 import { hasAssignedUnit } from "@/lib/products";
 import { optimizedImage } from "@/lib/media";
-import { floorLabel } from "@/lib/floors";
+import { useFloors } from "@/lib/use-floors";
 import React, { useRef, useState } from "react";
 import Link from "next/link";
 import { cn } from "@cloudflare/kumo";
@@ -34,6 +34,7 @@ const usable = (url?: string | null) => (url && !url.startsWith("blob:") && !url
  */
 export const ShopCard = ({ shop, onClick, onMessage }: ShopCardProps) => {
   const { id, shop_name, unit_id, is_open } = shop;
+  const { label: floorName } = useFloors();
   const [isFavorited, setIsFavorited] = useState(false);
   const [coverBroken, setCoverBroken] = useState(false);
   const [logoBroken, setLogoBroken] = useState(false);
@@ -76,7 +77,7 @@ export const ShopCard = ({ shop, onClick, onMessage }: ShopCardProps) => {
   };
   const logo = logoBroken ? null : usable(shop.logo_url);
   const hasUnit = hasAssignedUnit(unit_id);
-  const floor = floorLabel(shop.floor);
+  const floor = floorName(shop.floor);
   const location = hasUnit ? `Unit ${unit_id}${floor ? `, ${floor}` : ""}` : "Opening soon";
   const rating = shop.reviewCount ? Number(shop.avgRating || 0) : 0;
   const href = id === "preview" ? "#" : `/shop/${id}`;

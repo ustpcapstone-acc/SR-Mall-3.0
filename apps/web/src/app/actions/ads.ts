@@ -352,7 +352,7 @@ export async function getLivePromosAction() {
   }
 }
 
-/** Ended or rejected promos, newest first — read-only audit history. */
+/** Ended or rejected promos, newest first, read-only audit history. */
 export async function getPromoHistoryAction() {
   try {
     await requireStaffAny("ads");

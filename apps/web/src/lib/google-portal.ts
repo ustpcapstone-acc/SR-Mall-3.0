@@ -6,11 +6,25 @@
 import type { AccountType } from "@/lib/session";
 
 const KEY = "srmall_google_portal";
+const RETURN_KEY = "srmall_google_return";
 
-export function rememberGooglePortal(portal: AccountType) {
+/** `returnTo` is the page on this site to open after signing in, if not the account's home. */
+export function rememberGooglePortal(portal: AccountType, returnTo?: string | null) {
   try {
     sessionStorage.setItem(KEY, portal);
+    if (returnTo) sessionStorage.setItem(RETURN_KEY, returnTo);
+    else sessionStorage.removeItem(RETURN_KEY);
   } catch {}
+}
+
+export function takeGoogleReturn(): string | null {
+  try {
+    const value = sessionStorage.getItem(RETURN_KEY);
+    sessionStorage.removeItem(RETURN_KEY);
+    // Only paths on this site.
+    if (value?.startsWith("/") && !value.startsWith("//") && !value.startsWith("/\\")) return value;
+  } catch {}
+  return null;
 }
 
 export function takeGooglePortal(): AccountType {

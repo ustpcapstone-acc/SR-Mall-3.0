@@ -135,15 +135,15 @@ export default function NotificationsPageClient() {
   return (
     <div className="p-4 md:p-8 lg:p-10 max-w-[1100px] mx-auto space-y-8 animate-fade-in-up">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 pb-6 border-b border-slate-200 dark:border-white/10">
+      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 pb-6 border-b border-kumo-line">
         <div className="space-y-3">
           <div className="inline-flex items-center gap-2 px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-semibold border border-primary/20">
             <Bell size={12} /> {unreadCount > 0 ? `${unreadCount} unread` : "All caught up"}
           </div>
-          <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-charcoal dark:text-white">
+          <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-kumo-default">
             Notifications
           </h1>
-          <p className="text-slate-500 font-medium">Everything the system has told you, newest first.</p>
+          <p className="text-kumo-subtle font-medium">Everything the system has told you, newest first.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <button
@@ -158,13 +158,13 @@ export default function NotificationsPageClient() {
             type="button"
             onClick={clearRead}
             disabled={busy}
-            className="inline-flex items-center gap-2 h-11 px-4 rounded-xl border border-slate-200 dark:border-white/10 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 disabled:opacity-40"
+            className="inline-flex items-center gap-2 h-11 px-4 rounded-xl border border-kumo-line text-xs font-semibold text-kumo-subtle hover:bg-kumo-tint disabled:opacity-40"
           >
             <Trash2 size={14} /> Clear read
           </button>
           <Link
             href={notificationSettingsHref(user?.role)}
-            className="inline-flex items-center gap-2 h-11 px-4 rounded-xl border border-slate-200 dark:border-white/10 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
+            className="inline-flex items-center gap-2 h-11 px-4 rounded-xl border border-kumo-line text-xs font-semibold text-kumo-subtle hover:bg-kumo-tint"
           >
             <Settings size={14} /> Settings
           </Link>
@@ -172,7 +172,7 @@ export default function NotificationsPageClient() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 p-1.5 bg-white dark:bg-zinc-900 rounded-2xl border border-slate-100 dark:border-white/5 w-fit max-w-full overflow-x-auto shadow-xs">
+      <div className="flex gap-1 p-1.5 bg-kumo-base rounded-2xl border border-kumo-line w-fit max-w-full overflow-x-auto shadow-xs">
         {TABS.map((t) => (
           <button
             key={t.key}
@@ -180,7 +180,7 @@ export default function NotificationsPageClient() {
             onClick={() => setTab(t.key)}
             className={clsx(
               "px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all",
-              tab === t.key ? "bg-primary text-white shadow-md shadow-primary/25" : "text-slate-400 hover:text-charcoal dark:hover:text-white",
+              tab === t.key ? "bg-primary text-white shadow-md shadow-primary/25" : "text-kumo-subtle hover:text-kumo-default",
             )}
           >
             {t.label}
@@ -192,16 +192,16 @@ export default function NotificationsPageClient() {
       </div>
 
       {/* List */}
-      <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl shadow-xs overflow-hidden">
+      <div className="bg-kumo-base border border-kumo-line rounded-2xl shadow-xs overflow-hidden">
         {loading ? (
           <div className="py-24 flex justify-center">
             <Loader2 className="animate-spin text-primary" size={28} />
           </div>
         ) : items.length === 0 ? (
           <div className="py-20 text-center space-y-2 px-6">
-            <Bell className="w-10 h-10 text-slate-300 mx-auto" />
-            <p className="font-semibold text-charcoal dark:text-white">Nothing here</p>
-            <p className="text-sm text-slate-500">
+            <Bell className="w-10 h-10 text-kumo-subtle mx-auto" />
+            <p className="font-semibold text-kumo-default">Nothing here</p>
+            <p className="text-sm text-kumo-subtle">
               {tab === "UNREAD" ? "You've read everything." : "Notifications in this category will appear here."}
             </p>
           </div>
@@ -210,27 +210,27 @@ export default function NotificationsPageClient() {
             {items.map((n, i) => (
               <li key={n.id}>
                 {startsNewDay(items[i - 1]?.createdAt, n.createdAt) && (
-                  <p className="px-6 pt-5 pb-2 text-xs font-semibold text-slate-500 dark:text-slate-400 bg-slate-50/60 dark:bg-white/2 border-y border-slate-100 dark:border-white/5 first:border-t-0">
+                  <p className="px-6 pt-5 pb-2 text-xs font-semibold text-kumo-subtle bg-kumo-recessed border-y border-kumo-line first:border-t-0">
                     {formatDayLabel(n.createdAt)}
                   </p>
                 )}
                 <div
                   className={clsx(
-                    "group flex items-start gap-4 px-6 py-4 border-b border-slate-100 dark:border-white/5 transition-colors",
-                    n.isRead ? "hover:bg-slate-50 dark:hover:bg-zinc-800/40" : "bg-primary/4 hover:bg-primary/[0.07]",
+                    "group flex items-start gap-4 px-6 py-4 border-b border-kumo-line transition-colors",
+                    n.isRead ? "hover:bg-kumo-tint" : "bg-primary/4 hover:bg-primary/[0.07]",
                   )}
                 >
                   <button type="button" onClick={() => open(n)} className="flex items-start gap-4 flex-1 min-w-0 text-left">
                     <NotificationIcon type={n.type} boxed />
                     <span className="flex-1 min-w-0">
                       <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                        <span className={clsx("text-sm text-charcoal dark:text-white", n.isRead ? "font-medium" : "font-semibold")}>{n.title}</span>
+                        <span className={clsx("text-sm text-kumo-default", n.isRead ? "font-medium" : "font-semibold")}>{n.title}</span>
                         {!n.isRead && <span className="w-2 h-2 rounded-full bg-primary" aria-label="Unread" />}
                       </span>
-                      <span className="block text-sm text-slate-500 dark:text-slate-400 mt-0.5 wrap-anywhere">{n.message}</span>
+                      <span className="block text-sm text-kumo-subtle mt-0.5 wrap-anywhere">{n.message}</span>
                       <span className="flex items-center gap-2 mt-1.5">
                         <NotificationTypeLabel type={n.type} />
-                        <span className="text-xs font-bold text-slate-500 dark:text-slate-400">· {timeAgo(n.createdAt)}</span>
+                        <span className="text-xs font-bold text-kumo-subtle">· {timeAgo(n.createdAt)}</span>
                       </span>
                     </span>
                   </button>
@@ -241,7 +241,7 @@ export default function NotificationsPageClient() {
                         onClick={() => markRead(n)}
                         title="Mark as read"
                         aria-label="Mark as read"
-                        className="p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:text-primary hover:bg-primary/10"
+                        className="p-2 rounded-lg text-kumo-subtle hover:text-primary hover:bg-primary/10"
                       >
                         <Check size={16} />
                       </button>
@@ -251,7 +251,7 @@ export default function NotificationsPageClient() {
                       onClick={() => remove(n)}
                       title="Delete"
                       aria-label="Delete notification"
-                      className="p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:text-red-600 hover:bg-red-500/10"
+                      className="p-2 rounded-lg text-kumo-subtle hover:text-red-600 hover:bg-red-500/10"
                     >
                       <Trash2 size={16} />
                     </button>
@@ -268,7 +268,7 @@ export default function NotificationsPageClient() {
               type="button"
               onClick={loadMore}
               disabled={loadingMore}
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-slate-100 dark:bg-white/5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/10 disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-kumo-recessed text-xs font-semibold text-kumo-subtle hover:bg-kumo-tint disabled:opacity-50"
             >
               {loadingMore && <Loader2 size={14} className="animate-spin" />} Load older
             </button>

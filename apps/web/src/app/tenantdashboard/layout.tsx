@@ -15,13 +15,13 @@ export default function TenantLayout({
   const { isAuthenticated } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // The proxy already sent visitors without a tenant session to /tenant-portal.
+  // The proxy already sent visitors without a tenant session to the sign-in page.
   // This only shows while the browser restores its copy of the session.
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-3 bg-slate-50 dark:bg-[#0f1117] text-sm text-slate-500">
         <p>Loading your account...</p>
-        <Link href="/tenant-portal" className="text-primary hover:underline">
+        <Link href="/login?role=tenant" className="text-primary hover:underline">
           Sign in again
         </Link>
       </div>

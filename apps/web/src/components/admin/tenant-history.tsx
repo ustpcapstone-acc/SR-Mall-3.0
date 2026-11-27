@@ -1,9 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
+import { toast } from "sonner";
 import { Button, Loader, Select, Table, cn } from "@cloudflare/kumo";
 import { DownloadSimple } from "@phosphor-icons/react";
-import { AdminDialog, EmptyNote, Panel, Person, SearchField } from "@/components/admin/page-kit";
+import { AdminDialog, EmptyNote, Pager, Panel, Person, SearchField } from "@/components/admin/page-kit";
+import { getPastTenantsAction } from "@/app/actions/tenant";
+import { useDebounced, usePageFor, useServerData } from "@/lib/use-server-page";
+import { useFloors } from "@/lib/use-floors";
 
 export interface TenantHistoryRow {
   id: string;
@@ -33,7 +37,6 @@ const REASONS: Record<string, string> = {
   MARKED_PAST: "Marked as past tenant",
   RESERVATION_REJECTED: "Reservation rejected",
 };
-const FLOORS: Record<string, string> = { ground: "Ground Floor", first: "First Floor", second: "Second Floor" };
 
 const peso = (n: number) => `₱${Number(n || 0).toLocaleString("en-PH", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
 const day = (iso: string) =>
@@ -49,17 +52,17 @@ function stayLength(from: string, to: string) {
   return [y && `${y} year${y === 1 ? "" : "s"}`, m && `${m} month${m === 1 ? "" : "s"}`].filter(Boolean).join(" ") || "1 month";
 }
 
-function location(r: TenantHistoryRow) {
+function location(r: TenantHistoryRow, floorLabel: (id?: string | null) => string) {
   if (!r.unitId) return "No unit assigned";
-  return `Unit ${r.unitId}${r.floor ? `, ${FLOORS[r.floor] || r.floor}` : ""}`;
+  return `Unit ${r.unitId}${r.floor ? `, ${floorLabel(r.floor)}` : ""}`;
 }
 
-function exportCsv(rows: TenantHistoryRow[]) {
+function exportCsv(rows: TenantHistoryRow[], floorLabel: (id?: string | null) => string) {
   const head = ["Shop", "Owner", "Email", "Unit", "Floor", "Category", "Lease start", "Moved out", "Stayed", "Reason", "Note", "Total paid", "Unpaid balance", "Invoices", "Rating", "Reviews", "Recorded by"];
   const esc = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
   const lines = rows.map((r) =>
     [
-      r.shopName, r.ownerName, r.ownerEmail, r.unitId, r.floor ? FLOORS[r.floor] || r.floor : "", r.category,
+      r.shopName, r.ownerName, r.ownerEmail, r.unitId, floorLabel(r.floor), r.category,
       day(r.leaseStart), day(r.endedAt), stayLength(r.leaseStart, r.endedAt), REASONS[r.reason] || r.reason, r.note,
       r.totalPaid, r.outstanding, r.invoiceCount, r.reviewCount ? r.avgRating.toFixed(1) : "", r.reviewCount, r.endedByName,
     ].map(esc).join(","),
@@ -73,24 +76,35 @@ function exportCsv(rows: TenantHistoryRow[]) {
 }
 
 /** User Management → Tenant History: every tenant who has left, with search, filters and CSV export. */
-export function TenantHistory({ rows, loading }: { rows: TenantHistoryRow[]; loading: boolean }) {
+export function TenantHistory() {
+  const { label: floorLabel } = useFloors();
   const [query, setQuery] = useState("");
   const [reason, setReason] = useState("ALL");
   const [year, setYear] = useState("ALL");
   const [selected, setSelected] = useState<TenantHistoryRow | null>(null);
+  const [exporting, setExporting] = useState(false);
 
-  const years = useMemo(
-    () => [...new Set(rows.map((r) => new Date(r.endedAt).getFullYear()))].sort((a, b) => b - a),
-    [rows],
-  );
-  const filtered = rows.filter((r) => {
-    const q = query.trim().toLowerCase();
-    const matchesQ =
-      !q ||
-      [r.shopName, r.ownerName, r.ownerEmail, r.unitId].some((v) => (v || "").toLowerCase().includes(q));
-    return matchesQ && (reason === "ALL" || r.reason === reason) && (year === "ALL" || String(new Date(r.endedAt).getFullYear()) === year);
-  });
-  const unpaidTotal = filtered.reduce((n, r) => n + (r.outstanding || 0), 0);
+  const search = useDebounced(query.trim());
+  const [page, setPage] = usePageFor(search, reason, year);
+  const { data, error, loading, reload } = useServerData({ search, reason, year, page }, getPastTenantsAction);
+  const rows: TenantHistoryRow[] = data?.rows ?? [];
+  const everyone = data?.all ?? 0;
+  const years = data?.years ?? [];
+  const unpaidTotal = data?.unpaid ?? 0;
+
+  /** The CSV holds every match, not only the page on screen. */
+  const downloadCsv = async () => {
+    setExporting(true);
+    try {
+      const res = await getPastTenantsAction({ search: query.trim(), reason, year, all: true });
+      if (res.success) exportCsv(res.data.rows, floorLabel);
+      else toast.error(res.error);
+    } catch {
+      toast.error("Couldn't export the list. Check your connection.");
+    } finally {
+      setExporting(false);
+    }
+  };
   const reasonLabel = (key: string) => REASONS[key] ?? REASONS.MARKED_PAST;
   const reasonItems: Record<string, string> = { ALL: "All reasons", ...REASONS };
   const yearItems: Record<string, string> = { ALL: "All years", ...Object.fromEntries(years.map((y) => [String(y), String(y)])) };
@@ -99,9 +113,13 @@ export function TenantHistory({ rows, loading }: { rows: TenantHistoryRow[]; loa
     <Panel
       flush
       title="Tenant History"
-      description={`${rows.length} former tenant${rows.length === 1 ? "" : "s"}, saved automatically whenever a tenant leaves`}
+      description={
+        data
+          ? `${everyone} former tenant${everyone === 1 ? "" : "s"}, saved automatically whenever a tenant leaves`
+          : "Saved automatically whenever a tenant leaves"
+      }
       actions={
-        <Button variant="secondary" icon={<DownloadSimple />} disabled={filtered.length === 0} onClick={() => exportCsv(filtered)}>
+        <Button variant="secondary" icon={<DownloadSimple />} loading={exporting} disabled={!data?.total} onClick={downloadCsv}>
           Export CSV
         </Button>
       }
@@ -127,16 +145,29 @@ export function TenantHistory({ rows, loading }: { rows: TenantHistoryRow[]; loa
         )}
       </div>
 
-      {loading ? (
+      {data && error && <p className="px-4 pt-3 text-sm text-kumo-danger sm:px-5">{error}</p>}
+
+      {!data && loading ? (
         <div className="flex justify-center py-20">
           <Loader />
         </div>
-      ) : filtered.length === 0 ? (
-        <EmptyNote title={rows.length === 0 ? "No former tenants yet" : "Nothing matches your filters"}>
-          {rows.length === 0 ? "When a tenant leaves, a summary is saved here automatically." : "Try a different search, reason or year."}
+      ) : !data ? (
+        <EmptyNote
+          title="Couldn't load tenant history"
+          action={
+            <Button variant="primary" onClick={reload}>
+              Try again
+            </Button>
+          }
+        >
+          {error}
+        </EmptyNote>
+      ) : rows.length === 0 ? (
+        <EmptyNote title={everyone === 0 ? "No former tenants yet" : "Nothing matches your filters"}>
+          {everyone === 0 ? "When a tenant leaves, a summary is saved here automatically." : "Try a different search, reason or year."}
         </EmptyNote>
       ) : (
-        <div className="overflow-x-auto">
+        <div aria-busy={loading} className={cn("overflow-x-auto", loading && "pointer-events-none opacity-60")}>
           <Table>
             <Table.Header>
               <Table.Row>
@@ -149,12 +180,12 @@ export function TenantHistory({ rows, loading }: { rows: TenantHistoryRow[]; loa
               </Table.Row>
             </Table.Header>
             <Table.Body>
-              {filtered.map((r) => (
+              {rows.map((r) => (
                 <Table.Row key={r.id}>
                   <Table.Cell>
                     <Person square name={r.shopName} detail={r.ownerName || r.ownerEmail || "Unknown owner"} image={r.logoUrl} />
                   </Table.Cell>
-                  <Table.Cell className="whitespace-nowrap text-sm text-kumo-default">{location(r)}</Table.Cell>
+                  <Table.Cell className="whitespace-nowrap text-sm text-kumo-default">{location(r, floorLabel)}</Table.Cell>
                   <Table.Cell className="whitespace-nowrap">
                     <p className="text-sm text-kumo-default">
                       {day(r.leaseStart)} to {day(r.endedAt)}
@@ -180,11 +211,13 @@ export function TenantHistory({ rows, loading }: { rows: TenantHistoryRow[]; loa
         </div>
       )}
 
+      {data && <Pager page={loading ? page : data.page} total={data.total} onChange={setPage} />}
+
       <AdminDialog
         open={!!selected}
         onClose={() => setSelected(null)}
         title={selected?.shopName ?? ""}
-        description={selected ? `${location(selected)}${selected.category ? `, ${selected.category}` : ""}` : undefined}
+        description={selected ? `${location(selected, floorLabel)}${selected.category ? `, ${selected.category}` : ""}` : undefined}
       >
         {selected && (
           <div className="space-y-5">

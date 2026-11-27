@@ -13,6 +13,8 @@ import {
   getStorefrontAction,
 } from "@/app/actions/tenant";
 import { useAuth } from "@/app/providers";
+import { useDraft } from "@/lib/drafts/use-draft";
+import { DraftNote } from "@/components/drafts/draft-note";
 import { PRODUCT_STATUS_OPTIONS, availabilityLabel, isOutOfStock } from "@/lib/products";
 import { DEFAULT_SALE_DAYS, formatSaleDate, isSaleActive, phToday, saleEndDateInput, saleEndsAt } from "@/lib/post-sales";
 import { ShopCard } from "@/components/shop-card";
@@ -75,6 +77,18 @@ export default function DigitalStorefrontPage() {
     products: [],
   });
 
+  /** The shop as last saved, to tell unsaved edits apart. */
+  const [savedProfile, setSavedProfile] = useState<Partial<DigitalStorefront> | null>(null);
+  const draft = useDraft({
+    form: "tenant.storefront",
+    workspace: true,
+    enabled: Boolean(savedProfile),
+    editing: true,
+    value: savedProfile ? profile : null,
+    initial: savedProfile,
+    onRestore: (saved) => saved && setProfile(saved),
+  });
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -104,7 +118,10 @@ export default function DigitalStorefrontPage() {
     async function loadData() {
       if (user?.id) {
         const res = await getStorefrontAction(user.id);
-        if (res.success && res.data) setProfile(res.data);
+        if (res.success && res.data) {
+          setProfile(res.data);
+          setSavedProfile(res.data);
+        }
         setLoading(false);
       }
     }
@@ -118,9 +135,15 @@ export default function DigitalStorefrontPage() {
       return;
     }
     setSaving(true);
-    const res = await updateStorefrontAction(user.id, profile);
+    const res = await draft.send(() => updateStorefrontAction(user.id, profile));
+    if (!res) {
+      setSaving(false);
+      return;
+    }
     if (res.success && res.data) {
+      draft.clear();
       setProfile(res.data);
+      setSavedProfile(res.data);
       showToast(
         "Saved. Your changes are live on the mall website.",
         "success",
@@ -323,6 +346,7 @@ export default function DigitalStorefrontPage() {
       <div className="grid items-start gap-6 lg:grid-cols-12">
         <div className="min-w-0 space-y-4 lg:col-span-8">
           <PageTabs tabs={TABS} value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} />
+          <DraftNote draft={draft} />
 
           {activeTab === "identity" && (
             <Panel title="Brand identity" description="Logo, name and details shoppers use to find you.">

@@ -94,7 +94,7 @@ export async function updateLostAndFoundItemStatus(id: string, status: string) {
         title: done ? `Lost & found closed · ${item.title}` : `Lost & found update · ${item.title}`,
         message: done
           ? `"${item.title}" was marked ${status.toLowerCase()} by the mall office.`
-          : `"${item.title}" is now ${status.toLowerCase()}. Visit the concierge desk or message the admin for details.`,
+          : `"${item.title}" is now ${status.toLowerCase()}. Visit the mall office or message the admin for details.`,
         link: "/lost-and-found",
       });
     }

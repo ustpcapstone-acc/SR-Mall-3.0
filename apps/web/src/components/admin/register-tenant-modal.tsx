@@ -21,6 +21,8 @@ import {
 } from "lucide-react";
 import { registerTenantAction, checkEmailExists } from "@/app/actions/tenant";
 import { getAvailableSlots } from "@/app/actions/space-slot";
+import { useDraft } from "@/lib/drafts/use-draft";
+import { DraftNote } from "@/components/drafts/draft-note";
 import clsx from "clsx";
 
 // ── PDF Voucher Generator (browser-native, zero-dependency) ──────────────────
@@ -103,6 +105,36 @@ export function RegisterTenantModal({ isOpen, onClose, onSuccess }: Props) {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
+  // The temporary password is never kept on this device.
+  const draft = useDraft({
+    form: "admin.register-tenant",
+    enabled: isOpen && !successMsg,
+    value: { email, confirmEmail, shopName, category, phone, slotId, rentCost, startDate, endDate },
+    initial: {
+      email: "",
+      confirmEmail: "",
+      shopName: "",
+      category: "",
+      phone: "",
+      slotId: "",
+      rentCost: "" as number | "",
+      startDate: "",
+      endDate: "",
+    },
+    onRestore: (saved) => {
+      setEmail(saved.email);
+      setConfirm(saved.confirmEmail);
+      setShopName(saved.shopName);
+      setCategory(saved.category);
+      setPhone(saved.phone);
+      setSlotId(saved.slotId);
+      setRentCost(saved.rentCost);
+      setStartDate(saved.startDate);
+      setEndDate(saved.endDate);
+      if (!saved.email) setStep(1);
+    },
+  });
+
   // Fetch available slots when modal opens
   useEffect(() => {
     if (isOpen) {
@@ -181,14 +213,20 @@ export function RegisterTenantModal({ isOpen, onClose, onSuccess }: Props) {
 
     try {
       console.log("Calling registerTenantAction...");
-      const res = await registerTenantAction({
-        email,
-        password: tempPass,
-        shopName,
-        category,
-        unitId: slotId,
-        rentCost: Number(rentCost),
-      });
+      const res = await draft.send(() =>
+        registerTenantAction({
+          email,
+          password: tempPass,
+          shopName,
+          category,
+          unitId: slotId,
+          rentCost: Number(rentCost),
+        }),
+      );
+      if (!res) {
+        setIsLoading(false);
+        return;
+      }
       console.log("registerTenantAction result:", res);
 
       if (!res.success) {
@@ -199,6 +237,7 @@ export function RegisterTenantModal({ isOpen, onClose, onSuccess }: Props) {
       }
 
       console.log("Registration successful!");
+      draft.clear();
 
       // PDF Generation with better error handling
       try {
@@ -379,6 +418,9 @@ export function RegisterTenantModal({ isOpen, onClose, onSuccess }: Props) {
         </div>
 
         <div className={clsx("px-8", "pb-8", "pt-2")}>
+          <div className="dark" data-mode="dark">
+            <DraftNote draft={draft} className="mb-3" />
+          </div>
           {step === 1 && (
             <div className={clsx("space-y-5", "animate-fade-in")}>
               <div>
@@ -539,7 +581,11 @@ export function RegisterTenantModal({ isOpen, onClose, onSuccess }: Props) {
                 onClick={async () => {
                   setIsCheckingEmail(true);
                   setErrorMsg(null);
-                  const result = await checkEmailExists(email);
+                  const result = await draft.send(() => checkEmailExists(email));
+                  if (!result) {
+                    setIsCheckingEmail(false);
+                    return;
+                  }
                   if (result.success && result.exists) {
                     setErrorMsg(
                       "This email is already registered. Please use a different email.",
@@ -742,7 +788,7 @@ export function RegisterTenantModal({ isOpen, onClose, onSuccess }: Props) {
                   </option>
                   {availableSlots.map((s) => (
                     <option key={s.id} value={s.unit_id}>
-                      {s.unit_id} — ₱{s.base_rent.toLocaleString()}
+                      {s.unit_id}, ₱{s.base_rent.toLocaleString()}
                     </option>
                   ))}
                 </select>

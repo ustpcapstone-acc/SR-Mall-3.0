@@ -14,7 +14,7 @@ import { staffCanOpen, staffHome } from "@/lib/tenant-permissions";
 const AREAS: { prefix: string; type: AccountType; login: string }[] = [
   { prefix: "/admindashboard", type: "ADMIN", login: "/staff-portal" },
   { prefix: "/admin", type: "ADMIN", login: "/staff-portal" },
-  { prefix: "/tenantdashboard", type: "TENANT", login: "/tenant-portal" },
+  { prefix: "/tenantdashboard", type: "TENANT", login: "/login?role=tenant" },
   { prefix: "/account", type: "CUSTOMER", login: "/login" },
 ];
 

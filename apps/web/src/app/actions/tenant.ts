@@ -11,6 +11,8 @@ import { DigitalStorefront } from "@/types/storefront";
 import { revalidatePath } from "next/cache";
 import { occupySlot } from "./space-slot";
 import { recordTenantExit } from "@/lib/tenant-history";
+import { listFloors } from "@/lib/floors-server";
+import { PAGE_SIZE, clampPage, likeText } from "@/lib/paging";
 import { rentOf } from "@/lib/tenant-rent";
 import { findShop, listPublicShops, ownShop, shopKey, shopOfLease, type Shop } from "@/lib/shops";
 import { resolveWorkspace } from "@/lib/workspace-server";
@@ -416,7 +418,7 @@ export async function getAllStorefrontsAction() {
 
 export async function getAllTenantsAction() {
   try {
-    await requireStaffAny("tenant_monitoring");
+    await requireStaffAny("tenant_monitoring", "payments");
     const tenants = await (prisma as any).tenant.findMany({
       orderBy: { shopName: "asc" },
       include: {
@@ -569,7 +571,7 @@ export async function registerTenantAction(data: {
           shopName: data.shopName,
           unitId: data.unitId,
           status: "ACTIVE",
-          description: `Premier ${data.category} provider at SR Mall.`,
+          description: `${data.category} shop at SR Mall.`,
           galleryUrls: [],
           products: [],
         },
@@ -637,7 +639,7 @@ export async function approveTenantAction(tenantId: string, unitId?: string) {
     await notify("MERCHANT_APPLICATION_UPDATE", {
       recipients: [tenant.userId],
       title: `Welcome to SR Mall 🎉 · ${tenant.shopName}`,
-      message: `Your application was approved${unitId && unitId !== "PENDING_ASSIGNMENT" ? ` for Unit ${unitId}` : ""}. Your tenant dashboard is ready — set up your storefront to go live.`,
+      message: `Your application was approved${unitId && unitId !== "PENDING_ASSIGNMENT" ? ` for Unit ${unitId}` : ""}. Your tenant dashboard is ready. Set up your storefront to go live.`,
       link: "/tenantdashboard",
       email: false,
     });
@@ -742,7 +744,7 @@ export async function getTenantReportDataAction(filter?: {
   year?: number;
 }) {
   try {
-    await requireStaffAny("tenant_monitoring");
+    await requireStaffAny("tenant_monitoring", "payments");
     const tenants = await (prisma as any).tenant.findMany({
       include: {
         user: {
@@ -762,7 +764,7 @@ export async function getTenantReportDataAction(filter?: {
       },
     });
 
-    const slots = await prisma.areaSlot.findMany();
+    const [slots, floors] = await Promise.all([prisma.areaSlot.findMany(), listFloors()]);
     // Real payment dates (newer column; raw SQL until the client is regenerated).
     const paidAtRows = await prisma
       .$queryRawUnsafe<{ id: string; paidAt: Date }[]>(
@@ -776,6 +778,7 @@ export async function getTenantReportDataAction(filter?: {
       const rent = rentOf(t, slots);
 
       const relevantInvoices = t.invoices.filter((inv: any) => {
+        if (inv.status === "VOID") return false;
         if (!filter) return true;
         const d = new Date(inv.dueDate || inv.createdAt);
         if (filter.year !== undefined && d.getFullYear() !== filter.year) return false;
@@ -805,13 +808,9 @@ export async function getTenantReportDataAction(filter?: {
       )[0];
       const nextDueDate = overdueInvoice ? overdueInvoice.dueDate : null;
 
-      let floorLevel = "Ground Floor";
-      if (t.unitId && t.unitId.includes("-")) {
-        const floorPart = t.unitId.split("-")[0];
-        if (floorPart.startsWith("L")) {
-          floorLevel = `Level ${floorPart.substring(1)}`;
-        }
-      }
+      // The floor of the tenant's first unit; shops without one are listed last.
+      const unit = slots.find((s) => s.unit_id === (rent.units[0] ?? t.unitId));
+      const floor = unit && floors.find((f) => f.id === unit.floor);
 
       return {
         id: t.id,
@@ -830,12 +829,13 @@ export async function getTenantReportDataAction(filter?: {
           relevantInvoices[0]?.status === "PAID"
             ? "PAID"
             : relevantInvoices[0]?.status || (filter ? (t.status === "ACTIVE" ? "ACTIVE" : t.status || "N/A") : t.invoices[0]?.status || "PENDING"),
-        floorLevel,
+        floorLevel: floor ? floor.name : "No floor",
+        floorOrder: floor ? floor.level : Number.MAX_SAFE_INTEGER,
       };
     });
 
     // Solve "Organize the list by Floor Level"
-    data.sort((a: any, b: any) => a.floorLevel.localeCompare(b.floorLevel));
+    data.sort((a: any, b: any) => a.floorOrder - b.floorOrder);
 
     return { success: true, data };
   } catch (error: any) {
@@ -1022,29 +1022,65 @@ export async function updateAdminPostSaleAction(tenantId: string, saleId: string
 }
 
 /**
- * Tenant History for the admin: every snapshot saved when a tenant left
- * (see lib/tenant-history.ts), newest first.
+ * Tenant History for the admin: snapshots saved when a tenant left (see
+ * lib/tenant-history.ts), newest first. Returns one page of the matches, or all
+ * of them for the CSV export.
  */
-export async function getPastTenantsAction() {
+export async function getPastTenantsAction(
+  input: { search?: string; reason?: string; year?: string; page?: number; all?: boolean } = {},
+) {
   try {
     await requireStaffAny("users");
+    // The year as it reads in the Philippines.
+    const YEAR = `EXTRACT(YEAR FROM ("endedAt" AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Manila')::int`;
+    const params: unknown[] = [];
+    const param = (value: unknown) => `$${params.push(value)}`;
+    const conditions: string[] = [];
+    const search = likeText(input.search);
+    if (search) {
+      const like = param(`%${search}%`);
+      conditions.push(`("shopName" ILIKE ${like} OR "ownerName" ILIKE ${like} OR "ownerEmail" ILIKE ${like} OR "unitId" ILIKE ${like})`);
+    }
+    if (input.reason && input.reason !== "ALL") conditions.push(`"reason" = ${param(String(input.reason))}`);
+    if (/^\d{4}$/.test(input.year ?? "")) conditions.push(`${YEAR} = ${param(Number(input.year))}`);
+    const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+
+    const [[matching], years] = await Promise.all([
+      prisma.$queryRawUnsafe<{ total: number; unpaid: number }[]>(
+        `SELECT COUNT(*)::int AS "total", COALESCE(SUM("outstanding"), 0)::float AS "unpaid" FROM "TenantHistory" ${where}`,
+        ...params,
+      ),
+      prisma.$queryRawUnsafe<{ year: number; count: number }[]>(
+        `SELECT ${YEAR} AS "year", COUNT(*)::int AS "count" FROM "TenantHistory" GROUP BY 1 ORDER BY 1 DESC`,
+      ),
+    ]);
+    const page = clampPage(input.page, matching.total);
+    const limit = input.all ? "" : `LIMIT ${PAGE_SIZE} OFFSET ${(page - 1) * PAGE_SIZE}`;
     const rows = await prisma.$queryRawUnsafe<any[]>(
-      `SELECT * FROM "TenantHistory" ORDER BY "endedAt" DESC LIMIT 500`,
+      `SELECT * FROM "TenantHistory" ${where} ORDER BY "endedAt" DESC, "id" DESC ${limit}`,
+      ...params,
     );
     return {
-      success: true,
-      data: rows.map((r) => ({
-        ...r,
-        leaseStart: new Date(r.leaseStart).toISOString(),
-        endedAt: new Date(r.endedAt).toISOString(),
-        totalPaid: Number(r.totalPaid) || 0,
-        outstanding: Number(r.outstanding) || 0,
-        avgRating: Number(r.avgRating) || 0,
-      })),
+      success: true as const,
+      data: {
+        rows: rows.map((r) => ({
+          ...r,
+          leaseStart: new Date(r.leaseStart).toISOString(),
+          endedAt: new Date(r.endedAt).toISOString(),
+          totalPaid: Number(r.totalPaid) || 0,
+          outstanding: Number(r.outstanding) || 0,
+          avgRating: Number(r.avgRating) || 0,
+        })),
+        total: matching.total,
+        page,
+        unpaid: matching.unpaid,
+        all: years.reduce((sum, y) => sum + y.count, 0),
+        years: years.map((y) => y.year),
+      },
     };
   } catch (error: any) {
     console.error("[GET_TENANT_HISTORY_ERROR]:", error);
-    return { success: false, error: error.message };
+    return { success: false as const, error: "Failed to load tenant history." };
   }
 }
 

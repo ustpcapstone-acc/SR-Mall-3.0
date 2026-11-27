@@ -6,6 +6,8 @@ import { ArrowClockwise, Flag, Star } from "@phosphor-icons/react";
 import { AdminDialog, AdminPage, EmptyNote, Panel, Stat, StatRow } from "@/components/admin/page-kit";
 import { toast } from "sonner";
 import { useAuth } from "@/app/providers";
+import { useDraft } from "@/lib/drafts/use-draft";
+import { DraftNote } from "@/components/drafts/draft-note";
 import {
   getTenantReviewsAction,
   replyToReviewAction,
@@ -353,12 +355,28 @@ function ReviewRow({
   const [draft, setDraft] = useState(review.reply || "");
   const [saving, setSaving] = useState(false);
   const hasComment = Boolean(review.comment?.trim());
+  const autosave = useDraft({
+    form: "tenant.review-reply",
+    workspace: true,
+    scope: [review.id],
+    editing: Boolean(review.reply),
+    value: { text: draft },
+    initial: { text: review.reply || "" },
+    onRestore: (saved) => {
+      setDraft(saved.text);
+      // Open the reply box so the restored text is visible.
+      if (saved.text !== (review.reply || "")) setEditing(true);
+    },
+  });
 
   const save = async (text: string) => {
     setSaving(true);
     try {
-      const res = await replyToReviewAction(userId, review.id, text);
+      const res = await autosave.send(() => replyToReviewAction(userId, review.id, text));
+      if (!res) return;
       if (res.success) {
+        autosave.clear();
+        setDraft(res.reply ?? "");
         onUpdated({ reply: res.reply ?? null, repliedAt: res.reply ? new Date().toISOString() : null });
         setEditing(false);
         toast.success(res.reply ? "Reply published on your shop page" : "Reply removed");
@@ -410,6 +428,7 @@ function ReviewRow({
         )}
 
         {/* Reply */}
+        {autosave.conflictAt && !editing && <DraftNote draft={autosave} />}
         {editing ? (
           <div className="space-y-2">
             <InputArea
@@ -421,6 +440,7 @@ function ReviewRow({
               placeholder="Thank the customer or answer their feedback. Your reply is public."
               className="w-full"
             />
+            <DraftNote draft={autosave} />
             <div className="flex items-center justify-end gap-2">
               <span className="mr-auto text-xs tabular-nums text-kumo-subtle">
                 {draft.length}/{REPLY_MAX}
@@ -487,12 +507,23 @@ function ReportModal({
   const [reason, setReason] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const draft = useDraft({
+    form: "tenant.review-report",
+    workspace: true,
+    scope: [review.id],
+    value: { reason },
+    initial: { reason: "" },
+    onRestore: (saved) => setReason(saved.reason),
+  });
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
     try {
-      setError(await onSubmit(reason));
+      const sent = await draft.send(async () => ({ error: await onSubmit(reason) }));
+      if (!sent) return;
+      if (!sent.error) draft.clear();
+      setError(sent.error);
     } finally {
       setBusy(false);
     }
@@ -526,6 +557,7 @@ function ReportModal({
           className="w-full"
         />
         {error && <p className="text-sm font-medium text-kumo-danger">{error}</p>}
+        <DraftNote draft={draft} />
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <Button type="button" variant="secondary" disabled={busy} onClick={onClose}>
             Cancel

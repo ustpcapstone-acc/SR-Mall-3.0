@@ -64,13 +64,13 @@ export function emailBaseUrl() {
   const explicit = clean(process.env.EMAIL_BASE_URL);
   if (explicit && !isLegacyEmailHost(explicit)) return explicit;
   // A local / LAN address (e.g. http://192.168.0.103:3000) can't be opened from
-  // an email on another device — use the live site instead.
+  // an email on another device, use the live site instead.
   const app = clean(process.env.NEXT_PUBLIC_APP_URL);
   if (app && !isLegacyEmailHost(app)) {
     try {
       if (!isLocalHost(new URL(app).host)) return app;
     } catch {
-      /* not a URL — ignore */
+      /* not a URL, ignore */
     }
   }
   return LIVE_SITE_URL;

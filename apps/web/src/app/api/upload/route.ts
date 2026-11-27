@@ -31,6 +31,7 @@ const FOLDERS: Record<string, (account: Account | null) => boolean> = {
   postsales: staff,
   lostfound: staff,
   spaces: staff,
+  "floor-plans": staff,
 };
 
 export async function POST(request: NextRequest) {

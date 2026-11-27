@@ -7,6 +7,8 @@ import clsx from "clsx";
 import { toast } from "sonner";
 import { AlertTriangle, Bell, Loader2, Lock, MapPin, Power, Store, User } from "lucide-react";
 import { useAuth } from "@/app/providers";
+import { useDraft } from "@/lib/drafts/use-draft";
+import { DraftNote } from "@/components/drafts/draft-note";
 import { SHOP_CATEGORIES } from "@/lib/shop-categories";
 import {
   deactivateTenantTerminalAction,
@@ -71,12 +73,25 @@ function useMyShop(userId?: string) {
     return null;
   }, [form]);
 
+  const draft = useDraft({
+    form: "tenant.shop-settings",
+    workspace: true,
+    scope: [shop?.id],
+    enabled: Boolean(saved),
+    editing: true,
+    value: form,
+    initial: saved,
+    onRestore: setForm,
+  });
+
   const save = async () => {
     if (!userId || !form || problem) return;
     setSaving(true);
     try {
-      const res = await updateMyShopSettingsAction(userId, { ...form, shopId: shop?.id });
+      const res = await draft.send(() => updateMyShopSettingsAction(userId, { ...form, shopId: shop?.id }));
+      if (!res) return;
       if (res.success) {
+        draft.clear();
         setSaved(form);
         setShop((s) => (s ? { ...s, ...form } : s));
         toast.success("Shop details saved");
@@ -98,6 +113,7 @@ function useMyShop(userId?: string) {
   };
 
   return {
+    draft,
     shop,
     form,
     set: (patch: Partial<ShopForm>) => setForm((f) => (f ? { ...f, ...patch } : f)),
@@ -267,6 +283,8 @@ export default function TenantProfileSettings() {
                 </button>
               </SettingsCard>
             )}
+
+            <DraftNote draft={myShop.draft} />
 
             <SaveBar dirty={myShop.dirty} saving={myShop.saving} blocked={myShop.problem} onSave={myShop.save} onDiscard={myShop.discard} />
           </>

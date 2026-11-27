@@ -2,19 +2,8 @@
 
 import { optimizedImage } from "@/lib/media";
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import {
-  X,
-  Send,
-  Paperclip,
-  MapPin,
-  ArrowLeft,
-  Search,
-  Loader2,
-  Ban,
-  ExternalLink,
-  Building2,
-  MessageCircle,
-} from "lucide-react";
+import { Button, Input, Loader } from "@cloudflare/kumo";
+import { ArrowLeft, Buildings, ChatCircle, MapPin, PaperPlaneRight, Paperclip, X } from "@phosphor-icons/react";
 import { useAuth } from "@/app/providers";
 import { ChatAvatar, ChatImage, bubblePadding } from "@/components/chat/chat-media";
 import { LoginModal } from "./login-modal";
@@ -43,6 +32,9 @@ import {
 import { formatMessageTime, startsNewDay } from "@/lib/chat-time";
 import { ChatConfirmModal, ChatDaySeparator, UnsendButton } from "@/components/chat/chat-ui";
 import { toast } from "sonner";
+import { useDraft } from "@/lib/drafts/use-draft";
+import { DraftNote } from "@/components/drafts/draft-note";
+import { isOffline } from "@/lib/drafts/online";
 import { timeAgo } from "@/components/notifications/notification-ui";
 import type { MyChatRow } from "@/app/actions/chat-queries";
 
@@ -60,7 +52,7 @@ interface ChatBoxProps {
 type ChatShop = { id?: string; name: string; logo: string | null };
 
 /** Shop logo, falling back to initials when there is none or it fails to load. */
-function ShopAvatar({ name, logo, className = "w-12 h-12" }: { name: string; logo: string | null; className?: string }) {
+function ShopAvatar({ name, logo, className = "size-11" }: { name: string; logo: string | null; className?: string }) {
   const [broken, setBroken] = useState(false);
   const initials = name
     .split(/\s+/)
@@ -70,7 +62,7 @@ function ShopAvatar({ name, logo, className = "w-12 h-12" }: { name: string; log
     .join("")
     .toUpperCase() || "?";
   return (
-    <div className={`${className} rounded-full overflow-hidden bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-sm border border-slate-100 dark:border-white/5 shrink-0`}>
+    <div className={`${className} rounded-full overflow-hidden bg-kumo-recessed text-kumo-default flex items-center justify-center font-semibold text-sm border border-kumo-line shrink-0`}>
       {logo && !broken ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={optimizedImage(logo, 96)} alt="" onError={() => setBroken(true)} className="w-full h-full object-cover" />
@@ -81,10 +73,10 @@ function ShopAvatar({ name, logo, className = "w-12 h-12" }: { name: string; log
   );
 }
 
-function AdminAvatar({ className = "w-12 h-12" }: { className?: string }) {
+function AdminAvatar({ className = "size-11" }: { className?: string }) {
   return (
     <div className={`${className} rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0`}>
-      <Building2 size={20} />
+      <Buildings size={20} aria-hidden />
     </div>
   );
 }
@@ -125,6 +117,7 @@ export const ChatBox = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [lightboxImageUrl, setLightboxImageUrl] = useState<string | null>(null);
+  const [unsendTarget, setUnsendTarget] = useState<any | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -238,6 +231,29 @@ export const ChatBox = ({
     }
   }, [initialMessage, isOpen]);
 
+  // One unfinished message per conversation. Text that failed to send stays in
+  // the draft until it goes through.
+  const thread = recipient === "admin" ? "admin" : `shop:${selectedShop.name.trim().toLowerCase()}`;
+  const [unsent, setUnsent] = useState<{ thread: string; tempId: string; text: string } | null>(null);
+  const lastThread = useRef(thread);
+  useEffect(() => {
+    if (lastThread.current === thread) return;
+    lastThread.current = thread;
+    setInputText((text) => (text === initialMessage ? text : ""));
+  }, [thread, initialMessage]);
+  const draft = useDraft({
+    form: "customer.chat",
+    scope: [recipient === "admin" ? "admin" : selectedShop.id || thread],
+    enabled: isOpen && viewMode === "chat" && (recipient === "admin" || availableShops.length > 0),
+    value: { text: inputText || (unsent?.thread === thread ? unsent.text : "") },
+    initial: { text: "" },
+    onRestore: (saved) => {
+      setUnsent(null);
+      // A message the page just filled in (e.g. a claim request) wins.
+      setInputText((text) => (saved.text && text === initialMessage ? text : saved.text));
+    },
+  });
+
   // Countdown for the 3-second send lock.
   useEffect(() => {
     if (!cooldownUntil) {
@@ -302,7 +318,7 @@ export const ChatBox = ({
     }
   }, [isOpen, user?.email, recipient, selectedShop.name, selectedShop.id, viewMode]);
 
-  // Older page — requested only when the user scrolls to the top.
+  // Older page, requested only when the user scrolls to the top.
   const fetchOlderMessages = useCallback(async () => {
     if (loadingOlderRef.current || !hasOlderMessages) return;
     if (!isOpen || !user?.email || viewMode !== "chat") return;
@@ -386,15 +402,15 @@ export const ChatBox = ({
     };
   }, [isOpen, viewMode, isAuthenticated, loadChatList]);
 
-  // Esc closes the chat box (not while the image viewer is open).
+  // Esc closes the chat box (not while another window is open over it).
   useEffect(() => {
     if (!isOpen) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !lightboxImageUrl) onClose();
+      if (e.key === "Escape" && !lightboxImageUrl && !unsendTarget && !isLoginModalOpen) onClose();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [isOpen, lightboxImageUrl, onClose]);
+  }, [isOpen, lightboxImageUrl, unsendTarget, isLoginModalOpen, onClose]);
 
   // Supabase Realtime: exactly one channel per conversation, removed when the
   // conversation changes or the widget unmounts.
@@ -448,7 +464,7 @@ export const ChatBox = ({
     }
   }, [isOpen, user?.id]);
 
-  // The open thread counts as read — including messages that arrive while open.
+  // The open thread counts as read, including messages that arrive while open.
   const lastMessageId = dbMessages[dbMessages.length - 1]?.id;
   useEffect(() => {
     if (!isOpen || viewMode !== "chat" || !user?.id || conversationIds.length === 0) return;
@@ -464,7 +480,6 @@ export const ChatBox = ({
     return setViewingChats(viewingKey.split("|"));
   }, [viewingKey]);
 
-  const [unsendTarget, setUnsendTarget] = useState<any | null>(null);
   const [isUnsending, setIsUnsending] = useState(false);
   const confirmUnsend = async () => {
     if (!unsendTarget || !user?.id) return;
@@ -582,6 +597,7 @@ export const ChatBox = ({
       }
 
       pendingFilesRef.current.delete(payload.tempId);
+      setUnsent((current) => (current?.tempId === payload.tempId ? null : current));
       if (res?.message) {
         // Swap temp-… for the real row (same id the realtime event carries).
         setDbMessages((prev) =>
@@ -636,6 +652,12 @@ export const ChatBox = ({
     if (!textToSend.trim() && !fileToSend) return;
     if (!user?.email) return;
 
+    if (isOffline()) {
+      draft.flush();
+      toast.error("You're offline. Your message is kept here. Send it when you're back online.");
+      return;
+    }
+
     sendingRef.current = true;
     setCooldownUntil(Date.now() + 3000);
 
@@ -648,6 +670,7 @@ export const ChatBox = ({
       // Instant optimistic update with local preview
       const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
       const contentToSend = textToSend || "📎 Image";
+      setUnsent({ thread, tempId, text: inputText });
 
       setDbMessages((prev) =>
         normalizeMessages([
@@ -681,7 +704,7 @@ export const ChatBox = ({
     }
   };
 
-  // Retry a failed bubble — its text and image are preserved.
+  // Retry a failed bubble, its text and image are preserved.
   const retryMessage = (message: any) => {
     if (!message?.id || message.sending) return;
     const file = pendingFilesRef.current.get(message.id) ?? null;
@@ -697,76 +720,66 @@ export const ChatBox = ({
 
 
   const isUserBlocked = !!(user as any)?.isBlacklisted;
+  const blocked = isUserBlocked || isRecipientBlocking;
+  const threadName = recipient === "admin" ? "Mall Administration" : selectedShop.name;
+  const ROW = "flex w-full cursor-pointer items-center gap-3 rounded-xl border p-3 text-left hover:bg-kumo-tint";
+
+  const signInPrompt = (
+    <div className="flex flex-col items-center gap-3 px-6 py-10 text-center">
+      <span className="flex size-14 items-center justify-center rounded-full bg-primary/10 text-primary">
+        <ChatCircle size={28} aria-hidden />
+      </span>
+      <p className="text-base font-semibold text-kumo-default">Sign in to chat</p>
+      <p className="max-w-60 text-sm text-kumo-subtle">Sign in to message the mall office and the shops.</p>
+      <Button variant="primary" size="lg" onClick={() => setIsLoginModalOpen(true)}>
+        Sign In
+      </Button>
+    </div>
+  );
 
   return (
     <>
-      <div className="fixed inset-x-0 bottom-0 sm:inset-auto sm:bottom-32 sm:right-10 z-100 w-full h-[85vh] sm:w-[400px] sm:h-[600px] bg-white dark:bg-zinc-900 rounded-t-4xl sm:rounded-[2.5rem] shadow-2xl border-0 sm:border border-slate-100 dark:border-white/5 flex flex-col overflow-hidden animate-slide-up">
+      {/* The height is capped to the window so the close button always stays on screen. */}
+      <div
+        role="dialog"
+        aria-label="Messages"
+        className="animate-slide-up fixed inset-x-0 bottom-0 z-100 flex h-[85dvh] w-full flex-col overflow-hidden rounded-t-2xl bg-kumo-base shadow-2xl sm:inset-auto sm:bottom-32 sm:right-10 sm:h-[min(600px,calc(100dvh-9rem))] sm:w-[400px] sm:rounded-2xl sm:border sm:border-kumo-line"
+      >
         {/* Header */}
-        <div className="px-5 py-4 bg-primary flex items-center justify-between text-white shadow-md z-10">
-          <div className="flex items-center gap-3 min-w-0">
+        <div className="flex shrink-0 items-center justify-between gap-2 border-b border-kumo-line bg-kumo-base px-3 py-3">
+          <div className="flex min-w-0 items-center gap-2">
             {viewMode === "chat" && (
-              <button
-                type="button"
-                onClick={() => setViewMode("list")}
-                aria-label="Back to chats"
-                className="p-1.5 -ml-1 hover:bg-white/20 rounded-full transition-colors active:scale-95"
-              >
-                <ArrowLeft size={20} />
-              </button>
+              <Button variant="ghost" shape="square" icon={<ArrowLeft />} aria-label="Back to chats" onClick={() => setViewMode("list")} />
             )}
-            <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center overflow-hidden font-semibold text-lg shrink-0">
-              {viewMode === "chat" ? (
-                recipient === "admin" ? (
-                  <Building2 size={20} />
-                ) : selectedShop.logo ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={optimizedImage(selectedShop.logo, 96)} alt="" className="w-full h-full object-cover" />
-                ) : (
-                  (selectedShop.name || "?").charAt(0).toUpperCase()
-                )
-              ) : isAuthenticated && user?.avatarUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={optimizedImage(user.avatarUrl, 96)} alt="" className="w-full h-full object-cover" />
-              ) : isAuthenticated ? (
-                (user?.name || user?.email || "?").charAt(0).toUpperCase()
+            {viewMode === "chat" ? (
+              recipient === "admin" ? (
+                <AdminAvatar className="size-10" />
               ) : (
-                <MessageCircle size={20} />
-              )}
-            </div>
-            <div className="flex flex-col min-w-0">
-              <h3 className="font-semibold text-sm tracking-tight truncate max-w-[220px]">
-                {viewMode === "chat"
-                  ? recipient === "admin"
-                    ? "Mall Administration"
-                    : selectedShop.name
-                  : isAuthenticated
-                    ? `Hi, ${(user?.name || "there").split(" ")[0]} 👋`
-                    : "SR Mall Messages"}
+                <ShopAvatar name={selectedShop.name || "?"} logo={selectedShop.logo} className="size-10" />
+              )
+            ) : null}
+            <div className={`min-w-0 ${viewMode === "list" ? "pl-1" : ""}`}>
+              <h3 className="truncate font-display text-lg font-semibold leading-tight text-kumo-default">
+                {viewMode === "chat" ? threadName : "Messages"}
               </h3>
-              <span className="text-xs font-bold text-white/80 truncate">
+              <p className="truncate text-sm text-kumo-subtle">
                 {viewMode === "chat"
                   ? recipient === "admin"
-                    ? "Replies within 12–24 hours"
+                    ? "Replies within 12 to 24 hours"
                     : "Shop chat"
                   : isUserBlocked
                     ? "Account suspended"
-                    : "Messages"}
-              </span>
+                    : isAuthenticated
+                      ? `Signed in as ${user?.name || user?.email || "you"}`
+                      : "SR Mall"}
+              </p>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close chat"
-            title="Close (Esc)"
-            className="p-2 hover:bg-white/20 rounded-full transition-colors active:scale-95 shrink-0"
-          >
-            <X size={18} />
-          </button>
+          <Button variant="ghost" shape="square" icon={<X />} aria-label="Close chat" title="Close (Esc)" onClick={onClose} />
         </div>
 
         {viewMode === "list" ? (
-          <div className="flex-1 overflow-y-auto bg-slate-50 dark:bg-black/20 custom-scrollbar">
+          <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto bg-kumo-recessed">
             {isAuthenticated ? (
               (() => {
                 const q = searchQuery.trim().toLowerCase();
@@ -789,23 +802,21 @@ export const ChatBox = ({
                   setViewMode("chat");
                 };
                 return (
-                  <div className="p-3 sm:p-4 space-y-5">
-                    <div className="relative">
-                      <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                      <input
-                        suppressHydrationWarning
-                        type="text"
-                        placeholder="Search shops or admin…"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full bg-white dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl py-2.5 pl-9 pr-3 text-xs font-medium text-charcoal dark:text-white placeholder:text-slate-400 focus:outline-hidden focus:border-primary shadow-xs transition-all focus:ring-2 focus:ring-primary/20"
-                      />
-                    </div>
+                  <div className="space-y-5 p-3 sm:p-4">
+                    <Input
+                      suppressHydrationWarning
+                      type="search"
+                      aria-label="Search shops or the mall office"
+                      placeholder="Search shops or the mall office"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full"
+                    />
 
                     {/* Recent chats (Mall Administration is always offered first) */}
                     {(recent.length > 0 || showAdminStarter) && (
                       <section className="space-y-2">
-                        <h4 className="px-1 text-xs font-semibold text-slate-400">Recent chats</h4>
+                        <h4 className="px-1 text-sm font-semibold text-kumo-default">Recent chats</h4>
                         {showAdminStarter && (
                           <button
                             type="button"
@@ -813,12 +824,12 @@ export const ChatBox = ({
                               setRecipient("admin");
                               setViewMode("chat");
                             }}
-                            className="w-full text-left flex items-center gap-3 p-3 bg-white dark:bg-zinc-800 rounded-2xl hover:shadow-md transition-all border border-slate-100 dark:border-white/5"
+                            className={`${ROW} border-kumo-line bg-kumo-base`}
                           >
                             <AdminAvatar />
-                            <span className="flex-1 min-w-0">
-                              <span className="block font-bold text-sm text-charcoal dark:text-white">Mall Administration</span>
-                              <span className="block text-xs text-slate-500 truncate">Bookings, spaces & help</span>
+                            <span className="min-w-0 flex-1">
+                              <span className="block text-sm font-semibold text-kumo-default">Mall Administration</span>
+                              <span className="block truncate text-sm text-kumo-subtle">Bookings, spaces and help</span>
                             </span>
                           </button>
                         )}
@@ -829,29 +840,28 @@ export const ChatBox = ({
                               key={row.key}
                               type="button"
                               onClick={() => openRow(row)}
-                              className={`w-full text-left flex items-center gap-3 p-3 rounded-2xl hover:shadow-md transition-all border ${
-                                unread
-                                  ? "bg-primary/5 border-primary/20"
-                                  : "bg-white dark:bg-zinc-800 border-slate-100 dark:border-white/5"
-                              }`}
+                              className={`${ROW} ${unread ? "border-primary/40 bg-kumo-base" : "border-kumo-line bg-kumo-base"}`}
                             >
                               {row.kind === "admin" ? <AdminAvatar /> : <ShopAvatar name={row.name} logo={row.logo} />}
-                              <span className="flex-1 min-w-0">
+                              <span className="min-w-0 flex-1">
                                 <span className="flex items-center justify-between gap-2">
-                                  <span className={`text-sm text-charcoal dark:text-white truncate ${unread ? "font-semibold" : "font-bold"}`}>
+                                  <span className={`truncate text-sm text-kumo-default ${unread ? "font-semibold" : "font-medium"}`}>
                                     {row.name}
                                   </span>
-                                  <span className={`text-[10px] font-bold shrink-0 ${unread ? "text-primary" : "text-slate-400"}`}>
+                                  <span className={`shrink-0 text-xs ${unread ? "font-semibold text-primary" : "text-kumo-subtle"}`}>
                                     {timeAgo(row.lastAt)}
                                   </span>
                                 </span>
-                                <span className="flex items-center justify-between gap-2 mt-0.5">
-                                  <span className={`text-xs truncate ${unread ? "text-charcoal dark:text-white font-semibold" : "text-slate-500"}`}>
+                                <span className="mt-0.5 flex items-center justify-between gap-2">
+                                  <span className={`truncate text-sm ${unread ? "font-medium text-kumo-default" : "text-kumo-subtle"}`}>
                                     {row.fromMe ? "You: " : ""}
                                     {row.lastMessage || "Photo"}
                                   </span>
                                   {unread && (
-                                    <span className="min-w-5 h-5 px-1.5 rounded-full bg-primary text-white text-[10px] font-semibold flex items-center justify-center shrink-0">
+                                    <span
+                                      aria-label={`${row.unread} unread`}
+                                      className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-semibold text-white"
+                                    >
                                       {row.unread > 9 ? "9+" : row.unread}
                                     </span>
                                   )}
@@ -866,7 +876,7 @@ export const ChatBox = ({
                     {/* Everyone else you can message */}
                     {otherShops.length > 0 && (
                       <section className="space-y-2">
-                        <h4 className="px-1 text-xs font-semibold text-slate-400">All shops</h4>
+                        <h4 className="px-1 text-sm font-semibold text-kumo-default">All shops</h4>
                         {otherShops.map((shop) => (
                           <button
                             key={shop.id || shop.name}
@@ -876,12 +886,12 @@ export const ChatBox = ({
                               setSelectedShop(shop);
                               setViewMode("chat");
                             }}
-                            className="w-full text-left flex items-center gap-3 p-3 bg-white dark:bg-zinc-800 rounded-2xl hover:shadow-md transition-all border border-slate-100 dark:border-white/5"
+                            className={`${ROW} border-kumo-line bg-kumo-base`}
                           >
                             <ShopAvatar name={shop.name} logo={shop.logo} />
-                            <span className="flex-1 min-w-0">
-                              <span className="block font-bold text-sm text-charcoal dark:text-white truncate">{shop.name}</span>
-                              <span className="block text-xs text-slate-400">Start a conversation</span>
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate text-sm font-semibold text-kumo-default">{shop.name}</span>
+                              <span className="block text-sm text-kumo-subtle">Start a conversation</span>
                             </span>
                           </button>
                         ))}
@@ -889,71 +899,49 @@ export const ChatBox = ({
                     )}
 
                     {recent.length === 0 && !showAdminStarter && otherShops.length === 0 && (
-                      <p className="py-10 text-center text-sm text-slate-400">No shops match “{searchQuery}”.</p>
+                      <p className="py-10 text-center text-sm text-kumo-subtle">No shops match “{searchQuery}”.</p>
                     )}
                   </div>
                 );
               })()
             ) : (
-              <div className="relative h-full w-full flex flex-col items-center justify-center p-6 text-center bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xs z-10">
-                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-                  <MapPin size={32} className="text-primary" />
-                </div>
-                <h4 className="font-bold text-lg text-charcoal dark:text-white mb-2">
-                  Member Chat
-                </h4>
-                <p className="text-sm font-medium text-slate-500 mb-6 max-w-[200px] leading-relaxed">
-                  Connect securely with mall administration and individual stores.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setIsLoginModalOpen(true)}
-                  className="px-8 py-3 bg-primary text-white font-bold text-xs rounded-xl shadow-lg hover:bg-primary-hover hover:scale-105 transition-all"
-                >
-                  Sign In
-                </button>
-              </div>
+              <div className="flex min-h-full flex-col justify-center">{signInPrompt}</div>
             )}
           </div>
         ) : (
           <>
             {/* Blocked User Notice */}
-            {(isUserBlocked || isRecipientBlocking) && (
-              <div className="p-3 bg-red-50 dark:bg-red-950/40 border-b border-red-200 dark:border-red-900/30 text-red-600 dark:text-red-400 text-xs font-bold flex items-center gap-2">
-                <Ban size={14} />
-                <span>
-                  {isUserBlocked
-                    ? "Your account is suspended. Messaging is disabled."
-                    : "This recipient is currently not accepting incoming messages from you."}
-                </span>
-              </div>
+            {blocked && (
+              <p className="shrink-0 border-b border-kumo-line bg-kumo-danger-tint px-4 py-2.5 text-sm font-medium text-kumo-danger">
+                {isUserBlocked
+                  ? "Your account is suspended. Messaging is disabled."
+                  : "This recipient is currently not accepting incoming messages from you."}
+              </p>
             )}
 
             {/* Messages Area */}
             <div
               ref={messagesContainerRef}
               onScroll={handleScroll}
-              className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 custom-scrollbar bg-slate-50/50 dark:bg-black/20"
+              className="custom-scrollbar min-h-0 flex-1 space-y-4 overflow-y-auto overflow-x-hidden bg-kumo-recessed p-3 sm:p-4"
             >
-              {isAuthenticated && !threadLoaded && dbMessages.length === 0 ? (
-                <div className="h-full flex items-center justify-center py-16">
-                  <Loader2 size={22} className="animate-spin text-primary" />
+              {!isAuthenticated ? (
+                <div className="flex h-full flex-col justify-center">{signInPrompt}</div>
+              ) : !threadLoaded && dbMessages.length === 0 ? (
+                <div className="flex justify-center py-16">
+                  <Loader />
                 </div>
               ) : dbMessages.length === 0 ? (
-                <div className="flex flex-col items-center text-center py-12 px-6 gap-3 animate-fade-in">
+                <div className="flex flex-col items-center gap-3 px-6 py-12 text-center">
                   {recipient === "admin" ? (
-                    <AdminAvatar className="w-16 h-16" />
+                    <AdminAvatar className="size-16" />
                   ) : (
-                    <ShopAvatar name={selectedShop.name || "?"} logo={selectedShop.logo} className="w-16 h-16" />
+                    <ShopAvatar name={selectedShop.name || "?"} logo={selectedShop.logo} className="size-16" />
                   )}
-                  <p className="text-sm font-bold text-charcoal dark:text-white">
-                    {isAuthenticated
-                      ? `Say hi to ${recipient === "admin" ? "Mall Administration" : selectedShop.name} 👋`
-                      : "Sign in to start chatting"}
-                  </p>
-                  <p className="text-xs text-slate-400 max-w-[240px]">
+                  <p className="text-sm font-semibold text-kumo-default">Say hello to {threadName}</p>
+                  <p className="max-w-60 text-sm text-kumo-subtle">
                     {recipient === "admin"
-                      ? "Ask about space bookings, events, lost & found or anything about the mall."
+                      ? "Ask about space bookings, events, lost and found or anything about the mall."
                       : "Ask about products, prices, stock or opening hours."}
                   </p>
                 </div>
@@ -980,175 +968,131 @@ export const ChatBox = ({
 
                 return (
                   <React.Fragment key={msg.id}>
-                  {startsNewDay(dbMessages[index - 1]?.createdAt, msg.createdAt) && (
-                    <ChatDaySeparator date={msg.createdAt} />
-                  )}
-                  <div
-                    className={`flex gap-2.5 ${
-                      isUserSender ? "justify-end" : "justify-start"
-                    } items-end animate-fade-in group group/msg relative`}
-                  >
-                    {isUserSender && !isTemporary && (
-                      <UnsendButton onClick={() => setUnsendTarget(msg)} />
-                    )}
-                    {!isUserSender && <ChatAvatar src={senderAvatar} name={senderName} />}
-                    <div className={`flex flex-col ${isUserSender ? "items-end" : "items-start"}`}>
-                      <div className="relative group/bubble">
+                    {startsNewDay(dbMessages[index - 1]?.createdAt, msg.createdAt) && <ChatDaySeparator date={msg.createdAt} />}
+                    <div className={`group group/msg relative flex items-end gap-2 ${isUserSender ? "justify-end" : "justify-start"}`}>
+                      {isUserSender && !isTemporary && <UnsendButton onClick={() => setUnsendTarget(msg)} />}
+                      {!isUserSender && <ChatAvatar src={senderAvatar} name={senderName} />}
+                      <div className={`flex min-w-0 flex-col ${isUserSender ? "items-end" : "items-start"}`}>
                         <div
-                          className={`max-w-[240px] sm:max-w-[280px] rounded-2xl ${msg.imageUrl && !msg.content?.trim() ? "p-1" : "px-4 py-2.5"} shadow-xs text-sm font-medium leading-relaxed ${
-                            isUserSender
-                              ? "bg-primary text-white rounded-tr-sm"
-                              : "bg-white dark:bg-zinc-800 text-charcoal dark:text-slate-300 rounded-tl-sm border border-slate-100 dark:border-white/5"
-                          }`}
+                          className={`max-w-[230px] rounded-lg text-sm leading-relaxed sm:max-w-[260px] ${
+                            msg.imageUrl && !msg.content?.trim() ? "p-1" : "px-3 py-2"
+                          } ${isUserSender ? "bg-primary text-white" : "border border-kumo-line bg-kumo-base text-kumo-default"}`}
                         >
                           {msg.imageUrl && (
                             <div className={msg.content ? "mb-2" : ""}>
                               <ChatImage url={msg.imageUrl} onOpen={setLightboxImageUrl} />
                             </div>
                           )}
-                          {msg.content && <span>{msg.content}</span>}
+                          {/* Keeps typed line breaks and wraps long links. */}
+                          {msg.content && <p className="wrap-anywhere whitespace-pre-wrap">{msg.content}</p>}
+                        </div>
+                        <div className="mt-1 px-1 text-xs text-kumo-subtle">
+                          {isTemporary && msg.failed ? (
+                            <button
+                              type="button"
+                              onClick={() => retryMessage(msg)}
+                              className="cursor-pointer font-semibold text-kumo-danger hover:underline"
+                            >
+                              Not sent. Tap to retry
+                            </button>
+                          ) : isTemporary && msg.sending ? (
+                            <span>Sending...</span>
+                          ) : (
+                            formatMessageTime(msg.createdAt)
+                          )}
                         </div>
                       </div>
-                      <div className="mt-1 px-2 text-xs font-bold text-slate-400">
-                        {isTemporary && msg.failed ? (
-                          <button
-                            type="button"
-                            onClick={() => retryMessage(msg)}
-                            className="text-red-500 hover:text-red-600 hover:underline"
-                          >
-                            Not sent · Tap to retry
-                          </button>
-                        ) : isTemporary && msg.sending ? (
-                          <span>Sending…</span>
-                        ) : (
-                          formatMessageTime(msg.createdAt)
-                        )}
-                      </div>
+                      {isUserSender && <ChatAvatar src={senderAvatar} name={senderName || "Me"} />}
                     </div>
-                    {isUserSender && (
-                      <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-zinc-800 flex items-center justify-center overflow-hidden shrink-0 border border-slate-100 dark:border-white/5">
-                        {senderAvatar ? (
-                          <img
-                            src={optimizedImage(senderAvatar, 96)}
-                            alt="Sender"
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <span className="text-xs font-bold text-slate-500">
-                            {(senderName || "ME").substring(0, 2).toUpperCase()}
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </div>
                   </React.Fragment>
                 );
               })}
-              <div ref={messagesEndRef} />
+              {isAuthenticated && <div ref={messagesEndRef} />}
             </div>
 
             {isAuthenticated && (
-              <div className="p-3 sm:p-4 border-t border-slate-100 dark:border-white/5 bg-white dark:bg-zinc-900 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.05)] z-10 relative">
+              <div className="shrink-0 space-y-2 border-t border-kumo-line bg-kumo-base p-3">
                 {imagePreview && (
-                  <div className="mb-3 relative inline-block animate-fade-in">
-                    <img
-                      src={imagePreview}
-                      alt="Preview"
-                      className="h-16 rounded-xl border border-slate-200 dark:border-white/10 object-cover"
-                    />
-                    <button
+                  <div className="flex items-end gap-2">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={imagePreview} alt="Preview" className="h-16 rounded-lg border border-kumo-line object-cover" />
+                    <Button
                       type="button"
+                      size="sm"
+                      variant="secondary-destructive"
                       onClick={() => {
                         setImagePreview(null);
                         setImageFile(null);
                       }}
-                      className="absolute -top-2 -right-2 w-5 h-5 bg-primary text-white rounded-full flex items-center justify-center shadow-sm"
                     >
-                      <X size={10} />
-                    </button>
+                      Remove photo
+                    </Button>
                   </div>
                 )}
                 {recipient === "admin" && inquirySlotId && (
-                  <div className="mb-3 px-1">
-                    <button
-                      type="button"
-                      onClick={(e) => handleSend(e, inquirySlotId)}
-                      disabled={cooldownLeft > 0 || isUploading}
-                      title={
-                        cooldownLeft > 0
-                          ? `Please wait ${cooldownLeft}s before sending another message`
-                          : "Send a leasing inquiry to the mall admin"
-                      }
-                      className="flex items-center gap-2 text-xs font-bold text-green-600 bg-green-50 dark:bg-green-900/20 px-3 py-1.5 rounded-full border border-green-200 dark:border-green-900/50 hover:bg-green-100 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      <MapPin size={12} />
-                      {cooldownLeft > 0
-                        ? `Wait ${cooldownLeft}s`
-                        : `Share Inquiry For Unit ${inquirySlotId}`}
-                    </button>
-                  </div>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    icon={<MapPin />}
+                    className="w-full justify-center"
+                    onClick={(e) => handleSend(e, inquirySlotId)}
+                    disabled={cooldownLeft > 0 || isUploading || blocked}
+                    title={
+                      cooldownLeft > 0
+                        ? `Please wait ${cooldownLeft}s before sending another message`
+                        : "Send a leasing inquiry to the mall admin"
+                    }
+                  >
+                    {cooldownLeft > 0 ? `Wait ${cooldownLeft}s` : `Share Inquiry For Unit ${inquirySlotId}`}
+                  </Button>
                 )}
-                <form
-                  onSubmit={handleSend}
-                  className="relative flex items-center gap-2 bg-slate-50 dark:bg-zinc-800/50 rounded-2xl border border-slate-200 dark:border-white/10 p-1.5 focus-within:ring-2 ring-primary/20 focus-within:border-primary transition-all"
-                >
+                <DraftNote draft={draft} className="text-xs" />
+                <form onSubmit={handleSend} className="flex items-center gap-2">
                   <input
                     ref={fileInputRef}
                     type="file"
                     accept="image/*"
-                    className="absolute w-0 h-0 opacity-0 pointer-events-none -z-10"
+                    className="sr-only"
+                    tabIndex={-1}
+                    aria-label="Attach a photo"
                     onChange={handleImageSelect}
                   />
-                  <button
+                  <Button
                     suppressHydrationWarning
                     type="button"
-                    disabled={isUserBlocked || isRecipientBlocking}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      fileInputRef.current?.click();
-                    }}
-                    className="p-2 sm:p-2.5 text-slate-400 hover:text-primary transition-colors rounded-xl hover:bg-white dark:hover:bg-zinc-700 shrink-0 relative z-10 cursor-pointer disabled:opacity-40"
-                  >
-                    <Paperclip size={18} />
-                  </button>
-                  <input
-                    suppressHydrationWarning
-                    type="text"
-                    value={inputText}
-                    disabled={isUserBlocked || isRecipientBlocking}
-                    onChange={(e) => setInputText(e.target.value)}
-                    placeholder={
-                      isUserBlocked || isRecipientBlocking
-                        ? "Messaging disabled"
-                        : imageFile
-                          ? "Add a caption..."
-                          : "Message..."
-                    }
-                    className="flex-1 px-1 sm:px-2 py-2 bg-transparent outline-hidden text-sm font-medium dark:text-white placeholder:text-slate-400 min-w-0 disabled:opacity-40"
+                    variant="secondary"
+                    shape="square"
+                    size="lg"
+                    icon={<Paperclip />}
+                    aria-label="Attach a photo"
+                    title="Attach a photo"
+                    disabled={blocked}
+                    onClick={() => fileInputRef.current?.click()}
                   />
-                  <button
+                  <div className="min-w-0 flex-1">
+                    <Input
+                      suppressHydrationWarning
+                      size="lg"
+                      aria-label="Message"
+                      value={inputText}
+                      disabled={blocked}
+                      onChange={(e) => setInputText(e.target.value)}
+                      placeholder={blocked ? "Messaging disabled" : imageFile ? "Add a caption" : "Message"}
+                      className="w-full"
+                    />
+                  </div>
+                  <Button
                     suppressHydrationWarning
                     type="submit"
-                    disabled={
-                      (!inputText.trim() && !imageFile) ||
-                      isUploading ||
-                      cooldownLeft > 0 ||
-                      isUserBlocked ||
-                      isRecipientBlocking
-                    }
-                    title={
-                      cooldownLeft > 0
-                        ? `Please wait ${cooldownLeft}s before sending another message`
-                        : "Send message"
-                    }
-                    className="p-2.5 sm:p-3 bg-primary text-white rounded-xl hover:bg-primary-hover transition-all active:scale-95 disabled:opacity-50 disabled:scale-100 shadow-md shrink-0 flex items-center justify-center"
-                  >
-                    {isUploading ? (
-                      <Loader2 size={16} className="animate-spin" />
-                    ) : (
-                      <Send size={16} />
-                    )}
-                  </button>
+                    variant="primary"
+                    shape="square"
+                    size="lg"
+                    icon={<PaperPlaneRight />}
+                    aria-label="Send message"
+                    loading={isUploading}
+                    disabled={(!inputText.trim() && !imageFile) || isUploading || cooldownLeft > 0 || blocked}
+                    title={cooldownLeft > 0 ? `Please wait ${cooldownLeft}s before sending another message` : "Send message"}
+                  />
                 </form>
               </div>
             )}
@@ -1156,38 +1100,31 @@ export const ChatBox = ({
         )}
       </div>
 
-
-
       {/* ── MODAL: IMAGE LIGHTBOX ── */}
       {lightboxImageUrl && (
         <div
           onClick={() => setLightboxImageUrl(null)}
-          className="fixed inset-0 z-150 flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-fade-in"
+          className="animate-fade-in fixed inset-0 z-150 flex items-center justify-center bg-black/85 p-4"
         >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="relative max-w-4xl max-h-[90vh] flex flex-col items-center animate-scale-up"
-          >
+          <div onClick={(e) => e.stopPropagation()} className="relative flex max-h-[90vh] max-w-4xl flex-col items-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={optimizedImage(lightboxImageUrl, 2000)}
-              alt="Full Preview"
-              className="max-w-full max-h-[80vh] rounded-2xl object-contain shadow-2xl border border-white/10"
+              alt="Full preview"
+              className="max-h-[75vh] max-w-full rounded-lg object-contain"
             />
-            <div className="flex items-center gap-3 mt-4">
+            <div className="mt-4 flex items-center gap-3">
               <a
                 href={lightboxImageUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-xl text-xs font-bold flex items-center gap-2 transition-colors backdrop-blur-md"
+                className="text-sm font-semibold text-white underline"
               >
-                <ExternalLink size={14} /> Open Original
+                Open original
               </a>
-              <button
-                onClick={() => setLightboxImageUrl(null)}
-                className="px-4 py-2 bg-white text-charcoal rounded-xl text-xs font-semibold transition-transform active:scale-95 shadow-lg"
-              >
+              <Button variant="secondary" onClick={() => setLightboxImageUrl(null)}>
                 Close
-              </button>
+              </Button>
             </div>
           </div>
         </div>

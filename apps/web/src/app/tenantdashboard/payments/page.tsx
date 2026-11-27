@@ -3,6 +3,9 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Banner, Button, Loader, Select, Table } from "@cloudflare/kumo";
+import { DownloadSimple } from "@phosphor-icons/react";
+import { toast } from "sonner";
+import { generatePaymentHistoryPDF } from "@/utils/report-generator";
 import { getSpacePaymentsAction, type PaymentStatusFilter } from "@/app/actions/workspace";
 import { STAGE_LABEL, peso } from "@/lib/leasing";
 import { formatPHDate } from "@/lib/ph-date";
@@ -32,6 +35,33 @@ export default function PaymentsPage() {
   const [sort, setSort] = useState<"newest" | "oldest">("newest");
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
+
+  /** Every invoice of this space as a PDF, whatever the filters on screen. */
+  const downloadReport = async () => {
+    setExporting(true);
+    try {
+      const res = await getSpacePaymentsAction({ all: true });
+      if (!res.success || !res.data) {
+        toast.error(res.success ? "There's nothing to report yet." : res.error);
+        return;
+      }
+      const { rows, shopName, space } = res.data;
+      if (rows.length === 0) {
+        toast.error("There are no invoices to report yet.");
+        return;
+      }
+      await generatePaymentHistoryPDF(
+        { shopName: shopName || "New shop", units: space?.unitId ?? "All units" },
+        rows.map((r) => ({ ...r, dueDate: r.date, status: r.reportStatus })),
+      );
+    } catch (e) {
+      console.error("Payment report error:", e);
+      toast.error("Couldn't create the report. Check your connection and try again.");
+    } finally {
+      setExporting(false);
+    }
+  };
 
   useEffect(() => {
     let alive = true;
@@ -125,7 +155,10 @@ export default function PaymentsPage() {
       <section className="space-y-3">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <h2 className="text-lg font-semibold text-kumo-default">Payment history</h2>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            <Button variant="secondary" icon={<DownloadSimple />} loading={exporting} onClick={downloadReport}>
+              Payment History Report
+            </Button>
             <Select
               aria-label="Status"
               value={status}

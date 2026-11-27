@@ -1,5 +1,5 @@
 /**
- * Lease term rule — the single place it lives.
+ * Lease term rule, the single place it lives.
  *
  * There is no explicit contract table in the schema, so a lease is treated as
  * a one-year term starting the day the tenant record was created. Used by the

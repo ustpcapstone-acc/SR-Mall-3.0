@@ -245,7 +245,7 @@ export async function updateInquiryStatusAction(
  * after submission is rejected automatically.
  *
  * - The countdown uses the submission timestamp (`createdAt`), so eligibility
- *   is `createdAt <= now - 72h` — a record is never rejected before 72h.
+ *   is `createdAt <= now - 72h`, a record is never rejected before 72h.
  * - Only `PENDING` rows are touched; Approved / Rejected / Cancelled /
  *   completed records are never affected.
  * - The flip is guarded with `updateMany({ status: "PENDING" })`, so a record
@@ -323,12 +323,12 @@ export async function getApprovedEventsWithImagesAction() {
 }
 
 /**
- * Admin CMS: every approved event — with or without an image (so one can be
- * uploaded) — split into upcoming (shown publicly) and past (hidden).
+ * Bookings → Upcoming Events: every approved event, with or without an image (so one can be
+ * uploaded), split into upcoming (shown publicly) and past (hidden).
  */
 export async function getAdminEventsAction() {
   try {
-    await requireStaffAny("cms");
+    await requireStaffAny("bookings", "cms");
     const cutoff = startOfTodayPH();
     const events = await prisma.eventInquiry.findMany({
       where: { status: "ACCEPTED" },
@@ -355,7 +355,7 @@ export async function updateInquiryImageAction(
   storageKey?: string,
 ) {
   try {
-    await requireStaffAny("cms");
+    await requireStaffAny("bookings", "cms");
     const inquiry = await prisma.eventInquiry.update({
       where: { id },
       data: {
@@ -385,7 +385,7 @@ export async function updateEventInfoAction(
   },
 ) {
   try {
-    await requireStaffAny("cms");
+    await requireStaffAny("bookings", "cms");
     const patch: Record<string, any> = {};
     if (data.fbAccount !== undefined) patch.fbAccount = data.fbAccount;
     if (data.contactNumber !== undefined) patch.contactNumber = data.contactNumber;
@@ -407,7 +407,7 @@ export async function updateEventInfoAction(
     });
 
     revalidatePath("/");
-    revalidatePath("/admindashboard/public-view-cms");
+    revalidatePath("/admindashboard/bookings");
     return { success: true, data: inquiry };
   } catch (error) {
     console.error("Failed to update event info:", error);
@@ -417,7 +417,7 @@ export async function updateEventInfoAction(
 
 export async function deleteInquiryAction(id: string) {
   try {
-    await requireStaffAny("cms");
+    await requireStaffAny("bookings", "cms");
     const inquiry = await prisma.eventInquiry.findUnique({ where: { id } });
     if (inquiry && inquiry.storageKey) {
       try {
@@ -434,7 +434,7 @@ export async function deleteInquiryAction(id: string) {
     });
     
     revalidatePath("/admin/inquiry");
-    revalidatePath("/admindashboard/public-view-cms");
+    revalidatePath("/admindashboard/bookings");
     revalidatePath("/");
     return { success: true };
   } catch (error) {

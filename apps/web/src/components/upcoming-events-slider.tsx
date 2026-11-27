@@ -110,14 +110,14 @@ export const UpcomingEventsSlider = () => {
   };
 
   return (
-    <section id="events" className="py-20 bg-white dark:bg-black overflow-hidden">
+    <section id="events" className="py-20 bg-kumo-base overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
           <div className="space-y-4">
-            <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-semibold text-charcoal dark:text-white tracking-tight">
+            <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-semibold text-kumo-default tracking-tight">
               Upcoming <span className="text-primary">Events</span>
             </h2>
-            <p className="text-slate-500 dark:text-slate-400 font-medium max-w-xl text-lg">
+            <p className="text-kumo-subtle font-medium max-w-xl text-lg">
               Experience the best of SR Mall. From fashion shows to tech expos, we have something for everyone.
             </p>
           </div>
@@ -125,14 +125,14 @@ export const UpcomingEventsSlider = () => {
           <div className="flex items-center gap-4">
             <button
               onClick={() => paginate(-1)}
-              className="p-4 rounded-full bg-slate-100 dark:bg-zinc-800 text-charcoal dark:text-white hover:bg-primary hover:text-white transition-all active:scale-95 shadow-lg border border-slate-200 dark:border-white/5"
+              className="p-4 rounded-full bg-kumo-recessed text-kumo-default hover:bg-primary hover:text-white transition-all active:scale-95 shadow-lg border border-kumo-line"
               suppressHydrationWarning
             >
               <ArrowLeft size={24} />
             </button>
             <button
               onClick={() => paginate(1)}
-              className="p-4 rounded-full bg-slate-100 dark:bg-zinc-800 text-charcoal dark:text-white hover:bg-primary hover:text-white transition-all active:scale-95 shadow-lg border border-slate-200 dark:border-white/5"
+              className="p-4 rounded-full bg-kumo-recessed text-kumo-default hover:bg-primary hover:text-white transition-all active:scale-95 shadow-lg border border-kumo-line"
               suppressHydrationWarning
             >
               <ArrowRight size={24} />
@@ -140,7 +140,7 @@ export const UpcomingEventsSlider = () => {
           </div>
         </div>
 
-        <div className="relative h-[400px] sm:h-[500px] md:h-[600px] w-full rounded-[2.5rem] overflow-hidden shadow-2xl">
+        <div className="relative h-[400px] sm:h-[500px] md:h-[600px] w-full rounded-2xl overflow-hidden shadow-2xl">
           <AnimatePresence initial={false} custom={direction}>
             <motion.div
               key={currentIndex}
@@ -236,7 +236,7 @@ export const UpcomingEventsSlider = () => {
             className="absolute inset-0 bg-black/60 backdrop-blur-xs"
             onClick={() => setIsJoinModalOpen(false)}
           />
-          <div className="relative w-full max-w-lg bg-white dark:bg-zinc-950 rounded-4xl shadow-2xl overflow-hidden animate-fade-in-up border border-slate-100 dark:border-white/5">
+          <div className="relative w-full max-w-lg bg-kumo-base rounded-2xl shadow-2xl overflow-hidden animate-fade-in-up border border-kumo-line">
             <div className="bg-primary p-8 text-white relative">
               <h2 className="font-display text-2xl font-semibold tracking-tight">
                 Join Event Info
@@ -253,24 +253,24 @@ export const UpcomingEventsSlider = () => {
             </div>
             <div className="p-8 space-y-6">
               <div className="space-y-2">
-                <label className="text-xs font-semibold text-slate-400 flex items-center gap-2">
+                <label className="text-xs font-semibold text-kumo-subtle flex items-center gap-2">
                   <Globe size={14} className="text-primary" />
                   Facebook Account
                 </label>
-                <div className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-xl text-sm font-bold text-charcoal dark:text-white">
+                <div className="w-full px-4 py-3 bg-kumo-recessed border border-kumo-line rounded-xl text-sm font-bold text-kumo-default">
                   {selectedEventInfo.fbAccount}
                 </div>
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-semibold text-slate-400 flex items-center gap-2">
+                <label className="text-xs font-semibold text-kumo-subtle flex items-center gap-2">
                   <Phone size={14} className="text-primary" />
                   Contact Number
                 </label>
-                <div className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-xl text-sm font-bold text-charcoal dark:text-white">
+                <div className="w-full px-4 py-3 bg-kumo-recessed border border-kumo-line rounded-xl text-sm font-bold text-kumo-default">
                   {selectedEventInfo.contactNumber}
                 </div>
               </div>
-              <p className="text-[11px] font-medium text-slate-500 mt-4 leading-relaxed">
+              <p className="text-xs font-medium text-kumo-subtle mt-4 leading-relaxed">
                 Please use the provided contact details to coordinate your participation with the organizers. We look forward to seeing you at the event!
               </p>
               <button

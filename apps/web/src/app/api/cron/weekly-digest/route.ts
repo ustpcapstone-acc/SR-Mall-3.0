@@ -6,7 +6,7 @@ import { runWeeklyDigest } from "@/lib/weekly-digest";
  * Weekly operations digest endpoint.
  *
  * The daily lease-expiry cron already fires this on Mondays to stay within
- * Vercel's cron limits — this route exists so you can trigger it manually
+ * Vercel's cron limits, this route exists so you can trigger it manually
  * (or schedule it separately on a plan that allows a third cron).
  */
 export async function GET(req: Request) {

@@ -134,6 +134,44 @@ model Invoice {
   tenant         Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 }
 
+/// Who did what to a payment. Rows are only ever added; kept even when the
+/// invoice or tenant is deleted.
+model PaymentLog {
+  id            String    @id @default(uuid())
+  invoiceId     String
+  invoiceNumber String
+  tenantId      String
+  shopName      String?
+  /// RECORDED, SLIP_APPROVED, SLIP_REJECTED or VOIDED
+  action        String
+  amount        Float
+  method        String?
+  referenceNo   String?
+  paidOn        DateTime?
+  reason        String?
+  slipUrl       String?
+  actorId       String?
+  actorName     String?
+  createdAt     DateTime  @default(now())
+
+  @@index([invoiceId, createdAt])
+  @@index([tenantId, createdAt])
+}
+
+/// Mall floors, managed on Floor Spaces & Map. AreaSlot.floor holds the id.
+/// Names are also unique ignoring case (see the floors migration).
+model Floor {
+  id        String   @id
+  name      String
+  /// Order from the bottom up: basements are negative, the ground floor is 0.
+  level     Int      @unique
+  createdAt DateTime @default(now())
+  /// Floor plan picture shown behind the units.
+  planUrl   String?
+  /// True once unit positions were saved by hand (else lined up automatically).
+  arranged  Boolean  @default(false)
+}
+
 model AreaSlot {
   id            String         @id @default(uuid())
   unit_id       String         @unique
@@ -365,6 +403,8 @@ model PublicViewConfig {
   updatedAt              DateTime @updatedAt
   aboutDescription       String?
   aboutImageUrl          String?
+  /// About Us page content and section visibility (lib/about.ts).
+  aboutPage              Json?
   aboutTitle             String?
   companyName            String?
   contactDescription     String?
@@ -583,6 +623,7 @@ model Lease {
 
   @@index([tenantId])
   @@index([status, endDate])
+  rentDrafts RentDraft[]
 }
 
 /// A tenant asking to rent a space; approved after on-site payment.
@@ -605,12 +646,38 @@ model RentRequest {
   @@index([tenantId])
 }
 
+/// A monthly rent bill waiting for the accountant (lib/rent-bills-server.ts).
+model RentDraft {
+  id            String    @id @default(uuid())
+  leaseId       String
+  tenantId      String
+  unitId        String
+  periodStart   DateTime
+  periodEnd     DateTime
+  amount        Float
+  /// PENDING, SENT or SKIPPED
+  status        String    @default("PENDING")
+  invoiceId     String?
+  decidedById   String?
+  decidedByName String?
+  decidedAt     DateTime?
+  createdAt     DateTime  @default(now())
+  lease         Lease     @relation(fields: [leaseId], references: [id], onDelete: Cascade)
+
+  @@unique([leaseId, periodStart])
+  @@index([status])
+}
+
 /// Renewal settings (single row "singleton").
 model LeaseSettings {
   id               String   @id @default("singleton")
   reminderDays     Int[]    @default([7, 1])
   graceDays        Int      @default(7)
   finalWarningDays Int      @default(1)
+  /// Days before the due date a rent bill draft is prepared.
+  billDaysBefore   Int      @default(10)
+  /// QR codes tenants can pay with (lib/qr-payments.ts).
+  qrPayments       Json?
   updatedAt        DateTime @updatedAt
 }
 

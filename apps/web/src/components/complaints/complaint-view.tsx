@@ -20,6 +20,8 @@ import {
   type ComplaintPriority,
   type ComplaintStatus,
 } from "@/lib/complaints";
+import { useDraft } from "@/lib/drafts/use-draft";
+import { DraftNote } from "@/components/drafts/draft-note";
 
 export const LABEL = "text-xs font-medium text-kumo-subtle";
 export const CARD = "rounded-xl border border-kumo-line bg-kumo-base";
@@ -126,6 +128,20 @@ export function ComplaintView({
     setInternal(false);
   }, [complaint.id]);
 
+  const draft = useDraft({
+    form: "complaint.reply",
+    workspace: role === "TENANT",
+    scope: [complaint.id],
+    enabled: canComment,
+    value: { message, photoUrl, internal },
+    initial: { message: "", photoUrl: null as string | null, internal: false },
+    onRestore: (saved) => {
+      setMessage(saved.message);
+      setPhotoUrl(saved.photoUrl);
+      setInternal(saved.internal);
+    },
+  });
+
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: "nearest" });
   }, [complaint.comments.length]);
@@ -138,9 +154,11 @@ export function ComplaintView({
   const send = async () => {
     if (!message.trim() && !photoUrl) return;
     setSending(true);
-    const res = await addComplaintCommentAction(userId, complaint.id, { message, photoUrl, isInternal: internal });
+    const res = await draft.send(() => addComplaintCommentAction(userId, complaint.id, { message, photoUrl, isInternal: internal }));
     setSending(false);
+    if (!res) return;
     if (!res.success) return void toast.error(res.error);
+    draft.clear();
     setMessage("");
     setPhotoUrl(null);
     await refresh();
@@ -326,6 +344,7 @@ export function ComplaintView({
             placeholder={internal ? "Internal note, only admins can see this" : isAdmin ? "Reply to the tenant" : "Add a comment for the admin"}
             className={cn("w-full", internal && "ring-2 ring-kumo-warning")}
           />
+          <DraftNote draft={draft} />
           <div className="flex flex-wrap items-center gap-3">
             <Button variant="secondary" icon={<Camera />} loading={uploading} onClick={() => fileRef.current?.click()}>
               Photo

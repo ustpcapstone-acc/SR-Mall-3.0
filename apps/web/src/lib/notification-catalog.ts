@@ -1,5 +1,5 @@
 /**
- * Notification catalogue — single source of truth for every alert the system
+ * Notification catalogue, single source of truth for every alert the system
  * can emit.
  *
  * One entry per alert type defines:
@@ -9,7 +9,7 @@
  *  - whether it is on by default and on which channels
  *  - the legacy `NotificationPreference` column it maps to (for backfill)
  *
- * Keep this file server/client safe (no prisma, no node APIs) — it is imported
+ * Keep this file server/client safe (no prisma, no node APIs), it is imported
  * by client components for the settings UI and by `lib/notify.ts` on the server.
  */
 

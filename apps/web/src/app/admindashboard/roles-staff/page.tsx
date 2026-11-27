@@ -28,6 +28,8 @@ import {
   type RoleRow,
   type StaffRow,
 } from "@/app/actions/staff";
+import { useDraft } from "@/lib/drafts/use-draft";
+import { DraftNote } from "@/components/drafts/draft-note";
 import { STAFF_SECTIONS, type StaffPermission } from "@/lib/permissions";
 
 const sectionLabel = (key: string) =>
@@ -118,19 +120,34 @@ function RoleForm({
   );
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const draft = useDraft({
+    form: "admin.staff-role",
+    scope: [role?.id ?? "new"],
+    editing: Boolean(role),
+    value: { name, description, permissions },
+    initial: {
+      name: role?.name ?? "",
+      description: role?.description ?? "",
+      permissions: role?.permissions ?? [],
+    },
+    onRestore: (saved) => {
+      setName(saved.name);
+      setDescription(saved.description);
+      setPermissions(saved.permissions);
+    },
+  });
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     setError(null);
-    const res = await saveRoleAction({
-      id: role?.id,
-      name,
-      description,
-      permissions,
-    });
+    const res = await draft.send(() =>
+      saveRoleAction({ id: role?.id, name, description, permissions }),
+    );
     setSaving(false);
+    if (!res) return;
     if (!res.success) return setError(res.error);
+    draft.clear();
     toast.success(role ? "Role updated." : "Role created.");
     onDone();
   };
@@ -177,6 +194,7 @@ function RoleForm({
             />
           ))}
         </Checkbox.Group>
+        <DraftNote draft={draft} />
         <div className="flex justify-end gap-2">
           <Dialog.Close
             render={(props) => (
@@ -240,15 +258,24 @@ function StaffForm({
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const usable = roles.filter((r) => r.canEdit);
+  // The temporary password is never kept on this device.
+  const draft = useDraft({
+    form: "admin.add-staff",
+    value: { name: form.name, email: form.email, roleId: form.roleId },
+    initial: { name: "", email: "", roleId: "" },
+    onRestore: (saved) => setForm((f) => ({ ...f, ...saved })),
+  });
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.roleId) return setError("Choose a role.");
     setSaving(true);
     setError(null);
-    const res = await createStaffAction(form);
+    const res = await draft.send(() => createStaffAction(form));
     setSaving(false);
+    if (!res) return;
     if (!res.success) return setError(res.error);
+    draft.clear();
     toast.success(
       "Staff account created. Share the email and temporary password with them.",
     );
@@ -301,6 +328,7 @@ function StaffForm({
             </Select.Option>
           ))}
         </Select>
+        <DraftNote draft={draft} />
         <div className="flex justify-end gap-2 pt-1">
           <Dialog.Close
             render={(props) => (

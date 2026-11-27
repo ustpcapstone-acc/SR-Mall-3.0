@@ -6,6 +6,8 @@ import { Button, Input, InputArea, Loader, Select, cn } from "@cloudflare/kumo";
 import { Trash, UploadSimple } from "@phosphor-icons/react";
 import { AdminPage, EmptyNote, Panel, Stat, StatRow } from "@/components/admin/page-kit";
 import { useAuth } from "@/app/providers";
+import { useDraft } from "@/lib/drafts/use-draft";
+import { DraftNote } from "@/components/drafts/draft-note";
 import {
   createTenantPromo,
   getPromosByTenant,
@@ -51,6 +53,34 @@ export default function AdPromoManager() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<any>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  const draft = useDraft({
+    form: "tenant.promotion",
+    workspace: true,
+    value: { title, description, category, startDate, endDate, promoImage, promoVideo, mediaType, storageKey },
+    initial: {
+      title: "",
+      description: "",
+      category: "Fashion",
+      startDate: today,
+      endDate: futureDate,
+      promoImage: "",
+      promoVideo: "",
+      mediaType: "IMAGE" as "IMAGE" | "VIDEO",
+      storageKey: "",
+    },
+    onRestore: (saved) => {
+      setTitle(saved.title);
+      setDescription(saved.description);
+      setCategory(saved.category);
+      setStartDate(saved.startDate);
+      setEndDate(saved.endDate);
+      setPromoImage(saved.promoImage);
+      setPromoVideo(saved.promoVideo);
+      setMediaType(saved.mediaType);
+      setStorageKey(saved.storageKey);
+    },
+  });
 
   const showToast = (msg: string, type: "success" | "error") => {
     if (type === "success") toast.success(msg);
@@ -133,28 +163,29 @@ export default function AdPromoManager() {
     }
     setIsSubmitting(true);
     try {
-      const tenant = await getTenantByUserId(user.id);
-      if (!tenant) {
-        showToast("No tenant profile found. Contact admin.", "error");
-        return;
-      }
-      const created = await createTenantPromo({
-        tenantId: tenant.id,
-        shopId: tenant.shopId,
-        title,
-        description,
-        category,
-        startDate: phDayStart(startDate),
-        endDate: phDayEnd(endDate),
-        promoImage: mediaType === "IMAGE" ? promoImage : undefined,
-        promoVideo: mediaType === "VIDEO" ? promoVideo : undefined,
-        mediaType,
-        storageKey,
+      const created = await draft.send(async () => {
+        const tenant = await getTenantByUserId(user.id);
+        if (!tenant) return { success: false, error: "No tenant profile found. Contact admin." };
+        return createTenantPromo({
+          tenantId: tenant.id,
+          shopId: tenant.shopId,
+          title,
+          description,
+          category,
+          startDate: phDayStart(startDate),
+          endDate: phDayEnd(endDate),
+          promoImage: mediaType === "IMAGE" ? promoImage : undefined,
+          promoVideo: mediaType === "VIDEO" ? promoVideo : undefined,
+          mediaType,
+          storageKey,
+        });
       });
+      if (!created) return;
       if (!created.success) {
         showToast(created.error || "Couldn't submit the promotion.", "error");
         return;
       }
+      draft.clear();
       setTitle("");
       setDescription("");
       setCategory("Fashion");
@@ -274,6 +305,8 @@ export default function AdPromoManager() {
                 )}
               </label>
             </div>
+
+            <DraftNote draft={draft} />
 
             <Button type="submit" variant="primary" loading={isSubmitting} disabled={isSubmitting || !hasMedia || !title} className="w-full justify-center">
               Submit Promotion

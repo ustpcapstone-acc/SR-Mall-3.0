@@ -7,10 +7,13 @@ import { notify, resolveChannels } from "@/lib/notify";
 export async function GET(req: Request) {
   const skip = skipDuplicateCron(req);
   if (skip) return skip;
+  // Sends messages and email, so (like the lease job) only Vercel's scheduler or
+  // anyone holding CRON_SECRET may run it once that variable is set.
+  const secret = process.env.CRON_SECRET;
+  if (secret && req.headers.get("authorization") !== `Bearer ${secret}`) {
+    return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+  }
   try {
-    // Note: In production, you should secure this endpoint so only Vercel Cron or authorized agents can call it.
-    // e.g., if (req.headers.get('Authorization') !== `Bearer ${process.env.CRON_SECRET}`) return new NextResponse('Unauthorized', { status: 401 });
-
     const today = new Date();
     today.setHours(0, 0, 0, 0); // Normalize to midnight
 
@@ -18,6 +21,8 @@ export async function GET(req: Request) {
     const pendingInvoices = await prisma.invoice.findMany({
       where: {
         status: "PENDING",
+        // Rent bills are covered by the lease reminders (lease-expiries job).
+        periodStart: null,
         // Former tenants aren't chased by the daily reminders.
         tenant: { status: "ACTIVE" },
       },
@@ -65,7 +70,7 @@ export async function GET(req: Request) {
       const tenantEmail = invoice.tenant.user.email;
       const isOverdue = diffDays < 0;
 
-      // 1. In-App Notification — governed by the tenant's own preferences.
+      // 1. In-App Notification, governed by the tenant's own preferences.
       //    Overdue uses the OVERDUE_RENT_PAYMENTS alert so the
       //    "Fiscal Delinquency Tracking" toggle actually applies to it.
       await notify(isOverdue ? "OVERDUE_RENT_PAYMENTS" : "BILLING_REMINDER", {
@@ -112,7 +117,7 @@ export async function GET(req: Request) {
         console.error("Failed to send automated chat:", err);
       }
 
-      // 3. Send Gmail — only for tenants who chose the EMAIL channel
+      // 3. Send Gmail, only for tenants who chose the EMAIL channel
       const prefs = await resolveChannels(
         isOverdue ? "OVERDUE_RENT_PAYMENTS" : "BILLING_REMINDER",
         [tenantId],
@@ -126,7 +131,6 @@ export async function GET(req: Request) {
           const { sendGmail } = await import("@/lib/gmail");
           await sendGmail({
             to: tenantEmail,
-            cc: "ustpcapstone@gmail.com",
             subject: emailSubject,
             html: `
               <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px; max-width: 600px;">
@@ -156,7 +160,7 @@ export async function GET(req: Request) {
     try {
       const overdueCount = await prisma.invoice.count({
         where: {
-          status: { not: "PAID" },
+          status: { notIn: ["PAID", "VOID"] },
           dueDate: { lt: today },
           tenant: { status: "ACTIVE" },
         },

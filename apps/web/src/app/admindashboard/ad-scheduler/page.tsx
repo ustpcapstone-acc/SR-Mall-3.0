@@ -17,6 +17,8 @@ import {
 import { formatPHDate, phDayEnd, phDayStart, toPHDateInput } from "@/lib/ph-date";
 import { ChatConfirmModal } from "@/components/chat/chat-ui";
 import { useAuth } from "@/app/providers";
+import { useDraft } from "@/lib/drafts/use-draft";
+import { DraftNote } from "@/components/drafts/draft-note";
 
 const PRIORITY_ITEMS: Record<string, string> = { HIGH: "High", MEDIUM: "Medium", LOW: "Low" };
 
@@ -50,6 +52,19 @@ const EMPTY_FORM = {
   storageKey: "",
 };
 
+/** The editor's fields for a saved ad. */
+const adForm = (ad: any) => ({
+  title: ad.title,
+  description: ad.description || "",
+  imageUrl: ad.imageUrl,
+  linkUrl: ad.linkUrl || "/",
+  priority: ad.priority,
+  startDate: toPHDateInput(ad.startDate),
+  endDate: toPHDateInput(ad.endDate),
+  isCloudStored: !!ad.storageKey,
+  storageKey: ad.storageKey || "",
+});
+
 export default function AdScheduler() {
   const { user } = useAuth();
   const [mallAds, setMallAds] = useState<any[]>([]);
@@ -80,6 +95,28 @@ export default function AdScheduler() {
   const [uploading, setUploading] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
+
+  const adDraft = useDraft({
+    form: "admin.mall-ad",
+    scope: [isEditModalOpen ? editingAd?.id : "new"],
+    enabled: isModalOpen || (isEditModalOpen && Boolean(editingAd)),
+    editing: isEditModalOpen,
+    value: formData,
+    initial: isEditModalOpen && editingAd ? adForm(editingAd) : EMPTY_FORM,
+    onRestore: setFormData,
+  });
+  const reasonDraft = useDraft({
+    form: "admin.promo-rejection",
+    scope: [promoAction?.promo.id, promoAction?.kind],
+    enabled: Boolean(promoAction),
+    value: { reason: promoReason },
+    initial: { reason: "" },
+    onRestore: (saved) => setPromoReason(saved.reason),
+  });
+  const closePromoAction = () => {
+    setPromoAction(null);
+    setPromoReason("");
+  };
 
   const showToast = (msg: string, type: "success" | "error") => {
     setToast({ msg, type });
@@ -162,19 +199,23 @@ export default function AdScheduler() {
         return;
       }
 
-      const res = await createMallAd({
-        title: formData.title,
-        description: formData.description,
-        imageUrl: formData.imageUrl,
-        linkUrl: formData.linkUrl || "/",
-        priority: formData.priority,
-        startDate: phDayStart(formData.startDate),
-        endDate: phDayEnd(formData.endDate),
-        adminId: user.id,
-        storageKey: formData.storageKey || null,
-      });
+      const res = await adDraft.send(() =>
+        createMallAd({
+          title: formData.title,
+          description: formData.description,
+          imageUrl: formData.imageUrl,
+          linkUrl: formData.linkUrl || "/",
+          priority: formData.priority,
+          startDate: phDayStart(formData.startDate),
+          endDate: phDayEnd(formData.endDate),
+          adminId: user.id,
+          storageKey: formData.storageKey || null,
+        }),
+      );
+      if (!res) return;
 
       if (res.success) {
+        adDraft.clear();
         showToast("Global Ad Deployed Successfully!", "success");
         setIsModalOpen(false);
         setFormData(EMPTY_FORM);
@@ -194,17 +235,7 @@ export default function AdScheduler() {
 
   const handleEditAd = (ad: any) => {
     setEditingAd(ad);
-    setFormData({
-      title: ad.title,
-      description: ad.description || "",
-      imageUrl: ad.imageUrl,
-      linkUrl: ad.linkUrl || "/",
-      priority: ad.priority,
-      startDate: toPHDateInput(ad.startDate),
-      endDate: toPHDateInput(ad.endDate),
-      isCloudStored: !!ad.storageKey,
-      storageKey: ad.storageKey || "",
-    });
+    setFormData(adForm(ad));
     setIsEditModalOpen(true);
   };
 
@@ -225,18 +256,22 @@ export default function AdScheduler() {
         setPublishing(false);
         return;
       }
-      const res = await updateMallAd(editingAd.id, {
-        title: formData.title,
-        description: formData.description,
-        imageUrl: formData.imageUrl,
-        linkUrl: formData.linkUrl || "/",
-        priority: formData.priority,
-        startDate: phDayStart(formData.startDate),
-        endDate: isDefaultAd ? new Date("2099-12-31T23:59:59.000Z") : phDayEnd(formData.endDate),
-        storageKey: formData.storageKey || null,
-      });
+      const res = await adDraft.send(() =>
+        updateMallAd(editingAd.id, {
+          title: formData.title,
+          description: formData.description,
+          imageUrl: formData.imageUrl,
+          linkUrl: formData.linkUrl || "/",
+          priority: formData.priority,
+          startDate: phDayStart(formData.startDate),
+          endDate: isDefaultAd ? new Date("2099-12-31T23:59:59.000Z") : phDayEnd(formData.endDate),
+          storageKey: formData.storageKey || null,
+        }),
+      );
+      if (!res) return;
 
       if (res.success) {
+        adDraft.clear();
         showToast("Campaign Updated Successfully!", "success");
         setIsEditModalOpen(false);
         setEditingAd(null);
@@ -278,7 +313,7 @@ export default function AdScheduler() {
     const res = await updatePromoStatus(promo.id, "APPROVED");
     if (res.success) {
       showToast(
-        new Date(promo.startDate).getTime() > Date.now() ? "Promo approved — it goes live on its start date" : "Promo approved & live!",
+        new Date(promo.startDate).getTime() > Date.now() ? "Promo approved. It goes live on its start date" : "Promo approved & live!",
         "success",
       );
       fetchData();
@@ -290,9 +325,11 @@ export default function AdScheduler() {
   const confirmPromoAction = async () => {
     if (!promoAction) return;
     setPromoBusy(true);
-    const res = await updatePromoStatus(promoAction.promo.id, "REJECTED", promoReason);
+    const res = await reasonDraft.send(() => updatePromoStatus(promoAction.promo.id, "REJECTED", promoReason));
     setPromoBusy(false);
+    if (!res) return;
     if (res.success) {
+      reasonDraft.clear();
       showToast(promoAction.kind === "takedown" ? "Promo taken down" : "Promo rejected", "success");
       setPromoAction(null);
       setPromoReason("");
@@ -426,6 +463,8 @@ export default function AdScheduler() {
           onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
         />
       </div>
+
+      <DraftNote draft={adDraft} />
 
       <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end">
         <Button type="button" variant="secondary" onClick={closeForm}>
@@ -699,7 +738,7 @@ export default function AdScheduler() {
 
       <AdminDialog
         open={!!promoAction}
-        onClose={() => !promoBusy && setPromoAction(null)}
+        onClose={() => !promoBusy && closePromoAction()}
         size="sm"
         title={promoAction?.kind === "takedown" ? "Take down this promo?" : "Reject this promo?"}
         description={
@@ -711,7 +750,7 @@ export default function AdScheduler() {
         }
         footer={
           <>
-            <Button variant="secondary" disabled={promoBusy} onClick={() => setPromoAction(null)}>
+            <Button variant="secondary" disabled={promoBusy} onClick={closePromoAction}>
               Cancel
             </Button>
             <Button variant="destructive" loading={promoBusy} onClick={confirmPromoAction}>
@@ -729,6 +768,7 @@ export default function AdScheduler() {
           placeholder="e.g. The image is low quality. Please upload a clearer version."
           className="w-full"
         />
+        <DraftNote draft={reasonDraft} className="mt-3" />
       </AdminDialog>
 
       <AdminDialog open={isModalOpen} onClose={closeForm} title="Create a mall-wide ad">

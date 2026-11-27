@@ -13,13 +13,16 @@ import {
 import { STAGE_LABEL, TERM_CHOICES, peso } from "@/lib/leasing";
 import { formatPHDate } from "@/lib/ph-date";
 import { DialogHeader, InvoiceButton, StatusText } from "@/components/leasing/shared";
+import { useFloors } from "@/lib/use-floors";
+import { useDraft } from "@/lib/drafts/use-draft";
+import { DraftNote } from "@/components/drafts/draft-note";
 
 type Data = Extract<Awaited<ReturnType<typeof getRentASpaceAction>>, { success: true }>["data"];
 
-const floorLabel = (f?: string | null) => (f ? `${f.charAt(0).toUpperCase()}${f.slice(1)} floor` : "");
 const INVOICES_PER_PAGE = 10;
 
 export default function RentASpacePage() {
+  const { floors: mallFloors, label: floorLabel } = useFloors();
   const [data, setData] = useState<Data | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [requesting, setRequesting] = useState<AvailableSpace | null>(null);
@@ -42,7 +45,11 @@ export default function RentASpacePage() {
     };
   }, [version]);
 
-  const floors = useMemo(() => [...new Set((data?.spaces ?? []).map((s) => s.floor))], [data]);
+  // Floors that have a free space, bottom floor first.
+  const floors = useMemo(() => {
+    const order = (id: string) => mallFloors.findIndex((f) => f.id === id);
+    return [...new Set((data?.spaces ?? []).map((s) => s.floor))].sort((a, b) => order(a) - order(b));
+  }, [data, mallFloors]);
   const pendingUnits = useMemo(
     () => new Set((data?.requests ?? []).filter((r) => r.status === "PENDING").map((r) => r.unitId)),
     [data],
@@ -335,18 +342,31 @@ export default function RentASpacePage() {
 const TERM_ITEMS = Object.fromEntries(TERM_CHOICES.map((m) => [String(m), `${m} month${m === 1 ? "" : "s"}`]));
 
 function RequestForm({ space, onDone }: { space: AvailableSpace; onDone: () => void }) {
+  const { label: floorLabel } = useFloors();
   const [months, setMonths] = useState("12");
   const [note, setNote] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const draft = useDraft({
+    form: "tenant.rent-request",
+    scope: [space.unitId],
+    value: { months, note },
+    initial: { months: "12", note: "" },
+    onRestore: (saved) => {
+      setMonths(saved.months);
+      setNote(saved.note);
+    },
+  });
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     setError(null);
-    const res = await createRentRequestAction({ unitId: space.unitId, months: Number(months), note });
+    const res = await draft.send(() => createRentRequestAction({ unitId: space.unitId, months: Number(months), note }));
     setSaving(false);
+    if (!res) return;
     if (!res.success) return setError(res.error);
+    draft.clear();
     toast.success(`Request sent for Unit ${space.unitId}.`);
     onDone();
   };
@@ -373,6 +393,7 @@ function RequestForm({ space, onDone }: { space: AvailableSpace; onDone: () => v
         <p className="text-sm text-kumo-subtle">
           Next step: pay at the SR Mall management office. The space is yours once the office approves your request.
         </p>
+        <DraftNote draft={draft} />
         <div className="flex justify-end gap-2">
           <Dialog.Close render={(props) => <Button {...props} variant="secondary">Cancel</Button>} />
           <Button type="submit" variant="primary" loading={saving}>

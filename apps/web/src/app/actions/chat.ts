@@ -62,7 +62,7 @@ export async function sendMessage(data: {
   const { userId: email, recipientType, content, imageUrl, shopName, tenantId, slotId } = data;
 
   try {
-    // The sender and the recipient are independent lookups — resolve them in
+    // The sender and the recipient are independent lookups, resolve them in
     // one round trip instead of two.
     const [sender, target] = await Promise.all([
       findSender(email),
@@ -208,7 +208,7 @@ export async function sendMessage(data: {
         excerpt,
         subject:
           recipientType === "admin"
-            ? "📩 New executive inquiry received"
+            ? "📩 New inquiry received"
             : "📩 New message from SR Mall",
       });
     });

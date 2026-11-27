@@ -431,7 +431,7 @@ export async function addComplaintCommentAction(
 
 /**
  * Admin: any status. Tenant: mark their own complaint Resolved, or reopen a
- * Resolved one (Closed is final — that is the admin saying it isn't valid).
+ * Resolved one (Closed is final, that is the admin saying it isn't valid).
  */
 export async function updateComplaintStatusAction(userId: string, id: string, status: string): Promise<Result> {
   try {

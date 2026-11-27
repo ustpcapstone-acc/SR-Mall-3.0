@@ -21,20 +21,23 @@ import {
   startSession,
 } from "@/lib/auth-server";
 import { staffHomePath } from "@/lib/permissions";
+import { PAGE_SIZE, clampPage, likeText } from "@/lib/paging";
 import { staffHome } from "@/lib/tenant-permissions";
 
 // ─── Portals ─────────────────────────────────────────────────────────────────
-// Each account type signs in at its own page and nowhere else:
-//   /staff-portal  -> ADMIN (the superuser and staff)
-//   /tenant-portal -> TENANT
-//   /login         -> CUSTOMER
+// Each account type signs in under its own choice and nowhere else:
+//   /staff-portal       -> ADMIN (the superuser and staff)
+//   /login?role=tenant  -> TENANT
+//   /login              -> CUSTOMER
 
 /** Shown only after the password or Google check passed, so it reveals nothing to a stranger. */
-function wrongPortalError(actual: AccountType) {
+function wrongPortalError(actual: AccountType, portal: AccountType) {
   // The staff portal is not advertised to the public.
   if (actual === "ADMIN") return "This account can't sign in here.";
-  const where = actual === "TENANT" ? "the tenant portal" : "the customer sign-in page";
-  return `This account can't sign in here. Please use ${where} (${PORTAL_LOGIN[actual]}).`;
+  const name = actual === "TENANT" ? "Tenant" : "Customer";
+  // From the staff portal there is no role switcher, so name the page.
+  if (portal === "ADMIN") return `This account can't sign in here. Please use the ${name} sign-in (${PORTAL_LOGIN[actual]}).`;
+  return `This is a ${name.toLowerCase()} account. Choose ${name} and sign in again.`;
 }
 
 /** Where an account goes after it signs in. */
@@ -81,7 +84,7 @@ function isAllowedEmail(email: string) {
 /**
  * "Continue with Google". The browser sends the Supabase access token it
  * received from Google sign-in; the server asks Supabase who that token
- * belongs to, so the email comes from Google — never from the caller. (The
+ * belongs to, so the email comes from Google, never from the caller. (The
  * old flow trusted a magic password instead; that path is gone.)
  */
 export async function signInWithGoogleAction(accessToken: string, portal: AccountType = "CUSTOMER") {
@@ -116,13 +119,13 @@ export async function signInWithGoogleAction(accessToken: string, portal: Accoun
 
     let user = await prisma.user.findUnique({ where: { email }, include: { tenant: true } });
     if (user && accountTypeOf(user.role) !== portal) {
-      return { success: false as const, error: wrongPortalError(accountTypeOf(user.role)) };
+      return { success: false as const, error: wrongPortalError(accountTypeOf(user.role), portal) };
     }
     if (user?.role === "TENANT_STAFF") {
       return { success: false as const, error: "Store staff sign in with their email and password." };
     }
     if (!user && portal !== "CUSTOMER") {
-      // Only /login creates accounts; staff and tenant accounts are made elsewhere.
+      // Only a customer sign-in creates accounts; staff and tenant accounts are made elsewhere.
       return { success: false as const, error: "No account here uses this Google account." };
     }
     if (!user) {
@@ -230,7 +233,7 @@ export async function loginAction(data: { email: string; password: string }, por
     }
 
     const type = accountTypeOf(user.role);
-    if (type !== portal) return { success: false, error: wrongPortalError(type) };
+    if (type !== portal) return { success: false, error: wrongPortalError(type, portal) };
 
     // Tenant staff: only while active in a rented space; they act for the owner.
     let actingId = user.id;
@@ -343,11 +346,34 @@ export async function getUserCountAction() {
   }
 }
 
-export async function getAllUsersAction() {
+/** User Management: one page of accounts, newest first, plus the count in each group. */
+export async function getUsersPageAction(input: { page?: number; search?: string; filter?: string } = {}) {
   try {
     await requireStaff("users");
-    const users = await (prisma as any).user.findMany({
-      orderBy: { createdAt: "desc" },
+    const search = likeText(input.search);
+    const filter = String(input.filter ?? "ALL");
+    const where = {
+      ...(filter === "BLACKLISTED" ? { isBlacklisted: true } : filter !== "ALL" ? { role: filter } : {}),
+      ...(search
+        ? {
+            OR: [
+              { name: { contains: search, mode: "insensitive" as const } },
+              { email: { contains: search, mode: "insensitive" as const } },
+            ],
+          }
+        : {}),
+    };
+    const [byRole, suspended, total] = await Promise.all([
+      prisma.user.groupBy({ by: ["role"], _count: { _all: true } }),
+      prisma.user.count({ where: { isBlacklisted: true } }),
+      prisma.user.count({ where }),
+    ]);
+    const page = clampPage(input.page, total);
+    const rows = await prisma.user.findMany({
+      where,
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      skip: (page - 1) * PAGE_SIZE,
+      take: PAGE_SIZE,
       select: {
         id: true,
         name: true,
@@ -359,10 +385,15 @@ export async function getAllUsersAction() {
         createdAt: true,
       },
     });
-    return { success: true, data: users };
+    const counts: Record<string, number> = { ALL: 0, BLACKLISTED: suspended };
+    for (const group of byRole) {
+      counts[group.role] = group._count._all;
+      counts.ALL += group._count._all;
+    }
+    return { success: true as const, data: { rows, total, page, counts } };
   } catch (error) {
-    console.error("[GET_ALL_USERS_ERROR]:", error);
-    return { success: false, error: "Failed to fetch users." };
+    console.error("[GET_USERS_PAGE_ERROR]:", error);
+    return { success: false as const, error: "Failed to fetch users." };
   }
 }
 
@@ -794,7 +825,7 @@ export type MyAccount = Extract<Awaited<ReturnType<typeof getMyAccountAction>>, 
 
 /**
  * Save profile fields. The email can only change for accounts with a
- * password, and only to another Gmail — Google-only accounts keep the Gmail
+ * password, and only to another Gmail. Google-only accounts keep the Gmail
  * they sign in with (changing it would orphan their Google sign-in).
  */
 export async function updateMyAccountAction(
@@ -847,7 +878,7 @@ export async function updateMyAccountAction(
 
 /**
  * Delete your own account. The server re-checks it's really you: your
- * password, or — for Google-only accounts — a fresh Google session whose
+ * password, or, for Google-only accounts, a fresh Google session whose
  * email matches the account.
  */
 export async function deleteMyAccountAction(

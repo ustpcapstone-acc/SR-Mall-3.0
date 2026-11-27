@@ -4,6 +4,7 @@ import { prisma } from "@srmall/database";
 import { revalidatePath } from "next/cache";
 import { destroyFile } from "@/lib/upload-server";
 import { requireStaff } from "@/lib/auth-server";
+import { cleanAbout, readAbout, unnamedItem, type AboutPageContent } from "@/lib/about";
 
 /*
  * Server actions can be called by anyone who knows how, whatever page they
@@ -20,8 +21,9 @@ export async function getPublicViewConfigAction() {
     });
     if (!config) return null;
     // This record is served to the public site: never ship the (unused)
-    // payment gateway credentials with it.
-    const { paymentGatewayApiKey, paymentGatewayProvider, ...publicConfig } = config;
+    // payment gateway credentials with it. The About Us content is left out too,
+    // so hidden sections stay hidden (the page reads it on the server).
+    const { paymentGatewayApiKey, paymentGatewayProvider, aboutPage, ...publicConfig } = config;
     // Newer column (raw SQL until the Prisma client is regenerated)
     const extra = await prisma
       .$queryRawUnsafe<{ footerOpeningHours: string | null }[]>(
@@ -33,6 +35,21 @@ export async function getPublicViewConfigAction() {
   } catch (error) {
     console.error("Error fetching public view config:", error);
     return null;
+  }
+}
+
+/** Website Content editor: the About Us content, hidden sections included. */
+export async function getAboutPageAction() {
+  try {
+    await requireStaff("cms");
+    const config = await prisma.publicViewConfig.findFirst({
+      orderBy: { createdAt: "desc" },
+      select: { aboutPage: true },
+    });
+    return { success: true as const, data: readAbout(config?.aboutPage) };
+  } catch (error) {
+    console.error("Error fetching the About Us content:", error);
+    return { success: false as const, error: "Couldn't load the About Us content." };
   }
 }
 
@@ -85,6 +102,8 @@ export async function updatePublicViewConfigAction(
     footerPhone?: string | null;
     footerEmail?: string | null;
     footerOpeningHours?: string | null;
+    /** Left out: the saved About Us content stays as it is. */
+    aboutPage?: AboutPageContent | null;
   },
   adminId?: string,
 ) {
@@ -101,8 +120,14 @@ export async function updatePublicViewConfigAction(
       paymentGatewayApiKey,
       paymentGatewayProvider,
       footerOpeningHours,
+      aboutPage,
       ...updateData
     } = data as any;
+    if (aboutPage) {
+      const content = cleanAbout(aboutPage);
+      if (unnamedItem(content)) throw new Error("Every service and feature needs a name.");
+      updateData.aboutPage = content;
+    }
     const saveOpeningHours = (configId: string) =>
       footerOpeningHours === undefined
         ? Promise.resolve()
@@ -123,6 +148,7 @@ export async function updatePublicViewConfigAction(
       await saveOpeningHours(updatedConfig.id);
       revalidatePath("/admindashboard/public-view-cms");
       revalidatePath("/");
+      revalidatePath("/about");
       return updatedConfig;
     } else {
       const newConfig = await prisma.publicViewConfig.create({
@@ -131,6 +157,7 @@ export async function updatePublicViewConfigAction(
       await saveOpeningHours(newConfig.id);
       revalidatePath("/admindashboard/public-view-cms");
       revalidatePath("/");
+      revalidatePath("/about");
       return newConfig;
     }
   } catch (error) {

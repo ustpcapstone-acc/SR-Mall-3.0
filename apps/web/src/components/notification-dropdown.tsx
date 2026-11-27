@@ -25,7 +25,7 @@ const BELL_LIMIT = 10;
  * The bell in the admin, tenant and public navbars. One list, newest first:
  *  - alerts (reservations, payments, reviews, applications…)
  *  - unread chats, one row per contact ("Demo Shop · 2 new messages"), from the
- *    live chat-unread store — the same count as the sidebar / launcher badges.
+ *    live chat-unread store, the same count as the sidebar / launcher badges.
  */
 export default function NotificationDropdown({ className = "" }: { className?: string }) {
   const { user } = useAuth();
@@ -132,11 +132,11 @@ export default function NotificationDropdown({ className = "" }: { className?: s
         onClick={() => setIsOpen((v) => !v)}
         aria-label={badge > 0 ? `Notifications, ${badge} unread` : "Notifications"}
         aria-expanded={isOpen}
-        className="relative p-2 rounded-2xl bg-slate-50 dark:bg-zinc-900 text-slate-500 hover:text-primary hover:bg-slate-100 dark:hover:bg-zinc-800 transition-all"
+        className="relative p-2 rounded-2xl bg-kumo-recessed text-kumo-subtle hover:text-primary hover:bg-kumo-tint transition-all"
       >
         <Bell size={20} />
         {badge > 0 && (
-          <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 bg-primary text-white text-[10px] font-semibold rounded-full flex items-center justify-center">
+          <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 bg-primary text-white text-xs font-semibold rounded-full flex items-center justify-center">
             {badge > 99 ? "99+" : badge}
           </span>
         )}
@@ -148,13 +148,13 @@ export default function NotificationDropdown({ className = "" }: { className?: s
           <div
             role="dialog"
             aria-label="Notifications"
-            className="fixed sm:absolute left-1/2 sm:left-auto -translate-x-1/2 sm:translate-x-0 sm:right-0 top-24 sm:top-12 w-[calc(100vw-2rem)] max-w-sm sm:w-96 bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl border border-slate-100 dark:border-white/5 z-50 overflow-hidden"
+            className="fixed sm:absolute left-1/2 sm:left-auto -translate-x-1/2 sm:translate-x-0 sm:right-0 top-24 sm:top-12 w-[calc(100vw-2rem)] max-w-sm sm:w-96 bg-kumo-base rounded-2xl shadow-2xl border border-kumo-line z-50 overflow-hidden"
           >
-            <div className="flex items-center justify-between gap-2 px-5 py-4 border-b border-slate-100 dark:border-white/5">
+            <div className="flex items-center justify-between gap-2 px-5 py-4 border-b border-kumo-line">
               <div className="flex items-center gap-2">
-                <h3 className="font-semibold text-charcoal dark:text-white">Notifications</h3>
+                <h3 className="font-semibold text-kumo-default">Notifications</h3>
                 {badge > 0 && (
-                  <span className="text-[10px] font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                  <span className="text-xs font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
                     {badge} new
                   </span>
                 )}
@@ -166,7 +166,7 @@ export default function NotificationDropdown({ className = "" }: { className?: s
                     onClick={markAll}
                     title="Mark all alerts as read"
                     aria-label="Mark all alerts as read"
-                    className="p-2 rounded-lg text-slate-400 hover:text-primary hover:bg-primary/10"
+                    className="p-2 rounded-lg text-kumo-subtle hover:text-primary hover:bg-primary/10"
                   >
                     <CheckCheck size={16} />
                   </button>
@@ -179,7 +179,7 @@ export default function NotificationDropdown({ className = "" }: { className?: s
                   }}
                   title="Notification settings"
                   aria-label="Notification settings"
-                  className="p-2 rounded-lg text-slate-400 hover:text-primary hover:bg-primary/10"
+                  className="p-2 rounded-lg text-kumo-subtle hover:text-primary hover:bg-primary/10"
                 >
                   <Settings size={16} />
                 </button>
@@ -187,7 +187,7 @@ export default function NotificationDropdown({ className = "" }: { className?: s
                   type="button"
                   onClick={() => setIsOpen(false)}
                   aria-label="Close"
-                  className="p-2 rounded-lg text-slate-400 hover:text-charcoal dark:hover:text-white sm:hidden"
+                  className="p-2 rounded-lg text-kumo-subtle hover:text-kumo-default sm:hidden"
                 >
                   <X size={16} />
                 </button>
@@ -197,29 +197,29 @@ export default function NotificationDropdown({ className = "" }: { className?: s
             <div className="max-h-104 overflow-y-auto">
               {rows.length === 0 ? (
                 <div className="px-6 py-12 text-center">
-                  <Bell className="w-8 h-8 text-slate-300 mx-auto mb-3" />
-                  <p className="text-sm font-bold text-charcoal dark:text-white">You&apos;re all caught up</p>
-                  <p className="text-xs text-slate-400 mt-1">New alerts and messages will appear here.</p>
+                  <Bell className="w-8 h-8 text-kumo-subtle mx-auto mb-3" />
+                  <p className="text-sm font-bold text-kumo-default">You&apos;re all caught up</p>
+                  <p className="text-xs text-kumo-subtle mt-1">New alerts and messages will appear here.</p>
                 </div>
               ) : (
-                <ul className="divide-y divide-slate-100 dark:divide-white/5">
+                <ul className="divide-y divide-kumo-line">
                   {rows.map((row) =>
                     row.kind === "chat" ? (
                       <li key={`chat-${row.chat.key}`}>
                         <button
                           type="button"
                           onClick={() => openChat(row.chat)}
-                          className="w-full text-left flex items-start gap-3 px-5 py-4 transition-colors bg-primary/4 hover:bg-slate-50 dark:hover:bg-zinc-800/60"
+                          className="w-full text-left flex items-start gap-3 px-5 py-4 transition-colors bg-primary/4 hover:bg-kumo-tint"
                         >
                           <span className="mt-0.5">
                             <NotificationIcon type="MESSAGE" size={16} />
                           </span>
                           <span className="flex-1 min-w-0">
-                            <span className="block text-sm font-bold text-charcoal dark:text-white truncate">
+                            <span className="block text-sm font-bold text-kumo-default truncate">
                               {row.chat.name} · {row.chat.unread} new message{row.chat.unread === 1 ? "" : "s"}
                             </span>
-                            <span className="block text-xs text-slate-500 line-clamp-2 mt-0.5">{row.chat.preview}</span>
-                            <span className="block text-xs font-bold text-slate-400 mt-1.5">
+                            <span className="block text-xs text-kumo-subtle line-clamp-2 mt-0.5">{row.chat.preview}</span>
+                            <span className="block text-xs font-bold text-kumo-subtle mt-1.5">
                               {timeAgo(row.chat.lastAt)} · Tap to reply
                             </span>
                           </span>
@@ -234,7 +234,7 @@ export default function NotificationDropdown({ className = "" }: { className?: s
                         type="button"
                         onClick={() => open(n)}
                         className={clsx(
-                          "w-full text-left flex items-start gap-3 px-5 py-4 transition-colors hover:bg-slate-50 dark:hover:bg-zinc-800/60",
+                          "w-full text-left flex items-start gap-3 px-5 py-4 transition-colors hover:bg-kumo-tint",
                           !n.isRead && "bg-primary/4",
                         )}
                       >
@@ -242,11 +242,11 @@ export default function NotificationDropdown({ className = "" }: { className?: s
                           <NotificationIcon type={n.type} size={16} />
                         </span>
                         <span className="flex-1 min-w-0">
-                          <span className={clsx("block text-sm text-charcoal dark:text-white", n.isRead ? "font-medium" : "font-bold")}>
+                          <span className={clsx("block text-sm text-kumo-default", n.isRead ? "font-medium" : "font-bold")}>
                             {n.title}
                           </span>
-                          <span className="block text-xs text-slate-500 line-clamp-2 mt-0.5">{n.message}</span>
-                          <span className="block text-xs font-bold text-slate-400 mt-1.5">
+                          <span className="block text-xs text-kumo-subtle line-clamp-2 mt-0.5">{n.message}</span>
+                          <span className="block text-xs font-bold text-kumo-subtle mt-1.5">
                             {timeAgo(n.createdAt)}
                           </span>
                         </span>
@@ -266,7 +266,7 @@ export default function NotificationDropdown({ className = "" }: { className?: s
                 setIsOpen(false);
                 router.push(notificationsPageHref(user.role));
               }}
-              className="w-full text-center py-3.5 border-t border-slate-100 dark:border-white/5 text-xs font-semibold text-primary hover:bg-slate-50 dark:hover:bg-zinc-800/40"
+              className="w-full text-center py-3.5 border-t border-kumo-line text-xs font-semibold text-primary hover:bg-kumo-tint"
             >
               View all notifications
             </button>

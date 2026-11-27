@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useRef, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/utils/supabase";
 import { signInWithGoogleAction } from "@/app/actions/auth";
 import { useAuth } from "@/app/providers";
-import { takeGooglePortal } from "@/lib/google-portal";
+import { takeGooglePortal, takeGoogleReturn } from "@/lib/google-portal";
 import { PORTAL_LOGIN } from "@/lib/session";
 
 function AuthCallbackPageContent() {
@@ -14,9 +14,15 @@ function AuthCallbackPageContent() {
   const { login } = useAuth();
   const [error, setError] = useState<string | null>(null);
 
+  // The sign-in code works once, and so does the note of where to return.
+  const started = useRef(false);
+
   useEffect(() => {
+    if (started.current) return;
+    started.current = true;
     const handleCallback = async () => {
       const portal = takeGooglePortal();
+      const returnTo = takeGoogleReturn();
       try {
         const code = searchParams.get("code");
         let session = null;
@@ -56,7 +62,7 @@ function AuthCallbackPageContent() {
 
         login(res.data.id, res.data.name, res.data.email, res.data.role, res.data.avatarUrl);
 
-        router.push(res.redirectTo || "/");
+        router.push(returnTo || res.redirectTo || "/");
       } catch (err: any) {
         console.error("Auth Callback Error:", err);
         setError(err?.message || "An unexpected error occurred");
@@ -68,20 +74,20 @@ function AuthCallbackPageContent() {
   }, [searchParams, router, login]);
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-black flex flex-col items-center justify-center p-4">
-      <div className="bg-white dark:bg-zinc-900 shadow-xl rounded-2xl p-8 max-w-md w-full border border-slate-100 dark:border-zinc-800 text-center">
+    <div className="min-h-screen bg-kumo-recessed flex flex-col items-center justify-center p-4">
+      <div className="bg-kumo-base shadow-xl rounded-2xl p-8 max-w-md w-full border border-kumo-line text-center">
         {error ? (
           <div className="space-y-4">
             <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mx-auto text-red-600 dark:text-red-400">
               ⚠️
             </div>
-            <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
+            <h2 className="text-xl font-semibold text-kumo-default">
               Authentication Error
             </h2>
-            <p className="text-sm text-slate-500 dark:text-slate-400">
+            <p className="text-sm text-kumo-subtle">
               {error}
             </p>
-            <p className="text-xs text-slate-400 dark:text-slate-500">
+            <p className="text-xs text-kumo-subtle">
               Taking you back to sign in...
             </p>
           </div>
@@ -89,10 +95,10 @@ function AuthCallbackPageContent() {
           <div className="space-y-6">
             <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
             <div className="space-y-2">
-              <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
+              <h2 className="text-xl font-semibold text-kumo-default">
                 Completing Sign In
               </h2>
-              <p className="text-sm text-slate-500 dark:text-slate-400">
+              <p className="text-sm text-kumo-subtle">
                 Please wait while we secure your session and redirect you.
               </p>
             </div>
@@ -106,16 +112,16 @@ function AuthCallbackPageContent() {
 export default function AuthCallbackPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-slate-50 dark:bg-black flex flex-col items-center justify-center p-4">
-        <div className="bg-white dark:bg-zinc-900 shadow-xl rounded-2xl p-8 max-w-md w-full border border-slate-100 dark:border-zinc-800 text-center">
+      <div className="min-h-screen bg-kumo-recessed flex flex-col items-center justify-center p-4">
+        <div className="bg-kumo-base shadow-xl rounded-2xl p-8 max-w-md w-full border border-kumo-line text-center">
           <div className="space-y-6">
             <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
             <div className="space-y-2">
-              <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
+              <h2 className="text-xl font-semibold text-kumo-default">
                 Loading Auth Session
               </h2>
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                Synchronizing your secure connection...
+              <p className="text-sm text-kumo-subtle">
+                Signing you in...
               </p>
             </div>
           </div>

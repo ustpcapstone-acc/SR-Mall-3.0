@@ -10,6 +10,7 @@ import {
   saveLeaseSettingsAction,
   type RenewalRow,
 } from "@/app/actions/leasing";
+import { getMyStaffAccessAction } from "@/app/actions/staff";
 import { STAGE_LABEL, addMonths, daysUntil, peso, type LeaseSettingsData, type RenewalStage } from "@/lib/leasing";
 import { formatPHDate } from "@/lib/ph-date";
 import {
@@ -20,6 +21,8 @@ import {
   initialPayment,
   toPaymentForm,
 } from "@/components/leasing/shared";
+import { useDraft } from "@/lib/drafts/use-draft";
+import { DraftNote } from "@/components/drafts/draft-note";
 
 type Tab = "UPCOMING" | "DUE" | "GRACE" | "OVERDUE" | "ACTIVE" | "ENDED" | "SETTINGS";
 
@@ -39,6 +42,11 @@ export default function RenewalsPage() {
   const [endId, setEndId] = useState<string | null>(null);
   const [version, setVersion] = useState(0);
   const reload = useCallback(() => setVersion((v) => v + 1), []);
+  // Ending leases and reminder settings need the Leasing permission.
+  const [canLease, setCanLease] = useState(false);
+  useEffect(() => {
+    getMyStaffAccessAction().then((a) => setCanLease(!!a && (a.isSuperuser || a.permissions.includes("leasing"))));
+  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -73,7 +81,7 @@ export default function RenewalsPage() {
     { value: "OVERDUE", label: `Overdue (${byTab.OVERDUE.length})` },
     { value: "ACTIVE", label: `Paid ahead (${byTab.ACTIVE.length})` },
     { value: "ENDED", label: `Ended (${byTab.ENDED.length})` },
-    { value: "SETTINGS", label: "Settings" },
+    ...(canLease ? [{ value: "SETTINGS" as const, label: "Settings" }] : []),
   ];
   const list = tab === "SETTINGS" ? [] : byTab[tab];
 
@@ -152,9 +160,11 @@ export default function RenewalsPage() {
                       {l.lastInvoiceId && <InvoiceButton invoiceId={l.lastInvoiceId} label="Last invoice" />}
                       {l.status === "ACTIVE" && (
                         <>
-                          <Button size="sm" variant="secondary-destructive" onClick={() => setEndId(l.id)}>
-                            End lease
-                          </Button>
+                          {canLease && (
+                            <Button size="sm" variant="secondary-destructive" onClick={() => setEndId(l.id)}>
+                              End lease
+                            </Button>
+                          )}
                           <Button size="sm" variant="primary" onClick={() => setRenewId(l.id)}>
                             Record payment
                           </Button>
@@ -203,7 +213,12 @@ export default function RenewalsPage() {
 }
 
 function RenewForm({ lease, onDone }: { lease: RenewalRow; onDone: () => void }) {
-  const [payment, setPayment] = useState(() => initialPayment(1, lease.monthlyRent));
+  const open = lease.openBill;
+  const extra = open ? Math.round((open.amount - open.months * lease.monthlyRent) * 100) / 100 : 0;
+  const [payment, setPayment] = useState(() => {
+    const start = initialPayment(open?.months ?? 1, lease.monthlyRent);
+    return open ? { ...start, amount: String(open.amount) } : start;
+  });
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [invoiceId, setInvoiceId] = useState<string | null>(null);
@@ -246,7 +261,17 @@ function RenewForm({ lease, onDone }: { lease: RenewalRow; onDone: () => void })
       />
       <form onSubmit={submit} className="space-y-4">
         {error && <Banner variant="error" description={error} />}
-        <PaymentFields value={payment} onChange={setPayment} monthlyRent={lease.monthlyRent} monthsLabel="Months to add" />
+        {open && (
+          <Banner
+            variant={open.checking ? "error" : "default"}
+            description={
+              open.checking
+                ? `A deposit slip is waiting for bill ${open.invoiceNumber}. Approve or reject it on Payments before recording a renewal.`
+                : `Bill ${open.invoiceNumber} for ${peso(open.amount)} was already sent. This payment settles it first.`
+            }
+          />
+        )}
+        <PaymentFields value={payment} onChange={setPayment} monthlyRent={lease.monthlyRent} monthsLabel="Months to add" extra={extra} />
         {months > 0 && (
           <p className="text-sm text-kumo-subtle">
             New paid-through date: {formatPHDate(addMonths(lease.endDate, months))}.
@@ -254,7 +279,7 @@ function RenewForm({ lease, onDone }: { lease: RenewalRow; onDone: () => void })
         )}
         <div className="flex justify-end gap-2">
           <Dialog.Close render={(props) => <Button {...props} variant="secondary">Cancel</Button>} />
-          <Button type="submit" variant="primary" loading={saving}>
+          <Button type="submit" variant="primary" loading={saving} disabled={open?.checking}>
             Record and send e-invoice
           </Button>
         </div>
@@ -267,14 +292,23 @@ function EndForm({ lease, onDone }: { lease: RenewalRow; onDone: () => void }) {
   const [reason, setReason] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const draft = useDraft({
+    form: "admin.end-lease",
+    scope: [lease.id],
+    value: { reason },
+    initial: { reason: "" },
+    onRestore: (saved) => setReason(saved.reason),
+  });
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     setError(null);
-    const res = await endLeaseAction(lease.id, reason);
+    const res = await draft.send(() => endLeaseAction(lease.id, reason));
     setSaving(false);
+    if (!res) return;
     if (!res.success) return setError(res.error);
+    draft.clear();
     toast.success(`Lease ended. Unit ${lease.unitId} is available again.`);
     onDone();
   };
@@ -285,6 +319,7 @@ function EndForm({ lease, onDone }: { lease: RenewalRow; onDone: () => void }) {
       <form onSubmit={submit} className="space-y-4">
         {error && <Banner variant="error" description={error} />}
         <InputArea label="Reason" description="The tenant will see this." value={reason} onValueChange={setReason} maxLength={500} required />
+        <DraftNote draft={draft} />
         <div className="flex justify-end gap-2">
           <Dialog.Close render={(props) => <Button {...props} variant="secondary">Cancel</Button>} />
           <Button type="submit" variant="destructive" loading={saving}>
@@ -300,20 +335,43 @@ function SettingsForm({ settings, onSaved }: { settings: LeaseSettingsData; onSa
   const [reminders, setReminders] = useState(settings.reminderDays.join(", "));
   const [grace, setGrace] = useState(String(settings.graceDays));
   const [finalWarning, setFinalWarning] = useState(String(settings.finalWarningDays));
+  const [billDays, setBillDays] = useState(String(settings.billDaysBefore));
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const draft = useDraft({
+    form: "admin.lease-settings",
+    editing: true,
+    value: { reminders, grace, finalWarning, billDays },
+    initial: {
+      reminders: settings.reminderDays.join(", "),
+      grace: String(settings.graceDays),
+      finalWarning: String(settings.finalWarningDays),
+      billDays: String(settings.billDaysBefore),
+    },
+    onRestore: (saved) => {
+      setReminders(saved.reminders);
+      setGrace(saved.grace);
+      setFinalWarning(saved.finalWarning);
+      setBillDays(saved.billDays ?? String(settings.billDaysBefore));
+    },
+  });
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     setError(null);
-    const res = await saveLeaseSettingsAction({
-      reminderDays: reminders.split(/[\s,]+/).filter(Boolean).map(Number),
-      graceDays: Number(grace),
-      finalWarningDays: Number(finalWarning),
-    });
+    const res = await draft.send(() =>
+      saveLeaseSettingsAction({
+        reminderDays: reminders.split(/[\s,]+/).filter(Boolean).map(Number),
+        graceDays: Number(grace),
+        finalWarningDays: Number(finalWarning),
+        billDaysBefore: Number(billDays),
+      }),
+    );
     setSaving(false);
+    if (!res) return;
     if (!res.success) return setError(res.error);
+    draft.clear();
     toast.success("Renewal settings saved.");
     onSaved();
   };
@@ -351,6 +409,16 @@ function SettingsForm({ settings, onSaved }: { settings: LeaseSettingsData; onSa
         onChange={(e) => setFinalWarning(e.target.value)}
         required
       />
+      <Input
+        label="Create rent bills (days before the due date)"
+        description="A draft waits on the Payments page until it is reviewed and sent."
+        type="number"
+        min={1}
+        max={30}
+        value={billDays}
+        onChange={(e) => setBillDays(e.target.value)}
+        required
+      />
       <div className="rounded-lg bg-kumo-recessed p-4 text-sm text-kumo-default">
         <p className="font-medium">What tenants get</p>
         <ul className="mt-2 list-disc space-y-1 pl-5 text-kumo-subtle">
@@ -361,6 +429,7 @@ function SettingsForm({ settings, onSaved }: { settings: LeaseSettingsData; onSa
           <li>A notice when they are removed, {g + 1} day{g === 0 ? "" : "s"} after the due date</li>
         </ul>
       </div>
+      <DraftNote draft={draft} />
       <div className="flex justify-end">
         <Button type="submit" variant="primary" loading={saving}>
           Save settings

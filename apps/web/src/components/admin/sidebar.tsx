@@ -14,6 +14,7 @@ import {
   Store,
   FileText,
   RefreshCw,
+  Wallet,
 } from "lucide-react";
 import clsx from "clsx";
 import { useState, useEffect } from "react";
@@ -29,6 +30,7 @@ const navGroups = [
     title: "Today",
     items: [
       { href: "/admindashboard", label: "Dashboard", icon: LayoutDashboard },
+      { href: "/admindashboard/payments", label: "Payments", icon: Wallet },
       { href: "/admindashboard/messenger-hub", label: "Messages", icon: MessageSquare },
       { href: "/admindashboard/complaints", label: "Complaints", icon: ClipboardList },
     ],

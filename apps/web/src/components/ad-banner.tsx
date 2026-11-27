@@ -213,7 +213,7 @@ export const AdBanner = ({
                   </button>
                   <Link
                     href="/lost-and-found"
-                    className="px-6 sm:px-8 py-3 sm:py-3.5 border border-white/60 text-white text-sm sm:text-base font-semibold rounded-xl hover:bg-white hover:text-charcoal transition-colors active:scale-95"
+                    className="px-6 sm:px-8 py-3 sm:py-3.5 border border-white/60 text-white text-sm sm:text-base font-semibold rounded-xl hover:bg-white hover:text-kumo-default transition-colors active:scale-95"
                   >
                     Lost and Found
                   </Link>
@@ -223,7 +223,7 @@ export const AdBanner = ({
               {/* Search Bar - Positioned on the side within the banner */}
               <div className="hidden lg:block w-full max-w-md animate-fade-in-up delay-200">
                 <div className="relative group">
-                  <div className="absolute -inset-1 bg-linear-to-r from-primary to-blue-600 rounded-3xl blur-sm opacity-25 group-hover:opacity-40 transition duration-1000"></div>
+                  <div className="absolute -inset-1 bg-linear-to-r from-primary to-blue-600 rounded-2xl blur-sm opacity-25 group-hover:opacity-40 transition duration-1000"></div>
                   <div className="relative flex items-center bg-white/10 backdrop-blur-xl rounded-2xl p-2 border border-white/20 shadow-2xl">
                     <Search size={20} className="ml-4 text-white/60" />
                     <input
@@ -245,11 +245,11 @@ export const AdBanner = ({
 
                   {/* Predictive Search Panel inside Banner */}
                   {searchQuery && (
-                    <div className="absolute top-full left-0 w-full mt-3 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-3xl shadow-3xl z-100 overflow-hidden animate-in fade-in slide-in-from-top-2">
-                      <div className="p-4 border-b border-slate-50 dark:border-white/5 flex items-center justify-between">
-                        <span className="text-xs font-semibold text-slate-400">Quick Results</span>
+                    <div className="absolute top-full left-0 w-full mt-3 bg-kumo-base border border-kumo-line rounded-2xl shadow-3xl z-100 overflow-hidden animate-in fade-in slide-in-from-top-2">
+                      <div className="p-4 border-b border-kumo-line flex items-center justify-between">
+                        <span className="text-xs font-semibold text-kumo-subtle">Quick Results</span>
                         <button suppressHydrationWarning onClick={() => setSearchQuery("")}>
-                          <X size={14} className="text-slate-300" />
+                          <X size={14} className="text-kumo-subtle" />
                         </button>
                       </div>
                       <div className="max-h-60 overflow-y-auto no-scrollbar p-2">
@@ -257,15 +257,15 @@ export const AdBanner = ({
                           .filter((s: any) => s.shop_name.toLowerCase().includes(searchQuery.toLowerCase()))
                           .slice(0, 2)
                           .map((s: any) => (
-                            <Link key={s.id} href={`/shop/${s.id}`} className="flex items-center gap-3 p-2 hover:bg-slate-50 dark:hover:bg-white/5 rounded-xl transition-all group/item">
-                              <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-zinc-800 overflow-hidden shrink-0">
+                            <Link key={s.id} href={`/shop/${s.id}`} className="flex items-center gap-3 p-2 hover:bg-kumo-tint rounded-xl transition-all group/item">
+                              <div className="w-8 h-8 rounded-lg bg-kumo-recessed overflow-hidden shrink-0">
                                 <img src={s.logo_url || "/images/logo/logoshop.jpg"} className="w-full h-full object-cover" alt="" />
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className="text-xs font-semibold text-charcoal dark:text-white truncate">{s.shop_name}</p>
-                                <p className="text-xs font-bold text-slate-400">{s.unit_id}</p>
+                                <p className="text-xs font-semibold text-kumo-default truncate">{s.shop_name}</p>
+                                <p className="text-xs font-bold text-kumo-subtle">{s.unit_id}</p>
                               </div>
-                              <Navigation size={10} className="text-slate-300 group-hover/item:text-primary" />
+                              <Navigation size={10} className="text-kumo-subtle group-hover/item:text-primary" />
                             </Link>
                           ))}
                         
@@ -273,15 +273,15 @@ export const AdBanner = ({
                           .filter((p: any) => (p.name || "").toLowerCase().includes(searchQuery.toLowerCase()))
                           .slice(0, 2)
                           .map((p: any) => (
-                            <button suppressHydrationWarning key={p.id} onClick={() => setSelectedProduct(p)} className="w-full flex items-center gap-3 p-2 hover:bg-slate-50 dark:hover:bg-white/5 rounded-xl transition-all group/item text-left">
-                              <div className="w-8 h-8 rounded-lg bg-white dark:bg-black overflow-hidden shrink-0 border border-slate-100 dark:border-white/10">
+                            <button suppressHydrationWarning key={p.id} onClick={() => setSelectedProduct(p)} className="w-full flex items-center gap-3 p-2 hover:bg-kumo-tint rounded-xl transition-all group/item text-left">
+                              <div className="w-8 h-8 rounded-lg bg-kumo-base overflow-hidden shrink-0 border border-kumo-line">
                                 <img src={p.image_url} className="w-full h-full object-cover" alt="" />
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className="text-[11px] font-semibold text-charcoal dark:text-white truncate">{p.name}</p>
+                                <p className="text-xs font-semibold text-kumo-default truncate">{p.name}</p>
                                 <p className="text-xs font-bold text-primary">{p.price}</p>
                               </div>
-                              <Tag size={10} className="text-slate-300 group-hover/item:text-primary" />
+                              <Tag size={10} className="text-kumo-subtle group-hover/item:text-primary" />
                             </button>
                           ))}
                       </div>
@@ -296,7 +296,7 @@ export const AdBanner = ({
 
       {/* Slide Indicators */}
       {localAds.length > 1 && (
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 z-20 bg-white/50 dark:bg-charcoal/50 backdrop-blur-md px-3 py-2 rounded-full border border-slate-200 dark:border-white/10">
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 z-20 bg-white/50 dark:bg-charcoal/50 backdrop-blur-md px-3 py-2 rounded-full border border-kumo-line">
           {localAds.map((_: any, index: number) => (
             <button
               suppressHydrationWarning

@@ -4,6 +4,7 @@ import { PaymentLedgerDialog } from "@/components/payments/payment-ledger-dialog
 import React, { useState, useEffect, useRef } from "react";
 import { Button, Input, InputArea, Loader, Select, Table, cn } from "@cloudflare/kumo";
 import {
+  CalendarBlank,
   CaretLeft,
   CaretRight,
   CaretUpDown,
@@ -24,6 +25,10 @@ import { rentOf, type RentLease } from "@/lib/tenant-rent";
 import { RegisterTenantModal } from "@/components/admin/register-tenant-modal";
 import { RecordCashPaymentModal } from "@/components/admin/record-cash-payment-modal";
 import { RecordPaymentGuide } from "@/components/admin/record-payment-guide";
+import { PaymentHistory } from "@/components/admin/payment-history";
+import { useTabParam } from "@/lib/use-tab-param";
+import { useDraft } from "@/lib/drafts/use-draft";
+import { DraftNote } from "@/components/drafts/draft-note";
 import clsx from "clsx";
 import {
   getAllTenantsAction,
@@ -37,14 +42,20 @@ import {
   generateVoucherPDF,
   generateTenantReceiptPDF,
   generateTenantPDF,
+  generatePaymentHistoryPDF,
 } from "@/utils/report-generator";
+import { reportStatus } from "@/lib/leasing";
 // Dynamic import used in handler to prevent SSR issues
 import { getAreaSlots } from "@/app/actions/space-slot";
 import {
   getAllInvoices,
   generateInvoice,
-  updateInvoiceStatus,
+  getPaymentLogAction,
 } from "@/app/actions/finance";
+import { BillHistory, BillReasonDialog } from "@/components/admin/bill-controls";
+import { getMyStaffAccessAction } from "@/app/actions/staff";
+import type { PaymentLogEntry } from "@/lib/payments";
+import type { StaffAccess } from "@/lib/permissions";
 
 interface Tenant {
   id: string;
@@ -181,9 +192,19 @@ const getTimeframeDetails = (tf: Timeframe) => {
   }
 };
 
+const VIEWS = [{ key: "tenants" }, { key: "history" }] as const;
+
 export default function TenantMonitoring() {
+  const [view, setView] = useState<"tenants" | "history">("tenants");
+  useTabParam(VIEWS, setView);
   const { user: adminUser } = useAuth();
   const [ledgerOpen, setLedgerOpen] = useState(false);
+  // null opens the month view; a tenant id opens that tenant's schedule.
+  const [scheduleTenantId, setScheduleTenantId] = useState<string | null>(null);
+  const openSchedule = (tenantId: string | null = null) => {
+    setScheduleTenantId(tenantId);
+    setLedgerOpen(true);
+  };
   const [timeframe, setTimeframe] = useState<Timeframe>("monthly");
   const [tenants, setTenants] = useState<Tenant[]>([]);
   // `loading` = first load only (full-page spinner). Background refreshes are
@@ -212,6 +233,17 @@ export default function TenantMonitoring() {
   const [availableSlots, setAvailableSlots] = useState<any[]>([]);
   const [selectedUnitForApproval, setSelectedUnitForApproval] =
     useState<string>("");
+  // Floor Spaces and Map links here to one tenant (?tenant=id).
+  const wantedTenant = useRef<string | null>(null);
+  useEffect(() => {
+    wantedTenant.current = new URLSearchParams(window.location.search).get("tenant");
+  }, []);
+  useEffect(() => {
+    const found = wantedTenant.current && tenants.find((t) => t.id === wantedTenant.current);
+    if (!found) return;
+    wantedTenant.current = null;
+    setSelectedTenant(found);
+  }, [tenants]);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [paymentFilter, setPaymentFilter] = useState<string>("all");
@@ -256,7 +288,27 @@ export default function TenantMonitoring() {
     amount: 0,
     month: "",
     dueDate: "",
-    description: "Manual Billing - Rent & Utilities",
+    description: "Other charges (utilities and fees)",
+  });
+  /** What the edit and billing windows opened with. */
+  const [editStart, setEditStart] = useState(editFormData);
+  const [billStart, setBillStart] = useState(billFormData);
+  const editDraft = useDraft({
+    form: "admin.tenant-details",
+    scope: [editingTenant?.id],
+    enabled: isEditModalOpen && Boolean(editingTenant),
+    editing: true,
+    value: editFormData,
+    initial: editStart,
+    onRestore: setEditFormData,
+  });
+  const billDraft = useDraft({
+    form: "admin.monthly-bill",
+    scope: [selectedTenant?.id],
+    enabled: isBillModalOpen && Boolean(selectedTenant),
+    value: billFormData,
+    initial: billStart,
+    onRestore: setBillFormData,
   });
   const [isDocumentsModalOpen, setIsDocumentsModalOpen] = useState(false);
   const [tenantToDelete, setTenantToDelete] = useState<Tenant | null>(null);
@@ -286,7 +338,7 @@ export default function TenantMonitoring() {
         const enhancedTenants: Tenant[] = result.data.map(
           (item: any) => {
             const tenantInvoices = invoicesResult.filter(
-              (inv: any) => inv.tenantId === item.id,
+              (inv: any) => inv.tenantId === item.id && inv.status !== "VOID",
             );
 
             const hasSlipToVerify = tenantInvoices.some((inv: any) => inv.status === "REVIEWING");
@@ -463,13 +515,15 @@ export default function TenantMonitoring() {
   const handleEditTenant = () => {
     if (!selectedTenant) return;
     setEditingTenant(selectedTenant);
-    setEditFormData({
+    const start = {
       shopName: selectedTenant.shopName || "",
       unitId: selectedTenant.unitId || "",
       status: selectedTenant.status || "",
       rentCost: selectedTenant.rentCost || 0,
       description: selectedTenant.description || "",
-    });
+    };
+    setEditStart(start);
+    setEditFormData(start);
     setIsEditModalOpen(true);
   };
 
@@ -477,8 +531,10 @@ export default function TenantMonitoring() {
     if (!editingTenant) return;
     setSaving(true);
     try {
-      const res = await adminUpdateTenantAction(editingTenant.id, editFormData, adminUser?.id);
+      const res = await editDraft.send(() => adminUpdateTenantAction(editingTenant.id, editFormData, adminUser?.id));
+      if (!res) return;
       if (res.success) {
+        editDraft.clear();
         setToast({ msg: "Tenant updated successfully!", type: "success" });
         setIsEditModalOpen(false);
         setSelectedTenant(null);
@@ -577,6 +633,39 @@ export default function TenantMonitoring() {
     }
   };
 
+  const handleDownloadPaymentHistory = async (tenant: Tenant) => {
+    try {
+      setGeneratingDoc("history");
+      await generatePaymentHistoryPDF(
+        {
+          shopName: tenant.shopName,
+          units: tenant.units.filter((u) => u !== UNASSIGNED_UNIT && u !== "PENDING").join(", ") || "No unit yet",
+          ownerName: tenant.user?.name || tenant.user?.email,
+        },
+        allInvoices
+          .filter((i: any) => i.tenantId === tenant.id)
+          .map((i: any) => ({
+            invoiceNumber: i.invoiceNumber,
+            description: i.description || `Rent, ${i.month}`,
+            unitId: i.unitId,
+            dueDate: i.dueDate,
+            // Older paid invoices have no paidAt, so their last update stands in.
+            paidOn: i.status === "PAID" ? i.paidAt || i.updatedAt : null,
+            method: i.paymentMethod,
+            referenceNo: i.referenceNo,
+            amount: Number(i.amount) || 0,
+            status: reportStatus(i.status, i.dueDate),
+          })),
+      );
+      setToast({ msg: "✓ Payment history report downloaded", type: "success" });
+    } catch (e: any) {
+      console.error("Payment report error:", e);
+      setToast({ msg: "Could not generate the payment history report", type: "error" });
+    } finally {
+      setGeneratingDoc(null);
+    }
+  };
+
   const handleDownloadTenantSummary = async (tenant: Tenant) => {
     try {
       setGeneratingDoc("summary");
@@ -588,7 +677,7 @@ export default function TenantMonitoring() {
           unitId: tenant.units.join(", ") || tenant.unitId,
           monthlyRent: tenant.rentCost || 0,
           balance: allInvoices
-            .filter((i: any) => i.tenantId === tenant.id && i.status !== "PAID")
+            .filter((i: any) => i.tenantId === tenant.id && i.status !== "PAID" && i.status !== "VOID")
             .reduce((sum: number, i: any) => sum + i.amount, 0),
           status: tenant.status,
           nextDueDate: tenant.nextDueAt,
@@ -607,19 +696,20 @@ export default function TenantMonitoring() {
 
   const handlePostMonthlyBill = () => {
     if (!selectedTenant) return;
-    setBillFormData({
-      // A bill without a unit is recorded against the first one.
-      amount: selectedTenant.leases[0]?.monthlyRent ?? selectedTenant.rentCost ?? 0,
+    const start = {
+      amount: 0,
       month: new Date().toLocaleString("default", { month: "short", year: "numeric" }),
       dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
-      description: "Manual Billing - Rent & Utilities",
-    });
+      description: "Other charges (utilities and fees)",
+    };
+    setBillStart(start);
+    setBillFormData(start);
     setIsBillModalOpen(true);
   };
 
   // Record Cash Payment modal (components/admin/record-cash-payment-modal)
-  const [cashPaymentInvoice, setCashPaymentInvoice] = useState<any | null>(null);
-  const openCashPaymentModal = (invoice: any) => setCashPaymentInvoice(invoice);
+  /** The bill being paid, approved, rejected or voided. */
+  const [billTask, setBillTask] = useState<{ mode: "record" | "approve" | "reject" | "void" | "cancel"; invoice: any } | null>(null);
 
   const handleSubmitBill = async () => {
     if (!selectedTenant) return;
@@ -639,15 +729,22 @@ export default function TenantMonitoring() {
     setToast({ msg: "Posting monthly bill...", type: "success" });
 
     try {
-      const res = await generateInvoice({
-        tenantId: selectedTenant.id,
-        month: billFormData.month,
-        amount: billFormData.amount,
-        dueDate: dueDate,
-        description: billFormData.description,
-      });
+      const res = await billDraft.send(() =>
+        generateInvoice({
+          tenantId: selectedTenant.id,
+          month: billFormData.month,
+          amount: billFormData.amount,
+          dueDate: dueDate,
+          description: billFormData.description,
+        }),
+      );
+      if (!res) {
+        setToast(null);
+        return;
+      }
 
       if (res.success) {
+        billDraft.clear();
         setToast({ msg: "Invoice successfully generated!", type: "success" });
         setIsBillModalOpen(false);
         loadTenants();
@@ -775,7 +872,7 @@ export default function TenantMonitoring() {
         t.shopName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         [t.unitId, ...t.units].some((u) => u?.toLowerCase().includes(searchQuery.toLowerCase())) ||
         t.user?.email?.toLowerCase().includes(searchQuery.toLowerCase());
-      // "all" excludes PAST tenants and REJECTED applicants — pick them
+      // "all" excludes PAST tenants and REJECTED applicants, pick them
       // explicitly from the status filter to see them.
       const matchesStatus =
         statusFilter === "all"
@@ -859,22 +956,52 @@ export default function TenantMonitoring() {
 
   const tenantBills = selectedTenant ? allInvoices.filter((i: any) => i.tenantId === selectedTenant.id) : [];
   const monthItems = Object.fromEntries(MONTH_NAMES.map((m, i) => [String(i), m]));
-  const subDialogOpen = isBillModalOpen || isDocumentsModalOpen || !!tenantToDelete || !!cashPaymentInvoice || isEditModalOpen;
+  const subDialogOpen =
+    isBillModalOpen || isDocumentsModalOpen || !!tenantToDelete || !!billTask || isEditModalOpen || ledgerOpen;
 
-  const approveSlip = async (invoiceId: string) => {
-    try {
-      setToast({ msg: "Processing approval...", type: "success" });
-      const res = await updateInvoiceStatus(invoiceId, "PAID");
-      if (res.success) {
-        setToast({ msg: "Payment Cleared!", type: "success" });
-        loadTenants();
-      } else {
-        setToast({ msg: "Error: " + res.error, type: "error" });
-      }
-    } catch (e: any) {
-      setToast({ msg: "Error: " + e.message, type: "error" });
-    }
+  // Payment history of the open tenant's bills; reloaded when the bills change.
+  const [paymentLog, setPaymentLog] = useState<PaymentLogEntry[]>([]);
+  const [logError, setLogError] = useState<string | null>(null);
+  const openTenantId = selectedTenant?.id ?? null;
+  useEffect(() => {
+    setPaymentLog([]);
+    setLogError(null);
+  }, [openTenantId]);
+  useEffect(() => {
+    if (!openTenantId) return;
+    let alive = true;
+    getPaymentLogAction(openTenantId).then((res) => {
+      if (!alive) return;
+      if (res.success) setPaymentLog(res.data);
+      setLogError(res.success ? null : res.error);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [openTenantId, allInvoices]);
+
+  const BILL_DONE = {
+    record: "Payment recorded",
+    approve: "Deposit slip approved",
+    reject: "Deposit slip rejected",
+    void: "Payment voided",
+    cancel: "Bill cancelled",
+  } as const;
+  const finishBillTask = (note?: string) => {
+    if (!billTask) return;
+    setToast({ msg: note ? `${BILL_DONE[billTask.mode]}. ${note}` : BILL_DONE[billTask.mode], type: "success" });
+    setBillTask(null);
+    loadTenants();
   };
+
+  // Staff with only the Payments permission see tenant details but can't change them.
+  const [access, setAccess] = useState<StaffAccess | null>(null);
+  useEffect(() => {
+    getMyStaffAccessAction().then(setAccess);
+  }, []);
+  const holdsAny = (...keys: string[]) => !!access && (access.isSuperuser || access.permissions.some((p) => keys.includes(p)));
+  const canManage = holdsAny("tenant_monitoring");
+  const canMessage = holdsAny("tenant_monitoring", "messages");
 
   return (
     <>
@@ -1054,9 +1181,11 @@ export default function TenantMonitoring() {
                   }
                   rows={3}
                   className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-xl text-sm font-medium focus:border-primary focus:outline-hidden transition-all resize-none"
-                  placeholder="e.g. Luxury Footwear Provider"
+                  placeholder="e.g. Shoes and sandals"
                 />
               </div>
+
+              <DraftNote draft={editDraft} />
 
               <div className="flex gap-3 pt-4">
                 <button
@@ -1085,16 +1214,13 @@ export default function TenantMonitoring() {
       )}
 
       {/* Record Cash Payment Modal */}
-      {cashPaymentInvoice && (
+      {billTask && (billTask.mode === "record" || billTask.mode === "approve") && (
         <RecordCashPaymentModal
-          invoice={cashPaymentInvoice}
+          invoice={billTask.invoice}
+          mode={billTask.mode}
           tenantName={selectedTenant?.shopName}
-          onClose={() => setCashPaymentInvoice(null)}
-          onRecorded={() => {
-            setCashPaymentInvoice(null);
-            setToast({ msg: "Payment recorded!", type: "success" });
-            loadTenants();
-          }}
+          onClose={() => setBillTask(null)}
+          onRecorded={finishBillTask}
         />
       )}
 
@@ -1105,22 +1231,46 @@ export default function TenantMonitoring() {
           <>
             <RecordPaymentGuide
               onShowTenants={(onlyVerifying) => {
+                setView("tenants");
                 setSearchQuery("");
                 setStatusFilter("all");
                 setPaymentFilter(onlyVerifying ? VERIFYING : "all");
               }}
             />
+            <Button variant="secondary" icon={<CalendarBlank />} onClick={() => openSchedule()}>
+              Payment schedule
+            </Button>
             <Button variant="secondary" icon={<DownloadSimple />} loading={isExporting} onClick={() => setIsReportOpen(true)}>
               Download Report
             </Button>
-            <Button variant="primary" icon={<UserPlus />} onClick={() => setIsRegisterOpen(true)}>
-              Add Account
-            </Button>
+            {canManage && (
+              <Button variant="primary" icon={<UserPlus />} onClick={() => setIsRegisterOpen(true)}>
+                Add Account
+              </Button>
+            )}
           </>
         }
       >
-        <PaymentLedgerDialog open={ledgerOpen} onOpenChange={setLedgerOpen} adminId={adminUser?.id} />
+        <PaymentLedgerDialog
+          open={ledgerOpen}
+          onOpenChange={setLedgerOpen}
+          adminId={adminUser?.id}
+          initialTenantId={scheduleTenantId}
+        />
 
+        <PageTabs
+          value={view}
+          onValueChange={(v) => setView(v as "tenants" | "history")}
+          tabs={[
+            { value: "tenants", label: "Tenants" },
+            { value: "history", label: "Payment history" },
+          ]}
+        />
+
+        {view === "history" && <PaymentHistory />}
+
+        {view === "tenants" && (
+          <>
         <StatRow>
           <Stat label="Total tenants" value={stats.total} onClick={() => showOnly("all", "all")} />
           <Stat label="Active" value={stats.active} onClick={() => showOnly("ACTIVE", "all")} active={statusFilter === "ACTIVE"} />
@@ -1142,7 +1292,7 @@ export default function TenantMonitoring() {
             label={`Estimated revenue, ${tfDetails.periodBadge.toLowerCase()}`}
             value={money(Math.round((stats.totalRevenue || 0) * multiplier))}
             hint="View payments"
-            onClick={() => setLedgerOpen(true)}
+            onClick={() => openSchedule()}
           />
           <Stat
             label={`Collected, ${tfDetails.periodBadge.toLowerCase()}`}
@@ -1371,6 +1521,8 @@ export default function TenantMonitoring() {
             </>
           )}
         </Panel>
+          </>
+        )}
       </AdminPage>
 
       {/* Report downloads */}
@@ -1435,18 +1587,22 @@ export default function TenantMonitoring() {
               <Button variant="primary" icon={<Receipt />} onClick={handlePostMonthlyBill}>
                 Post Monthly Bill
               </Button>
-              <Button variant="secondary" icon={<ChatCircle />} onClick={handleSendMessage}>
-                Message
-              </Button>
+              {canMessage && (
+                <Button variant="secondary" icon={<ChatCircle />} onClick={handleSendMessage}>
+                  Message
+                </Button>
+              )}
               <Button variant="secondary" icon={<FileText />} onClick={handleViewDocuments}>
                 Documents
               </Button>
-              <Button variant="secondary-destructive" icon={<Trash />} className="ml-auto" onClick={() => setTenantToDelete(selectedTenant)}>
-                Delete
-              </Button>
+              {canManage && (
+                <Button variant="secondary-destructive" icon={<Trash />} className="ml-auto" onClick={() => setTenantToDelete(selectedTenant)}>
+                  Delete
+                </Button>
+              )}
             </div>
 
-            {selectedTenant.status === "PENDING" && (
+            {canManage && selectedTenant.status === "PENDING" && (
               <section className="space-y-3 rounded-lg border border-kumo-line bg-kumo-recessed p-4">
                 <div>
                   <h3 className="text-sm font-semibold text-kumo-default">Approve Application</h3>
@@ -1502,6 +1658,33 @@ export default function TenantMonitoring() {
                   <Fact label="Total paid">{money(sumOf(tenantBills, true))}</Fact>
                   <Fact label="Outstanding">{money(sumOf(tenantBills, false))}</Fact>
                 </dl>
+                {/* The schedule covers approved tenants, not applications. */}
+                {!["PENDING", "REJECTED"].includes(selectedTenant.status) && (
+                  <Button
+                    variant="secondary"
+                    icon={<CalendarBlank />}
+                    className="w-full justify-center"
+                    onClick={() => openSchedule(selectedTenant.id)}
+                  >
+                    View payment schedule
+                  </Button>
+                )}
+                {tenantBills.length > 0 && (
+                  <Button
+                    variant="secondary"
+                    icon={<DownloadSimple />}
+                    className="w-full justify-center"
+                    loading={generatingDoc === "history"}
+                    onClick={() => handleDownloadPaymentHistory(selectedTenant)}
+                  >
+                    Payment History Report
+                  </Button>
+                )}
+                {logError && (
+                  <p role="alert" className="text-sm text-kumo-danger">
+                    {logError}
+                  </p>
+                )}
                 {tenantBills.length === 0 ? (
                   <p className="rounded-lg border border-kumo-line p-4 text-center text-sm text-kumo-subtle">No bills yet.</p>
                 ) : (
@@ -1510,23 +1693,41 @@ export default function TenantMonitoring() {
                       <li key={inv.id} className="space-y-2 p-3">
                         <BillLine invoice={inv} />
                         <div className="flex flex-wrap justify-end gap-2">
-                          {inv.status === "REVIEWING" && inv.depositSlipUrl && (
+                          {inv.status === "REVIEWING" && (
                             <>
-                              <SlipLink url={inv.depositSlipUrl} />
-                              <Button size="sm" variant="primary" onClick={() => approveSlip(inv.id)}>
+                              {inv.depositSlipUrl && <SlipLink url={inv.depositSlipUrl} />}
+                              <Button size="sm" variant="secondary-destructive" onClick={() => setBillTask({ mode: "reject", invoice: inv })}>
+                                Reject
+                              </Button>
+                              <Button size="sm" variant="primary" onClick={() => setBillTask({ mode: "approve", invoice: inv })}>
                                 Approve
                               </Button>
                             </>
                           )}
-                          {(inv.status === "PENDING" || inv.status === "OVERDUE") && (
-                            <Button size="sm" variant="primary" onClick={() => openCashPaymentModal(inv)}>
-                              Record Cash Payment
+                          {["PENDING", "OVERDUE", "REJECTED"].includes(inv.status) && (
+                            <>
+                              {inv.leaseId && inv.periodStart && (
+                                <Button size="sm" variant="secondary" onClick={() => setBillTask({ mode: "cancel", invoice: inv })}>
+                                  Cancel bill
+                                </Button>
+                              )}
+                              <Button size="sm" variant="primary" onClick={() => setBillTask({ mode: "record", invoice: inv })}>
+                                Record payment
+                              </Button>
+                            </>
+                          )}
+                          {inv.status === "PAID" && (
+                            <Button size="sm" variant="secondary" onClick={() => setBillTask({ mode: "void", invoice: inv })}>
+                              Void payment
                             </Button>
                           )}
                         </div>
                         {inv.status === "PAID" && inv.referenceNo && (
-                          <p className="text-xs text-kumo-subtle">Reference {inv.referenceNo}</p>
+                          <p className="text-xs text-kumo-subtle">
+                            {[inv.paymentMethod, `Reference ${inv.referenceNo}`].filter(Boolean).join(", ")}
+                          </p>
                         )}
+                        <BillHistory entries={paymentLog.filter((e) => e.invoiceId === inv.id)} />
                       </li>
                     ))}
                   </ul>
@@ -1536,6 +1737,16 @@ export default function TenantMonitoring() {
           </div>
         )}
       </AdminDialog>
+
+      {billTask && (billTask.mode === "reject" || billTask.mode === "void" || billTask.mode === "cancel") && (
+        <BillReasonDialog
+          invoice={billTask.invoice}
+          mode={billTask.mode}
+          tenantName={selectedTenant?.shopName}
+          onClose={() => setBillTask(null)}
+          onDone={() => finishBillTask()}
+        />
+      )}
 
       {/* Post a bill */}
       <AdminDialog
@@ -1557,13 +1768,7 @@ export default function TenantMonitoring() {
         <div className="space-y-4">
           <Input
             label="Amount to bill (PHP)"
-            description={
-              !selectedTenant?.rentCost
-                ? "No rent is saved for this tenant. Type the amount."
-                : selectedTenant.units.length > 1
-                  ? `Recorded against Unit ${selectedTenant.units[0]}, filled in with that unit's rent.`
-                  : undefined
-            }
+            description="For utilities and fees. Monthly rent is billed from Bills to review on the Payments page."
             type="number"
             value={billFormData.amount}
             onChange={(e) => setBillFormData({ ...billFormData, amount: Number(e.target.value) })}
@@ -1590,6 +1795,7 @@ export default function TenantMonitoring() {
             onValueChange={(v) => setBillFormData({ ...billFormData, description: v })}
             className="w-full"
           />
+          <DraftNote draft={billDraft} />
         </div>
       </AdminDialog>
 
@@ -1624,6 +1830,24 @@ export default function TenantMonitoring() {
                   </Button>
                 )}
               />
+            </section>
+
+            <section className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-kumo-line p-4">
+              <div className="min-w-0">
+                <h3 className="text-sm font-semibold text-kumo-default">Payment History Report</h3>
+                <p className="text-sm text-kumo-subtle">
+                  {tenantBills.length === 0 ? "Nothing to report yet." : "Totals and every invoice of this shop in one PDF."}
+                </p>
+              </div>
+              <Button
+                variant="secondary"
+                icon={<DownloadSimple />}
+                loading={generatingDoc === "history"}
+                disabled={tenantBills.length === 0}
+                onClick={() => handleDownloadPaymentHistory(selectedTenant)}
+              >
+                Download PDF
+              </Button>
             </section>
 
             <section className="space-y-2">
@@ -1757,7 +1981,7 @@ function LeaseList({ tenant, action }: { tenant: Tenant; action?: (lease: RentLe
 }
 
 const sumOf = (bills: any[], paid: boolean) =>
-  bills.filter((i) => (i.status === "PAID") === paid).reduce((sum, i) => sum + i.amount, 0);
+  bills.filter((i) => i.status !== "VOID" && (i.status === "PAID") === paid).reduce((sum, i) => sum + i.amount, 0);
 
 /** A labelled Kumo dropdown. `items` maps each value to the text shown. */
 function Choice({
@@ -1805,7 +2029,8 @@ function Fact({ label, children }: { label: string; children: React.ReactNode })
 }
 
 function BillLine({ invoice: inv }: { invoice: any }) {
-  const status = inv.status === "REVIEWING" ? "Checking slip" : inv.status.charAt(0) + inv.status.slice(1).toLowerCase();
+  const status =
+    inv.status === "REVIEWING" ? "Checking slip" : inv.status === "VOID" ? "Cancelled" : inv.status.charAt(0) + inv.status.slice(1).toLowerCase();
   return (
     <div className="flex items-start justify-between gap-3">
       <div className="min-w-0">
@@ -1819,7 +2044,13 @@ function BillLine({ invoice: inv }: { invoice: any }) {
         <p
           className={cn(
             "text-sm font-medium",
-            inv.status === "PAID" ? "text-kumo-success" : inv.status === "OVERDUE" ? "text-kumo-danger" : "text-kumo-warning",
+            inv.status === "PAID"
+              ? "text-kumo-success"
+              : inv.status === "OVERDUE"
+                ? "text-kumo-danger"
+                : inv.status === "VOID"
+                  ? "text-kumo-subtle"
+                  : "text-kumo-warning",
           )}
         >
           {status}

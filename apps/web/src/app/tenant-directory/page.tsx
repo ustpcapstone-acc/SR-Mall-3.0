@@ -7,7 +7,7 @@ import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { ShopCard } from "@/components/shop-card";
 import { FilterRow, PublicHeader, PublicSearch } from "@/components/public-header";
-import { floorLabel } from "@/lib/floors";
+import { useFloors } from "@/lib/use-floors";
 import { ChatBox } from "@/components/chat-box";
 import { ChatLauncher } from "@/components/chat-launcher";
 import { Loader2 } from "lucide-react";
@@ -17,6 +17,7 @@ import { spaCache } from "@/utils/cache";
 
 export default function TenantDirectoryPage() {
   const { isAuthenticated } = useAuth();
+  const { label: floorLabel } = useFloors();
   const [shops, setShops] = useState<any[]>(() => spaCache.get("directory_shops") || []);
   const [loading, setLoading] = useState(() => !spaCache.has("directory_shops"));
   const [searchQuery, setSearchQuery] = useState("");
@@ -85,7 +86,7 @@ export default function TenantDirectoryPage() {
     }));
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-black font-sans selection:bg-primary selection:text-white">
+    <div className="min-h-screen bg-kumo-recessed font-sans selection:bg-primary selection:text-white">
       <Navbar />
 
       <PublicHeader title="Tenant directory" description="Every shop at SR Mall, with where to find it.">

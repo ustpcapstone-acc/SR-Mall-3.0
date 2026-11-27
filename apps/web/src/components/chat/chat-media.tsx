@@ -35,7 +35,7 @@ export function ChatAvatar({
   return (
     <div
       className={clsx(
-        "w-8 h-8 rounded-full bg-slate-200 dark:bg-zinc-800 flex items-center justify-center overflow-hidden shrink-0 border border-slate-100 dark:border-white/5",
+        "w-8 h-8 rounded-full bg-kumo-line flex items-center justify-center overflow-hidden shrink-0 border border-kumo-line",
         className,
       )}
     >
@@ -43,7 +43,7 @@ export function ChatAvatar({
         // eslint-disable-next-line @next/next/no-img-element
         <img src={optimizedImage(src!, 96)} alt={name || "Avatar"} onError={() => setBroken(true)} className="w-full h-full object-cover" />
       ) : (
-        <span className="text-xs font-bold text-slate-500">{initialsOf(name)}</span>
+        <span className="text-xs font-bold text-kumo-subtle">{initialsOf(name)}</span>
       )}
     </div>
   );
@@ -57,7 +57,7 @@ export function ChatImage({ url, onOpen }: { url: string; onOpen: (url: string) 
   const [broken, setBroken] = useState(false);
   if (broken) {
     return (
-      <div className="w-52 sm:w-60 h-32 rounded-xl bg-slate-100 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 flex items-center justify-center text-[11px] font-bold text-slate-400">
+      <div className="w-52 sm:w-60 h-32 rounded-xl bg-kumo-recessed border border-kumo-line flex items-center justify-center text-xs font-bold text-kumo-subtle">
         Image unavailable
       </div>
     );
@@ -66,7 +66,7 @@ export function ChatImage({ url, onOpen }: { url: string; onOpen: (url: string) 
     <button
       type="button"
       onClick={() => onOpen(url)}
-      className="relative block w-52 sm:w-60 rounded-xl overflow-hidden bg-slate-100 dark:bg-zinc-800 group/img focus:outline-hidden focus-visible:ring-2 focus-visible:ring-primary/50"
+      className="relative block w-52 sm:w-60 rounded-xl overflow-hidden bg-kumo-recessed group/img focus:outline-hidden focus-visible:ring-2 focus-visible:ring-primary/50"
       title="View full size"
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}

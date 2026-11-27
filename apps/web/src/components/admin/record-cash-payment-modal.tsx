@@ -1,17 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import clsx from "clsx";
-import {
-  AlertTriangle,
-  Calendar,
-  CheckCircle,
-  PhilippinePeso,
-  RefreshCw,
-  ShieldCheck,
-  X,
-} from "lucide-react";
-import { recordManualPaymentAction } from "@/app/actions/finance";
+import { useState } from "react";
+import { Banner, Button } from "@cloudflare/kumo";
+import { AdminDialog } from "@/components/admin/page-kit";
+import { PaymentFields, todayPH, type PaymentState } from "@/components/leasing/shared";
+import { approveSlipAction, recordPaymentAction } from "@/app/actions/finance";
+import { peso } from "@/lib/leasing";
 
 export interface CashPaymentInvoice {
   id: string;
@@ -20,24 +14,36 @@ export interface CashPaymentInvoice {
   amount: number;
   dueDate: string | Date;
   status: string;
+  depositSlipUrl?: string | null;
 }
 
 /**
- * "Record Cash Payment" dialog — marks an invoice PAID with the physical
- * receipt / reference number. Shared by Tenant Monitoring and the dashboard.
+ * Accept a payment on one bill: money received at the office, or a deposit slip
+ * being approved. Both save the amount, method, reference, date and who did it.
+ * Shared by Tenant Monitoring and the dashboard.
  */
 export function RecordCashPaymentModal({
   invoice,
   tenantName,
+  mode = "record",
   onClose,
   onRecorded,
 }: {
   invoice: CashPaymentInvoice;
   tenantName?: string | null;
+  mode?: "record" | "approve";
   onClose: () => void;
-  onRecorded: () => void;
+  /** `note` says something staff should know, such as a lease that already ended. */
+  onRecorded: (note?: string) => void;
 }) {
-  const [refNo, setRefNo] = useState("");
+  const approving = mode === "approve";
+  const [payment, setPayment] = useState<PaymentState>(() => ({
+    months: "1",
+    amount: String(invoice.amount),
+    paidOn: todayPH(),
+    method: approving ? "Bank transfer" : "Cash",
+    referenceNo: "",
+  }));
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -45,174 +51,60 @@ export function RecordCashPaymentModal({
     if (!saving) onClose(); // never close mid-save
   };
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") close();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  });
-
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (saving) return;
-
-    const value = refNo.trim();
-    if (!value) {
-      setError("Enter the receipt or reference number.");
-      return;
-    }
-
     setSaving(true);
+    setError(null);
     try {
-      const res = await recordManualPaymentAction(invoice.id, value);
-      if (res.success) {
-        onRecorded();
-      } else {
-        setError(res.error || "Failed to record payment.");
-      }
-    } catch (err: any) {
-      setError(err?.message || "Failed to record payment.");
+      const send = approving ? approveSlipAction : recordPaymentAction;
+      const res = await send(invoice.id, {
+        amount: Number(payment.amount),
+        paidOn: payment.paidOn,
+        method: payment.method,
+        referenceNo: payment.referenceNo,
+      });
+      if (res.success) onRecorded(res.note);
+      else setError(res.error);
+    } catch {
+      setError("Couldn't save the payment. Check your connection and try again.");
     } finally {
       setSaving(false);
     }
   };
 
-  const due = new Date(invoice.dueDate);
-  const hasDue = !Number.isNaN(due.getTime());
-  const isPastDue = invoice.status === "OVERDUE" || (hasDue && due < new Date());
-
   return (
-    <div className="fixed inset-0 z-250 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-xs" onClick={close} />
-      <form
-        onSubmit={submit}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="cash-payment-title"
-        className="relative w-full max-w-lg bg-white dark:bg-zinc-950 rounded-2xl shadow-2xl overflow-hidden animate-fade-in-up"
-      >
-        <div className="bg-[#BE1E2D] p-5 sm:p-8 text-white relative">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-md">
-              <PhilippinePeso size={24} />
-            </div>
-            <div>
-              <h2 id="cash-payment-title" className="text-xl font-semibold tracking-tight">
-                Record Cash Payment
-              </h2>
-              <p className="text-xs text-white/70 font-bold">
-                Over-the-counter settlement
-              </p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={close}
-            aria-label="Close"
-            className="absolute top-8 right-8 text-white/60 hover:text-white transition-colors"
-          >
-            <X size={20} />
-          </button>
-        </div>
-
-        <div className="p-5 sm:p-8 space-y-6">
-          {/* Invoice being cleared */}
-          <div className="rounded-2xl border border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-zinc-900 p-5">
-            <div className="flex items-start justify-between gap-4">
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-charcoal dark:text-white truncate">
-                  #{invoice.invoiceNumber}
-                </p>
-                <p className="mt-1 text-xs font-bold text-slate-500 dark:text-slate-400">
-                  {invoice.month}
-                  {tenantName ? ` • ${tenantName}` : ""}
-                </p>
-              </div>
-              <p className="text-2xl font-semibold text-charcoal dark:text-white whitespace-nowrap">
-                ₱{Number(invoice.amount || 0).toLocaleString()}
-              </p>
-            </div>
-            <div className="mt-4 flex items-center gap-2 text-xs font-bold">
-              <Calendar size={12} className="text-slate-400" />
-              <span className="text-slate-500">Due {hasDue ? due.toLocaleDateString() : "—"}</span>
-              {isPastDue && (
-                <span className="ml-auto px-2 py-0.5 rounded-full bg-red-500/10 text-red-600 border border-red-500/20">
-                  Overdue
-                </span>
-              )}
-            </div>
-          </div>
-
-          {/* Reference number */}
-          <div>
-            <label
-              htmlFor="cash-ref-no"
-              className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mb-2"
-            >
-              Receipt / Reference Number
-            </label>
-            <input
-              id="cash-ref-no"
-              type="text"
-              autoFocus
-              autoComplete="off"
-              value={refNo}
-              disabled={saving}
-              onChange={(e) => {
-                setRefNo(e.target.value);
-                if (error) setError(null);
-              }}
-              placeholder="e.g. OR-000123"
-              aria-invalid={Boolean(error)}
-              aria-describedby={error ? "cash-ref-error" : undefined}
-              className={clsx(
-                "w-full px-4 py-3 bg-slate-50 dark:bg-zinc-900 border rounded-xl text-sm font-bold text-charcoal dark:text-white focus:outline-hidden transition-all",
-                error
-                  ? "border-red-500 focus:border-red-500"
-                  : "border-slate-200 dark:border-white/5 focus:border-[#BE1E2D]",
-              )}
-            />
-            {error && (
-              <p
-                id="cash-ref-error"
-                className="mt-2 flex items-center gap-1.5 text-xs font-bold text-red-600"
-              >
-                <AlertTriangle size={12} /> {error}
-              </p>
-            )}
-          </div>
-
-          <p className="flex items-start gap-2 text-xs text-slate-500 leading-relaxed">
-            <ShieldCheck size={14} className="shrink-0 mt-0.5 text-emerald-500" />
-            This marks the invoice as PAID and notifies the tenant.
+    <AdminDialog
+      open
+      onClose={close}
+      title={approving ? "Approve deposit slip" : "Record payment"}
+      description={[invoice.invoiceNumber, invoice.month, tenantName].filter(Boolean).join(", ")}
+      footer={
+        <>
+          <Button variant="secondary" disabled={saving} onClick={close}>
+            Cancel
+          </Button>
+          <Button type="submit" form="payment-form" variant="primary" loading={saving}>
+            {approving ? "Approve payment" : "Record payment"}
+          </Button>
+        </>
+      }
+    >
+      <form id="payment-form" onSubmit={submit} className="space-y-4">
+        {error && <Banner variant="error" description={error} />}
+        <p className="text-sm text-kumo-default">
+          Bill amount: <span className="font-semibold tabular-nums">{peso(invoice.amount)}</span>
+        </p>
+        {approving && invoice.depositSlipUrl && (
+          <p className="text-sm">
+            <a href={invoice.depositSlipUrl} target="_blank" rel="noopener noreferrer" className="font-medium text-kumo-link hover:underline">
+              View deposit slip
+            </a>
+            <span className="text-kumo-subtle">. Check it against the bank record before approving.</span>
           </p>
-
-          <div className="flex gap-3 pt-2">
-            <button
-              type="button"
-              onClick={close}
-              disabled={saving}
-              className="flex-1 py-3.5 bg-slate-100 dark:bg-zinc-900 text-slate-600 dark:text-slate-400 font-bold text-xs rounded-xl hover:bg-slate-200 transition-all disabled:opacity-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={saving}
-              className="flex-2 py-3.5 bg-[#BE1E2D] text-white font-semibold text-xs rounded-xl shadow-xl shadow-red-500/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:hover:scale-100"
-            >
-              {saving ? (
-                <RefreshCw size={16} className="animate-spin" />
-              ) : (
-                <>
-                  <CheckCircle size={16} /> Confirm Payment
-                </>
-              )}
-            </button>
-          </div>
-        </div>
+        )}
+        <PaymentFields value={payment} onChange={setPayment} monthlyRent={invoice.amount} billAmount={invoice.amount} />
       </form>
-    </div>
+    </AdminDialog>
   );
 }

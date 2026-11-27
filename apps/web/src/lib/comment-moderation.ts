@@ -78,7 +78,7 @@ function normalize(text: string, leetPunctuation: boolean) {
 
 /**
  * Returns the matched expression when inappropriate language is found,
- * otherwise null. The match is for server-side logging only — never show the
+ * otherwise null. The match is for server-side logging only, never show the
  * raw matched word back to the reviewer.
  */
 export function findInappropriateLanguage(text?: string | null): string | null {

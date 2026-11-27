@@ -91,7 +91,7 @@ export const workspaceHome = (id: WorkspaceId) => (id === "home" ? "/tenantdashb
  */
 export async function requireTenant() {
   const account = await currentAccount();
-  if (!account || account.type !== "TENANT") throw new AccessDenied("Please sign in at the tenant portal.");
+  if (!account || account.type !== "TENANT") throw new AccessDenied("Please sign in as a tenant.");
   if (account.isBlacklisted) throw new AccessDenied("Your account is restricted. Please contact the management office.");
   const staff = account.tenantStaff;
   const tenant = await prisma.tenant.findUnique({

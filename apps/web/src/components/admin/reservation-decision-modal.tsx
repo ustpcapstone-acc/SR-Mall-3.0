@@ -6,6 +6,9 @@ import { ArrowSquareOut, DownloadSimple } from "@phosphor-icons/react";
 import { AdminDialog, Person } from "@/components/admin/page-kit";
 import { approveReservationAction, getPermitLinkAction, rejectReservationAction } from "@/app/actions/space-slot";
 import { useAuth } from "@/app/providers";
+import { useFloors } from "@/lib/use-floors";
+import { useDraft } from "@/lib/drafts/use-draft";
+import { DraftNote } from "@/components/drafts/draft-note";
 import { ReservationStepper } from "@/components/reservation-stepper";
 
 export interface ReservationRow {
@@ -48,6 +51,7 @@ export function ReservationDecisionModal({
   onDone: () => void;
 }) {
   const { user } = useAuth();
+  const { label: floorLabel } = useFloors();
   const [mode, setMode] = useState<ReservationModalMode>(action);
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
@@ -57,6 +61,15 @@ export function ReservationDecisionModal({
 
   useEffect(() => setMode(action), [action]);
 
+  const draft = useDraft({
+    form: "admin.reservation-decision",
+    scope: [r.unit_id],
+    enabled: !details,
+    value: { reason },
+    initial: { reason: "" },
+    onRestore: (saved) => setReason(saved.reason),
+  });
+
   const submit = async () => {
     if (mode === "reject" && !reason.trim()) {
       setError("Please write a comment so the applicant knows why.");
@@ -65,10 +78,14 @@ export function ReservationDecisionModal({
     setBusy(true);
     setError(null);
     try {
-      const res = approve
-        ? await approveReservationAction(r.unit_id, reason.trim() || undefined, user?.id)
-        : await rejectReservationAction(r.unit_id, reason.trim(), user?.id);
+      const res = await draft.send(async () =>
+        approve
+          ? await approveReservationAction(r.unit_id, reason.trim() || undefined, user?.id)
+          : await rejectReservationAction(r.unit_id, reason.trim(), user?.id),
+      );
+      if (!res) return;
       if (res.success) {
+        draft.clear();
         onDone();
         onClose();
       } else {
@@ -177,7 +194,7 @@ export function ReservationDecisionModal({
         {/* What */}
         <dl className="grid grid-cols-3 gap-3">
           <Fact label="Floor">
-            <span className="capitalize">{r.floor || "-"}</span>
+            {floorLabel(r.floor) || "-"}
           </Fact>
           <Fact label="Size">{r.sqm_size ?? "-"} sqm</Fact>
           <Fact label="Rent">₱{Number(r.base_rent || 0).toLocaleString()}</Fact>
@@ -271,6 +288,8 @@ export function ReservationDecisionModal({
             className="w-full"
           />
         )}
+
+        {!details && <DraftNote draft={draft} />}
 
         {error && <Banner variant="error" description={error} />}
       </div>

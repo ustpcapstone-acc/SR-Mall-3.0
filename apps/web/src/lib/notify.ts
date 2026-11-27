@@ -9,7 +9,7 @@
  *   3. legacy `NotificationPreference` booleans are respected as a fallback
  *   4. in-app rows and emails go out on the channels the user chose
  *
- * `notify()` never throws — notification delivery must not break the business
+ * `notify()` never throws, notification delivery must not break the business
  * action that triggered it.
  */
 import { prisma } from "@srmall/database";
@@ -98,7 +98,7 @@ export async function resolveChannels(
     });
   } catch (err) {
     console.error(
-      "[notify] NotificationPref lookup failed — run `npm run db:push`:",
+      "[notify] NotificationPref lookup failed. Run `npm run db:push`:",
       err,
     );
   }
@@ -148,7 +148,7 @@ async function resolveRecipients(
   const meta = getNotificationMeta(type);
   // The catalogue audience says who *may* get this type (and whose settings
   // list it). With no explicit recipients, an admin-facing alert goes to
-  // admins only — broadcasting it to every tenant must be asked for via `roles`.
+  // admins only, broadcasting it to every tenant must be asked for via `roles`.
   const audience = meta?.audience ?? [];
   const roles = input.roles ?? (audience.includes("ADMIN") ? ["ADMIN" as NotificationRole] : audience);
   if (roles.length === 0) return [];
@@ -230,7 +230,7 @@ export async function notify(
           select: { email: true, role: true },
         });
 
-        // Links must open from any device later — use the public app URL.
+        // Links must open from any device later, use the public app URL.
         const baseUrl = await getEmailBaseUrl();
         const link = input.link
           ? input.link.startsWith("http")

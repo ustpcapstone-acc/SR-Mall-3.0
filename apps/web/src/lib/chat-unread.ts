@@ -6,7 +6,7 @@
  *
  *  - Refreshes the moment a message is inserted (Supabase Realtime inbox feed),
  *    with a 60 s fallback poll and a refresh when the tab regains focus.
- *  - Shows one "New message from …" toast with a Reply button — skipped for
+ *  - Shows one "New message from …" toast with a Reply button, skipped for
  *    the chat that's already open on screen.
  *  - Puts the unread count in the browser tab title: "(2) SR Mall".
  */
@@ -54,7 +54,7 @@ async function load() {
   const { getUnreadChatsAction } = await import("@/app/actions/chat-queries");
   const res = await getUnreadChatsAction(userId);
   if (currentUser !== userId) return;
-  // Anything on screen right now is being read — don't count it.
+  // Anything on screen right now is being read, don't count it.
   const items = res.items.filter((i) => !viewing.has(i.conversationId));
   const hidden = res.items.filter((i) => viewing.has(i.conversationId)).reduce((n, i) => n + i.unread, 0);
   state = { total: Math.max(0, res.total - hidden), items, loaded: true };

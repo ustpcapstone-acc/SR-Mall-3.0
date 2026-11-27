@@ -36,6 +36,7 @@ import {
   getStorefrontByIdAction,
 } from "@/app/actions/tenant";
 import { useAuth } from "@/app/providers";
+import { useFloors } from "@/lib/use-floors";
 import { spaCache } from "@/utils/cache";
 import { ChatBox } from "@/components/chat-box";
 import { ChatLauncher } from "@/components/chat-launcher";
@@ -54,12 +55,6 @@ const PLACEHOLDERS = [
   "/images/logo/gudget3.webp",
   "/images/logo/logoshop.jpg",
 ];
-
-const FLOOR_LABELS: Record<string, string> = {
-  ground: "Ground Floor",
-  first: "First Floor",
-  second: "Second Floor",
-};
 
 type ShopTab = "products" | "about" | "promos";
 type SortKey = "featured" | "price-asc" | "price-desc" | "name-asc";
@@ -100,6 +95,7 @@ export default function ShopProfilePage() {
   const params = useParams();
   const router = useRouter();
   const { isAuthenticated, user } = useAuth();
+  const { label: nameOfFloor } = useFloors();
   const [shop, setShop] = useState<DigitalStorefront | null>(() => {
     return params?.id ? spaCache.get("shop_profile_" + params.id) : null;
   });
@@ -250,10 +246,10 @@ export default function ShopProfilePage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center space-y-6 bg-[#FAF7F3] dark:bg-zinc-950">
-        <Loader2 className="h-12 w-12 animate-spin text-[#C51D30]" />
-        <p className="animate-pulse text-xs font-medium text-[#8B7F76]">
-          Consulting Mall Concierge...
+      <div className="flex min-h-screen flex-col items-center justify-center space-y-6 bg-kumo-recessed">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="animate-pulse text-xs font-medium text-kumo-subtle">
+          Loading shop...
         </p>
       </div>
     );
@@ -261,19 +257,19 @@ export default function ShopProfilePage() {
 
   if (error || !shop) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-[#FAF7F3] p-8 text-center dark:bg-zinc-950">
-        <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-[#C51D30]/10 text-[#C51D30]">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-kumo-recessed p-8 text-center">
+        <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-primary/10 text-primary">
           <AlertTriangle size={40} />
         </div>
-        <h2 className="font-display mb-3 text-3xl font-semibold tracking-tight text-[#21191B] dark:text-white">
-          Slot Vacant
+        <h2 className="font-display mb-3 text-3xl font-semibold tracking-tight text-kumo-default">
+          Shop not available
         </h2>
-        <p className="mb-8 max-w-sm font-medium text-[#70656A] dark:text-slate-400">
-          {error || "This unit currently has no digital profile."}
+        <p className="mb-8 max-w-sm font-medium text-kumo-subtle">
+          {error || "This unit has no shop page yet."}
         </p>
         <button
           onClick={() => router.back()}
-          className="flex items-center gap-2 rounded-full bg-[#C51D30] px-7 py-3.5 text-xs font-bold text-white shadow-lg shadow-[#C51D30]/25 transition-all hover:bg-[#A8172A] hover:shadow-xl active:scale-95"
+          className="flex cursor-pointer items-center gap-2 rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-white hover:bg-primary-hover"
         >
           <ArrowLeft size={16} /> Return to Directory
         </button>
@@ -294,7 +290,7 @@ export default function ShopProfilePage() {
     shop.unit_id !== "PENDING" &&
     shop.unit_id !== "PENDING_ASSIGNMENT";
   const floorKey = extras?.floor || shop.floor || null;
-  const floorLabel = floorKey ? FLOOR_LABELS[floorKey] || floorKey : null;
+  const floorLabel = floorKey ? nameOfFloor(floorKey) : null;
 
   const infoItems: InfoItem[] = [
     {
@@ -335,7 +331,7 @@ export default function ShopProfilePage() {
       value: (
         <a
           href={`tel:${shop.phone.replace(/[^\d+]/g, "")}`}
-          className="hover:text-[#C51D30]"
+          className="hover:text-primary"
         >
           {shop.phone}
         </a>
@@ -381,23 +377,23 @@ export default function ShopProfilePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FAF7F3] pb-24 text-[#21191B] dark:bg-zinc-950 dark:text-white">
+    <div className="min-h-screen bg-kumo-recessed pb-24 text-kumo-default dark:text-white">
       {/* Slim sticky back-nav */}
-      <nav className="sticky top-0 z-50 border-b border-[#EDE6E0] bg-[#FAF7F3]/90 backdrop-blur-xl dark:border-white/5 dark:bg-zinc-950/90">
+      <nav className="sticky top-0 z-50 border-b border-kumo-line bg-kumo-recessed/95 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-10">
           <div className="flex min-w-0 items-center gap-3">
             <button
               onClick={() => router.back()}
               aria-label="Back to directory"
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#E8E2DE] bg-white text-[#70656A] shadow-xs transition-colors hover:border-[#C51D30]/30 hover:text-[#C51D30] dark:border-white/10 dark:bg-zinc-900 dark:text-slate-300"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-kumo-line bg-kumo-base text-kumo-subtle shadow-xs transition-colors hover:border-primary/30 hover:text-primary"
             >
               <ArrowLeft size={17} />
             </button>
             <div className="min-w-0">
-              <p className="text-xs font-semibold text-[#A79E98]">
+              <p className="text-xs font-semibold text-kumo-subtle">
                 Now visiting
               </p>
-              <p className="truncate text-sm font-bold text-[#21191B] dark:text-white">
+              <p className="truncate text-sm font-bold text-kumo-default dark:text-white">
                 {shop.shop_name}
               </p>
             </div>
@@ -412,7 +408,7 @@ export default function ShopProfilePage() {
 
       <main className="mx-auto max-w-7xl px-4 pt-5 sm:px-6 sm:pt-7 lg:px-10">
         {/* Wide horizontal shop profile card */}
-        <section className="overflow-hidden rounded-[1.75rem] border border-[#E8E2DE] bg-white shadow-[0_24px_60px_-45px_rgba(33,25,27,0.45)] dark:border-white/10 dark:bg-zinc-900">
+        <section className="overflow-hidden rounded-2xl border border-kumo-line bg-kumo-base shadow-[0_24px_60px_-45px_rgba(33,25,27,0.45)]">
           <div className="grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.02fr)]">
             {/* Cover */}
             <div className="group/cover relative min-h-[300px] overflow-hidden bg-zinc-900 sm:min-h-[345px] lg:min-h-[360px]">
@@ -462,8 +458,8 @@ export default function ShopProfilePage() {
                 className={clsx(
                   "absolute left-4 top-4 z-20 flex h-10 w-10 items-center justify-center rounded-full border shadow-lg backdrop-blur-xl transition-all",
                   isFavorited
-                    ? "border-[#C51D30] bg-[#C51D30] text-white"
-                    : "border-white/40 bg-white/20 text-white hover:bg-white hover:text-[#C51D30]",
+                    ? "border-primary bg-primary text-white"
+                    : "border-white/40 bg-white/20 text-white hover:bg-white hover:text-primary",
                 )}
               >
                 <Heart size={17} fill={isFavorited ? "currentColor" : "none"} />
@@ -472,25 +468,17 @@ export default function ShopProfilePage() {
               {/* Status + photo counter */}
               <div className="absolute right-4 top-4 z-20 flex items-center gap-2">
                 {galleryUrls.length > 0 && (
-                  <span className="rounded-full border border-white/15 bg-black/35 px-2.5 py-1.5 text-xs font-bold text-white backdrop-blur-md">
+                  <span className="rounded-lg bg-black/60 px-2.5 py-1.5 text-xs font-semibold tabular-nums text-white">
                     {(coverIndex + 1).toString().padStart(2, "0")} /{" "}
                     {galleryUrls.length.toString().padStart(2, "0")}
                   </span>
                 )}
                 <span
                   className={clsx(
-                    "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-bold shadow-lg backdrop-blur-md",
-                    shop.is_open
-                      ? "border-emerald-400/30 bg-emerald-500/85 text-white"
-                      : "border-white/15 bg-black/45 text-slate-200",
+                    "rounded-lg bg-black/60 px-2.5 py-1.5 text-xs font-semibold",
+                    shop.is_open ? "text-emerald-300" : "text-white",
                   )}
                 >
-                  <span
-                    className={clsx(
-                      "h-1.5 w-1.5 rounded-full",
-                      shop.is_open ? "animate-pulse bg-white" : "bg-slate-400",
-                    )}
-                  />
                   {shop.is_open ? "Open now" : "Closed"}
                 </span>
               </div>
@@ -551,7 +539,7 @@ export default function ShopProfilePage() {
                 <button
                   type="button"
                   onClick={openChat}
-                  className="mt-4 inline-flex cursor-pointer items-center gap-2 rounded-xl bg-[#C51D30] px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[#C51D30]/30 transition-all hover:bg-[#A8172A] hover:shadow-xl active:scale-[0.98]"
+                  className="mt-4 inline-flex cursor-pointer items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary/30 transition-all hover:bg-primary-hover hover:shadow-xl active:scale-[0.98]"
                 >
                   <MessageCircle size={15} /> Chat
                 </button>
@@ -560,10 +548,10 @@ export default function ShopProfilePage() {
 
             {/* Shop information */}
             <div className="flex flex-col p-5 sm:p-6 lg:p-7">
-              <p className="text-xs font-bold text-[#C51D30]">
+              <p className="text-xs font-bold text-primary">
                 Shop information
               </p>
-              <p className="mt-1 text-[13px] font-medium text-[#70656A] dark:text-slate-400">
+              <p className="mt-1 text-sm font-medium text-kumo-subtle">
                 {shop.is_open
                   ? "Open now. Browse the products or say hello."
                   : "Closed right now. You can still browse the products."}
@@ -573,16 +561,16 @@ export default function ShopProfilePage() {
                 {infoItems.map((item) => (
                   <div
                     key={item.label}
-                    className="flex min-w-0 items-start gap-3 rounded-xl border border-[#F0EAE4] bg-[#FDFBF9] p-3 dark:border-white/10 dark:bg-zinc-950/40"
+                    className="flex min-w-0 items-start gap-3 rounded-xl border border-kumo-line bg-kumo-recessed p-3"
                   >
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[#C51D30]/15 bg-[#C51D30]/5 text-[#C51D30]">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-primary/15 bg-primary/5 text-primary">
                       <item.icon size={15} />
                     </span>
                     <div className="min-w-0">
-                      <p className="text-xs font-medium text-[#8B7F76]">
+                      <p className="text-xs font-medium text-kumo-subtle">
                         {item.label}
                       </p>
-                      <div className="mt-0.5 truncate text-sm font-semibold text-[#21191B] dark:text-slate-200">
+                      <div className="mt-0.5 truncate text-sm font-semibold text-kumo-default">
                         {item.value}
                       </div>
                     </div>
@@ -592,17 +580,17 @@ export default function ShopProfilePage() {
 
               {shop.description && (
                 <div className="mt-auto pt-4">
-                  <div className="border-t border-[#F0EAE4] pt-4 dark:border-white/10">
-                    <p className="text-xs font-medium text-[#8B7F76]">
+                  <div className="border-t border-kumo-line pt-4 dark:border-white/10">
+                    <p className="text-xs font-medium text-kumo-subtle">
                       About
                     </p>
-                    <p className="mt-1.5 line-clamp-3 whitespace-pre-line text-[12.5px] leading-relaxed text-[#70656A] dark:text-slate-400">
+                    <p className="mt-1.5 line-clamp-3 whitespace-pre-line text-sm leading-relaxed text-kumo-subtle">
                       {plainText(shop.description)}
                     </p>
                     <button
                       type="button"
                       onClick={() => setActiveTab("about")}
-                      className="mt-2 inline-flex items-center gap-1 text-[12px] font-semibold text-[#C51D30] hover:underline"
+                      className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
                     >
                       Read more <ChevronRight size={13} />
                     </button>
@@ -626,7 +614,7 @@ export default function ShopProfilePage() {
                 className={clsx(
                   "h-14 w-14 shrink-0 overflow-hidden rounded-xl border-2 transition-all",
                   coverIndex === i
-                    ? "border-[#C51D30] opacity-100"
+                    ? "border-primary opacity-100"
                     : "border-transparent opacity-60 hover:opacity-100",
                 )}
               >
@@ -642,7 +630,7 @@ export default function ShopProfilePage() {
         )}
 
         {/* Rounded tab bar */}
-        <div className="mt-5 flex w-full flex-wrap gap-1.5 rounded-2xl border border-[#E8E2DE] bg-white p-1.5 shadow-xs dark:border-white/10 dark:bg-zinc-900 sm:w-fit sm:flex-nowrap">
+        <div className="mt-5 flex w-full flex-wrap gap-1.5 rounded-2xl border border-kumo-line bg-kumo-base p-1.5 shadow-xs sm:w-fit sm:flex-nowrap">
           {tabs.map((tab) => {
             const isActive = activeTab === tab.id;
             return (
@@ -652,10 +640,10 @@ export default function ShopProfilePage() {
                 onClick={() => setActiveTab(tab.id)}
                 aria-pressed={isActive}
                 className={clsx(
-                  "inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-xl px-2.5 py-2.5 text-[13px] font-semibold transition-all sm:gap-2 sm:px-5 sm:text-sm",
+                  "inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-xl px-2.5 py-2.5 text-sm font-semibold transition-all sm:gap-2 sm:px-5 sm:text-sm",
                   isActive
-                    ? "bg-[#C51D30] text-white shadow-md shadow-[#C51D30]/25"
-                    : "text-[#70656A] hover:bg-[#FAF7F3] hover:text-[#21191B] dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-white",
+                    ? "bg-primary text-white shadow-md shadow-primary/25"
+                    : "text-kumo-subtle hover:bg-kumo-tint hover:text-kumo-default dark:hover:text-white",
                 )}
               >
                 <tab.icon size={15} />
@@ -663,7 +651,7 @@ export default function ShopProfilePage() {
                 <span className="sm:hidden">{tab.shortLabel || tab.label}</span>
                 {tab.count > 0 && (
                   <span
-                    className={clsx("text-xs font-medium tabular-nums", isActive ? "text-white/80" : "text-[#8B7F76]")}
+                    className={clsx("text-xs font-medium tabular-nums", isActive ? "text-white/80" : "text-kumo-subtle")}
                   >
                     ({tab.count})
                   </span>
@@ -675,12 +663,12 @@ export default function ShopProfilePage() {
 
         {/* Products */}
         <div className={activeTab === "products" ? "block" : "hidden"}>
-          <div className="mt-4 rounded-2xl border border-[#E8E2DE] bg-white p-3 shadow-xs dark:border-white/10 dark:bg-zinc-900 sm:p-4">
+          <div className="mt-4 rounded-2xl border border-kumo-line bg-kumo-base p-3 shadow-xs sm:p-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <div className="relative flex-1">
                 <Search
                   size={17}
-                  className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#A79E98]"
+                  className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-kumo-subtle"
                 />
                 <input
                   type="text"
@@ -688,14 +676,14 @@ export default function ShopProfilePage() {
                   onChange={(e) => setProductSearch(e.target.value)}
                   placeholder={`Search in ${shop.shop_name}`}
                   aria-label={`Search in ${shop.shop_name}`}
-                  className="h-12 w-full rounded-xl border border-[#E8E2DE] bg-white pl-11 pr-10 text-[13px] font-medium text-[#21191B] outline-hidden transition-all placeholder:text-[#A79E98] focus:border-[#C51D30] focus:ring-4 focus:ring-[#C51D30]/10 dark:border-white/10 dark:bg-zinc-950 dark:text-white"
+                  className="h-12 w-full rounded-xl border border-kumo-line bg-kumo-base pl-11 pr-10 text-sm font-medium text-kumo-default outline-hidden transition-all placeholder:text-kumo-subtle focus:border-primary focus:ring-4 focus:ring-primary/10 dark:text-white"
                 />
                 {productSearch && (
                   <button
                     type="button"
                     onClick={() => setProductSearch("")}
                     aria-label="Clear search"
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#A79E98] transition-colors hover:text-[#C51D30]"
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-kumo-subtle transition-colors hover:text-primary"
                   >
                     <X size={15} />
                   </button>
@@ -703,8 +691,8 @@ export default function ShopProfilePage() {
 
                 {/* Predictive matches (existing behaviour) */}
                 {productSearch.trim() && (
-                  <div className="absolute left-0 right-0 top-full z-30 mt-2 overflow-hidden rounded-2xl border border-[#E8E2DE] bg-white shadow-2xl dark:border-white/10 dark:bg-zinc-900">
-                    <div className="border-b border-[#F0EAE4] px-4 py-2.5 text-xs font-medium text-[#8B7F76] dark:border-white/10">
+                  <div className="absolute left-0 right-0 top-full z-30 mt-2 overflow-hidden rounded-2xl border border-kumo-line bg-kumo-base shadow-2xl">
+                    <div className="border-b border-kumo-line px-4 py-2.5 text-xs font-medium text-kumo-subtle dark:border-white/10">
                       Matching products
                     </div>
                     <div className="max-h-72 overflow-y-auto">
@@ -715,9 +703,9 @@ export default function ShopProfilePage() {
                             key={p.id}
                             type="button"
                             onClick={() => setProductSearch(p.name || "")}
-                            className="flex w-full items-center gap-3 border-b border-[#F7F2ED] px-3 py-2.5 text-left transition-colors last:border-0 hover:bg-[#FAF7F3] dark:border-white/5 dark:hover:bg-white/5"
+                            className="flex w-full items-center gap-3 border-b border-kumo-line px-3 py-2.5 text-left transition-colors last:border-0 hover:bg-kumo-tint dark:hover:bg-white/5"
                           >
-                            <div className="h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-[#F4EEE6] dark:bg-zinc-800">
+                            <div className="h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-kumo-recessed">
                               {p.image_url ? (
                                 // eslint-disable-next-line @next/next/no-img-element
                                 <img loading="lazy" decoding="async"
@@ -726,25 +714,25 @@ export default function ShopProfilePage() {
                                   className="h-full w-full object-cover"
                                 />
                               ) : (
-                                <div className="flex h-full w-full items-center justify-center text-[#D8CCC2]">
+                                <div className="flex h-full w-full items-center justify-center text-kumo-subtle">
                                   <ShoppingBag size={15} />
                                 </div>
                               )}
                             </div>
                             <div className="min-w-0 flex-1">
-                              <p className="truncate text-xs font-semibold text-[#21191B] dark:text-white">
+                              <p className="truncate text-xs font-semibold text-kumo-default dark:text-white">
                                 {p.name || "Untitled product"}
                               </p>
-                              <p className="text-[11px] font-bold text-[#C51D30]">
+                              <p className="text-xs font-bold text-primary">
                                 {price || "Ask for price"}
                               </p>
                             </div>
-                            <ChevronRight size={13} className="shrink-0 text-[#C4B8AE]" />
+                            <ChevronRight size={13} className="shrink-0 text-kumo-subtle" />
                           </button>
                         );
                       })}
                       {searchMatches.length === 0 && (
-                        <div className="px-4 py-6 text-center text-xs text-[#8B7F76]">
+                        <div className="px-4 py-6 text-center text-xs text-kumo-subtle">
                           No matching products found
                         </div>
                       )}
@@ -758,7 +746,7 @@ export default function ShopProfilePage() {
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as SortKey)}
                   aria-label="Sort products"
-                  className="h-12 w-full appearance-none rounded-xl border border-[#E8E2DE] bg-white pl-4 pr-10 text-[12.5px] font-semibold text-[#21191B] outline-hidden transition-all focus:border-[#C51D30] focus:ring-4 focus:ring-[#C51D30]/10 dark:border-white/10 dark:bg-zinc-950 dark:text-white"
+                  className="h-12 w-full appearance-none rounded-xl border border-kumo-line bg-kumo-base pl-4 pr-10 text-sm font-semibold text-kumo-default outline-hidden transition-all focus:border-primary focus:ring-4 focus:ring-primary/10 dark:text-white"
                 >
                   <option value="featured">Featured</option>
                   <option value="price-asc">Price: Low to High</option>
@@ -767,7 +755,7 @@ export default function ShopProfilePage() {
                 </select>
                 <ChevronDown
                   size={16}
-                  className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[#8B7F76]"
+                  className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-kumo-subtle"
                 />
               </div>
             </div>
@@ -785,8 +773,8 @@ export default function ShopProfilePage() {
                       className={clsx(
                         "h-9 cursor-pointer rounded-lg border px-3.5 text-sm font-medium transition-colors",
                         isActive
-                          ? "border-[#C51D30] bg-[#C51D30] text-white shadow-xs shadow-[#C51D30]/20"
-                          : "border-[#E8E2DE] bg-white text-[#70656A] hover:border-[#C51D30]/45 hover:text-[#C51D30] dark:border-white/10 dark:bg-zinc-950 dark:text-slate-300",
+                          ? "border-primary bg-primary text-white shadow-xs shadow-primary/20"
+                          : "border-kumo-line bg-kumo-base text-kumo-subtle hover:border-primary/45 hover:text-primary",
                       )}
                     >
                       {category}
@@ -798,7 +786,7 @@ export default function ShopProfilePage() {
           </div>
 
           <div className="mt-4 flex items-center justify-between gap-3">
-            <p className="text-xs font-medium text-[#8B7F76]">
+            <p className="text-xs font-medium text-kumo-subtle">
               Showing {filteredProducts.length} of {products.length}{" "}
               {products.length === 1 ? "product" : "products"}
               {activeCategory !== "All" ? ` in ${activeCategory}` : ""}
@@ -807,7 +795,7 @@ export default function ShopProfilePage() {
               <button
                 type="button"
                 onClick={() => setProductSearch("")}
-                className="text-xs font-semibold text-[#C51D30] hover:underline"
+                className="text-xs font-semibold text-primary hover:underline"
               >
                 Clear search
               </button>
@@ -840,9 +828,9 @@ export default function ShopProfilePage() {
                         });
                       }
                     }}
-                    className="group flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-[#E8E2DE] bg-white shadow-xs transition-all duration-300 hover:-translate-y-1 hover:border-[#C51D30]/25 hover:shadow-xl focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C51D30] dark:border-white/10 dark:bg-zinc-900"
+                    className="group flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-kumo-line bg-kumo-base shadow-xs transition-all duration-300 hover:-translate-y-1 hover:border-primary/25 hover:shadow-xl focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                   >
-                    <div className="relative aspect-square overflow-hidden bg-[#F4EEE6] dark:bg-zinc-800">
+                    <div className="relative aspect-square overflow-hidden bg-kumo-recessed">
                       {product.image_url ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
@@ -855,7 +843,7 @@ export default function ShopProfilePage() {
                           )}
                         />
                       ) : (
-                        <div className="flex h-full w-full items-center justify-center text-[#D8CCC2]">
+                        <div className="flex h-full w-full items-center justify-center text-kumo-subtle">
                           <ShoppingBag size={34} />
                         </div>
                       )}
@@ -869,32 +857,32 @@ export default function ShopProfilePage() {
 
                     <div className="flex flex-1 flex-col p-3 sm:p-3.5">
                       {product.category && (
-                        <span className="mb-1 text-xs text-[#8B7F76] dark:text-slate-400">
+                        <span className="mb-1 text-xs text-kumo-subtle">
                           {product.category}
                         </span>
                       )}
-                      <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-[#21191B] transition-colors group-hover:text-[#C51D30] dark:text-white sm:text-base">
+                      <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-kumo-default transition-colors group-hover:text-primary sm:text-base">
                         {product.name || "Untitled product"}
                       </h3>
                       {plainPreview(product.description) && (
-                        <p className="mt-1 line-clamp-2 text-[13px] leading-relaxed text-[#8B7F76] dark:text-slate-500">
+                        <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-kumo-subtle">
                           {plainPreview(product.description)}
                         </p>
                       )}
                       <div className="mt-auto flex items-end justify-between gap-2 pt-3">
                         {price ? (
-                          <span className="text-[15px] font-extrabold tracking-tight text-[#C51D30] sm:text-base">
+                          <span className="text-base font-extrabold tracking-tight text-primary sm:text-base">
                             {price}
                           </span>
                         ) : (
-                          <span className="text-[13px] text-[#8B7F76]">
+                          <span className="text-sm text-kumo-subtle">
                             Ask for price
                           </span>
                         )}
                         <span
                           className={clsx(
                             "shrink-0 text-xs font-semibold",
-                            soldOut ? "text-[#A79E98]" : "text-emerald-600",
+                            soldOut ? "text-kumo-subtle" : "text-emerald-600",
                           )}
                         >
                           {availabilityLabel(product)}
@@ -906,12 +894,12 @@ export default function ShopProfilePage() {
               })}
             </div>
           ) : (
-            <div className="mt-3 rounded-2xl border border-dashed border-[#DDD2C6] bg-white/70 px-6 py-14 text-center dark:border-white/10 dark:bg-zinc-900/40">
-              <Search size={28} className="mx-auto text-[#C4B8AE]" />
-              <p className="mt-3 text-sm font-semibold text-[#21191B] dark:text-white">
+            <div className="mt-3 rounded-2xl border border-dashed border-kumo-line bg-kumo-base px-6 py-14 text-center">
+              <Search size={28} className="mx-auto text-kumo-subtle" />
+              <p className="mt-3 text-sm font-semibold text-kumo-default">
                 No products found
               </p>
-              <p className="mt-1 text-xs text-[#8B7F76]">
+              <p className="mt-1 text-xs text-kumo-subtle">
                 Try a different search or category.
               </p>
             </div>
@@ -921,39 +909,39 @@ export default function ShopProfilePage() {
         {/* About the shop */}
         <div className={activeTab === "about" ? "block" : "hidden"}>
           <div className="mt-4 grid items-start gap-4 lg:grid-cols-[minmax(0,1.55fr)_minmax(0,0.75fr)]">
-            <div className="rounded-2xl border border-[#E8E2DE] bg-white p-5 shadow-xs dark:border-white/10 dark:bg-zinc-900 sm:p-7">
-              <p className="text-xs font-bold text-[#C51D30]">
+            <div className="rounded-2xl border border-kumo-line bg-kumo-base p-5 shadow-xs sm:p-7">
+              <p className="text-xs font-bold text-primary">
                 About the shop
               </p>
-              <h2 className="font-display mt-2 text-2xl font-semibold tracking-tight text-[#21191B] dark:text-white">
+              <h2 className="font-display mt-2 text-2xl font-semibold tracking-tight text-kumo-default">
                 {shop.shop_name}
               </h2>
               {shop.description ? (
-                <p className="mt-4 whitespace-pre-line text-[13.5px] leading-7 text-[#70656A] dark:text-slate-400">
+                <p className="mt-4 whitespace-pre-line text-sm leading-7 text-kumo-subtle">
                   {plainText(shop.description)}
                 </p>
               ) : (
-                <p className="mt-4 text-sm text-[#8B7F76]">
+                <p className="mt-4 text-sm text-kumo-subtle">
                   This shop has not added a description yet.
                 </p>
               )}
             </div>
 
-            <aside className="rounded-2xl border border-[#E8E2DE] bg-white p-5 shadow-xs dark:border-white/10 dark:bg-zinc-900 sm:p-6">
-              <h3 className="text-xs font-semibold text-[#A79E98]">
+            <aside className="rounded-2xl border border-kumo-line bg-kumo-base p-5 shadow-xs sm:p-6">
+              <h3 className="text-xs font-semibold text-kumo-subtle">
                 Shop details
               </h3>
               <div className="mt-4 space-y-3">
                 {infoItems.map((item) => (
                   <div key={item.label} className="flex items-start gap-3">
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[#C51D30]/15 bg-[#C51D30]/5 text-[#C51D30]">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-primary/15 bg-primary/5 text-primary">
                       <item.icon size={14} />
                     </span>
                     <div className="min-w-0">
-                      <p className="text-xs font-medium text-[#8B7F76]">
+                      <p className="text-xs font-medium text-kumo-subtle">
                         {item.label}
                       </p>
-                      <div className="mt-0.5 wrap-break-word text-sm font-semibold text-[#21191B] dark:text-slate-200">
+                      <div className="mt-0.5 wrap-break-word text-sm font-semibold text-kumo-default">
                         {item.value}
                       </div>
                     </div>
@@ -963,7 +951,7 @@ export default function ShopProfilePage() {
               <button
                 type="button"
                 onClick={openChat}
-                className="mt-5 flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#C51D30] px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-[#C51D30]/25 transition-all hover:bg-[#A8172A] hover:shadow-xl active:scale-[0.99]"
+                className="mt-5 flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-primary/25 transition-all hover:bg-primary-hover hover:shadow-xl active:scale-[0.99]"
               >
                 <MessageCircle size={14} /> Chat with the shop
               </button>
@@ -983,16 +971,16 @@ export default function ShopProfilePage() {
             {activeSales.length > 0 && (
               <section>
                 <div className="mb-3">
-                  <h2 className="font-display text-xl font-semibold text-[#21191B] dark:text-white">Sales</h2>
-                  <p className="text-sm text-[#8B7F76]">{activeSales.length} running now</p>
+                  <h2 className="font-display text-xl font-semibold text-kumo-default">Sales</h2>
+                  <p className="text-sm text-kumo-subtle">{activeSales.length} running now</p>
                 </div>
                 <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
                   {activeSales.map((sale) => (
                     <article
                       key={sale.id}
-                      className="overflow-hidden rounded-2xl border border-[#E8E2DE] bg-white shadow-xs dark:border-white/10 dark:bg-zinc-900"
+                      className="overflow-hidden rounded-2xl border border-kumo-line bg-kumo-base shadow-xs"
                     >
-                      <div className="relative aspect-16/10 bg-[#F4EEE6] dark:bg-zinc-800">
+                      <div className="relative aspect-16/10 bg-kumo-recessed">
                         {sale.image_url &&
                         !sale.image_url.startsWith("blob:") ? (
                           // eslint-disable-next-line @next/next/no-img-element
@@ -1002,17 +990,17 @@ export default function ShopProfilePage() {
                             className="h-full w-full object-cover"
                           />
                         ) : (
-                          <div className="flex h-full w-full items-center justify-center text-[#D8CCC2]">
+                          <div className="flex h-full w-full items-center justify-center text-kumo-subtle">
                             <Tag size={34} />
                           </div>
                         )}
                       </div>
                       <div className="space-y-2 p-4 sm:p-5">
-                        <h3 className="text-lg font-semibold leading-tight text-[#21191B] dark:text-white sm:text-xl">
+                        <h3 className="text-lg font-semibold leading-tight text-kumo-default sm:text-xl">
                           {sale.title}
                         </h3>
-                        <p className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#8B7F76]">
-                          <CalendarDays size={12} className="text-[#C51D30]" />{" "}
+                        <p className="inline-flex items-center gap-1.5 text-xs font-semibold text-kumo-subtle">
+                          <CalendarDays size={12} className="text-primary" />{" "}
                           Until {formatSaleDate(saleEndsAt(sale))}
                         </p>
                       </div>
@@ -1023,12 +1011,12 @@ export default function ShopProfilePage() {
             )}
 
             {promoCount === 0 && activeSales.length === 0 && (
-              <div className="rounded-2xl border border-dashed border-[#DDD2C6] bg-white/70 px-6 py-16 text-center dark:border-white/10 dark:bg-zinc-900/40">
-                <Tag size={30} className="mx-auto text-[#C4B8AE]" />
-                <p className="mt-3 text-sm font-semibold text-[#21191B] dark:text-white">
+              <div className="rounded-2xl border border-dashed border-kumo-line bg-kumo-base px-6 py-16 text-center">
+                <Tag size={30} className="mx-auto text-kumo-subtle" />
+                <p className="mt-3 text-sm font-semibold text-kumo-default">
                   No active promos or sales right now
                 </p>
-                <p className="mt-1 text-xs text-[#8B7F76]">
+                <p className="mt-1 text-xs text-kumo-subtle">
                   Check back soon for new offers from {shop.shop_name}.
                 </p>
               </div>

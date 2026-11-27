@@ -4,13 +4,14 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { Button, Loader, Select, Table, cn } from "@cloudflare/kumo";
 import { ArrowClockwise } from "@phosphor-icons/react";
-import { AdminDialog, AdminPage, EmptyNote, Panel, Person, SearchField, Stat, PageTabs } from "@/components/admin/page-kit";
+import { AdminDialog, AdminPage, EmptyNote, Pager, Panel, Person, SearchField, Stat, PageTabs } from "@/components/admin/page-kit";
 import { toast } from "sonner";
 import { FixUserRolesBanner } from "@/components/admin/fix-user-roles-banner";
 import { ReviewsModeration } from "@/components/admin/reviews-moderation";
 import { useAuth } from "@/app/providers";
 import { TenantHistory } from "@/components/admin/tenant-history";
 import { useTabParam } from "@/lib/use-tab-param";
+import { useDebounced, usePageFor, useServerData } from "@/lib/use-server-page";
 
 const TABS = [{ key: "users" }, { key: "feedback" }, { key: "history" }] as const;
 
@@ -25,15 +26,16 @@ const ROLE_ITEMS: Record<string, string> = { CUSTOMER: "Customer", TENANT: "Tena
 const roleLabel = (role: string) =>
   ROLE_ITEMS[role] ?? (role === "ADMIN" ? "Staff" : role === "TENANT_STAFF" ? "Store staff" : role);
 
+const fetchUsers = async (query: { page: number; search: string; filter: string }) => {
+  const { getUsersPageAction } = await import("@/app/actions/auth");
+  return getUsersPageAction(query);
+};
+
 export default function UserManagement() {
   const [activeTab, setActiveTab] = useState<"users" | "feedback" | "history">("users");
   useTabParam(TABS, setActiveTab);
-  const [pastTenants, setPastTenants] = useState<any[]>([]);
-  const [loadingHistory, setLoadingHistory] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any | null>(null);
   const [blacklistTarget, setBlacklistTarget] = useState<any | null>(null);
-  const [users, setUsers] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("ALL");
   const { user: currentUser } = useAuth();
@@ -41,45 +43,19 @@ export default function UserManagement() {
   const [reviewAttention, setReviewAttention] = useState(0);
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
 
-  const loadUsers = async () => {
-    setLoading(true);
-    try {
-      const { getAllUsersAction } = await import("@/app/actions/auth");
-      const result = await getAllUsersAction();
-      if (result.success && result.data) {
-        setUsers(result.data);
-      }
-    } catch (err) {
-      toast.error("Couldn't load users.");
-    } finally {
-      setLoading(false);
-    }
+  const search = useDebounced(searchQuery.trim());
+  const [page, setPage] = usePageFor(search, roleFilter);
+  const { data, setData, error, loading, reload } = useServerData({ page, search, filter: roleFilter }, fetchUsers);
+  const users = data?.rows ?? [];
+  /** Shows the change at once, then asks the server for the page and counts again. */
+  const patchUser = (id: string, change: { isBlacklisted?: boolean; role?: string }) => {
+    setData((current) => current && { ...current, rows: current.rows.map((u) => (u.id === id ? { ...u, ...change } : u)) });
+    void reload();
   };
 
   useEffect(() => {
-    loadUsers();
-  }, []);
-
-  useEffect(() => {
-    if (activeTab === "history") {
-      loadHistory();
-    }
-  }, [activeTab]);
-
-  const loadHistory = async () => {
-    setLoadingHistory(true);
-    try {
-      const { getPastTenantsAction } = await import("@/app/actions/tenant");
-      const res = await getPastTenantsAction();
-      if (res.success && res.data) {
-        setPastTenants(res.data);
-      }
-    } catch (err) {
-      toast.error("Failed to load tenant history.");
-    } finally {
-      setLoadingHistory(false);
-    }
-  };
+    if (error) toast.error("Couldn't load users.");
+  }, [error]);
 
   const handleToggleBlacklist = async (id: string, currentStatus: boolean) => {
     setIsProcessing(id);
@@ -88,11 +64,7 @@ export default function UserManagement() {
       const res = await toggleUserBlacklistAction(id, !currentStatus, currentUser?.id);
       if (res.success) {
         toast.success(!currentStatus ? "Account suspended" : "Access restored");
-        setUsers((current) =>
-          current.map((u) =>
-            u.id === id ? { ...u, isBlacklisted: !currentStatus } : u,
-          ),
-        );
+        patchUser(id, { isBlacklisted: !currentStatus });
         setSelectedUser((current: any) =>
           current?.id === id ? { ...current, isBlacklisted: !currentStatus } : current,
         );
@@ -120,24 +92,14 @@ export default function UserManagement() {
     const res = await updateUserRoleAction(id, newRole, currentUser?.id);
     if (res.success) {
       toast.success(`Role changed to ${roleLabel(newRole)}`);
-      setUsers(users.map((u) => (u.id === id ? { ...u, role: newRole } : u)));
+      patchUser(id, { role: newRole });
     } else {
       toast.error((res as any).error || "Couldn't change the role.");
     }
     setIsProcessing(null);
   };
 
-  const filteredUsers = users.filter((u) => {
-    const matchesSearch = u.name?.toLowerCase().includes(searchQuery.toLowerCase()) || u.email?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesRole =
-      roleFilter === "ALL" ||
-      (roleFilter === "BLACKLISTED" ? u.isBlacklisted : u.role === roleFilter);
-    return matchesSearch && matchesRole;
-  });
-
-
-  const countOf = (filter: string) =>
-    users.filter((u) => (filter === "ALL" ? true : filter === "BLACKLISTED" ? u.isBlacklisted : u.role === filter)).length;
+  const countOf = (filter: string) => data?.counts[filter] ?? 0;
   const dateOf = (value?: string | Date | null) =>
     value ? new Date(value).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "Not recorded";
   const nameOf = (u: any) => u?.name || u?.email || "No name";
@@ -147,18 +109,18 @@ export default function UserManagement() {
       title="User Management"
       description="Manage registered users, update roles and permissions, and review customer feedback."
       actions={
-        <Button variant="secondary" icon={<ArrowClockwise />} loading={loading} onClick={loadUsers}>
+        <Button variant="secondary" icon={<ArrowClockwise />} loading={loading} onClick={reload}>
           Refresh
         </Button>
       }
     >
-      <FixUserRolesBanner onFixed={loadUsers} />
+      <FixUserRolesBanner onFixed={reload} />
 
       <PageTabs
         value={activeTab}
         onValueChange={(v) => setActiveTab(v as "users" | "feedback" | "history")}
         tabs={[
-          { value: "users", label: `Users (${users.length})` },
+          { value: "users", label: `Users (${countOf("ALL")})` },
           { value: "feedback", label: reviewAttention > 0 ? `Feedback & Reviews (${reviewAttention})` : "Feedback & Reviews" },
           { value: "history", label: "Tenant History" },
         ]}
@@ -171,7 +133,7 @@ export default function UserManagement() {
               <Stat
                 key={f.value}
                 label={f.label}
-                value={loading ? "-" : countOf(f.value)}
+                value={data ? countOf(f.value) : "-"}
                 tone={f.value === "BLACKLISTED" && countOf(f.value) ? "danger" : "default"}
                 active={roleFilter === f.value}
                 onClick={() => setRoleFilter(f.value)}
@@ -182,14 +144,25 @@ export default function UserManagement() {
           <Panel
             flush
             title={ROLE_FILTERS.find((f) => f.value === roleFilter)?.label}
-            description={loading ? "Loading..." : `${filteredUsers.length} shown`}
+            description={data ? `${data.total} found` : "Loading..."}
             actions={<SearchField value={searchQuery} onChange={setSearchQuery} placeholder="Search name or email" />}
           >
-            {loading ? (
+            {!data && loading ? (
               <div className="flex justify-center py-20">
                 <Loader />
               </div>
-            ) : filteredUsers.length === 0 ? (
+            ) : !data ? (
+              <EmptyNote
+                title="Couldn't load users"
+                action={
+                  <Button variant="primary" onClick={reload}>
+                    Try again
+                  </Button>
+                }
+              >
+                {error}
+              </EmptyNote>
+            ) : users.length === 0 ? (
               <EmptyNote
                 title="No users match"
                 action={
@@ -207,7 +180,7 @@ export default function UserManagement() {
                 Try a different name, email or group.
               </EmptyNote>
             ) : (
-              <div className="overflow-x-auto">
+              <div aria-busy={loading} className={cn("overflow-x-auto", loading && "pointer-events-none opacity-60")}>
                 <Table>
                   <Table.Header>
                     <Table.Row>
@@ -218,7 +191,7 @@ export default function UserManagement() {
                     </Table.Row>
                   </Table.Header>
                   <Table.Body>
-                    {filteredUsers.map((item) => (
+                    {users.map((item) => (
                       <Table.Row key={item.id}>
                         <Table.Cell>
                           <button type="button" onClick={() => setSelectedUser(item)} className="block cursor-pointer text-left">
@@ -280,6 +253,7 @@ export default function UserManagement() {
                 </Table>
               </div>
             )}
+            {data && <Pager page={loading ? page : data.page} total={data.total} onChange={setPage} />}
           </Panel>
         </>
       )}
@@ -288,7 +262,7 @@ export default function UserManagement() {
         <ReviewsModeration adminId={currentUser?.id} onAttentionCount={setReviewAttention} />
       )}
 
-      {activeTab === "history" && <TenantHistory rows={pastTenants} loading={loadingHistory} />}
+      {activeTab === "history" && <TenantHistory />}
 
       <AdminDialog
         open={!!blacklistTarget}

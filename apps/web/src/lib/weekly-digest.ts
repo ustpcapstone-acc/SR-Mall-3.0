@@ -2,7 +2,7 @@ import { prisma } from "@srmall/database";
 import { notify } from "./notify";
 
 /**
- * Weekly operations digest — the "System Health Manifest" alert.
+ * Weekly operations digest, the "System Health Manifest" alert.
  *
  * Disabled by default in the catalogue, so it only reaches admins who switch
  * it on in Profile Settings → Notifications. `dedupeHours: 168` guarantees a

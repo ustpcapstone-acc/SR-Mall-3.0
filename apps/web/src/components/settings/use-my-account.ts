@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/app/providers";
 import { getMyAccountAction, updateMyAccountAction, uploadAvatarAction, type MyAccount } from "@/app/actions/auth";
 import { GMAIL_RE, PHONE_RE, useUnsavedWarning } from "./settings-ui";
+import { useDraft } from "@/lib/drafts/use-draft";
 
 export type ProfileForm = { name: string; email: string; phone: string; bio: string; department: string };
 
@@ -38,6 +39,14 @@ export function useMyAccount() {
 
   const dirty = Boolean(form && saved && JSON.stringify(form) !== JSON.stringify(saved));
   useUnsavedWarning(dirty);
+  const draft = useDraft({
+    form: "account.profile",
+    enabled: Boolean(saved),
+    editing: true,
+    value: form,
+    initial: saved,
+    onRestore: setForm,
+  });
 
   const problem = useMemo(() => {
     if (!form) return null;
@@ -53,8 +62,10 @@ export function useMyAccount() {
     if (!user?.id || !form || problem) return;
     setSaving(true);
     try {
-      const res = await updateMyAccountAction(user.id, form);
+      const res = await draft.send(() => updateMyAccountAction(user.id, form));
+      if (!res) return;
       if (res.success && res.data) {
+        draft.clear();
         setSaved(form);
         updateUser({ name: res.data.name, email: res.data.email });
         toast.success("Profile saved");
@@ -79,5 +90,5 @@ export function useMyAccount() {
     return res.data.avatarUrl as string;
   };
 
-  return { user, account, form, set, dirty, problem, saving, save, discard, error, reload: load, uploadAvatar };
+  return { user, account, form, set, dirty, problem, saving, save, discard, error, reload: load, uploadAvatar, draft };
 }

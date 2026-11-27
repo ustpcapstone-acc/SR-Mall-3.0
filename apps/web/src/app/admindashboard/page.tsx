@@ -27,18 +27,14 @@ import {
 import { DashboardSkeleton } from "@/components/dashboard-skeleton";
 import { RecordCashPaymentModal } from "@/components/admin/record-cash-payment-modal";
 import { RecordPaymentGuide } from "@/components/admin/record-payment-guide";
+import { PaymentScheduleButton } from "@/components/payments/payment-schedule-button";
 import { toast } from "sonner";
 
 // ─── Formatting ──────────────────────────────────────────────────────────────
 
 const BRAND = "#BE1E2D";
 
-const pesoCompact = new Intl.NumberFormat("en-PH", {
-  style: "currency",
-  currency: "PHP",
-  notation: "compact",
-  maximumFractionDigits: 1,
-});
+/** Whole pesos, written out in full (₱62,000, never ₱62K). */
 const pesoFull = new Intl.NumberFormat("en-PH", {
   style: "currency",
   currency: "PHP",
@@ -152,6 +148,7 @@ export default function AdminDashboard() {
               : `Updated ${updatedAt.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`}
           </p>
           <RecordPaymentGuide />
+          <PaymentScheduleButton adminId={user?.id} />
           <Button variant="secondary" icon={<ArrowClockwise />} loading={refreshing} onClick={() => load(true)}>
             Refresh
           </Button>
@@ -166,7 +163,7 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
         <Stat
           label="Collected this month"
-          value={pesoCompact.format(kpis.collectedThisMonth)}
+          value={pesoFull.format(kpis.collectedThisMonth)}
           hint={
             <>
               {change !== null && (
@@ -174,14 +171,14 @@ export default function AdminDashboard() {
                   {change >= 0 ? "Up" : "Down"} {Math.abs(change)}% vs same day last month
                 </span>
               )}
-              Billed {pesoCompact.format(kpis.billedThisMonth)}
+              Billed {pesoFull.format(kpis.billedThisMonth)}
             </>
           }
           href="/admindashboard/tenant-monitoring"
         />
         <Stat
           label="Outstanding"
-          value={pesoCompact.format(kpis.outstanding)}
+          value={pesoFull.format(kpis.outstanding)}
           hint={
             kpis.unpaidInvoices > 0
               ? `${kpis.unpaidInvoices} unpaid invoice${kpis.unpaidInvoices === 1 ? "" : "s"}`
@@ -488,9 +485,9 @@ function RevenueChart({ data }: { data: AdminDashboardData["revenue"] }) {
           <YAxis
             axisLine={false}
             tickLine={false}
-            width={56}
+            width={76}
             tick={{ fontSize: 12, fill: "#94a3b8" }}
-            tickFormatter={(v) => pesoCompact.format(Number(v))}
+            tickFormatter={(v) => pesoFull.format(Number(v))}
           />
           <Tooltip
             formatter={(value: any, name: any) => [pesoFull.format(Number(value || 0)), name]}
@@ -608,7 +605,7 @@ function FloorTile({ slot }: { slot: AdminDashboardData["floor"][number] }) {
         {slot.status === "OCCUPIED"
           ? slot.shopName || "Occupied"
           : slot.status === "AVAILABLE"
-            ? `${pesoCompact.format(slot.baseRent || 0)} a month`
+            ? `${pesoFull.format(slot.baseRent || 0)} a month`
             : s.label}
       </span>
     </Link>

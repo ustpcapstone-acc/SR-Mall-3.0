@@ -8,7 +8,7 @@ import { revalidatePath } from "next/cache";
 import { assignUnitShop, shopNames } from "@/lib/shops";
 import { prisma } from "@srmall/database";
 import { AccessDenied } from "@/lib/auth-server";
-import { graceEndDate, invoiceStatus, renewalStage, type EInvoiceStatus, type RenewalStage } from "@/lib/leasing";
+import { graceEndDate, invoiceStatus, renewalStage, type EInvoiceStatus, type RenewalStage, type ReportStatus, reportStatus } from "@/lib/leasing";
 import { getLeaseSettings } from "@/lib/leasing-server";
 import {
   rememberWorkspace,
@@ -140,6 +140,11 @@ export type PaymentRow = {
   method: string | null;
   /** A deposit slip was uploaded and the mall office hasn't confirmed it yet. */
   checking: boolean;
+  unitId: string | null;
+  referenceNo: string | null;
+  /** The day it was paid. Older paid invoices have no paidAt, so their last update stands in. */
+  paidOn: string | null;
+  reportStatus: ReportStatus;
 };
 
 /** An unpaid bill of the unit being viewed (on Home: of any unit or ended lease). */
@@ -152,11 +157,19 @@ export type BillToPay = {
   amount: number;
   overdue: boolean;
   checking: boolean;
+  /** Why the office rejected the last slip or voided the payment. */
+  officeNote: string | null;
 };
 
 const PAGE_SIZE = 10;
 
-export async function getSpacePaymentsAction(query: { page?: number; sort?: "newest" | "oldest"; status?: PaymentStatusFilter }) {
+export async function getSpacePaymentsAction(query: {
+  page?: number;
+  sort?: "newest" | "oldest";
+  status?: PaymentStatusFilter;
+  /** Every invoice of this space, for the downloadable report. */
+  all?: boolean;
+}) {
   try {
     const tenant = await requireTenant();
     if (tenant.staff && !tenant.staff.permissions.includes("payments")) throw new AccessDenied();
@@ -180,6 +193,8 @@ export async function getSpacePaymentsAction(query: { page?: number; sort?: "new
         dueDate: true,
         paidAt: true,
         paymentMethod: true,
+        referenceNo: true,
+        updatedAt: true,
         leaseId: true,
         unitId: true,
       },
@@ -204,7 +219,23 @@ export async function getSpacePaymentsAction(query: { page?: number; sort?: "new
       paidAt: r.paidAt?.toISOString() ?? null,
       method: r.paymentMethod,
       checking: r.status === "REVIEWING",
+      unitId: r.unitId,
+      referenceNo: r.referenceNo,
+      paidOn: r.status === "PAID" ? (r.paidAt ?? r.updatedAt).toISOString() : null,
+      reportStatus: reportStatus(r.status, r.dueDate, now),
     }));
+
+    // The latest word from the office on each unpaid bill.
+    const logs = await prisma.paymentLog.findMany({
+      where: { tenantId: tenant.id, invoiceId: { in: rows.filter((r) => r.status !== "PAID").map((r) => r.id) } },
+      orderBy: { createdAt: "desc" },
+      select: { invoiceId: true, action: true, reason: true },
+    });
+    const officeNote = (invoiceId: string) => {
+      const last = logs.find((l) => l.invoiceId === invoiceId);
+      if (!last?.reason) return null;
+      return last.action === "VOIDED" ? `Your payment was voided: ${last.reason}` : `Your last slip was rejected: ${last.reason}`;
+    };
 
     const bills: BillToPay[] = rows
       .map((r) => ({ r, state: invoiceStatus(r.status, r.dueDate, now) }))
@@ -219,6 +250,7 @@ export async function getSpacePaymentsAction(query: { page?: number; sort?: "new
         amount: Number(r.amount) || 0,
         overdue: state === "OVERDUE",
         checking: r.status === "REVIEWING",
+        officeNote: r.status === "REVIEWING" ? null : officeNote(r.id),
       }));
 
     const status = query?.status ?? "ALL";
@@ -248,7 +280,9 @@ export async function getSpacePaymentsAction(query: { page?: number; sort?: "new
               }
             : null,
         bills,
-        rows: filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+        rows: query?.all ? all : filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+        /** Named only for the report. */
+        shopName: query?.all ? (await shopNames(tenant.id))(lease?.shopId ?? null) : "",
         total: filtered.length,
         page,
         pages,

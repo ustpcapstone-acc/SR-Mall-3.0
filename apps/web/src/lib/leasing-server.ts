@@ -4,6 +4,9 @@
  */
 import { randomBytes } from "crypto";
 import { prisma, type Prisma } from "@srmall/database";
+import { logPayment, type Actor } from "@/lib/payments-server";
+import { ensureRentDrafts, paymentStaffIds, removalHold } from "@/lib/rent-bills-server";
+import { OPEN_BILL, sameDay } from "@/lib/rent-bills";
 import { notify } from "@/lib/notify";
 import { formatPHDate } from "@/lib/ph-date";
 import {
@@ -22,10 +25,11 @@ type Tx = Prisma.TransactionClient;
 export async function getLeaseSettings(): Promise<LeaseSettingsData> {
   const row = await prisma.leaseSettings.findUnique({ where: { id: "singleton" } });
   if (!row) return DEFAULT_LEASE_SETTINGS;
-  return { reminderDays: row.reminderDays, graceDays: row.graceDays, finalWarningDays: row.finalWarningDays };
+  const { reminderDays, graceDays, finalWarningDays, billDaysBefore } = row;
+  return { reminderDays, graceDays, finalWarningDays, billDaysBefore };
 }
 
-function invoiceNumber(now = new Date()) {
+export function invoiceNumber(now = new Date()) {
   const ymd = new Date(now.getTime() + 8 * 3600_000).toISOString().slice(0, 10).replace(/-/g, "");
   return `INV-${ymd}-${randomBytes(3).toString("hex").toUpperCase()}`;
 }
@@ -42,6 +46,8 @@ export type PaymentInput = {
 export async function createPaidInvoice(
   tx: Tx,
   p: PaymentInput & { tenantId: string; leaseId: string; unitId: string; monthlyRent: number; periodStart: Date; kind: "New lease" | "Renewal" },
+  /** The staff member who received the money. */
+  by: Actor,
 ) {
   const periodEnd = addMonths(p.periodStart, p.months);
   const subtotal = Math.round(p.monthlyRent * p.months * 100) / 100;
@@ -62,7 +68,7 @@ export async function createPaidInvoice(
       ? new Date(p.periodStart).toLocaleDateString("en-PH", { timeZone: "Asia/Manila", month: "short", year: "numeric" })
       : `${formatPHDate(p.periodStart)} to ${formatPHDate(addDays(periodEnd, -1))}`;
 
-  return tx.invoice.create({
+  const created = await tx.invoice.create({
     data: {
       invoiceNumber: invoiceNumber(),
       tenantId: p.tenantId,
@@ -82,6 +88,18 @@ export async function createPaidInvoice(
     },
     select: { id: true, invoiceNumber: true, amount: true },
   });
+  await logPayment(tx, {
+    invoiceId: created.id,
+    invoiceNumber: created.invoiceNumber,
+    tenantId: p.tenantId,
+    action: "RECORDED",
+    amount: p.amount,
+    method: p.method,
+    referenceNo: p.referenceNo || null,
+    paidOn: p.paidAt,
+    by,
+  });
+  return created;
 }
 
 /** Tell the tenant their e-invoice is ready (bell plus an email receipt). */
@@ -168,13 +186,15 @@ export async function endLease(leaseId: string, reason: string) {
 export async function runRenewalSweep(now: Date = new Date()) {
   await reconcileLeases();
   const s = await getLeaseSettings();
+  // Rent bills for the accountant to review, before any notices go out.
+  const drafted = await ensureRentDrafts(s, now);
   const horizon = addDays(now, Math.max(...s.reminderDays, 0) + 1);
   const leases = await prisma.lease.findMany({
     where: { status: "ACTIVE", endDate: { lte: horizon } },
     include: { tenant: { select: { shopName: true, userId: true } } },
   });
 
-  const out = { checked: leases.length, notices: 0, removed: 0 };
+  const out = { checked: leases.length, notices: 0, removed: 0, drafted, held: 0 };
   for (const lease of leases) {
     const days = daysUntil(lease.endDate, now);
     const sent = new Set(lease.noticesSent);
@@ -185,7 +205,22 @@ export async function runRenewalSweep(now: Date = new Date()) {
     const adminLink = "/admindashboard/renewals";
     let notice: { key: string; tenant: [string, string]; admin?: [string, string] } | null = null;
 
-    if (days < -s.graceDays) {
+    const hold = days < -s.graceDays ? await removalHold(lease.id, s, now) : null;
+    if (hold) {
+      // Not removed yet: staff are told once, and the next run looks again.
+      out.held++;
+      if (!sent.has("HOLD")) {
+        await prisma.lease.update({ where: { id: lease.id }, data: { noticesSent: [...sent, "HOLD"] } });
+        await notify("EXPIRING_CONTRACTS", {
+          roles: ["ADMIN"],
+          title: `Removal paused: Unit ${lease.unitId}`,
+          message: `${who} is past the grace period but was not removed because ${hold}.`,
+          link: "/admindashboard/payments",
+          email: false,
+        });
+      }
+      continue;
+    } else if (days < -s.graceDays) {
       // Grace is over: remove the tenant from the space.
       if (await endLease(lease.id, "Not renewed by the end of the grace period")) {
         out.removed++;
@@ -241,6 +276,13 @@ export async function runRenewalSweep(now: Date = new Date()) {
     }
 
     if (!notice) continue;
+    // Point the tenant at the bill, when one has been sent for this period.
+    const bills = await prisma.invoice.findMany({
+      where: { leaseId: lease.id, status: { in: OPEN_BILL }, periodStart: { not: null } },
+      select: { invoiceNumber: true, periodStart: true },
+    });
+    const bill = bills.find((b) => sameDay(b.periodStart!, lease.endDate));
+    if (bill) notice.tenant[1] += ` Your bill ${bill.invoiceNumber} is under Payments, where you can also upload a deposit slip.`;
     sent.add(notice.key);
     if (notice.key === "FINAL") sent.add("GRACE");
     await prisma.lease.update({ where: { id: lease.id }, data: { noticesSent: [...sent] } });
@@ -255,6 +297,22 @@ export async function runRenewalSweep(now: Date = new Date()) {
       await notify("EXPIRING_CONTRACTS", { roles: ["ADMIN"], title: notice.admin[0], message: notice.admin[1], link: adminLink, email: false });
     }
     out.notices++;
+  }
+
+  // Remind the accountant about drafts nobody has reviewed. Never sent for them.
+  const waiting = await prisma.rentDraft.count({ where: { status: "PENDING", lease: { status: "ACTIVE" } } });
+  if (waiting) {
+    const recipients = await paymentStaffIds();
+    if (recipients.length) {
+      await notify("EXPIRING_CONTRACTS", {
+        recipients,
+        title: "Rent bills to review",
+        message: `${waiting} rent bill${waiting === 1 ? " is" : "s are"} waiting for review before tenants can see ${waiting === 1 ? "it" : "them"}.`,
+        link: "/admindashboard/payments",
+        email: false,
+        dedupeHours: 20,
+      });
+    }
   }
   return out;
 }

@@ -6,7 +6,7 @@ import { ArrowRight, Store } from "lucide-react";
 import { cn } from "@cloudflare/kumo";
 import type { AreaSlot } from "@srmall/database";
 import { optimizedImage } from "@/lib/media";
-import { floorLabel } from "@/lib/floors";
+import { useFloors } from "@/lib/use-floors";
 import { slotAccess } from "@/lib/slot-live";
 
 const CARD =
@@ -27,6 +27,7 @@ export function SpaceCard({
   className?: string;
   style?: React.CSSProperties;
 }) {
+  const { label: floorLabel } = useFloors();
   const access = slotAccess(slot as any, viewerId);
   const image = slot.space_images?.[0];
   const available = slot.status === "AVAILABLE";

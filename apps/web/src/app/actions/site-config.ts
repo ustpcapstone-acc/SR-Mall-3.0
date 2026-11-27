@@ -14,18 +14,18 @@ export async function getSiteConfig() {
       config = await prisma.siteConfig.create({
         data: {
           id: "singleton",
-          heroTitle: "Experience the Future of Shopping.",
+          heroTitle: "Shops and spaces at SR Mall.",
           heroSubtitle:
-            "Discover world-class retail, dining, and workspace solutions at SR Mall — your digital concierge for everything mall-related.",
-          heroBadge: "Professional Mall Management System",
+            "Shops, dining and spaces for rent at SR Mall.",
+          heroBadge: "SR Mall",
           heroBgUrl:
             "https://images.unsplash.com/photo-1519642918688-7e43b19245d8?auto=format&fit=crop&q=80&w=2000",
           heroOverlayDark: 40,
           primaryBtnText: "Explore Now",
           isMaintenance: false,
-          defaultAdTitle: "Luxe Summer Sale",
+          defaultAdTitle: "Welcome to SR Mall",
           defaultAdDesc:
-            "Experience up to 70% off on all premium luxury brands this weekend only.",
+            "Find shops, products and spaces for rent.",
           defaultAdImage:
             "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&q=80&w=2000",
           defaultAdCta: "View Directory",
@@ -66,7 +66,7 @@ export async function updateSiteConfig(data: {
       update: data,
       create: {
         id: "singleton",
-        heroTitle: data.heroTitle || "Experience the Future of Shopping.",
+        heroTitle: data.heroTitle || "Shops and spaces at SR Mall.",
         heroSubtitle: data.heroSubtitle || "Description...",
         ...data,
       },

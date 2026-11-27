@@ -1,5 +1,5 @@
 /**
- * Tenant complaints — shared constants and types. Client/server safe.
+ * Tenant complaints, shared constants and types. Client/server safe.
  */
 
 export const COMPLAINT_CATEGORIES = [

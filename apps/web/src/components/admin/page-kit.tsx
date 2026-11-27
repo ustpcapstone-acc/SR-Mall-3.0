@@ -7,7 +7,8 @@
 import type { ComponentProps, ReactNode } from "react";
 import Link from "next/link";
 import { Button, Dialog, Input, Tabs, cn } from "@cloudflare/kumo";
-import { MagnifyingGlass, X } from "@phosphor-icons/react";
+import { CaretLeft, CaretRight, MagnifyingGlass, X } from "@phosphor-icons/react";
+import { PAGE_SIZE } from "@/lib/paging";
 
 export function AdminPage({
   title,
@@ -130,6 +131,72 @@ export function Panel({
       )}
       <div className={flush ? undefined : "p-4 sm:p-5"}>{children}</div>
     </section>
+  );
+}
+
+/** Page numbers to show: always the ends and the neighbours of the current one. */
+function pageList(current: number, pages: number): (number | "gap-start" | "gap-end")[] {
+  const range = (from: number, to: number) => Array.from({ length: to - from + 1 }, (_, i) => from + i);
+  if (pages <= 7) return range(1, pages);
+  if (current <= 4) return [...range(1, 5), "gap-end", pages];
+  if (current >= pages - 3) return [1, "gap-start", ...range(pages - 4, pages)];
+  return [1, "gap-start", current - 1, current, current + 1, "gap-end", pages];
+}
+
+/** Under a list: "Showing 1–10 of 35 records", Previous, page numbers and Next. */
+export function Pager({ page, total, onChange }: { page: number; total: number; onChange: (page: number) => void }) {
+  if (!total) return null;
+  const pages = Math.ceil(total / PAGE_SIZE);
+  const current = Math.min(page, pages);
+  const first = (current - 1) * PAGE_SIZE + 1;
+  const last = Math.min(current * PAGE_SIZE, total);
+  return (
+    <div className="flex flex-col items-center gap-3 border-t border-kumo-line p-4 sm:flex-row sm:flex-wrap sm:justify-between sm:px-5">
+      <p role="status" className="text-sm tabular-nums text-kumo-subtle">
+        Showing {first}–{last} of {total} record{total === 1 ? "" : "s"}
+      </p>
+      <nav aria-label="Pages" className="flex flex-wrap items-center justify-center gap-1">
+        <Button
+          size="sm"
+          variant="secondary"
+          icon={<CaretLeft />}
+          aria-label="Previous page"
+          disabled={current <= 1}
+          onClick={() => onChange(current - 1)}
+        >
+          <span className="hidden sm:inline">Previous</span>
+        </Button>
+        {pageList(current, pages).map((entry) =>
+          typeof entry === "number" ? (
+            <Button
+              key={entry}
+              size="sm"
+              variant={entry === current ? "primary" : "secondary"}
+              aria-label={`Page ${entry}`}
+              aria-current={entry === current ? "page" : undefined}
+              onClick={() => onChange(entry)}
+              className="min-w-8 justify-center tabular-nums"
+            >
+              {entry}
+            </Button>
+          ) : (
+            <span key={entry} aria-hidden className="px-1 text-sm text-kumo-subtle">
+              …
+            </span>
+          ),
+        )}
+        <Button
+          size="sm"
+          variant="secondary"
+          aria-label="Next page"
+          disabled={current >= pages}
+          onClick={() => onChange(current + 1)}
+        >
+          <span className="hidden sm:inline">Next</span>
+          <CaretRight aria-hidden />
+        </Button>
+      </nav>
+    </div>
   );
 }
 

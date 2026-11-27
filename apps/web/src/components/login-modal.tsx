@@ -5,18 +5,9 @@ import { createPortal } from "react-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import {
-  AlertCircle,
-  CheckCircle2,
-  LogIn,
-  Lock,
-  Mail,
-  X,
-  Eye,
-  EyeOff,
-  Loader2,
-} from "lucide-react";
-import { useRouter } from "next/navigation";
+import { Button, Input, Tabs } from "@cloudflare/kumo";
+import { X } from "@phosphor-icons/react";
+import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/app/providers";
 import { loginAction, signUpAction } from "@/app/actions/auth";
 import { supabase } from "@/utils/supabase";
@@ -42,11 +33,26 @@ const signUpSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
+// A tenant password only has to be filled in; the server decides if it is right.
+const tenantSignInSchema = loginSchema.extend({ password: z.string().min(1, "Enter your password") });
+
+/** The two public sign-ins. Staff have their own page (/staff-portal). */
+export type LoginRole = "CUSTOMER" | "TENANT";
+
+const ROLE_TABS = [
+  { value: "CUSTOMER", label: "Customer", className: "flex-1 justify-center" },
+  { value: "TENANT", label: "Tenant", className: "flex-1 justify-center" },
+];
+
+const isInside = (path: string, area: string) => path === area || path.startsWith(area + "/") || path.startsWith(area + "?");
+
 interface LoginModalProps {
   isOpen: boolean;
   onClose: () => void;
-  /** Where to go after signing in (the /login page passes its ?next). */
+  /** Where to go after signing in. Without it a customer stays on the current page. */
   nextPath?: string | null;
+  /** Which side of the role switcher is selected at first. */
+  initialRole?: LoginRole;
 }
 
 /** Official multi-colour Google "G". */
@@ -61,12 +67,9 @@ function GoogleIcon({ size = 18 }: { size?: number }) {
   );
 }
 
-const INPUT =
-  "w-full bg-slate-50 dark:bg-zinc-800 rounded-2xl border-2 border-transparent focus:border-primary outline-hidden transition-all text-sm font-bold text-charcoal dark:text-white";
-const LABEL = "text-xs font-semibold text-slate-500 px-1";
-
-export const LoginModal = ({ isOpen, onClose, nextPath }: LoginModalProps) => {
+export const LoginModal = ({ isOpen, onClose, nextPath, initialRole = "CUSTOMER" }: LoginModalProps) => {
   const { login } = useAuth();
+  const [role, setRole] = useState<LoginRole>(initialRole);
   const [isLoading, setIsLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
@@ -80,8 +83,9 @@ export const LoginModal = ({ isOpen, onClose, nextPath }: LoginModalProps) => {
     formState: { errors },
     reset,
     getValues,
+    clearErrors,
   } = useForm<any>({
-    resolver: zodResolver(isSignUp ? signUpSchema : loginSchema),
+    resolver: zodResolver(isSignUp ? signUpSchema : role === "TENANT" ? tenantSignInSchema : loginSchema),
   });
 
   const router = useRouter();
@@ -107,14 +111,33 @@ export const LoginModal = ({ isOpen, onClose, nextPath }: LoginModalProps) => {
     setNotice(null);
   };
 
-  // This modal is the customer sign-in (/login). Staff and tenants have their own portals.
-  const goTo = (path?: string) => router.push(path || "/");
+  const pathname = usePathname();
+
+  // Customers and tenants both sign in here; the switcher says which.
+  // Return to the page that sent the visitor here, but only if the chosen role can open it.
+  const next =
+    nextPath &&
+    (role === "TENANT"
+      ? isInside(nextPath, "/tenantdashboard")
+      : !isInside(nextPath, "/tenantdashboard") && !isInside(nextPath, "/admindashboard"))
+      ? nextPath
+      : null;
+
+  const switchRole = (value: string) => {
+    setRole(value as LoginRole);
+    if (value === "TENANT") setIsSignUp(false); // Only customers sign up here.
+    clearErrors();
+    setError(null);
+    setNotice(null);
+  };
 
   const handleGoogleLogin = async () => {
     setIsLoading(true);
     setError(null);
     try {
-      rememberGooglePortal("CUSTOMER");
+      // Google leaves the site, so note where to come back to.
+      const here = pathname === "/login" ? null : window.location.pathname + window.location.search;
+      rememberGooglePortal(role, next || (role === "CUSTOMER" ? here : null));
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
@@ -142,14 +165,17 @@ export const LoginModal = ({ isOpen, onClose, nextPath }: LoginModalProps) => {
         });
         if (!res.success || !res.data) throw new Error(res.error || "Error creating account.");
         login(res.data.id, res.data.name || data.firstName, res.data.email, res.data.role);
+        // Closing leaves a customer on their page (on /login it goes home).
         onClose();
-        goTo(nextPath || "/");
+        if (next) router.push(next);
       } else {
-        const res = await loginAction({ email: data.email, password: data.password }, "CUSTOMER");
+        const res = await loginAction({ email: data.email, password: data.password }, role);
         if (!res.success || !res.data) throw new Error(res.error || "Invalid email or password.");
         login(res.data.id, res.data.name, res.data.email, res.data.role, res.data.avatarUrl);
         onClose();
-        goTo(nextPath || res.redirectTo);
+        // Tenants go to their dashboard.
+        const destination = next || (role === "TENANT" ? res.redirectTo : null);
+        if (destination) router.push(destination);
       }
     } catch (err: any) {
       setError(err?.message || (isSignUp ? "Error creating account." : "Invalid email or password."));
@@ -171,8 +197,9 @@ export const LoginModal = ({ isOpen, onClose, nextPath }: LoginModalProps) => {
       const res = await requestPasswordResetAction(email);
       if (res.success) {
         setNotice(res.message || "Check your email for the reset code.");
-        router.push(`/auth/reset-password?email=${encodeURIComponent(email)}`);
+        // Close first: on /login closing goes home, and the last navigation wins.
         onClose();
+        router.push(`/auth/reset-password?email=${encodeURIComponent(email)}`);
       } else {
         setError(res.error || "Failed to send reset email.");
       }
@@ -185,6 +212,21 @@ export const LoginModal = ({ isOpen, onClose, nextPath }: LoginModalProps) => {
 
   if (!mounted) return null;
 
+  const title = isForgotPassword ? "Reset your password" : isSignUp ? "Create your account" : "Sign in";
+  const help = isForgotPassword
+    ? "We'll email you a code."
+    : isSignUp
+      ? "Use your Gmail address to sign up."
+      : role === "TENANT"
+        ? "Manage your spaces, storefront and payments."
+        : "Welcome back to SR Mall.";
+  const fieldError = (message: unknown) =>
+    message ? (
+      <p role="alert" className="text-sm text-kumo-danger">
+        {String(message)}
+      </p>
+    ) : null;
+
   return createPortal(
     <AnimatePresence>
       {isOpen && (
@@ -193,134 +235,108 @@ export const LoginModal = ({ isOpen, onClose, nextPath }: LoginModalProps) => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-md"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm"
             onClick={onClose}
           />
           {/* min-h-full + items-center centres short cards and lets tall ones scroll from the top */}
-          <div className="relative min-h-full flex items-center justify-center p-4 sm:p-6" onClick={(e) => e.target === e.currentTarget && onClose()}>
-
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 10 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="relative w-full max-w-md bg-white dark:bg-zinc-900 rounded-[2.5rem] shadow-2xl border border-slate-200 dark:border-white/5 overflow-hidden"
-          >
-            <div
-              className={`relative ${isSignUp ? "h-24" : "h-32"} bg-primary flex items-center justify-center overflow-hidden transition-[height]`}
+          <div className="relative flex min-h-full items-center justify-center p-4 sm:p-6" onClick={(e) => e.target === e.currentTarget && onClose()}>
+            <motion.div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="login-title"
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 8 }}
+              transition={{ duration: 0.2 }}
+              className="relative w-full max-w-md rounded-2xl border border-kumo-line bg-kumo-base p-6 shadow-2xl sm:p-8"
             >
-              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl"></div>
-              <div className="relative z-10 flex flex-col items-center">
-                <div className={`${isSignUp ? "w-11 h-11" : "w-14 h-14"} bg-white rounded-2xl overflow-hidden shadow-lg mb-2 p-0.5`}>
-                  <img src="/images/srmall-logo/sr_logo2.jpg" alt="Logo" className="w-full h-full object-cover rounded-xl" />
-                </div>
-                <h2 className="text-white font-semibold text-xs">
-                  {isForgotPassword ? "Reset Password" : isSignUp ? "SR MALL" : "Welcome back"}
-                </h2>
+              <div className="absolute right-3 top-3">
+                <Button type="button" variant="ghost" shape="square" icon={<X />} aria-label="Close" onClick={onClose} />
               </div>
-              <button
-                onClick={onClose}
-                aria-label="Close"
-                className="absolute top-6 right-6 p-2 text-white/60 hover:text-white transition-colors"
-              >
-                <X size={20} />
-              </button>
-            </div>
 
-            <div className={isSignUp ? "p-6 sm:p-8" : "p-8 sm:p-10"}>
-              {isSignUp && (
-                <div className="mb-5 text-center">
-                  <h3 className="text-lg font-semibold text-charcoal dark:text-white">Create your account</h3>
-                  <p className="text-xs text-slate-500 mt-1">Use your Gmail address to sign up.</p>
+              <div className="mb-5 flex items-center gap-3 pr-10">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/images/srmall-logo/sr_logo2.jpg" alt="SR Mall" className="size-12 shrink-0 rounded-lg object-cover" />
+                <div className="min-w-0">
+                  <h2 id="login-title" className="font-display text-2xl font-semibold tracking-tight text-kumo-default">
+                    {title}
+                  </h2>
+                  <p className="text-sm text-kumo-subtle">{help}</p>
+                </div>
+              </div>
+
+              {!isForgotPassword && (
+                <div role="group" aria-label="Sign in as" className="mb-5">
+                  <Tabs variant="segmented" tabs={ROLE_TABS} value={role} onValueChange={switchRole} className="w-full" listClassName="w-full" />
                 </div>
               )}
-              <form onSubmit={handleSubmit(onSubmit)} className={isSignUp ? "space-y-4" : "space-y-6"} noValidate>
+
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
                 {error && (
-                  <div className="flex items-start gap-3 p-4 bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-500 text-xs font-bold rounded-2xl border border-red-100 dark:border-red-900/30 animate-shake">
-                    <AlertCircle size={16} className="shrink-0" />
+                  <p role="alert" className="rounded-lg bg-kumo-danger-tint p-3 text-sm font-medium text-kumo-danger">
                     {error}
-                  </div>
+                  </p>
                 )}
-                {notice && (
-                  <div className="flex items-start gap-3 p-4 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 text-xs font-bold rounded-2xl border border-emerald-100 dark:border-emerald-900/30">
-                    <CheckCircle2 size={16} className="shrink-0" />
-                    {notice}
-                  </div>
-                )}
+                {notice && <p className="rounded-lg bg-kumo-success-tint p-3 text-sm font-medium text-kumo-success">{notice}</p>}
 
-                <div className={isSignUp ? "space-y-3" : "space-y-4"}>
-                  {isForgotPassword ? (
-                    <div className="space-y-4 animate-fade-in">
-                      <div className="space-y-2">
-                        <label className={LABEL}>Recovery Email</label>
-                        <div className="relative group">
-                          <Mail size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-primary transition-colors" />
-                          <input {...register("email")} type="email" aria-label="Recovery email" placeholder="Enter your registered email" className={`${INPUT} pl-14 pr-6 py-4`} />
+                {isForgotPassword ? (
+                  <div className="space-y-3">
+                    <Input
+                      {...register("email")}
+                      type="email"
+                      label="Recovery email"
+                      placeholder="Enter your registered email"
+                      autoComplete="email"
+                      className="w-full"
+                    />
+                    <Button type="button" variant="primary" size="lg" className="w-full justify-center" loading={isLoading} disabled={isLoading} onClick={requestReset}>
+                      Request Recovery Link
+                    </Button>
+                    <Button type="button" variant="ghost" className="w-full justify-center" onClick={() => setIsForgotPassword(false)}>
+                      Back to Sign In
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    {isSignUp && (
+                      <div className="grid grid-cols-1 gap-3 min-[380px]:grid-cols-2">
+                        <div className="space-y-1">
+                          <Input {...register("firstName")} type="text" label="First name" placeholder="Juan" autoComplete="given-name" className="w-full" />
+                          {fieldError(errors.firstName?.message)}
+                        </div>
+                        <div className="space-y-1">
+                          <Input {...register("lastName")} type="text" label="Last name" placeholder="Dela Cruz" autoComplete="family-name" className="w-full" />
+                          {fieldError(errors.lastName?.message)}
                         </div>
                       </div>
-                      <button
-                        type="button"
-                        onClick={requestReset}
-                        disabled={isLoading}
-                        className="w-full py-4 bg-charcoal dark:bg-white dark:text-black text-white font-bold rounded-2xl hover:opacity-90 transition-all flex items-center justify-center gap-2"
-                      >
-                        {isLoading ? <Loader2 className="animate-spin" size={18} /> : "Request Recovery Link"}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setIsForgotPassword(false)}
-                        className="w-full text-xs font-bold text-slate-400 hover:text-primary transition-colors"
-                      >
-                        Back to Sign In
-                      </button>
+                    )}
+
+                    <div className="space-y-1">
+                      <Input
+                        {...register("email")}
+                        type="email"
+                        label={isSignUp ? "Gmail address" : "Email address"}
+                        aria-invalid={!!errors.email}
+                        placeholder={isSignUp ? "yourname@gmail.com" : "Enter your email"}
+                        autoComplete="email"
+                        className="w-full"
+                      />
+                      {errors.email
+                        ? fieldError(errors.email.message)
+                        : isSignUp && <p className="text-sm text-kumo-subtle">New accounts need a @gmail.com address.</p>}
                     </div>
-                  ) : (
-                    <>
-                      {isSignUp && (
-                        <div className="grid grid-cols-1 min-[380px]:grid-cols-2 gap-3">
-                          <div className="space-y-2">
-                            <label className={LABEL}>First Name</label>
-                            <input {...register("firstName")} type="text" aria-label="First name" placeholder="Juan" autoComplete="given-name" className={`${INPUT} px-4 py-3.5`} />
-                            {errors.firstName && (
-                              <span className="text-[10px] text-red-500 px-1">{errors.firstName.message?.toString()}</span>
-                            )}
-                          </div>
-                          <div className="space-y-2">
-                            <label className={LABEL}>Last Name</label>
-                            <input {...register("lastName")} type="text" aria-label="Last name" placeholder="Dela Cruz" autoComplete="family-name" className={`${INPUT} px-4 py-3.5`} />
-                            {errors.lastName && (
-                              <span className="text-[10px] text-red-500 px-1">{errors.lastName.message?.toString()}</span>
-                            )}
-                          </div>
-                        </div>
-                      )}
 
-                      <div className="space-y-2">
-                        <label className={LABEL}>{isSignUp ? "Gmail Address" : "Email Address"}</label>
-                        <div className="relative group">
-                          <Mail size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-primary transition-colors" />
-                          <input
-                            {...register("email")}
-                            type="email"
-                            aria-label={isSignUp ? "Gmail address" : "Email address"}
-                            aria-invalid={!!errors.email}
-                            placeholder={isSignUp ? "yourname@gmail.com" : "Enter your email"}
-                            autoComplete="email"
-                            className={`${INPUT} pl-14 pr-6 ${isSignUp ? "py-3.5" : "py-4"}`}
-                          />
-                        </div>
-                        {errors.email ? (
-                          <span role="alert" className="text-xs text-red-500 px-1">{errors.email.message?.toString()}</span>
-                        ) : (
-                          isSignUp && (
-                            <span className="text-[10px] text-slate-400 px-1">New accounts need a @gmail.com address.</span>
-                          )
-                        )}
-                      </div>
-
-                      <div className="space-y-2">
-                        <div className="flex justify-between items-center px-1">
-                          <label className="text-xs font-semibold text-slate-500">Password</label>
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-sm font-medium text-kumo-default">Password</span>
+                        <span className="flex gap-4">
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="cursor-pointer text-sm font-medium text-kumo-subtle hover:text-kumo-default"
+                          >
+                            {showPassword ? "Hide password" : "Show password"}
+                          </button>
                           {!isSignUp && (
                             <button
                               type="button"
@@ -328,95 +344,62 @@ export const LoginModal = ({ isOpen, onClose, nextPath }: LoginModalProps) => {
                                 setIsForgotPassword(true);
                                 setError(null);
                               }}
-                              className="text-xs font-bold text-primary hover:underline"
+                              className="cursor-pointer text-sm font-semibold text-primary hover:underline"
                             >
                               Forgot Password?
                             </button>
                           )}
-                        </div>
-                        <div className="relative group">
-                          <Lock size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-primary transition-colors" />
-                          <input
-                            {...register("password")}
-                            type={showPassword ? "text" : "password"}
-                            aria-label="Password"
-                            aria-invalid={!!errors.password}
-                            placeholder="••••••••"
-                            autoComplete={isSignUp ? "new-password" : "current-password"}
-                            className={`${INPUT} pl-14 pr-12 ${isSignUp ? "py-3.5" : "py-4"}`}
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowPassword(!showPassword)}
-                            aria-label={showPassword ? "Hide password" : "Show password"}
-                            className="absolute right-4 top-1/2 -translate-y-1/2 p-2 text-slate-400 hover:text-primary transition-colors focus:outline-hidden"
-                          >
-                            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                          </button>
-                        </div>
-                        {errors.password ? (
-                          <span className="text-[10px] text-red-500 px-1">{errors.password.message?.toString()}</span>
-                        ) : (
-                          isSignUp && <span className="text-[10px] text-slate-400 px-1">At least 6 characters.</span>
-                        )}
+                        </span>
                       </div>
+                      <Input
+                        {...register("password")}
+                        type={showPassword ? "text" : "password"}
+                        aria-label="Password"
+                        aria-invalid={!!errors.password}
+                        autoComplete={isSignUp ? "new-password" : "current-password"}
+                        className="w-full"
+                      />
+                      {errors.password
+                        ? fieldError(errors.password.message)
+                        : isSignUp && <p className="text-sm text-kumo-subtle">At least 6 characters.</p>}
+                    </div>
 
-                      <button
-                        type="submit"
-                        disabled={isLoading}
-                        className={`w-full flex items-center justify-center gap-3 ${isSignUp ? "py-4 mt-1" : "py-5"} bg-primary text-white font-bold rounded-2xl hover:bg-primary-hover transition-all active:scale-95 shadow-xl shadow-primary/30 disabled:opacity-70 disabled:scale-100`}
-                      >
-                        {isLoading ? (
-                          <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                        ) : (
-                          <>
-                            <LogIn size={18} /> {isSignUp ? "Create Account" : "Sign In"}
-                          </>
-                        )}
-                      </button>
-                    </>
-                  )}
-                </div>
+                    <Button type="submit" variant="primary" size="lg" className="w-full justify-center" loading={isLoading} disabled={isLoading}>
+                      {isSignUp ? "Create Account" : "Sign In"}
+                    </Button>
+                  </>
+                )}
               </form>
 
               {!isForgotPassword && (
                 <>
-                  <div className={`relative ${isSignUp ? "my-4" : "my-6"}`}>
-                    <div className="absolute inset-0 flex items-center">
-                      <div className="w-full border-t border-slate-200 dark:border-white/10"></div>
-                    </div>
-                    <div className="relative flex justify-center text-xs">
-                      <span className="bg-white dark:bg-zinc-900 px-2 text-slate-500 font-semibold">
-                        Or Continue With
-                      </span>
-                    </div>
+                  <div className="my-4 flex items-center gap-3" role="separator">
+                    <span className="h-px flex-1 bg-kumo-line" />
+                    <span className="text-sm text-kumo-subtle">or</span>
+                    <span className="h-px flex-1 bg-kumo-line" />
                   </div>
-
-                  <button
-                    type="button"
-                    onClick={handleGoogleLogin}
-                    disabled={isLoading}
-                    className="w-full flex items-center justify-center gap-2 py-3.5 bg-slate-50 dark:bg-zinc-800 border-2 border-slate-100 dark:border-white/5 rounded-2xl hover:bg-slate-100 dark:hover:bg-zinc-700 transition-all font-bold text-sm text-charcoal dark:text-white"
-                  >
-                    <GoogleIcon /> Google
-                  </button>
+                  <Button type="button" variant="secondary" size="lg" className="w-full justify-center" icon={<GoogleIcon />} disabled={isLoading} onClick={handleGoogleLogin}>
+                    Continue with Google
+                  </Button>
                 </>
               )}
 
-              <p className={`${isSignUp ? "mt-5" : "mt-8"} text-center text-xs text-slate-500 font-medium`}>
-                {isSignUp ? "Already have an account? " : "Don't have an account? "}
-                <button type="button" onClick={toggleMode} className="text-primary font-bold hover:underline">
-                  {isSignUp ? "Sign In" : "Sign Up"}
-                </button>
-              </p>
-              <p className="mt-3 text-center text-xs text-slate-500 font-medium">
-                Mall tenant?{" "}
-                <Link href="/tenant-portal" onClick={onClose} className="text-primary font-bold hover:underline">
-                  Sign in at the tenant portal
-                </Link>
-              </p>
-            </div>
-          </motion.div>
+              {role === "TENANT" ? (
+                <p className="mt-5 text-center text-sm text-kumo-subtle">
+                  Want to rent a space?{" "}
+                  <Link href="/become-a-tenant" onClick={onClose} className="font-semibold text-primary hover:underline">
+                    Become a tenant
+                  </Link>
+                </p>
+              ) : (
+                <p className="mt-5 text-center text-sm text-kumo-subtle">
+                  {isSignUp ? "Already have an account? " : "Don't have an account? "}
+                  <button type="button" onClick={toggleMode} className="cursor-pointer font-semibold text-primary hover:underline">
+                    {isSignUp ? "Sign In" : "Sign Up"}
+                  </button>
+                </p>
+              )}
+            </motion.div>
           </div>
         </div>
       )}

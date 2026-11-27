@@ -106,7 +106,7 @@ export function UnsendButton({ onClick, align = "left" }: { onClick: () => void;
       title="Unsend message"
       aria-label="Unsend message"
       className={clsx(
-        "self-center p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-500/10 opacity-0 group-hover/msg:opacity-100 focus:opacity-100 transition-opacity",
+        "self-center shrink-0 cursor-pointer rounded-lg p-2.5 text-kumo-subtle opacity-0 transition-opacity hover:bg-kumo-danger-tint hover:text-kumo-danger focus:opacity-100 group-hover/msg:opacity-100 [@media(hover:none)]:opacity-100",
         align === "right" ? "order-last" : "order-first",
       )}
     >

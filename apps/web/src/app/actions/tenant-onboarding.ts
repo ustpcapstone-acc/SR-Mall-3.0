@@ -1,7 +1,7 @@
 "use server";
 
 /**
- * "Become a Tenant": creates a tenant account (signs in at /tenant-portal)
+ * "Become a Tenant": creates a tenant account (signs in at /login?role=tenant)
  * with its business details and documents. The tenant starts as PENDING with
  * no space; renting a space is a separate request the admin approves.
  */

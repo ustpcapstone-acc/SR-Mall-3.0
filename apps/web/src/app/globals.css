@@ -155,7 +155,7 @@
 
 @layer base {
   /* Native controls (dropdown option lists, date pickers, scrollbars) follow
-     the app theme — otherwise <select> menus open white in dark mode. */
+     the app theme, otherwise <select> menus open white in dark mode. */
   html.dark {
     color-scheme: dark;
   }

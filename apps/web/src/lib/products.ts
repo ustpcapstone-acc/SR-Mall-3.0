@@ -1,5 +1,5 @@
 /**
- * Store products (Tenant.products) — stock and catalog visibility rules.
+ * Store products (Tenant.products), stock and catalog visibility rules.
  * Client/server safe.
  */
 import type { ProductStatus } from "@/types/storefront";

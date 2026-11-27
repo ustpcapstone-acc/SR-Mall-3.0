@@ -1,16 +1,17 @@
 "use client";
 
 import { spaCache } from "@/utils/cache";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button, DropdownMenu, Loader, Select, cn } from "@cloudflare/kumo";
 import { ArrowClockwise, CaretDown, Star } from "@phosphor-icons/react";
-import { AdminDialog, EmptyNote, Panel, Person, SearchField, Stat, StatRow, PageTabs } from "@/components/admin/page-kit";
+import { AdminDialog, EmptyNote, Pager, Panel, Person, SearchField, Stat, StatRow, PageTabs } from "@/components/admin/page-kit";
+import { useDebounced, usePageFor, useServerData } from "@/lib/use-server-page";
 import {
   approveReviewAction,
   deleteReviewAction,
   dismissReviewReportAction,
-  getAllReviewsAction,
+  getAdminReviewsAction,
   markReviewSpamAction,
   setCommentStatusAction,
   unpublishReviewAction,
@@ -19,6 +20,7 @@ import {
 // ─── Types & helpers ─────────────────────────────────────────────────────────
 
 type Bucket = "pending" | "published" | "flagged";
+type ReviewPage = Extract<Awaited<ReturnType<typeof getAdminReviewsAction>>, { success: true }>["data"];
 type UserStatus = "ACTIVE" | "MUTED" | "BANNED";
 
 interface ReviewRow {
@@ -27,9 +29,9 @@ interface ReviewRow {
   comment: string | null;
   isApproved: boolean;
   isSpam: boolean;
-  createdAt: string;
+  createdAt: string | Date;
   reply?: string | null;
-  reportedAt?: string | null;
+  reportedAt?: string | Date | null;
   reportReason?: string | null;
   tenant: { id: string; shopName: string } | null;
   user: {
@@ -38,12 +40,11 @@ interface ReviewRow {
     email: string;
     avatarUrl?: string | null;
     commentStatus?: string | null;
-    commentRestrictedUntil?: string | null;
+    commentRestrictedUntil?: string | Date | null;
     effectiveCommentStatus: UserStatus;
   } | null;
 }
 
-const PAGE_SIZE = 10;
 const MUTE_OPTIONS = [
   { days: 1, label: "1 day" },
   { days: 3, label: "3 days" },
@@ -51,13 +52,7 @@ const MUTE_OPTIONS = [
   { days: 14, label: "2 weeks" },
 ];
 
-function bucketOf(r: ReviewRow): Bucket {
-  // Spam, or reported by the shop and waiting for an admin decision.
-  if (r.isSpam || r.reportedAt) return "flagged";
-  return r.isApproved ? "published" : "pending";
-}
-
-const formatDate = (iso: string) =>
+const formatDate = (iso: string | Date) =>
   new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -67,98 +62,39 @@ export function ReviewsModeration({
   onAttentionCount,
 }: {
   adminId?: string;
-  /** Reviews waiting on the admin (needs review + flagged) — for the tab badge. */
+  /** Reviews waiting on the admin (needs review + flagged), for the tab badge. */
   onAttentionCount?: (count: number) => void;
 }) {
-  // Last loaded list (kept across tab switches) shows instantly; a fresh copy
-  // loads quietly in the background.
+  // The first page is kept across tab switches: it shows instantly while a fresh
+  // copy loads quietly in the background.
   const cacheKey = `admin-reviews:${adminId ?? ""}`;
-  const [reviews, setReviews] = useState<ReviewRow[] | null>(() => (adminId ? spaCache.get(cacheKey, 30 * 60 * 1000) : null));
-  const [error, setError] = useState<string | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
   const [bucket, setBucket] = useState<Bucket | null>(null);
+  /** The queue the server picked while the admin hasn't chosen one. */
+  const [autoBucket, setAutoBucket] = useState<Bucket | null>(null);
   const [search, setSearch] = useState("");
   const [shopFilter, setShopFilter] = useState("all");
   const [ratingFilter, setRatingFilter] = useState("all");
-  const [visible, setVisible] = useState(PAGE_SIZE);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<ReviewRow | null>(null);
 
-  const load = useCallback(
-    async (manual = false) => {
-      if (!adminId) return;
-      if (manual) setRefreshing(true);
-      try {
-        const res = await getAllReviewsAction(adminId);
-        if (res.success) {
-          const rows = (res.data || []) as ReviewRow[];
-          setReviews(rows);
-          spaCache.set(cacheKey, rows);
-          setError(null);
-        } else {
-          setError(res.error || "Failed to load reviews");
-        }
-      } catch (err: any) {
-        setError(err?.message || "Failed to load reviews");
-      } finally {
-        setRefreshing(false);
-      }
+  const term = useDebounced(search.trim());
+  const [page, setPage] = usePageFor(bucket ?? autoBucket, term, shopFilter, ratingFilter);
+  const { data, error, loading, reload } = useServerData(
+    { bucket, search: term, shop: shopFilter, rating: ratingFilter, page },
+    async (query) => {
+      const res = await getAdminReviewsAction(query);
+      const untouched = !query.bucket && !query.search && query.shop === "all" && query.rating === "all" && query.page === 1;
+      if (res.success && untouched) spaCache.set(cacheKey, res.data);
+      return res;
     },
-    [adminId, cacheKey],
+    (adminId ? spaCache.get(cacheKey, 30 * 60 * 1000) : null) as ReviewPage | null,
   );
 
   useEffect(() => {
-    void load();
-  }, [load]);
-
-  const counts = useMemo(() => {
-    const c = { pending: 0, published: 0, flagged: 0 };
-    reviews?.forEach((r) => c[bucketOf(r)]++);
-    return c;
-  }, [reviews]);
-
-  useEffect(() => {
-    if (reviews) onAttentionCount?.(counts.pending + counts.flagged);
-  }, [reviews, counts, onAttentionCount]);
-
-  // Open on the queue that needs work first.
-  const activeBucket: Bucket =
-    bucket ?? (counts.pending > 0 ? "pending" : counts.flagged > 0 ? "flagged" : "published");
-
-  const stats = useMemo(() => {
-    const published = reviews?.filter((r) => bucketOf(r) === "published") ?? [];
-    const avg = published.length
-      ? published.reduce((sum, r) => sum + (r.rating || 0), 0) / published.length
-      : 0;
-    const restricted = new Set(
-      (reviews ?? [])
-        .filter((r) => r.user && r.user.effectiveCommentStatus !== "ACTIVE")
-        .map((r) => r.user!.id),
-    ).size;
-    return { total: reviews?.length ?? 0, avg, restricted };
-  }, [reviews]);
-
-  const shops = useMemo(() => {
-    const map = new Map<string, string>();
-    reviews?.forEach((r) => r.tenant && map.set(r.tenant.id, r.tenant.shopName));
-    return Array.from(map, ([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
-  }, [reviews]);
-
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return (reviews ?? []).filter((r) => {
-      if (bucketOf(r) !== activeBucket) return false;
-      if (shopFilter === "mall" && r.tenant) return false;
-      if (shopFilter !== "all" && shopFilter !== "mall" && r.tenant?.id !== shopFilter) return false;
-      if (ratingFilter !== "all" && r.rating !== Number(ratingFilter)) return false;
-      if (!q) return true;
-      return [r.user?.name, r.user?.email, r.comment, r.tenant?.shopName]
-        .filter(Boolean)
-        .some((v) => String(v).toLowerCase().includes(q));
-    });
-  }, [reviews, activeBucket, shopFilter, ratingFilter, search]);
-
-  useEffect(() => setVisible(PAGE_SIZE), [activeBucket, shopFilter, ratingFilter, search]);
+    if (!data) return;
+    setAutoBucket(data.bucket);
+    onAttentionCount?.(data.counts.pending + data.counts.flagged);
+  }, [data, onAttentionCount]);
 
   // ── actions ────────────────────────────────────────────────────────────────
   const run = async (id: string, fn: () => Promise<{ success: boolean; error?: string }>, ok: string) => {
@@ -167,7 +103,7 @@ export function ReviewsModeration({
       const res = await fn();
       if (res.success) {
         toast.success(ok);
-        await load();
+        await reload();
       } else {
         toast.error(res.error || "Something went wrong");
       }
@@ -203,14 +139,14 @@ export function ReviewsModeration({
   };
 
   // ── render ─────────────────────────────────────────────────────────────────
-  if (!reviews) {
+  if (!data) {
     if (error) {
       return (
         <Panel flush>
           <EmptyNote
             title="Couldn't load reviews"
             action={
-              <Button variant="primary" onClick={() => load(true)}>
+              <Button variant="primary" onClick={reload}>
                 Try again
               </Button>
             }
@@ -227,10 +163,14 @@ export function ReviewsModeration({
     );
   }
 
+  const { rows, counts, stats, shops } = data;
+  // Highlight the chosen tab at once; the rows follow when they arrive.
+  const activeBucket: Bucket = bucket ?? data.bucket;
+
   const shopItems: Record<string, string> = {
     all: "All shops",
     mall: "Mall reviews",
-    ...Object.fromEntries(shops.map((s) => [s.id, s.name])),
+    ...Object.fromEntries(shops.map((s) => [s.id, s.shopName])),
   };
   const ratingItems: Record<string, string> = {
     all: "All ratings",
@@ -242,7 +182,7 @@ export function ReviewsModeration({
     <div className="space-y-6">
       <StatRow>
         <Stat label="Total reviews" value={stats.total} />
-        <Stat label="Average rating" value={stats.avg ? stats.avg.toFixed(1) : "-"} hint={`${counts.published} published`} />
+        <Stat label="Average rating" value={stats.average ? stats.average.toFixed(1) : "-"} hint={`${counts.published} published`} />
         <Stat
           label="Needs attention"
           value={counts.pending + counts.flagged}
@@ -280,32 +220,34 @@ export function ReviewsModeration({
             ))}
           </Select>
           <p className="ml-auto text-sm text-kumo-subtle">
-            {filtered.length} review{filtered.length === 1 ? "" : "s"}
+            {data.total} review{data.total === 1 ? "" : "s"}
           </p>
-          <Button variant="secondary" icon={<ArrowClockwise />} loading={refreshing} onClick={() => load(true)}>
+          <Button variant="secondary" icon={<ArrowClockwise />} loading={loading} onClick={reload}>
             Refresh
           </Button>
         </div>
 
-        {filtered.length === 0 ? (
+        {error && <p className="px-4 pt-3 text-sm text-kumo-danger sm:px-5">{error}</p>}
+
+        {rows.length === 0 ? (
           <EmptyNote
             title={
               filtering
                 ? "No reviews match these filters"
-                : activeBucket === "pending"
+                : data.bucket === "pending"
                   ? "Nothing waiting for review"
-                  : activeBucket === "flagged"
+                  : data.bucket === "flagged"
                     ? "No reviews flagged as spam"
                     : "No published reviews yet"
             }
           />
         ) : (
-          <ul className="divide-y divide-kumo-line">
-            {filtered.slice(0, visible).map((r) => (
+          <ul aria-busy={loading} className={cn("divide-y divide-kumo-line", loading && "pointer-events-none opacity-60")}>
+            {rows.map((r) => (
               <ReviewItem
                 key={r.id}
                 review={r}
-                bucket={activeBucket}
+                bucket={data.bucket}
                 busy={busyId === r.id}
                 onApprove={() => approve(r)}
                 onUnpublish={() => unpublish(r)}
@@ -318,13 +260,7 @@ export function ReviewsModeration({
           </ul>
         )}
 
-        {filtered.length > visible && (
-          <div className="border-t border-kumo-line p-4 text-center">
-            <Button variant="secondary" onClick={() => setVisible((v) => v + PAGE_SIZE)}>
-              Show more ({filtered.length - visible} left)
-            </Button>
-          </div>
-        )}
+        <Pager page={loading ? page : data.page} total={data.total} onChange={setPage} />
       </Panel>
 
       <AdminDialog

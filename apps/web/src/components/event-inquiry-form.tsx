@@ -17,6 +17,9 @@ import {
 import clsx from "clsx";
 import { submitInquiryAction } from "@/app/actions/inquiry";
 import { LoginModal } from "./login-modal";
+import { useDraft } from "@/lib/drafts/use-draft";
+import { DraftNote } from "@/components/drafts/draft-note";
+import { isOffline } from "@/lib/drafts/online";
 
 const FEATURES = [
   { icon: Wifi, label: "Connectivity" },
@@ -26,17 +29,17 @@ const FEATURES = [
 ] as const;
 
 const FIELD =
-  "w-full rounded-xl border border-[#E6DED7] bg-white px-4 py-3 text-sm font-medium text-[#21191B] outline-hidden transition-all placeholder:text-[#A79E98] focus:border-[#C51D30] focus:ring-4 focus:ring-[#C51D30]/10 dark:border-white/10 dark:bg-zinc-950 dark:text-white dark:placeholder:text-slate-500";
+  "w-full rounded-xl border border-kumo-line bg-kumo-base px-4 py-3 text-sm font-medium text-kumo-default outline-hidden transition-all placeholder:text-kumo-subtle focus:border-primary focus:ring-4 focus:ring-primary/10";
 
 const FIELD_LABEL =
-  "mb-2 block text-[13px] font-medium text-[#6F6468] dark:text-slate-400";
+  "mb-2 block text-sm font-medium text-kumo-subtle";
 
 /** Turns *wrapped words* into the red italic accent used by the venue heading. */
 function renderEmphasis(text: string) {
   return text.split(/(\*[^*]+\*)/g).map((part, i) => {
     if (part.length > 2 && part.startsWith("*") && part.endsWith("*")) {
       return (
-        <span key={i} className="italic text-[#C51D30]">
+        <span key={i} className="italic text-primary">
           {part.slice(1, -1)}
         </span>
       );
@@ -62,7 +65,8 @@ export const EventInquiryForm = ({
   imageUrl?: string | null;
   imageAlt?: string | null;
 }) => {
-  const eyebrowText = eyebrow?.trim() || "Venue booking";
+  // Only shown when the mall office typed one in Website Content.
+  const eyebrowText = eyebrow?.trim();
   const headingText = title?.trim() || "Plan your next *big*\n*day* here.";
   const descriptionText =
     description?.trim() ||
@@ -112,6 +116,21 @@ export const EventInquiryForm = ({
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
+  const draft = useDraft({
+    form: "customer.event-inquiry",
+    enabled: isAuthenticated,
+    value: { eventType, eventDate, eventTime, message, imageFile },
+    initial: { eventType: eventTypes[0], eventDate: "", eventTime: "", message: "", imageFile: null as File | null },
+    onRestore: (saved) => {
+      setEventType(saved.eventType);
+      setEventDate(saved.eventDate);
+      setEventTime(saved.eventTime);
+      setMessage(saved.message);
+      setImageFile(saved.imageFile);
+      if (!saved.imageFile && fileInputRef.current) fileInputRef.current.value = "";
+    },
+  });
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isAuthenticated || !user) {
@@ -133,37 +152,41 @@ export const EventInquiryForm = ({
     setIsSubmitting(true);
     setSubmitMessage(null);
 
-    let imageUrl = "";
-    let storageKey = "";
+    const result = await draft.send(async () => {
+      let imageUrl = "";
+      let storageKey = "";
 
-    if (imageFile) {
-      try {
-        const { getCloudStorageProvider } = await import("@/lib/cloud-storage");
-        const storage = getCloudStorageProvider();
-        const uploadResult = await storage.uploadFile(imageFile, "inquiries");
-        imageUrl = uploadResult.url;
-        storageKey = uploadResult.key;
-      } catch (err) {
-        setSubmitMessage({
-          type: "error",
-          message: "Failed to upload the image. Please try again or remove it.",
-        });
-        setIsSubmitting(false);
-        return;
+      if (imageFile) {
+        try {
+          const { getCloudStorageProvider } = await import("@/lib/cloud-storage");
+          const storage = getCloudStorageProvider();
+          const uploadResult = await storage.uploadFile(imageFile, "inquiries");
+          imageUrl = uploadResult.url;
+          storageKey = uploadResult.key;
+        } catch (err) {
+          if (isOffline()) throw err;
+          return { success: false, error: "Failed to upload the image. Please try again or remove it." };
+        }
       }
-    }
 
-    const result = await submitInquiryAction({
-      userId: user.id,
-      eventType: eventType,
-      eventDate: new Date(eventDate),
-      eventTime: eventTime,
-      message: message,
-      imageUrl: imageUrl || undefined,
-      storageKey: storageKey || undefined,
+      return submitInquiryAction({
+        userId: user.id,
+        eventType: eventType,
+        eventDate: new Date(eventDate),
+        eventTime: eventTime,
+        message: message,
+        imageUrl: imageUrl || undefined,
+        storageKey: storageKey || undefined,
+      });
     });
 
+    if (!result) {
+      setIsSubmitting(false);
+      return;
+    }
+
     if (result.success) {
+      draft.clear();
       setSubmitMessage({
         type: "success",
         message: "Inquiry submitted! Please check your messages for updates.",
@@ -188,15 +211,13 @@ export const EventInquiryForm = ({
       <div className="grid grid-cols-1 items-start gap-10 lg:grid-cols-[minmax(0,11fr)_minmax(0,13fr)] lg:gap-10 xl:gap-12">
         {/* ── Left: venue information ───────────────────────────────────── */}
         <div>
-          <p className="text-xs font-bold text-[#C51D30]">
-            {eyebrowText}
-          </p>
+          {eyebrowText && <p className="mb-3 text-sm font-semibold text-primary">{eyebrowText}</p>}
 
-          <h2 className="mt-3 whitespace-pre-line font-display text-3xl sm:text-4xl lg:text-5xl font-semibold leading-[1.05] tracking-tight text-[#21191B] dark:text-white">
+          <h2 className="whitespace-pre-line font-display text-3xl sm:text-4xl lg:text-5xl font-semibold leading-[1.05] tracking-tight text-kumo-default">
             {renderEmphasis(headingText)}
           </h2>
 
-          <p className="mt-5 max-w-md text-[15px] leading-relaxed text-[#6F6468] dark:text-slate-400">
+          <p className="mt-5 max-w-md text-base leading-relaxed text-kumo-subtle">
             {descriptionText}
           </p>
 
@@ -204,22 +225,22 @@ export const EventInquiryForm = ({
             {FEATURES.map((feature) => (
               <div
                 key={feature.label}
-                className="flex items-center gap-2.5 rounded-xl border border-[#EFE9E2] bg-white px-4 py-3 shadow-[0_2px_8px_-4px_rgba(33,25,27,0.12)] dark:border-white/10 dark:bg-zinc-900"
+                className="flex items-center gap-2.5 rounded-xl border border-kumo-line bg-kumo-base px-4 py-3 shadow-[0_2px_8px_-4px_rgba(33,25,27,0.12)]"
               >
                 <feature.icon
                   size={17}
                   strokeWidth={1.7}
-                  className="shrink-0 text-[#C51D30]"
+                  className="shrink-0 text-primary"
                   aria-hidden
                 />
-                <span className="text-[13.5px] font-semibold leading-snug text-[#21191B] dark:text-slate-200">
+                <span className="text-sm font-semibold leading-snug text-kumo-default">
                   {feature.label}
                 </span>
               </div>
             ))}
           </div>
 
-          <div className="mt-8 overflow-hidden rounded-[1.4rem] border border-[#EFE9E2] bg-[#EFE9E2] shadow-[0_18px_40px_-28px_rgba(33,25,27,0.4)] dark:border-white/10 dark:bg-zinc-900">
+          <div className="mt-8 overflow-hidden rounded-2xl border border-kumo-line bg-kumo-recessed shadow-[0_18px_40px_-28px_rgba(33,25,27,0.4)]">
             {/* Set in CMS → General Settings; the built-in picture is the fallback. */}
             <img
               src={optimizedImage(imageUrl?.trim() || "/images/storefront_hero_placeholder_2_1774159273401.png", 1200)}
@@ -232,7 +253,7 @@ export const EventInquiryForm = ({
         </div>
 
         {/* ── Right: reservation form card ──────────────────────────────── */}
-        <div className="rounded-3xl border border-[#EFE9E2] bg-white p-5 shadow-[0_30px_70px_-42px_rgba(33,25,27,0.45)] dark:border-white/10 dark:bg-zinc-900 sm:p-7">
+        <div className="rounded-2xl border border-kumo-line bg-kumo-base p-5 shadow-[0_30px_70px_-42px_rgba(33,25,27,0.45)] sm:p-7">
           {submitMessage && (
             <div
               role="status"
@@ -248,28 +269,28 @@ export const EventInquiryForm = ({
               ) : (
                 <AlertCircle size={18} className="mt-0.5 shrink-0" />
               )}
-              <p className="text-[13px] font-medium leading-relaxed">
+              <p className="text-sm font-medium leading-relaxed">
                 {submitMessage.message}
               </p>
             </div>
           )}
 
           {!isAuthenticated ? (
-            <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[#DDD2C6] bg-[#FAF7F3] px-6 py-16 text-center dark:border-white/10 dark:bg-zinc-950">
-              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[#C51D30]/10 text-[#C51D30]">
+            <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-kumo-line bg-kumo-recessed px-6 py-16 text-center">
+              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
                 <Ticket size={22} />
               </span>
-              <h3 className="mt-4 text-lg font-semibold text-[#21191B] dark:text-white">
+              <h3 className="mt-4 text-lg font-semibold text-kumo-default">
                 Log in to send an inquiry
               </h3>
-              <p className="mt-2 max-w-sm text-[13px] leading-relaxed text-[#6F6468] dark:text-slate-400">
+              <p className="mt-2 max-w-sm text-sm leading-relaxed text-kumo-subtle">
                 We use your verified SR Mall account so the events team can
                 reply with updates.
               </p>
               <button
                 suppressHydrationWarning
                 onClick={() => setIsLoginModalOpen(true)}
-                className="mt-6 rounded-xl bg-[#C51D30] px-8 py-3 text-sm font-semibold text-white shadow-lg shadow-[#C51D30]/25 transition-all hover:bg-[#A8172A] hover:shadow-xl active:scale-[0.99]"
+                className="mt-6 rounded-xl bg-primary px-8 py-3 text-sm font-semibold text-white shadow-lg shadow-primary/25 transition-all hover:bg-primary-hover hover:shadow-xl active:scale-[0.99]"
               >
                 Log in to continue
               </button>
@@ -288,10 +309,10 @@ export const EventInquiryForm = ({
                       onClick={() => setEventType(type)}
                       aria-pressed={eventType === type}
                       className={clsx(
-                        "cursor-pointer rounded-lg border px-3 py-2 text-[13px] font-semibold leading-none transition-colors",
+                        "cursor-pointer rounded-lg border px-3 py-2 text-sm font-semibold leading-none transition-colors",
                         eventType === type
-                          ? "border-[#C51D30] bg-[#C51D30] text-white shadow-xs shadow-[#C51D30]/25"
-                          : "border-[#E6DED7] bg-white text-[#4A4144] hover:border-[#C51D30]/40 hover:text-[#C51D30] dark:border-white/10 dark:bg-zinc-950 dark:text-slate-300 dark:hover:border-[#C51D30]/40",
+                          ? "border-primary bg-primary text-white shadow-xs shadow-primary/25"
+                          : "border-kumo-line bg-kumo-base text-kumo-default hover:border-primary/40 hover:text-primary",
                       )}
                     >
                       {type}
@@ -375,10 +396,10 @@ export const EventInquiryForm = ({
                     pickImage(e.dataTransfer.files?.[0]);
                   }}
                   className={clsx(
-                    "relative cursor-pointer overflow-hidden rounded-2xl border border-dashed outline-hidden transition-colors focus-visible:ring-4 focus-visible:ring-[#C51D30]/15",
+                    "relative cursor-pointer overflow-hidden rounded-2xl border border-dashed outline-hidden transition-colors focus-visible:ring-4 focus-visible:ring-primary/15",
                     isDragging
-                      ? "border-[#C51D30] bg-[#F8E9E4]"
-                      : "border-[#DDD2C6] bg-[#F4EEE6] hover:border-[#C51D30]/50 dark:border-white/15 dark:bg-zinc-950",
+                      ? "border-primary bg-kumo-recessed"
+                      : "border-kumo-line bg-kumo-recessed hover:border-primary/50",
                   )}
                 >
                   {previewUrl ? (
@@ -392,7 +413,7 @@ export const EventInquiryForm = ({
                         <span className="min-w-0 truncate text-xs font-medium">
                           {imageFile?.name}
                         </span>
-                        <span className="shrink-0 rounded-full bg-white/20 px-3 py-1 text-[11px] font-semibold backdrop-blur-sm">
+                        <span className="shrink-0 rounded-full bg-white/20 px-3 py-1 text-xs font-semibold backdrop-blur-sm">
                           Change
                         </span>
                       </div>
@@ -414,10 +435,10 @@ export const EventInquiryForm = ({
                       <ImagePlus
                         size={22}
                         strokeWidth={1.6}
-                        className="text-[#8B7F76] dark:text-slate-400"
+                        className="text-kumo-subtle"
                         aria-hidden
                       />
-                      <span className="text-sm font-medium text-[#6F6468] dark:text-slate-300">
+                      <span className="text-sm font-medium text-kumo-subtle">
                         Add an image
                       </span>
                     </span>
@@ -433,13 +454,15 @@ export const EventInquiryForm = ({
                 </div>
               </div>
 
+              <DraftNote draft={draft} />
+
               {/* Submit */}
               <div className="pt-1">
                 <button
                   suppressHydrationWarning
                   type="submit"
                   disabled={isSubmitting}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#C51D30] px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-[#C51D30]/25 transition-all hover:bg-[#A8172A] hover:shadow-xl active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 sm:py-4"
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-primary/25 transition-all hover:bg-primary-hover hover:shadow-xl active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 sm:py-4"
                 >
                   {isSubmitting ? (
                     <>

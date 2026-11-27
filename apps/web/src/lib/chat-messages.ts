@@ -3,8 +3,8 @@
  *
  * Every surface (public ChatBox, tenant messenger, admin messenger hub) keeps a
  * flat `messages` array. These helpers make that array safe to touch from four
- * directions at once — initial fetch, older-page pagination, optimistic send
- * and Supabase Realtime — without ever producing a duplicate bubble.
+ * directions at once, initial fetch, older-page pagination, optimistic send
+ * and Supabase Realtime, without ever producing a duplicate bubble.
  *
  * Rules:
  *  - The database id is the identity of a message. Two entries with the same id
@@ -55,7 +55,7 @@ export function sortChatMessages(list: ChatMessageLike[]): ChatMessageLike[] {
     }
     const id = message?.id == null ? null : String(message.id);
     if (id !== null) {
-      if (seen.has(id)) continue; // duplicate row — keep the first occurrence
+      if (seen.has(id)) continue; // duplicate row, keep the first occurrence
       seen.add(id);
     }
     persisted.push(message);
@@ -181,7 +181,7 @@ export function replaceOptimistic(
   // The temp is still on screen, but the realtime event may already have
   // inserted the very same row (adoption missed it because content, sender or
   // the clock did not line up). Writing it into the temp slot as well would
-  // leave two entries with one id — drop the temp instead.
+  // leave two entries with one id, drop the temp instead.
   if (persisted?.id && existing.some((m, i) => i !== index && m.id === persisted.id)) {
     return sortChatMessages(existing.filter((_, i) => i !== index));
   }

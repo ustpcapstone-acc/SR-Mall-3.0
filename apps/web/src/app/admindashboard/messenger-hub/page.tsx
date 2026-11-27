@@ -44,6 +44,9 @@ import {
   useChatBlock,
 } from "@/components/chat/chat-ui";
 import { toast } from "sonner";
+import { useDraft } from "@/lib/drafts/use-draft";
+import { DraftNote } from "@/components/drafts/draft-note";
+import { isOffline } from "@/lib/drafts/online";
 
 const FILTER_TABS = ["All", "Tenant Messages", "Customer Chat Messages", "Unread"] as const;
 const FILTER_ITEMS: Record<string, string> = {
@@ -71,6 +74,21 @@ function MessengerHubContent() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [fileInputKey, setFileInputKey] = useState(0);
+
+  // One unfinished reply per conversation. Text that failed to send stays in the
+  // draft until it goes through.
+  const [unsent, setUnsent] = useState<{ thread: string; tempId: string; text: string } | null>(null);
+  const draft = useDraft({
+    form: "admin.chat",
+    scope: [activeChatId],
+    enabled: Boolean(activeChatId),
+    value: { text: replyText || (unsent?.thread === activeChatId ? unsent.text : "") },
+    initial: { text: "" },
+    onRestore: (saved) => {
+      setUnsent(null);
+      setReplyText(saved.text);
+    },
+  });
 
   // Modals state
   const [lightboxImageUrl, setLightboxImageUrl] = useState<string | null>(null);
@@ -325,7 +343,7 @@ function MessengerHubContent() {
     }
   }, [activeChatId, fetchMessages, hasOlderMessages, messages]);
 
-  // Which conversation(s) the open chat spans — kept reference-stable so the
+  // Which conversation(s) the open chat spans, kept reference-stable so the
   // realtime effect does not resubscribe on every conversation refresh.
   useEffect(() => {
     if (!activeChatId) {
@@ -386,6 +404,7 @@ function MessengerHubContent() {
   const handleSelectChat = (chat: any) => {
     if (chat.id === activeChatId) return;
     setActiveChatId(chat.id);
+    setReplyText("");
     setConversations((prev: any[]) =>
       prev.map((c) => (c.id === chat.id ? { ...c, unreadCount: 0 } : c)),
     );
@@ -472,6 +491,7 @@ function MessengerHubContent() {
       }
 
       pendingFilesRef.current.delete(payload.tempId);
+      setUnsent((current) => (current?.tempId === payload.tempId ? null : current));
 
       if (res.conversationId && res.conversationId !== activeChatId) {
         // Message was routed into another conversation → follow it.
@@ -495,6 +515,11 @@ function MessengerHubContent() {
   const handleSendReply = async (e: React.FormEvent) => {
     e.preventDefault();
     if ((!replyText.trim() && !imageFile) || !activeChatId || isSending) return;
+    if (isOffline()) {
+      draft.flush();
+      toast.error("You're offline. Your reply is kept here. Send it when you're back online.");
+      return;
+    }
 
     const textToSend = replyText;
     const fileToSend = imageFile;
@@ -508,6 +533,7 @@ function MessengerHubContent() {
 
     // Instant optimistic message
     const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    setUnsent({ thread: activeChatId, tempId, text: textToSend });
     const optimisticMessage = {
       id: tempId,
       content: textToSend,
@@ -539,7 +565,7 @@ function MessengerHubContent() {
     });
   };
 
-  // Retry a failed bubble — its text and image are preserved.
+  // Retry a failed bubble, its text and image are preserved.
   const retryMessage = (message: any) => {
     if (!message?.id || message.sending) return;
     const file = pendingFilesRef.current.get(message.id) ?? null;
@@ -834,6 +860,7 @@ function MessengerHubContent() {
                     </Button>
                   </div>
                 )}
+                <DraftNote draft={draft} className="mb-2 text-xs" />
                 <form onSubmit={handleSendReply} className="flex items-center gap-2">
                   <input
                     key={fileInputKey}

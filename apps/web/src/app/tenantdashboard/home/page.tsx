@@ -9,15 +9,16 @@ import { setUnitShopAction, setWorkspaceAction } from "@/app/actions/workspace";
 import { confirmAction } from "@/components/confirm-dialog";
 import { STAGE_LABEL, peso } from "@/lib/leasing";
 import { formatPHDate } from "@/lib/ph-date";
+import { useFloors } from "@/lib/use-floors";
 import { InvoiceButton, StatusText } from "@/components/leasing/shared";
 import { GettingStarted } from "@/components/tenant/getting-started";
 
 type Data = Extract<Awaited<ReturnType<typeof getRentASpaceAction>>, { success: true }>["data"];
 
-const floorLabel = (f?: string | null) => (f ? `${f.charAt(0).toUpperCase()}${f.slice(1)} floor` : "");
 
 /** Home workspace: the tenant account, its spaces and requests. */
 export default function TenantHomePage() {
+  const { label: floorLabel } = useFloors();
   const [data, setData] = useState<Data | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [opening, setOpening] = useState<string | null>(null);

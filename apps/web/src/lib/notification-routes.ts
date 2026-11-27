@@ -17,7 +17,7 @@ export interface NotificationLike {
  *  3. The type's destination for the viewer's role.
  *  4. The role's dashboard / home page.
  *
- * (The old version guessed from words in the title — e.g. any title with "ad"
+ * (The old version guessed from words in the title, e.g. any title with "ad"
  * in it, like "uploaded", went to the Ad Scheduler.)
  */
 export function getNotificationRoute(notification: NotificationLike, userRole?: string | null): string {

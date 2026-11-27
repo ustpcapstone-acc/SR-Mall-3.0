@@ -55,8 +55,8 @@ export function ShopPromos({
     return (
       <section>
       <div className="mb-3">
-        <h2 className="font-display text-xl font-semibold text-[#21191B] dark:text-white">Promos</h2>
-        <p className="text-sm text-[#8B7F76]">{promos.length} running now</p>
+        <h2 className="font-display text-xl font-semibold text-kumo-default">Promos</h2>
+        <p className="text-sm text-kumo-subtle">{promos.length} running now</p>
       </div>
       <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
         {promos.map((p) => {
@@ -64,7 +64,7 @@ export function ShopPromos({
           return (
             <article
               key={p.id}
-              className="overflow-hidden rounded-2xl border border-[#E8E2DE] bg-white shadow-xs dark:border-white/10 dark:bg-zinc-900"
+              className="overflow-hidden rounded-2xl border border-kumo-line bg-kumo-base shadow-xs"
             >
               <div className="relative aspect-16/10 bg-black">
                 {isVideo ? (
@@ -82,16 +82,16 @@ export function ShopPromos({
                 ) : null}
               </div>
               <div className="space-y-2 p-4 sm:p-5">
-                <h3 className="text-lg font-semibold leading-tight text-[#21191B] dark:text-white sm:text-xl">
+                <h3 className="text-lg font-semibold leading-tight text-kumo-default sm:text-xl">
                   {p.title}
                 </h3>
                 {p.description?.trim() && (
-                  <p className="text-[13px] leading-relaxed text-[#70656A] dark:text-slate-400">
+                  <p className="text-sm leading-relaxed text-kumo-subtle">
                     {p.description.trim()}
                   </p>
                 )}
-                <p className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#8B7F76]">
-                  <Calendar size={12} className="text-[#C51D30]" /> Until {formatPHDate(p.endDate)}
+                <p className="inline-flex items-center gap-1.5 text-xs font-semibold text-kumo-subtle">
+                  <Calendar size={12} className="text-primary" /> Until {formatPHDate(p.endDate)}
                 </p>
               </div>
             </article>
@@ -105,8 +105,8 @@ export function ShopPromos({
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 pb-10 sm:pb-16">
       <div className="mb-5">
-        <h2 className="font-display text-2xl font-semibold text-charcoal dark:text-white">Current promos</h2>
-        <p className="text-sm text-slate-500 dark:text-slate-400">{promos.length} running now</p>
+        <h2 className="font-display text-2xl font-semibold text-kumo-default">Current promos</h2>
+        <p className="text-sm text-kumo-subtle">{promos.length} running now</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-8">
@@ -115,7 +115,7 @@ export function ShopPromos({
           return (
             <article
               key={p.id}
-              className="bg-white dark:bg-zinc-900 rounded-[1.25rem] sm:rounded-4xl border border-slate-100 dark:border-white/5 overflow-hidden shadow-xs"
+              className="bg-kumo-base rounded-2xl sm:rounded-2xl border border-kumo-line overflow-hidden shadow-xs"
             >
               <div className="aspect-16/10 relative bg-black">
                 {isVideo ? (
@@ -133,11 +133,11 @@ export function ShopPromos({
                 ) : null}
               </div>
               <div className="p-4 sm:p-6 space-y-2">
-                <h3 className="text-lg sm:text-2xl font-semibold text-charcoal dark:text-white tracking-tight">{p.title}</h3>
+                <h3 className="text-lg sm:text-2xl font-semibold text-kumo-default tracking-tight">{p.title}</h3>
                 {p.description?.trim() && (
-                  <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">{p.description.trim()}</p>
+                  <p className="text-sm text-kumo-subtle leading-relaxed">{p.description.trim()}</p>
                 )}
-                <p className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-400">
+                <p className="inline-flex items-center gap-1.5 text-xs font-bold text-kumo-subtle">
                   <Calendar size={12} className="text-primary" /> Until {formatPHDate(p.endDate)}
                 </p>
               </div>

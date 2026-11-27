@@ -1,5 +1,5 @@
 /**
- * "New sign-ups today" for admins — one running notification per day instead
+ * "New sign-ups today" for admins, one running notification per day instead
  * of an alert for every account. Each new sign-up replaces today's unread
  * notice with an updated count (a new row, so it pops up live in the bell).
  *
@@ -29,7 +29,7 @@ export async function notifyNewSignup(newUserName: string) {
       message:
         count === 1
           ? `${newUserName} created an account today.`
-          : `${count} accounts were created today — latest: ${newUserName}.`,
+          : `${count} accounts were created today. Latest: ${newUserName}.`,
       link: "/admindashboard/user-management",
       email: false,
     });

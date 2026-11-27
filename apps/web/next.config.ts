@@ -58,7 +58,11 @@ const nextConfig: NextConfig = {
   // The public home page lives at "/". Old links (emails, saved notifications,
   // bookmarks) to /public-view keep working; the query string is kept.
   async redirects() {
-    return [{ source: "/public-view", destination: "/", permanent: true }];
+    return [
+      { source: "/public-view", destination: "/", permanent: true },
+      // Tenants sign in on the shared page now; old tenant links still arrive there.
+      { source: "/tenant-portal", destination: "/login?role=tenant", permanent: false },
+    ];
   },
   experimental: {
     serverActions: {

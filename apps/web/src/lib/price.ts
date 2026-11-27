@@ -4,7 +4,7 @@
  */
 export function formatPrice(raw?: string | null): string | null {
   const value = (raw || "").trim();
-  if (!value || /^[-–—.\s]+$/.test(value)) return null;
+  if (!value || /^[-\u2013\u2014.\s]+$/.test(value)) return null;
   const numeric = Number(value.replace(/,/g, ""));
   if (!Number.isFinite(numeric) || !/\d/.test(value)) return value;
   return new Intl.NumberFormat("en-PH", {

@@ -5,6 +5,9 @@ import { prisma } from "@srmall/database";
 import { emailBaseUrl } from "@/utils/get-base-url";
 import { revalidatePath } from "next/cache";
 import { notify } from "@/lib/notify";
+import { MAX_UNIT_RENT, NO_HOLD, twinMessage, unitKey, unitLock } from "@/lib/unit-rules";
+import { unitHolds } from "@/lib/unit-holds";
+import { NOT_PLACED, UNIT_BOX } from "@/lib/floor-layout";
 
 import {
   PERMIT_MAX_BYTES,
@@ -93,7 +96,7 @@ export async function getPermitLinkAction(_adminUserId: string | undefined, unit
 
 export async function getAreaSlots() {
   try {
-    await requireStaffAny("bookings", "spaces", "tenant_monitoring");
+    await requireStaffAny("bookings", "spaces", "tenant_monitoring", "payments");
   } catch {
     return { success: false, error: "Failed to fetch slots", data: undefined };
   }
@@ -126,6 +129,17 @@ export async function getAreaSlotByUnitId(unit_id: string) {
   }
 }
 
+/** Admin: which units a lease or tenant record is on, so the editor can lock them. */
+export async function getUnitHoldsAction() {
+  try {
+    await requireStaffAny("bookings", "spaces");
+    return { success: true as const, data: await unitHolds() };
+  } catch (error) {
+    console.error("[UNIT_HOLDS_ERROR]:", error);
+    return { success: false as const, error: "Couldn't check which units are rented." };
+  }
+}
+
 export async function upsertAreaSlot(data: {
   id?: string;
   unit_id: string;
@@ -136,18 +150,53 @@ export async function upsertAreaSlot(data: {
   features?: string[];
   floor?: string;
   category?: string;
-  x?: number;
-  y?: number;
-  width?: number;
-  height?: number;
 }) {
   try {
     await requireStaffAny("bookings", "spaces");
-    if (data.id) {
-      await (prisma.areaSlot.update as any)({
-        where: { id: data.id },
+    const unitId = String(data.unit_id ?? "").trim();
+    if (!unitId) return { success: false, error: "Unit ID is required." };
+    if (!(Number.isFinite(data.sqm_size) && data.sqm_size > 0)) {
+      return { success: false, error: "Enter the space size in square meters." };
+    }
+    if (!(Number.isFinite(data.base_rent) && data.base_rent > 0 && data.base_rent <= MAX_UNIT_RENT)) {
+      return { success: false, error: "Enter the monthly rent." };
+    }
+    const current = data.id
+      ? await prisma.areaSlot.findUnique({
+          where: { id: data.id },
+          select: { unit_id: true, status: true, tenant_id: true, floor: true, updatedAt: true },
+        })
+      : null;
+    if (data.id && !current) return { success: false, error: "This space no longer exists." };
+
+    // Status and Unit ID are how leases, tenants and reservations find a unit.
+    const hold = current ? ((await unitHolds([current.unit_id]))[current.unit_id] ?? NO_HOLD) : NO_HOLD;
+    const lock = unitLock(current, hold);
+    if (!lock.statuses.includes(data.status)) return { success: false, error: lock.note };
+    if (current && lock.idLocked && unitId !== current.unit_id) return { success: false, error: lock.note };
+
+    // Checked for new and renamed units only, so older records can still be edited.
+    if (!current || unitId !== current.unit_id) {
+      const all = await prisma.areaSlot.findMany({ select: { id: true, unit_id: true } });
+      const twin = all.find((s) => s.id !== data.id && unitKey(s.unit_id) === unitKey(unitId));
+      if (twin) return { success: false, error: twinMessage(twin.unit_id) };
+    }
+
+    if (data.floor !== undefined) {
+      const known = await prisma.floor.findUnique({ where: { id: data.floor }, select: { id: true } });
+      // A unit may stay where it is, but can't be moved to a floor that doesn't exist.
+      if (!known && current?.floor !== data.floor) return { success: false, error: "Choose an existing floor." };
+    }
+    if (data.id && current) {
+      // Only if nobody reserved, rented or renamed it since it was read.
+      const saved = await (prisma.areaSlot.updateMany as any)({
+        where: { id: data.id, unit_id: current.unit_id, status: current.status, tenant_id: current.tenant_id },
         data: {
-          unit_id: data.unit_id,
+          unit_id: unitId,
+          // An emptied unit forgets who had it.
+          ...((data.status === "AVAILABLE" || data.status === "MAINTENANCE") && { tenant_id: null }),
+          // The reservation hold is timed from updatedAt: editing mustn't restart it.
+          ...(current.status === "RESERVED" && data.status === "RESERVED" && { updatedAt: current.updatedAt }),
           status: data.status,
           sqm_size: data.sqm_size,
           base_rent: data.base_rent,
@@ -155,16 +204,17 @@ export async function upsertAreaSlot(data: {
           ...(data.features !== undefined && { features: data.features }),
           ...(data.floor !== undefined && { floor: data.floor }),
           ...(data.category !== undefined && { category: data.category }),
-          ...(data.x !== undefined && { x: data.x }),
-          ...(data.y !== undefined && { y: data.y }),
-          ...(data.width !== undefined && { width: data.width }),
-          ...(data.height !== undefined && { height: data.height }),
+          // A unit moved to another floor has to be placed on that floor's map.
+          ...(data.floor !== undefined && data.floor !== current.floor && { x: NOT_PLACED, y: NOT_PLACED }),
         },
       });
+      if (!saved.count) {
+        return { success: false, error: "This unit just changed. Close the window and open it again." };
+      }
     } else {
       await (prisma.areaSlot.create as any)({
         data: {
-          unit_id: data.unit_id,
+          unit_id: unitId,
           status: data.status,
           sqm_size: data.sqm_size,
           base_rent: data.base_rent,
@@ -172,10 +222,10 @@ export async function upsertAreaSlot(data: {
           features: data.features || [],
           floor: data.floor || "ground",
           category: data.category || "retail",
-          x: data.x || 0,
-          y: data.y || 0,
-          width: data.width || 120,
-          height: data.height || 80,
+          x: NOT_PLACED,
+          y: NOT_PLACED,
+          width: UNIT_BOX.width,
+          height: UNIT_BOX.height,
         },
       });
     }
@@ -578,6 +628,13 @@ export async function deleteAreaSlot(id: string) {
         } before deleting it.`,
       };
     }
+    const hold = (await unitHolds([slot.unit_id]))[slot.unit_id];
+    if (hold) {
+      return {
+        success: false,
+        error: `${unitLock(slot, hold).note} It can't be deleted while a tenant is on it.`,
+      };
+    }
     await prisma.areaSlot.delete({ where: { id } });
     revalidatePath("/admindashboard/space-manager");
     revalidatePath("/");
@@ -615,12 +672,12 @@ export async function processExpiredReservationsAction() {
         });
         await closeReservationRequest(slot.unit_id, slot.tenant_id, "EXPIRED", "Not reviewed within the review window.");
 
-        // 🚨 Notify the reserver — in-app + email, gated by their own prefs
+        // 🚨 Notify the reserver, in-app + email, gated by their own prefs
         if (slot.tenant_id) {
           await notify("SPACE_RESERVATION", {
             recipients: [slot.tenant_id],
             title: "Reservation Automatically Released",
-            message: `Your reservation for Unit ${slot.unit_id} was automatically released after ${RESERVATION_HOLD_LABEL} without a decision. The unit is back in the available pool — submit a new reservation anytime or speak to the leasing desk.`,
+            message: `Your reservation for Unit ${slot.unit_id} was automatically released after ${RESERVATION_HOLD_LABEL} without a decision. The unit is back in the available pool. You can submit a new reservation anytime or speak to the leasing desk.`,
             link: "/available-spaces",
           });
         }
